@@ -1,0 +1,12 @@
+ppc_sim_booke
+---------------------------------------------
+The purpose of this project is to explore an instruction set simulator for booke powerpc architectures in c++.
+The reference core is freescale e500v2.
+
+Features :-
+1. ISS is being designed in c++ as a shared library. A python based interface/wrapper is also planned.
+3. The simulator can only be compiled with GCC since it heavily uses x86/x86_64 inline assembly to map some of the ppc instructions directly to x86 instructions.
+4. It's not portable across platforms ( for the same reason mentioned above ) and would only work on an x86_64 host.
+
+This work is distributed under the terms of GNU GPL v2. Detailed license agreements are there in COPYING file.
+Copyright : Vikas Chouhan ( presentisgood@gmail.com ) 2012. 
