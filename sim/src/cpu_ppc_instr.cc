@@ -59,6 +59,7 @@
 #define REG1   reg(ARG1)
 #define REG2   reg(ARG2)
 #define REG3   reg(ARG3)
+#define REG4   reg(ARG4)
 
 #if 0
 #ifndef CHECK_FOR_FPU_EXCEPTION
@@ -299,7 +300,7 @@ X(addi)
 {
     SMODE tmp = (int16_t)ARG2;
     if(ARG1){ ADD(REG0, REG1, tmp, HOST_FLAGS); }
-    else    { REG0 = (int16_t)ARG2;                   }
+    else    { REG0 = (int16_t)ARG2;             }
 }
 X(li)
 {
@@ -309,13 +310,13 @@ X(la)
 {
     SMODE tmp = (int16_t)ARG1;
     if(ARG2){ ADD(REG0, REG2, tmp, HOST_FLAGS); }
-    else    { REG0 = (int16_t)ARG1;                   }
+    else    { REG0 = (int16_t)ARG1;             }
 }
 X(subi)
 {
     SMODE tmp = (int16_t)ARG2;
     if(ARG1){ SUB(REG0, REG1, tmp, HOST_FLAGS); }
-    else    { REG0 = -(int16_t)ARG2;                  }
+    else    { REG0 = -(int16_t)ARG2;            }
 }
 X(li_0)
 {
@@ -368,7 +369,7 @@ X(addis)
 {
     SMODE tmp = (((int16_t)ARG2) << 16);
     if(ARG1){ ADD(REG0, REG1, tmp, HOST_FLAGS); }
-    else    { REG0 = ((int16_t)ARG2) << 16;                    }
+    else    { REG0 = ((int16_t)ARG2) << 16;     }
 }
 X(lis)
 {
@@ -378,7 +379,7 @@ X(subis)
 {
     SMODE tmp = (((int16_t)ARG2) << 16);
     if(ARG1){ SUB(REG0, REG1, tmp, HOST_FLAGS); }
-    else    { REG0 = -((int16_t)ARG2 << 16);                    }
+    else    { REG0 = -((int16_t)ARG2 << 16);    }
 }
 /* addme
  * rA + XER[CA] - 1  
@@ -475,6 +476,111 @@ X(andis.)
     REG0 = tmp;
     UPDATE_CR0(0, tmp);
 }
+
+/*-----------------------------------------------------------------------------------------------*/
+/* cmp variants */
+// cmp crD, L, rA, rB 
+X(cmp)
+{
+#define cmp_code(crD, L, rA, rB)                                       \
+    unsigned res = 0;                                                  \
+    switch(L){                                                         \
+        case 0:                                                        \
+            if((int32_t)rA > (int32_t)rB){ res |= 0x2; }               \
+            else if((int32_t)rA < (int32_t)rB){ res |= 0x4; }          \
+            else { res |= 0x1; }                                       \
+            break;                                                     \
+        case 1:                                                        \
+            if((int64_t)rA > (int64_t)rB){ res |= 0x2; }               \
+            else if((int64_t)rA < (int64_t)rB){ res |= 0x4; }          \
+            else { res |= 0x1; }                                       \
+            break;                                                     \
+    }                                                                  \
+    update_crf(crD, res);                                              \
+    update_cr_f((crD*4+3), get_xer_so());
+
+    cmp_code(ARG0, ARG1, REG2, REG3);
+}
+X(cmpi)
+{
+#define cmpi_code(crD, L, rA, SIMM)                                    \
+    unsigned res = 0;                                                  \
+    switch(L){                                                         \
+        case 0:                                                        \
+            if((int32_t)rA > (int32_t)SIMM){ res |= 0x2; }             \
+            else if((int32_t)rA < (int32_t)SIMM){ res |= 0x4; }        \
+            else { res |= 0x1; }                                       \
+            break;                                                     \
+        case 1:                                                        \
+            if((int64_t)rA > (int64_t)SIMM){ res |= 0x2; }             \
+            else if((int64_t)rA < (int64_t)SIMM){ res |= 0x4; }        \
+            else { res |= 0x1; }                                       \
+            break;                                                     \
+    }                                                                  \
+    update_crf(ARG0, res);                                             \
+    update_cr_f((ARG0*4+3), get_xer_so());
+
+    cmpi_code(ARG0, ARG1, REG2, ARG3);
+}
+X(cmpl)
+{
+#define cmpl_code(crD, L, rA, rB)                                      \
+    unsigned res = 0;                                                  \
+    switch(L){                                                         \
+        case 0:                                                        \
+            if((uint32_t)rA > (uint32_t)rB){ res |= 0x2; }             \
+            else if((uint32_t)rA < (uint32_t)rB){ res |= 0x4; }        \
+            else { res |= 0x1; }                                       \
+            break;                                                     \
+        case 1:                                                        \
+            if((uint64_t)rA > (uint64_t)rB){ res |= 0x2; }             \
+            else if((uint64_t)rA < (uint64_t)rB){ res |= 0x4; }        \
+            else { res |= 0x1; }                                       \
+            break;                                                     \
+    }                                                                  \
+    update_crf(ARG0, res);                                             \
+    update_cr_f((ARG0*4+3), get_xer_so());
+
+    cmpl_code(ARG0, ARG1, REG2, REG3);
+}
+X(cmpli)
+{
+#define cmpli_code(crD, L, rA, UIMM)                                   \
+    unsigned res = 0;                                                  \
+    switch(L){                                                         \
+        case 0:                                                        \
+            if((uint32_t)rA > (uint32_t)UIMM){ res |= 0x2; }           \
+            else if((uint32_t)rA < (uint32_t)UIMM){ res |= 0x4; }      \
+            else { res |= 0x1; }                                       \
+            break;                                                     \
+        case 1:                                                        \
+            if((uint64_t)rA > (uint64_t)UIMM){ res |= 0x2; }           \
+            else if((uint64_t)rA < (uint64_t)UIMM){ res |= 0x4; }      \
+            else { res |= 0x1; }                                       \
+            break;                                                     \
+    }                                                                  \
+    update_crf(ARG0, res);                                             \
+    update_cr_f((ARG0*4+3), get_xer_so());
+
+    cmpli_code(ARG0, ARG1, REG2, ARG3);
+}
+X(cmplw)
+{
+    cmpl_code(ARG0, 0, REG1, REG2);
+}
+X(cmplwi)
+{
+    cmpli_code(ARG0, 0, REG1, ARG2);
+}
+X(cmpw)
+{
+    cmp_code(ARG0, 0, REG1, REG2);
+}
+X(cmpwi)
+{
+    cmpi_code(ARG0, 0, REG1, ARG2);
+}
+
 
 #if 0
 

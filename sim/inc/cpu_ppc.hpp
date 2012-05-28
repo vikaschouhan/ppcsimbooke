@@ -184,7 +184,7 @@ class ppc_cpu_booke : public cpu {
         ostr << std::endl;
 
         // dump gprs
-        ostr << "GPRS---" << std::endl;
+        ostr << "GPRS" << std::endl;
         for(i=0; i<PPC_NGPRS; i++){
             strout << "r" << std::dec << i << " = " << std::hex << std::showbase << gpr[i];
             ostr << std::left << std::setw(23) << strout.str() << "    ";
@@ -195,7 +195,7 @@ class ppc_cpu_booke : public cpu {
         colno = 0;
 
         // dump fprs
-        ostr << "FPRS---" << std::endl;
+        ostr << "FPRS" << std::endl;
         for(i=0; i<PPC_NFPRS; i++){
             strout << "f" << std::dec << i << " = " << std::hex << std::showbase << fpr[i];
             ostr << std::left << std::setw(23) << strout.str() << "    ";
@@ -206,7 +206,7 @@ class ppc_cpu_booke : public cpu {
         colno = 0;
 
         // dump sprs
-        ostr << "SPRS---" << std::endl;
+        ostr << "SPRS" << std::endl;
         if(dump_all_sprs){
             for(i=0; i<PPC_NSPRS; i++){
                 // TODO: do a check for valid sprs later on
@@ -224,7 +224,7 @@ class ppc_cpu_booke : public cpu {
             ostr << "lr  = " << *m_reghash["lr"] << std::endl;
             ostr << std::endl;
 
-            ostr << "MAS registers---" << std::endl;
+            ostr << "MAS registers" << std::endl;
             ostr << "mas0 = " << *m_reghash["mas0"] << std::endl;
             ostr << "mas1 = " << *m_reghash["mas1"] << std::endl;
             ostr << "mas2 = " << *m_reghash["mas2"] << std::endl;
@@ -292,6 +292,23 @@ class ppc_cpu_booke : public cpu {
         LOG("DEBUG4") << MSG_FUNC_END;
     }
 
+    // Updates CR[bf] with val i.e CR[bf] <- (val & 0xf)
+    // bf may range from [0:7]
+    void update_crf(unsigned bf, uint64_t val){
+        LOG("DEBUG4") << MSG_FUNC_START;
+        cr &= ~( 0xf << (7 - bf)*4 );
+        cr |=  ((val & 0xf) << (7 - bf)*4);
+        LOG("DEBUG4") << MSG_FUNC_END;
+    }
+
+    // Update CR by exact field value [0:31]
+    void update_cr_f(unsigned field, unsigned value){
+        LOG("DEBUG4") << MSG_FUNC_START;
+        cr &= ~(0x1 << (31 - field));
+        cr |= (value << (31 - field));
+        LOG("DEBUG4") << MSG_FUNC_END;
+    }
+
     // Update XER
     void update_xer(bool use_host, uint64_t value=0){
         LOG("DEBUG4") << MSG_FUNC_START;
@@ -310,6 +327,13 @@ class ppc_cpu_booke : public cpu {
         /* Set XER */
         spr[SPRN_XER] &= ~((uint32_t)0xf << 28);
         spr[SPRN_XER] |= (c << 28);
+        LOG("DEBUG4") << MSG_FUNC_END;
+    }
+
+    // Get XER[SO]
+    unsigned get_xer_so(){
+        LOG("DEBUG4") << MSG_FUNC_START;
+        return (spr[SPRN_XER] >> XER_SO_SHIFT) & XER_SO;
         LOG("DEBUG4") << MSG_FUNC_END;
     }
 

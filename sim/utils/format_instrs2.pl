@@ -81,8 +81,11 @@ my $ppc_cpu_gpr = "\"cpu->gpr\"";     # -DGPR
 my $ppc_cpu_umode = "\"uint32_t\"";   # -DUMODE
 my $ppc_cpu_smode = "\"int32_t\"";    # -DSMODE
 
-my $ppc_update_cr0 = "\"cpu->update_cr0\"";   # -DUPDATE_CR0
-my $ppc_update_xer = "\"cpu->update_xer\"";   # -DUPDATE_XER
+my $ppc_update_cr0  = "\"cpu->update_cr0\"";     # -DUPDATE_CR0
+my $ppc_update_crf  = "\"cpu->update_crf\"";     # -Dupdate_crf
+my $ppc_update_cr_f = "\"cpu->update_cr_f\"";    # -Dupdate_cr_f
+my $ppc_update_xer  = "\"cpu->update_xer\"";     # -DUPDATE_XER
+my $ppc_get_xer_so  = "\"cpu->get_xer_so\"";     # -Dget_xer_so
 
 my $host_flags = "\"cpu->host_state.flags\"";  # -DHOST_FLAGS
 my $dummy_flags = "\"cpu->host_state.dummy\""; # -DDUMMY
@@ -95,6 +98,8 @@ my $ppc_macros_list = " -DARG0="   . $ppc_ic_arg0   . " -DARG1="   . $ppc_ic_arg
                       " -DSPR="    . $ppc_cpu_spr   . " -DGPR="    . $ppc_cpu_gpr   .
                       " -DUMODE="  . $ppc_cpu_umode . " -DSMODE="  . $ppc_cpu_smode .
                       " -DUPDATE_CR0=" . $ppc_update_cr0 . " -DUPDATE_XER=" . $ppc_update_xer .
+                      " -Dupdate_crf=" . $ppc_update_crf . " -Dupdate_cr_f=" . $ppc_update_cr_f .
+                      " -Dget_xer_so=" . $ppc_get_xer_so .
                       " -DHOST_FLAGS=" . $host_flags     . " -DDUMMY="      . $dummy_flags    ;
 
 # defines going directly to the file
