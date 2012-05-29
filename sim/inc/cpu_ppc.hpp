@@ -294,18 +294,32 @@ class ppc_cpu_booke : public cpu {
 
     // Updates CR[bf] with val i.e CR[bf] <- (val & 0xf)
     // bf may range from [0:7]
-    void update_crf(unsigned bf, uint64_t val){
+    void update_crF(unsigned bf, uint64_t val){
         LOG("DEBUG4") << MSG_FUNC_START;
         cr &= ~( 0xf << (7 - bf)*4 );
         cr |=  ((val & 0xf) << (7 - bf)*4);
         LOG("DEBUG4") << MSG_FUNC_END;
     }
 
+    // Get crF  ( F -> [0:7] )
+    unsigned get_crF(unsigned bf){
+        LOG("DEBUG4") << MSG_FUNC_START;
+        return (cr >> (7 - bf)*4) & 0xf;
+        LOG("DEBUG4") << MSG_FUNC_END;
+    }
+
     // Update CR by exact field value [0:31]
-    void update_cr_f(unsigned field, unsigned value){
+    void update_crf(unsigned field, unsigned value){
         LOG("DEBUG4") << MSG_FUNC_START;
         cr &= ~(0x1 << (31 - field));
         cr |= (value << (31 - field));
+        LOG("DEBUG4") << MSG_FUNC_END;
+    }
+
+    // Get CR bit at exact field
+    unsigned get_crf(unsigned field){
+        LOG("DEBUG4") << MSG_FUNC_START;
+        return (cr >> (31 - field)) & 0x1;
         LOG("DEBUG4") << MSG_FUNC_END;
     }
 

@@ -198,8 +198,8 @@ X(nop)
 /* invalid:  To catch bugs. */
 X(invalid)
 {
-	cerr << "PPC: invalid(): INTERNAL ERROR\n";
-	exit(1);
+    cerr << "PPC: invalid(): INTERNAL ERROR\n";
+    exit(1);
 }
 
 /*----------------------------------------------------------------------------------------------------*/
@@ -225,18 +225,18 @@ X(add)
 X(add.)
 {
     _ADDR;
-    UPDATE_CR0(1);
+    update_cr0(1);
 }
 X(addo)
 {
     _ADDR;
-    UPDATE_XER(1);
+    update_xer(1);
 }
 X(addo.)
 {
     _ADDR;
-    UPDATE_XER(1);
-    UPDATE_CR0(1);
+    update_xer(1);
+    update_cr0(1);
 }
 /* Not sure if there's a diff between add and addc 
  * ( the pseudocode for both are exactly same )
@@ -248,18 +248,18 @@ X(addc)
 X(addc.)
 {
     _ADDR;
-    UPDATE_CR0(1);
+    update_cr0(1);
 }
 X(addco)
 {
     _ADDR;
-    UPDATE_XER(1);
+    update_xer(1);
 }
 X(addco.)
 {
     _ADDR;
-    UPDATE_XER(1);
-    UPDATE_CR0(1);
+    update_xer(1);
+    update_cr0(1);
 }
 /* Add extended : rA + rB + CA */
 X(adde)
@@ -271,20 +271,20 @@ X(adde.)
 {
     UMODE tmp = REG2 + ((XER >> XER_CA_SHIFT) & XER_CA);
     ADD(REG0, REG1, tmp, HOST_FLAGS);
-    UPDATE_CR0(1);
+    update_cr0(1);
 }
 X(addeo)
 {
     UMODE tmp = REG2 + ((XER >> XER_CA_SHIFT) & XER_CA);
     ADD(REG0, REG1, tmp, HOST_FLAGS);
-    UPDATE_XER(1);
+    update_xer(1);
 }
 X(addeo.)
 {
     UMODE tmp = REG2 + ((XER >> XER_CA_SHIFT) & XER_CA);
     ADD(REG0, REG1, tmp, HOST_FLAGS);
-    UPDATE_XER(1);
-    UPDATE_CR0(1);
+    update_xer(1);
+    update_cr0(1);
 }
 /*
  *  addi:  Add immediate.
@@ -304,7 +304,7 @@ X(addi)
 }
 X(li)
 {
-	REG0 = (int16_t)ARG1;
+    REG0 = (int16_t)ARG1;
 }
 X(la)
 {
@@ -320,7 +320,7 @@ X(subi)
 }
 X(li_0)
 {
-	REG0 = 0;
+    REG0 = 0;
 }
 /*  addic:  Add immediate, Carry.
  *
@@ -335,27 +335,27 @@ X(addic)
 {
     SMODE tmp = (int16_t)ARG2;
     ADD(REG0, REG1, tmp, HOST_FLAGS);
-    UPDATE_XER(1);
+    update_xer(1);
 }
 X(subic)
 {
     SMODE tmp = (int16_t)ARG2;
     SUB(REG0, REG1, tmp, HOST_FLAGS);
-    UPDATE_XER(1);
+    update_xer(1);
 }
 X(addic.)
 {
     SMODE tmp = (int16_t)ARG2;
     ADD(REG0, REG1, tmp, HOST_FLAGS);
-    UPDATE_XER(1);
-    UPDATE_CR0(1);
+    update_xer(1);
+    update_cr0(1);
 }
 X(subic.)
 {
     SMODE tmp = (int16_t)ARG2;
     SUB(REG0, REG1, tmp, HOST_FLAGS);
-    UPDATE_XER(1);
-    UPDATE_CR0(1);
+    update_xer(1);
+    update_cr0(1);
 }
 /*
  *
@@ -393,20 +393,20 @@ X(addme.)
 {
     SMODE tmp = ((XER >> XER_CA_SHIFT) & XER_CA) - 1;
     ADD(REG0, REG1, tmp, HOST_FLAGS);
-    UPDATE_CR0(1);
+    update_cr0(1);
 }
 X(addmeo)
 {
     SMODE tmp = ((XER >> XER_CA_SHIFT) & XER_CA) - 1;
     ADD(REG0, REG1, tmp, HOST_FLAGS);
-    UPDATE_XER(1);
+    update_xer(1);
 }
 X(addmeo.)
 {
     SMODE tmp = ((XER >> XER_CA_SHIFT) & XER_CA) - 1;
     ADD(REG0, REG1, tmp, HOST_FLAGS);
-    UPDATE_XER(1);
-    UPDATE_CR0(1);
+    update_xer(1);
+    update_cr0(1);
 }
 /*
  * addze
@@ -421,23 +421,22 @@ X(addze.)
 {
     UMODE tmp = (XER >> XER_CA_SHIFT) & XER_CA;
     ADD(REG0, REG1, tmp, HOST_FLAGS);
-    UPDATE_CR0(1);
+    update_cr0(1);
 }
 X(addzeo)
 {
     UMODE tmp = (XER >> XER_CA_SHIFT) & XER_CA;
     ADD(REG0, REG1, tmp, HOST_FLAGS);
-    UPDATE_XER(1);
+    update_xer(1);
 }
 X(addzeo.)
 {
     UMODE tmp = (XER >> XER_CA_SHIFT) & XER_CA;
     ADD(REG0, REG1, tmp, HOST_FLAGS);
-    UPDATE_XER(1);
-    UPDATE_CR0(1);
+    update_xer(1);
+    update_cr0(1);
 }
 
-/*---------------------------------------------------------------------------------------------*/
 /* and variants */
 X(and)
 {
@@ -448,7 +447,7 @@ X(and.)
 {
     UMODE tmp = REG1 & REG2;
     REG0 = tmp;
-    UPDATE_CR0(0, tmp);
+    update_cr0(0, tmp);
 }
 X(andc)
 {
@@ -459,25 +458,24 @@ X(andc.)
 {
     UMODE tmp = REG1 & (~REG2);
     REG0 = tmp;
-    UPDATE_CR0(0, tmp);
+    update_cr0(0, tmp);
 }
 /* andi_dot:  AND immediate, update CR.
  * rA <- rS + 16(0) || UIMM
  */
 X(andi.)
 {
-	UMODE tmp = REG1 & (uint16_t)ARG2;
-	REG0 = tmp;
-	UPDATE_CR0(0, tmp);
+    UMODE tmp = REG1 & (uint16_t)ARG2;
+    REG0 = tmp;
+    update_cr0(0, tmp);
 }
 X(andis.)
 {
     UMODE tmp = REG1 & (((uint16_t)ARG2) << 16);
     REG0 = tmp;
-    UPDATE_CR0(0, tmp);
+    update_cr0(0, tmp);
 }
 
-/*-----------------------------------------------------------------------------------------------*/
 /* cmp variants */
 // cmp crD, L, rA, rB 
 X(cmp)
@@ -496,8 +494,8 @@ X(cmp)
             else { res |= 0x1; }                                       \
             break;                                                     \
     }                                                                  \
-    update_crf(crD, (res << 1));                                       \
-    update_cr_f((crD*4+3), get_xer_so());
+    update_crF(crD, (res << 1));                                       \
+    update_crf((crD*4+3), get_xer_so());
 
     cmp_code(ARG0, ARG1, REG2, REG3);
 }
@@ -517,8 +515,8 @@ X(cmpi)
             else { res |= 0x1; }                                       \
             break;                                                     \
     }                                                                  \
-    update_crf(ARG0, (res << 1));                                      \
-    update_cr_f((ARG0*4+3), get_xer_so());
+    update_crF(ARG0, (res << 1));                                      \
+    update_crf((ARG0*4+3), get_xer_so());
 
     cmpi_code(ARG0, ARG1, REG2, ARG3);
 }
@@ -538,8 +536,8 @@ X(cmpl)
             else { res |= 0x1; }                                       \
             break;                                                     \
     }                                                                  \
-    update_crf(ARG0, (res << 1));                                      \
-    update_cr_f((ARG0*4+3), get_xer_so());
+    update_crF(ARG0, (res << 1));                                      \
+    update_crf((ARG0*4+3), get_xer_so());
 
     cmpl_code(ARG0, ARG1, REG2, REG3);
 }
@@ -559,8 +557,8 @@ X(cmpli)
             else { res |= 0x1; }                                       \
             break;                                                     \
     }                                                                  \
-    update_crf(ARG0, (res << 1));                                      \
-    update_cr_f((ARG0*4+3), get_xer_so());
+    update_crF(ARG0, (res << 1));                                      \
+    update_crf((ARG0*4+3), get_xer_so());
 
     cmpli_code(ARG0, ARG1, REG2, ARG3);
 }
@@ -581,28 +579,102 @@ X(cmpwi)
     cmpi_code(ARG0, 0, REG1, ARG2);
 }
 
-
-#if 0
-
-/*
- *  cntlzw:  Count leading zeroes (32-bit word).
- *
- *  arg[0] = ptr to rs
- *  arg[1] = ptr to ra
- */
+// cntlzw:  Count leading zeroes (32-bit word).
 X(cntlzw)
 {
-	uint32_t tmp = reg(ic->arg[0]);
-	int i;
-	for (i=0; i<32; i++) {
-		if (tmp & 0x80000000)
-			break;
-		tmp <<= 1;
-	}
-	reg(ic->arg[1]) = i;
+#define cntlzw_code(rA, rS)                     \
+    uint32_t tmp = rS;                          \
+    int i;                                      \
+    for (i=0; i<32; i++) {                      \
+        if (tmp & 0x80000000)                   \
+            break;                              \
+        tmp <<= 1;                              \
+    }                                           \
+    rA = i;
+
+    cntlzw_code(REG0, REG1);
+}
+X(cntlzw.)
+{
+    cntlzw_code(REG0, REG1);
+    update_cr0(0,i);
 }
 
+// condition register instrs
+X(crand)
+{
+#define crand_code(crD, crA, crB)                       \
+    update_crf(crD, get_crf(crA) & get_crf(crB));
 
+    crand_code(ARG0, ARG1, ARG2);
+}
+X(crandc)
+{
+#define crandc_code(crD, crA, crB)                      \
+    update_crf(crD, get_crf(crA) & ~(get_crf(crB)));
+
+    crandc_code(ARG0, ARG1, ARG2);
+}
+X(creqv)
+{
+#define creqv_code(crD, crA, crB)                      \
+    update_crf(crD, ~(get_crf(crA) ^ get_crf(crB)));
+
+    creqv_code(ARG0, ARG1, ARG2);
+}
+X(crnand)
+{
+#define crnand_code(crD, crA, crB)                      \
+    update_crf(crD, ~(get_crf(crA) & get_crf(crB)));
+
+    crnand_code(ARG0, ARG1, ARG2);
+}
+X(crnor)
+{
+#define crnor_code(crD, crA, crB)                       \
+    update_crf(crD, ~(get_crf(crA) | get_crf(crB)));
+
+    crnor_code(ARG0, ARG1, ARG2);
+}
+X(crnot)
+{
+    crnor_code(ARG0, ARG1, ARG1);
+}
+X(cror)
+{
+#define cror_code(crD, crA, crB)                        \
+    update_crf(crD, (get_crf(crA) | get_crf(crB)));
+
+    cror_code(ARG0, ARG1, ARG2);
+}
+X(crorc)
+{
+#define crorc_code(crD, crA, crB)                       \
+    update_crf(crD, (get_crf(crA) | ~(get_crf(crB))));
+
+    crorc_code(ARG0, ARG1, ARG2);
+}
+X(crset)
+{
+    creqv_code(ARG0, ARG0, ARG0);
+}
+X(crxor)
+{
+#define crxor_code(crD, crA, crB)                        \
+    update_crf(crD, (get_crf(crA) ^ get_crf(crB)));
+
+    crxor_code(ARG0, ARG1, ARG2);
+}
+X(crmove)
+{
+    cror_code(ARG0, ARG1, ARG1);
+}
+X(crclr)
+{
+    crxor_code(ARG0, ARG0, ARG0);
+}
+
+#if 0
 /*
  *  cmpd:  Compare Doubleword
  *
@@ -1461,7 +1533,7 @@ X(rldicl)
 	}
 	cpu->cd.ppc.gpr[ra] = tmp & tmp2;
 	if (rc)
-		UPDATE_CR0(cpu, cpu->cd.ppc.gpr[ra]);
+		update_cr0(cpu, cpu->cd.ppc.gpr[ra]);
 }
 
 
@@ -1487,7 +1559,7 @@ X(rldicr)
 		tmp &= ~((uint64_t)1 << (63-me));
 	cpu->cd.ppc.gpr[ra] = tmp;
 	if (rc)
-		UPDATE_CR0(cpu, tmp);
+		update_cr0(cpu, tmp);
 }
 
 
@@ -1518,7 +1590,7 @@ X(rldimi)
 	cpu->cd.ppc.gpr[ra] &= ~tmp;
 	cpu->cd.ppc.gpr[ra] |= (tmp & s);
 	if (rc)
-		UPDATE_CR0(cpu, cpu->cd.ppc.gpr[ra]);
+		update_cr0(cpu, cpu->cd.ppc.gpr[ra]);
 }
 
 
@@ -1594,7 +1666,7 @@ X(rlwimi)
 	}
 	reg(ic->arg[1]) = ra;
 	if (rc)
-		UPDATE_CR0(cpu, ra);
+		update_cr0(cpu, ra);
 }
 
 
