@@ -496,7 +496,7 @@ X(cmp)
             else { res |= 0x1; }                                       \
             break;                                                     \
     }                                                                  \
-    update_crf(crD, res);                                              \
+    update_crf(crD, (res << 1));                                       \
     update_cr_f((crD*4+3), get_xer_so());
 
     cmp_code(ARG0, ARG1, REG2, REG3);
@@ -517,7 +517,7 @@ X(cmpi)
             else { res |= 0x1; }                                       \
             break;                                                     \
     }                                                                  \
-    update_crf(ARG0, res);                                             \
+    update_crf(ARG0, (res << 1));                                      \
     update_cr_f((ARG0*4+3), get_xer_so());
 
     cmpi_code(ARG0, ARG1, REG2, ARG3);
@@ -538,7 +538,7 @@ X(cmpl)
             else { res |= 0x1; }                                       \
             break;                                                     \
     }                                                                  \
-    update_crf(ARG0, res);                                             \
+    update_crf(ARG0, (res << 1));                                      \
     update_cr_f((ARG0*4+3), get_xer_so());
 
     cmpl_code(ARG0, ARG1, REG2, REG3);
@@ -559,7 +559,7 @@ X(cmpli)
             else { res |= 0x1; }                                       \
             break;                                                     \
     }                                                                  \
-    update_crf(ARG0, res);                                             \
+    update_crf(ARG0, (res << 1));                                      \
     update_cr_f((ARG0*4+3), get_xer_so());
 
     cmpli_code(ARG0, ARG1, REG2, ARG3);
