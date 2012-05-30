@@ -674,223 +674,59 @@ X(crclr)
     crxor_code(ARG0, ARG0, ARG0);
 }
 
+// Barrier
+X(mbar)
+{
+    //Do nothing
+}
+
+X(mcrf)
+{
+#define mcrf_code(crfD, crfS)            \
+    update_crF(crfD, get_crF(crfS));
+
+    mcrf_code(ARG0, ARG1);
+}
+X(mcrxr)
+{
+#define mcrxr_code(crfD)                 \
+    update_crF(crfD, get_xerF(0));
+
+    mcrxr_code(ARG0);
+}
+X(mfcr)
+{
+#define mfcr_code(rD)                               \
+    rD = (get_cr() & (uint64_t)0xffffffff);
+
+    mfcr_code(ARG0);
+}
+X(mtcrf)
+{
+#define mtcrf_code(CRM, rS)                         \
+    uint64_t mask = 0, i;                           \
+    uint8_t tmp = CRM;                              \
+    for(i=0; i<8; i++){                             \
+        mask |= (tmp & 0x80)?(0xf << (7 - i)*4):0;  \
+        tmp <<= 1;                                  \
+    }                                               \
+    set_cr((rS & mask) | (get_cr() & ~mask));
+
+    mtcrf_code(ARG0, REG1);
+}
+X(mtcr)
+{
+    mtcrf_code(0xff, REG0);
+}
+
+X(msync)
+{
+    //Do nothing
+}
+
+
 #if 0
-/*
- *  cmpd:  Compare Doubleword
- *
- *  arg[0] = ptr to ra
- *  arg[1] = ptr to rb
- *  arg[2] = 28 - 4*bf
- */
-X(cmpd)
-{
-	int64_t tmp = reg(ic->arg[0]), tmp2 = reg(ic->arg[1]);
-	int bf_shift = ic->arg[2], c;
-	if (tmp < tmp2)
-		c = 8;
-	else if (tmp > tmp2)
-		c = 4;
-	else
-		c = 2;
-	/*  SO bit, copied from XER  */
-	c |= ((cpu->cd.ppc.spr[SPR_XER] >> 31) & 1);
-	cpu->cd.ppc.cr &= ~(0xf << bf_shift);
-	cpu->cd.ppc.cr |= (c << bf_shift);
-}
 
-
-/*
- *  cmpld:  Compare Doubleword, unsigned
- *
- *  arg[0] = ptr to ra
- *  arg[1] = ptr to rb
- *  arg[2] = 28 - 4*bf
- */
-X(cmpld)
-{
-	uint64_t tmp = reg(ic->arg[0]), tmp2 = reg(ic->arg[1]);
-	int bf_shift = ic->arg[2], c;
-	if (tmp < tmp2)
-		c = 8;
-	else if (tmp > tmp2)
-		c = 4;
-	else
-		c = 2;
-	/*  SO bit, copied from XER  */
-	c |= ((cpu->cd.ppc.spr[SPR_XER] >> 31) & 1);
-	cpu->cd.ppc.cr &= ~(0xf << bf_shift);
-	cpu->cd.ppc.cr |= (c << bf_shift);
-}
-
-
-/*
- *  cmpdi:  Compare Doubleword immediate
- *
- *  arg[0] = ptr to ra
- *  arg[1] = int32_t imm
- *  arg[2] = 28 - 4*bf
- */
-X(cmpdi)
-{
-	int64_t tmp = reg(ic->arg[0]), imm = (int32_t)ic->arg[1];
-	int bf_shift = ic->arg[2], c;
-	if (tmp < imm)
-		c = 8;
-	else if (tmp > imm)
-		c = 4;
-	else
-		c = 2;
-	/*  SO bit, copied from XER  */
-	c |= ((cpu->cd.ppc.spr[SPR_XER] >> 31) & 1);
-	cpu->cd.ppc.cr &= ~(0xf << bf_shift);
-	cpu->cd.ppc.cr |= (c << bf_shift);
-}
-
-
-/*
- *  cmpldi:  Compare Doubleword immediate, logical
- *
- *  arg[0] = ptr to ra
- *  arg[1] = int32_t imm
- *  arg[2] = 28 - 4*bf
- */
-X(cmpldi)
-{
-	uint64_t tmp = reg(ic->arg[0]), imm = (uint32_t)ic->arg[1];
-	int bf_shift = ic->arg[2], c;
-	if (tmp < imm)
-		c = 8;
-	else if (tmp > imm)
-		c = 4;
-	else
-		c = 2;
-	/*  SO bit, copied from XER  */
-	c |= ((cpu->cd.ppc.spr[SPR_XER] >> 31) & 1);
-	cpu->cd.ppc.cr &= ~(0xf << bf_shift);
-	cpu->cd.ppc.cr |= (c << bf_shift);
-}
-
-
-/*
- *  cmpw:  Compare Word
- *
- *  arg[0] = ptr to ra
- *  arg[1] = ptr to rb
- *  arg[2] = 28 - 4*bf
- */
-X(cmpw)
-{
-	int32_t tmp = reg(ic->arg[0]), tmp2 = reg(ic->arg[1]);
-	int bf_shift = ic->arg[2], c;
-	if (tmp < tmp2)
-		c = 8;
-	else if (tmp > tmp2)
-		c = 4;
-	else
-		c = 2;
-	/*  SO bit, copied from XER  */
-	c |= ((cpu->cd.ppc.spr[SPR_XER] >> 31) & 1);
-	cpu->cd.ppc.cr &= ~(0xf << bf_shift);
-	cpu->cd.ppc.cr |= (c << bf_shift);
-}
-X(cmpw_cr0)
-{
-	/*  arg[2] is assumed to be 28  */
-	int32_t tmp = reg(ic->arg[0]), tmp2 = reg(ic->arg[1]);
-	cpu->cd.ppc.cr &= ~(0xf0000000);
-	if (tmp < tmp2)
-		cpu->cd.ppc.cr |= 0x80000000;
-	else if (tmp > tmp2)
-		cpu->cd.ppc.cr |= 0x40000000;
-	else
-		cpu->cd.ppc.cr |= 0x20000000;
-	cpu->cd.ppc.cr |= ((cpu->cd.ppc.spr[SPR_XER] >> 3) & 0x10000000);
-}
-
-
-/*
- *  cmplw:  Compare Word, unsigned
- *
- *  arg[0] = ptr to ra
- *  arg[1] = ptr to rb
- *  arg[2] = 28 - 4*bf
- */
-X(cmplw)
-{
-	uint32_t tmp = reg(ic->arg[0]), tmp2 = reg(ic->arg[1]);
-	int bf_shift = ic->arg[2], c;
-	if (tmp < tmp2)
-		c = 8;
-	else if (tmp > tmp2)
-		c = 4;
-	else
-		c = 2;
-	/*  SO bit, copied from XER  */
-	c |= ((cpu->cd.ppc.spr[SPR_XER] >> 31) & 1);
-	cpu->cd.ppc.cr &= ~(0xf << bf_shift);
-	cpu->cd.ppc.cr |= (c << bf_shift);
-}
-
-
-/*
- *  cmpwi:  Compare Word immediate
- *
- *  arg[0] = ptr to ra
- *  arg[1] = int32_t imm
- *  arg[2] = 28 - 4*bf
- */
-X(cmpwi)
-{
-	int32_t tmp = reg(ic->arg[0]), imm = ic->arg[1];
-	int bf_shift = ic->arg[2], c;
-	if (tmp < imm)
-		c = 8;
-	else if (tmp > imm)
-		c = 4;
-	else
-		c = 2;
-	/*  SO bit, copied from XER  */
-	c |= ((cpu->cd.ppc.spr[SPR_XER] >> 31) & 1);
-	cpu->cd.ppc.cr &= ~(0xf << bf_shift);
-	cpu->cd.ppc.cr |= (c << bf_shift);
-}
-X(cmpwi_cr0)
-{
-	/*  arg[2] is assumed to be 28  */
-	int32_t tmp = reg(ic->arg[0]), imm = ic->arg[1];
-	cpu->cd.ppc.cr &= ~(0xf0000000);
-	if (tmp < imm)
-		cpu->cd.ppc.cr |= 0x80000000;
-	else if (tmp > imm)
-		cpu->cd.ppc.cr |= 0x40000000;
-	else
-		cpu->cd.ppc.cr |= 0x20000000;
-	cpu->cd.ppc.cr |= ((cpu->cd.ppc.spr[SPR_XER] >> 3) & 0x10000000);
-}
-
-
-/*
- *  cmplwi:  Compare Word immediate, logical
- *
- *  arg[0] = ptr to ra
- *  arg[1] = int32_t imm
- *  arg[2] = 28 - 4*bf
- */
-X(cmplwi)
-{
-	uint32_t tmp = reg(ic->arg[0]), imm = ic->arg[1];
-	int bf_shift = ic->arg[2], c;
-	if (tmp < imm)
-		c = 8;
-	else if (tmp > imm)
-		c = 4;
-	else
-		c = 2;
-	/*  SO bit, copied from XER  */
-	c |= ((cpu->cd.ppc.spr[SPR_XER] >> 31) & 1);
-	cpu->cd.ppc.cr &= ~(0xf << bf_shift);
-	cpu->cd.ppc.cr |= (c << bf_shift);
-}
 
 
 /*
@@ -1710,76 +1546,6 @@ X(mcrf)
 	uint32_t tmp = (cpu->cd.ppc.cr >> bfa_shift) & 0xf;
 	cpu->cd.ppc.cr &= ~(0xf << bf_shift);
 	cpu->cd.ppc.cr |= (tmp << bf_shift);
-}
-
-
-/*
- *  crand, crxor etc:  Condition Register operations
- *
- *  arg[0] = copy of the instruction word
- */
-X(crand) {
-	uint32_t iword = ic->arg[0]; int bt = (iword >> 21) & 31;
-	int ba = (iword >> 16) & 31, bb = (iword >> 11) & 31;
-	ba = (cpu->cd.ppc.cr >> (31-ba)) & 1;
-	bb = (cpu->cd.ppc.cr >> (31-bb)) & 1;
-	cpu->cd.ppc.cr &= ~(1 << (31-bt));
-	if (ba & bb)
-		cpu->cd.ppc.cr |= (1 << (31-bt));
-}
-X(crandc) {
-	uint32_t iword = ic->arg[0]; int bt = (iword >> 21) & 31;
-	int ba = (iword >> 16) & 31, bb = (iword >> 11) & 31;
-	ba = (cpu->cd.ppc.cr >> (31-ba)) & 1;
-	bb = (cpu->cd.ppc.cr >> (31-bb)) & 1;
-	cpu->cd.ppc.cr &= ~(1 << (31-bt));
-	if (!(ba & bb))
-		cpu->cd.ppc.cr |= (1 << (31-bt));
-}
-X(creqv) {
-	uint32_t iword = ic->arg[0]; int bt = (iword >> 21) & 31;
-	int ba = (iword >> 16) & 31, bb = (iword >> 11) & 31;
-	ba = (cpu->cd.ppc.cr >> (31-ba)) & 1;
-	bb = (cpu->cd.ppc.cr >> (31-bb)) & 1;
-	cpu->cd.ppc.cr &= ~(1 << (31-bt));
-	if (!(ba ^ bb))
-		cpu->cd.ppc.cr |= (1 << (31-bt));
-}
-X(cror) {
-	uint32_t iword = ic->arg[0]; int bt = (iword >> 21) & 31;
-	int ba = (iword >> 16) & 31, bb = (iword >> 11) & 31;
-	ba = (cpu->cd.ppc.cr >> (31-ba)) & 1;
-	bb = (cpu->cd.ppc.cr >> (31-bb)) & 1;
-	cpu->cd.ppc.cr &= ~(1 << (31-bt));
-	if (ba | bb)
-		cpu->cd.ppc.cr |= (1 << (31-bt));
-}
-X(crorc) {
-	uint32_t iword = ic->arg[0]; int bt = (iword >> 21) & 31;
-	int ba = (iword >> 16) & 31, bb = (iword >> 11) & 31;
-	ba = (cpu->cd.ppc.cr >> (31-ba)) & 1;
-	bb = (cpu->cd.ppc.cr >> (31-bb)) & 1;
-	cpu->cd.ppc.cr &= ~(1 << (31-bt));
-	if (!(ba | bb))
-		cpu->cd.ppc.cr |= (1 << (31-bt));
-}
-X(crnor) {
-	uint32_t iword = ic->arg[0]; int bt = (iword >> 21) & 31;
-	int ba = (iword >> 16) & 31, bb = (iword >> 11) & 31;
-	ba = (cpu->cd.ppc.cr >> (31-ba)) & 1;
-	bb = (cpu->cd.ppc.cr >> (31-bb)) & 1;
-	cpu->cd.ppc.cr &= ~(1 << (31-bt));
-	if (!(ba | bb))
-		cpu->cd.ppc.cr |= (1 << (31-bt));
-}
-X(crxor) {
-	uint32_t iword = ic->arg[0]; int bt = (iword >> 21) & 31;
-	int ba = (iword >> 16) & 31, bb = (iword >> 11) & 31;
-	ba = (cpu->cd.ppc.cr >> (31-ba)) & 1;
-	bb = (cpu->cd.ppc.cr >> (31-bb)) & 1;
-	cpu->cd.ppc.cr &= ~(1 << (31-bt));
-	if (ba ^ bb)
-		cpu->cd.ppc.cr |= (1 << (31-bt));
 }
 
 

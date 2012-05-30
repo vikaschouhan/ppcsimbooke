@@ -344,6 +344,32 @@ class ppc_cpu_booke : public cpu {
         LOG("DEBUG4") << MSG_FUNC_END;
     }
 
+    void update_xerF(unsigned bf, unsigned val){
+        LOG("DEBUG4") << MSG_FUNC_START;
+        spr[SPRN_XER] &= ~( 0xf << (7 - bf)*4 );
+        spr[SPRN_XER] |=  ((val & 0xf) << (7 - bf)*4);
+        LOG("DEBUG4") << MSG_FUNC_END;
+    }
+
+    void update_xerf(unsigned field, unsigned value){
+        LOG("DEBUG4") << MSG_FUNC_START;
+        spr[SPRN_XER] &= ~(0x1 << (31 - field));
+        spr[SPRN_XER] |= (value << (31 - field));
+        LOG("DEBUG4") << MSG_FUNC_END;
+    }
+
+    unsigned get_xerF(unsigned bf){
+        LOG("DEBUG4") << MSG_FUNC_START;
+        return (spr[SPRN_XER] >> (7 - bf)*4) & 0xf;
+        LOG("DEBUG4") << MSG_FUNC_END;
+    }
+
+    unsigned get_xerf(unsigned field){
+        LOG("DEBUG4") << MSG_FUNC_START;
+        return (spr[SPRN_XER] >> (31 - field)) & 0x1;
+        LOG("DEBUG4") << MSG_FUNC_END;
+    }
+
     // Get XER[SO]
     unsigned get_xer_so(){
         LOG("DEBUG4") << MSG_FUNC_START;

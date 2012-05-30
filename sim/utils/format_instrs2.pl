@@ -88,6 +88,9 @@ my $ppc_update_xer  = "\"cpu->update_xer\"";     # -DUPDATE_XER
 my $ppc_get_xer_so  = "\"cpu->get_xer_so\"";     # -Dget_xer_so
 my $ppc_get_crf     = "\"cpu->get_crf\"";
 my $ppc_get_crF     = "\"cpu->get_crF\"";
+my $ppc_get_xerF    = "\"cpu->get_xerF\"";
+my $ppc_get_cr      = "\"cpu->get_cr\"";
+my $ppc_set_cr      = "\"cpu->set_cr\"";
 
 my $host_flags = "\"cpu->host_state.flags\"";  # -DHOST_FLAGS
 my $dummy_flags = "\"cpu->host_state.dummy\""; # -DDUMMY
@@ -103,6 +106,8 @@ my $ppc_macros_list = " -DARG0="   . $ppc_ic_arg0   . " -DARG1="   . $ppc_ic_arg
                       " -Dupdate_crF=" . $ppc_update_crF . " -Dupdate_crf=" . $ppc_update_crf .
                       " -Dget_crF="    . $ppc_get_crF    . " -Dget_crf="    . $ppc_get_crf    .
                       " -Dget_xer_so=" . $ppc_get_xer_so .
+                      " -Dget_xerF="   . $ppc_get_xerF   .
+                      " -Dget_cr="     . $ppc_get_cr     . " -Dset_cr="     . $ppc_set_cr     .
                       " -DHOST_FLAGS=" . $host_flags     . " -DDUMMY="      . $dummy_flags    ;
 
 # defines going directly to the file
