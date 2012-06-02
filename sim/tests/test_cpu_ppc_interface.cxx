@@ -16,7 +16,9 @@ int main(){
     ptr->run_instr("addi", "r0", "r0", "0x345");
     ptr->run_instr("add", "r0", "r0", "r0");
     //ptr->run_instr("add", "r0", "r0", "r0");
-    ptr->run_instr("cmpi", "0", "0", "r0", "0x68a"); 
+    ptr->run_instr("mtmsr", "r0");
+    ptr->run_instr("mtctr", "r0");
+    ptr->run_instr("cmpi", "0", "0", "r0", "0x68a");
     ptr->dump_state(4);
     ppc_cpu_booke::destroy(ptr);
     return 0;

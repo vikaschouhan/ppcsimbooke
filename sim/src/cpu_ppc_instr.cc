@@ -86,6 +86,9 @@
  * arg1 -> source
  * arg2 -> source
  *
+ * d -> double word ( = 64 bits )
+ * w -> word ( = 32 bits )
+ *
  * flags -> x86_64 %rflags
  */
 #define addd_x64(arg0, arg1, arg2, flags)      \
@@ -118,7 +121,7 @@
             "movl %3, %%ebx\n"                 \
             "addl %2, %%ebx\n"                 \
             "movl %%ebx, %0\n"                 \
-            "pushf\n"                          \
+            "pushfq\n"                         \
             "pop %%rcx\n"                      \
             "movl %%ecx, %1\n"                 \
             : "=m"(arg0), "=m"(flags)          \
@@ -160,13 +163,52 @@
             "movl %2, %%ebx\n"                 \
             "subl %3, %%ebx\n"                 \
             "movl %%ebx, %0\n"                 \
-            "pushf\n"                          \
+            "pushfq\n"                         \
             "pop %%rcx\n"                      \
             "movl %%ecx, %1\n"                 \
             : "=m"(arg0), "=m"(flags)          \
             : "m"(arg1), "m"(arg2)             \
             : "%rbx", "%rcx"                   \
        )
+
+// Negate
+#define negd_x64(arg0, arg1, flags)            \
+    asm(                                       \
+            "movq %2, %%r15\n"                 \
+            "negq %%r15\n"                     \
+            "movq %%r15, %0\n"                 \
+            "pushfq\n"                         \
+            "pop %%r14\n"                      \
+            "movq %%r14, %1\n"                 \
+            : "=m"(arg0), "=m"(flags)          \
+            : "m"(arg1)                        \
+            : "%r14", "%r15"                   \
+       )
+#define negw_x64(arg0, arg1, flags)            \
+    asm(                                       \
+            "movl %2, %%ebx\n"                 \
+            "negl %%ebx\n"                     \
+            "movl %%ebx, %0\n"                 \
+            "pushfq\n"                         \
+            "pop %%rcx\n"                      \
+            "movl %%ecx, %1\n"                 \
+            : "=m"(arg0), "=m"(flags)          \
+            : "m"(arg1)                        \
+            : "%rbx", "%rcx"                   \
+       )
+#define negw_x86(arg0, arg1, arg2, flags)      \
+    asm(                                       \
+            "movl %2, %%ebx\n"                 \
+            "negl %%ebx\n"                     \
+            "movl %%ebx, %0\n"                 \
+            "pushfl\n"                         \
+            "pop %%ecx\n"                      \
+            "movl %%ecx, %1\n"                 \
+            : "=m"(arg0), "=m"(flags)          \
+            : "m"(arg1), "m"(arg2)             \
+            : "%ebx", "%ecx"                   \
+       )
+
 
 /* Use host and target identification to properly select the add variant */
 /*
@@ -182,19 +224,19 @@
  */
 
 #if HOST_ARCH == x86_64
+
 #define addw   addw_x64 
 #define subw   subw_x64
+#define negw   negw_x64
+
 #elif HOST_ARCH == i686
+
 #define addw   addw_x86
 #define subw   subw_x86
+#define negw   negw_x86
+
 #endif
 
-
-
-/* nop:  Do nothing. */
-X(nop)
-{
-}
 /* invalid:  To catch bugs. */
 X(invalid)
 {
@@ -804,8 +846,161 @@ X(nand.)
 }
 X(neg)
 {
+#define neg_code(rD, rA)                        \
+    negw(rD, rA, host_flags);
 
+    neg_code(REG0, REG1);
+}
+X(neg.)
+{
+    neg_code(REG0, REG1);
+    update_cr0(1);
+}
+X(nego)
+{
+    neg_code(REG0, REG1);
+    update_xer(1);
+}
+X(nego.)
+{
+    neg_code(REG0, REG1);
+    update_xer(1);
+    update_cr0(1);
+}
+X(nor)
+{
+#define nor_code(rA, rS, rB)                    \
+    rA = ~(rS | rB);
+
+    nor_code(REG0, REG1, REG2);
+}
+X(nor.)
+{
+    nor_code(REG0, REG1, REG2);
+    update_cr0(0, ut(REG0));
+}
+X(or)
+{
+#define or_code(rA, rS, rB)                     \
+    rA = rS | rB;
+
+    or_code(REG0, REG1, REG2);
+}
+X(or.)
+{
+    or_code(REG0, REG1, REG2);
+    update_cr0(0, ut(REG0));
+}
+X(orc)
+{
+#define orc_code(rA, rS, rB)                     \
+    rA = rS | ~(rB);
+
+    orc_code(REG0, REG1, REG2);
+}
+X(orc.)
+{
+    orc_code(REG0, REG1, REG2);
+    update_cr0(0, ut(REG0));
+}
+X(ori)
+{
+#define ori_code(rA, rS, UIMM)                 \
+    rA = rS | (uint16_t)UIMM;
+
+    ori_code(REG0, REG1, ARG2);
+}
+X(oris)
+{
+#define oris_code(rA, rS, UIMM)                \
+    rA = rS | (((uint16_t)UIMM) << 16);
+
+    oris_code(REG0, REG1, ARG2);
+}
+X(nop)
+{
+    // Do nothing
+}
+X(not)
+{
+    nor_code(REG0, REG1, REG1);
 }
 
-#endif
+
+// Return from Interrupt
+X(rfi)
+{
+}
+X(rfci)
+{
+}
+X(rfmci)
+{
+}
+
+
+// Rotate intrs
+X(rlwimi)
+{
+#define rlwimi_code(rA, rS, SH, MB, ME)                                            \
+    uint32_t tmp = (rS << (SH & 0x1f)) | (rS >> (32 - (SH & 0x1f)));               \
+    uint32_t mask = (MB <= ME) ? (((1L << (ME - MB + 1)) - 1) << (31 - ME)) :      \
+                     ~(((1L << (MB - ME + 1)) - 1) << (31 - MB));                  \
+    rA = (tmp & mask) | (rA & ~mask);
+
+    rlwimi_code(REG0, REG1, ARG2, ARG3, ARG4);
+}
+X(rlwimi.)
+{
+    rlwimi_code(REG0, REG1, ARG2, ARG3, ARG4);
+    update_cr0(0, ut(REG0));
+}
+X(rlwinm)
+{
+#define rlwinm_code(rA, rS, SH, MB, ME)                                            \
+    uint32_t tmp = (rS << (SH & 0x1f)) | (rS >> (32 - (SH & 0x1f)));               \
+    uint32_t mask = (MB <= ME) ? (((1L << (ME - MB + 1)) - 1) << (31 - ME)) :      \
+                     ~(((1L << (MB - ME + 1)) - 1) << (31 - MB));                  \
+    rA = (tmp & mask);
+
+    rlwinm_code(REG0, REG1, ARG2, ARG3, ARG4);
+}
+X(rlwinm.)
+{
+    rlwinm_code(REG0, REG1, ARG2, ARG3, ARG4);
+    update_cr0(0, ut(REG0));
+}
+X(rlwnm)
+{
+#define rlwnm_code(rA, rS, rB, MB, ME)                                             \
+    uint32_t tmp = (rS << (rB & 0x1f)) | (rS >> (32 - (rB & 0x1f)));               \
+    uint32_t mask = (MB <= ME) ? (((1L << (ME - MB + 1)) - 1) << (31 - ME)) :      \
+                     ~(((1L << (MB - ME + 1)) - 1) << (31 - MB));                  \
+    rA = (tmp & mask);
+
+    rlwnm_code(REG0, REG1, REG2, ARG3, ARG4);
+}
+X(rlwnm.)
+{
+    rlwnm_code(REG0, REG1, REG2, ARG3, ARG4);
+    update_cr0(0, ut(REG0));
+}
+X(rotlw)
+{
+    rlwnm_code(REG0, REG1, REG2, 0, 31);
+}
+X(rotlwi)
+{
+    rlwinm_code(REG0, REG1, ARG2, 0, 31);
+}
+X(rotrwi)
+{
+    rlwinm_code(REG0, REG1, (32-ARG2), 0, 31);
+}
+
+// System call
+X(sc)
+{
+}
+
 
