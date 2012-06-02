@@ -75,40 +75,17 @@ my $ppc_ic_arg3 = "\"ic->arg[3]\"";   # -DARG3
 my $ppc_ic_arg4 = "\"ic->arg[4]\"";   # -DARG4
 my $ppc_ic_arg5 = "\"ic->arg[5]\"";   # -DARG5
 
-my $ppc_cpu_spr = "\"cpu->spr\"";     # -DSPR
-my $ppc_cpu_gpr = "\"cpu->gpr\"";     # -DGPR
-
 my $ppc_cpu_umode = "\"uint32_t\"";   # -DUMODE
 my $ppc_cpu_smode = "\"int32_t\"";    # -DSMODE
 
-my $ppc_update_cr0  = "\"cpu->update_cr0\"";     # -DUPDATE_CR0
-my $ppc_update_crF  = "\"cpu->update_crF\"";     # -Dupdate_crf
-my $ppc_update_crf  = "\"cpu->update_crf\"";    # -Dupdate_cr_f
-my $ppc_update_xer  = "\"cpu->update_xer\"";     # -DUPDATE_XER
-my $ppc_get_xer_so  = "\"cpu->get_xer_so\"";     # -Dget_xer_so
-my $ppc_get_crf     = "\"cpu->get_crf\"";
-my $ppc_get_crF     = "\"cpu->get_crF\"";
-my $ppc_get_xerF    = "\"cpu->get_xerF\"";
-my $ppc_get_cr      = "\"cpu->get_cr\"";
-my $ppc_set_cr      = "\"cpu->set_cr\"";
-
-my $host_flags = "\"cpu->host_state.flags\"";  # -DHOST_FLAGS
-my $dummy_flags = "\"cpu->host_state.dummy\""; # -DDUMMY
-
+my $ppc_cpu_name  = "\"cpu\"";
 
 # create some of the macros for gcc command line
 my $ppc_macros_list = " -DARG0="   . $ppc_ic_arg0   . " -DARG1="   . $ppc_ic_arg1   .
                       " -DARG2="   . $ppc_ic_arg2   . " -DARG3="   . $ppc_ic_arg3   .
                       " -DARG4="   . $ppc_ic_arg4   . " -DARG5="   . $ppc_ic_arg5   .
-                      " -DSPR="    . $ppc_cpu_spr   . " -DGPR="    . $ppc_cpu_gpr   .
                       " -DUMODE="  . $ppc_cpu_umode . " -DSMODE="  . $ppc_cpu_smode .
-                      " -Dupdate_cr0=" . $ppc_update_cr0 . " -Dupdate_xer=" . $ppc_update_xer .
-                      " -Dupdate_crF=" . $ppc_update_crF . " -Dupdate_crf=" . $ppc_update_crf .
-                      " -Dget_crF="    . $ppc_get_crF    . " -Dget_crf="    . $ppc_get_crf    .
-                      " -Dget_xer_so=" . $ppc_get_xer_so .
-                      " -Dget_xerF="   . $ppc_get_xerF   .
-                      " -Dget_cr="     . $ppc_get_cr     . " -Dset_cr="     . $ppc_set_cr     .
-                      " -DHOST_FLAGS=" . $host_flags     . " -DDUMMY="      . $dummy_flags    ;
+                      " -Dcpu="    . $ppc_cpu_name  ;
 
 # defines going directly to the file
 my $ppc_cpu_defines = [ "#define reg(x) (*((uint64_t *)(x)))" ];

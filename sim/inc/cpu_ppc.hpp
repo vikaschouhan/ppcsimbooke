@@ -15,6 +15,7 @@
 #define    PPC_NFPRS        32
 #define    PPC_NVRS         32
 #define    PPC_NSPRS        1024
+#define    PPC_NPMRS        1024
 #define    PPC_NTGPRS       4
 
 /* 64 bit MSRs were used in older powerPC designs */
@@ -86,6 +87,7 @@ class ppc_cpu_booke : public cpu {
         return 0;
     }
 
+    protected:
     // Set GPR value
     void set_gpr(int gprno, uint64_t value) throw(sim_exception){
         LOG("DEBUG4") << MSG_FUNC_START;
@@ -98,6 +100,13 @@ class ppc_cpu_booke : public cpu {
         LOG("DEBUG4") << MSG_FUNC_START;
         if(sprno >= PPC_NSPRS) throw sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Illegal sprno");
         spr[sprno] = value;
+        LOG("DEBUG4") << MSG_FUNC_END;
+    }
+    // Set pmr value
+    void set_pmr(int pmrno, uint64_t value) throw(sim_exception){
+        LOG("DEBUG4") << MSG_FUNC_START;
+        if(pmrno >= PPC_NPMRS) throw sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Illegal pmrno");
+        pmr[pmrno] = value;
         LOG("DEBUG4") << MSG_FUNC_END;
     }
     // set fpr value
@@ -126,6 +135,7 @@ class ppc_cpu_booke : public cpu {
         LOG("DEBUG4") << MSG_FUNC_END;
     }
 
+    public:
     // Get GPR value
     uint64_t get_gpr(int gprno) throw(sim_exception){
         LOG("DEBUG4") << MSG_FUNC_START;
@@ -139,6 +149,13 @@ class ppc_cpu_booke : public cpu {
         if(sprno >= PPC_NSPRS) throw sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Illegal sprno");
         LOG("DEBUG4") << MSG_FUNC_END;
         return spr[sprno];
+    }
+    // Get pmr value
+    uint64_t get_pmr(int pmrno) throw (sim_exception){
+        LOG("DEBUG4") << MSG_FUNC_START;
+        if(pmrno >= PPC_NPMRS) throw sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Illegal pmrno");
+        LOG("DEBUG4") << MSG_FUNC_END;
+        return pmr[pmrno];
     }
     // Get fpr value
     uint64_t get_fpr(int fprno) throw(sim_exception){
@@ -259,6 +276,7 @@ class ppc_cpu_booke : public cpu {
         delete cpu;
     }
 
+    protected:
     // Update CR0
     void update_cr0(bool use_host, uint64_t value=0){
         LOG("DEBUG4") << MSG_FUNC_START;
@@ -358,6 +376,7 @@ class ppc_cpu_booke : public cpu {
         LOG("DEBUG4") << MSG_FUNC_END;
     }
 
+    public:
     unsigned get_xerF(unsigned bf){
         LOG("DEBUG4") << MSG_FUNC_START;
         return (spr[SPRN_XER] >> (7 - bf)*4) & 0xf;
@@ -488,6 +507,7 @@ class ppc_cpu_booke : public cpu {
     uint64_t    tgpr[PPC_NTGPRS]; /*Temporary gpr 0..3  */
 
     uint64_t    spr[PPC_NSPRS];
+    uint64_t    pmr[PPC_NPMRS];
 
     uint64_t    ll_addr;           /*  Load-linked / store-conditional  */
     int         ll_bit;

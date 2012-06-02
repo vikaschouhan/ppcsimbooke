@@ -32,6 +32,12 @@
 #include <sstream>
 #include "log.hpp"
 
+// Cast to appropriate types
+#define u32(arg)  ((uint32_t)(arg))
+#define s32(arg)  ((int32_t)(arg))
+#define u64(arg)  ((uint64_t)(arg))
+#define s64(arg)  ((int64_t)(arg))
+
 /* Assertion macro which takes an expression and a return value.
  * It checks the statement and if false, returns the return value.
  */
@@ -106,5 +112,19 @@ inline int64_t str_to_int(std::string arg){
         istr >> std::dec >> value;
     return value;
 }
+
+// Add and subtract are essentially same, so only add can be used for both.
+// Check overflows
+#define check_add_of_s32(arg0, arg1)      (s32(arg0) > INT32_MAX  - s32(arg1))?1:0
+#define check_add_of_s64(arg0, arg1)      (s64(arg0) > INT64_MAX  - s64(arg1))?1:0
+#define check_add_of_u32(arg0, arg1)      (u32(arg0) > UINT32_MAX - u32(arg1))?1:0
+#define check_add_of_u64(arg0, arg1)      (u64(arg0) > UINT64_MAX - u64(arg1))?1:0
+
+// Check underflows
+#define check_add_uf_s32(arg0, arg1)      (s32(arg0) < INT32_MIN  - s32(arg1))?1:0
+#define check_add_uf_s64(arg0, arg1)      (s64(arg0) < INT64_MIN  - s64(arg1))?1:0
+#define check_add_uf_u32(arg0, arg1)      (u32(arg0) < 0          - u32(arg1))?1:0
+#define check_add_uf_u64(arg0, arg1)      (u64(arg0) < 0          - u64(arg1))?1:0
+
 
 #endif

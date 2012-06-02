@@ -41,7 +41,8 @@
  *  64 bit cores.
  *
  *  NOTE:
- *  This file is not a regular C/C++ file. It's just a template for defining instructions'
+ *  This file is not a regular C/C++ file ( although it looks like it :) ).
+ *  It's just a template for defining instructions'
  *  pseudocode implementation. An external utility uses this template to generate a new
  *  header/C++ file before direct use.
  */
@@ -53,13 +54,36 @@
 
 // SPR, GPR, ARG0, ARG1, etc should come from outside ( preferably some top level utility )
 //
-#define XER         SPR[SPRN_XER]
+
+#define spr                      cpu->spr
+#define xer                      spr[SPRN_XER]
+#define gpr                      cpu->gpr
+#define pmr                      cpu->pmr
+#define msr                      cpu->msr
+#define cr                       cpu->cr
+#define m_reghash                cpu->m_reghash
+#define update_cr0               cpu->update_cr0
+#define update_crF               cpu->update_crF
+#define update_crf               cpu->update_crf
+#define update_xer               cpu->update_xer
+#define get_xer_so               cpu->get_xer_so
+#define get_crf                  cpu->get_crf
+#define get_crF                  cpu->get_crF
+#define get_xerF                 cpu->get_xerF
+#define get_cr                   cpu->get_cr
+#define set_cr                   cpu->set_cr
+#define host_flags               cpu->host_state.flags
+#define dummy_flags              cpu->host_state.dummy
 
 #define REG0   reg(ARG0)
 #define REG1   reg(ARG1)
 #define REG2   reg(ARG2)
 #define REG3   reg(ARG3)
 #define REG4   reg(ARG4)
+
+// target mode
+#define ut(arg)   ((UMODE)(arg))
+#define st(arg)   ((SMODE)(arg))
 
 #if 0
 #ifndef CHECK_FOR_FPU_EXCEPTION
@@ -92,7 +116,7 @@
  *
  * flags -> x86_64 %rflags
  */
-#define ADD_X64(arg0, arg1, arg2, flags)       \
+#define addd_x64(arg0, arg1, arg2, flags)      \
     asm(                                       \
             "movq %3, %%r15\n"                 \
             "addq %2, %%r15\n"                 \
@@ -104,7 +128,7 @@
             : "m"(arg1), "m"(arg2)             \
             : "%r14", "%r15"                   \
        )
-#define ADD_X86(arg0, arg1, arg2, flags)       \
+#define addw_x86(arg0, arg1, arg2, flags)      \
     asm(                                       \
             "movl %3, %%ebx\n"                 \
             "addl %2, %%ebx\n"                 \
@@ -117,7 +141,7 @@
             : "%ebx", "%ecx"                   \
        )
 /* 32 bit add on x86_64 */
-#define ADD_X86_X64(arg0, arg1, arg2, flags)   \
+#define addw_x64(arg0, arg1, arg2, flags)      \
     asm(                                       \
             "movl %3, %%ebx\n"                 \
             "addl %2, %%ebx\n"                 \
@@ -134,7 +158,7 @@
  *
  * arg0 <- arg1 - arg2
  */
-#define SUB_X64(arg0, arg1, arg2, flags)       \
+#define subd_x64(arg0, arg1, arg2, flags)      \
     asm(                                       \
             "movq %2, %%r15\n"                 \
             "subq %3, %%r15\n"                 \
@@ -146,7 +170,7 @@
             : "m"(arg1), "m"(arg2)             \
             : "%r14", "%r15"                   \
        )
-#define SUB_X86(arg0, arg1, arg2, flags)       \
+#define subw_x86(arg0, arg1, arg2, flags)      \
     asm(                                       \
             "movl %2, %%ebx\n"                 \
             "subl %3, %%ebx\n"                 \
@@ -159,7 +183,7 @@
             : "%ebx", "%ecx"                   \
        )
 /* 32 bit subtract on x86_64 */
-#define SUB_X86_X64(arg0, arg1, arg2, flags)   \
+#define subw_x64(arg0, arg1, arg2, flags)      \
     asm(                                       \
             "movl %2, %%ebx\n"                 \
             "subl %3, %%ebx\n"                 \
@@ -184,10 +208,14 @@
  *  host -> host machine's cpu ( x86 for eg. )
  *  target -> target machine's cpu ( ppc in our case )
  */
-#define ADD    ADD_X86_X64 
-#define ADDI   ADDI_X86_X64
-#define SUB    SUB_X86_X64    
-#define SUBI   SUBI_X86_X64 
+
+#if HOST_ARCH == x86_64
+#define addw   addw_x64 
+#define subw   subw_x64
+#elif HOST_ARCH == i686
+#define addw   addw_x86
+#define subw   subw_x86
+#endif
 
 
 
@@ -211,30 +239,28 @@ X(invalid)
  * arg[1] = pointer to uint64_t source0
  * arg[2] = pointer to uint64_t source1
  *
- * ADDR -> add record ( records status into flags )
- * ADD  -> add simple
- *
- * update_* functions update appropriate registers ( CR/XER ) via x86 flag register
+ * update_* functions update appropriate registers ( CR/xer ) via x86 flag register
  */
-#define _ADDR ADD(REG0, REG1, REG2, HOST_FLAGS)
-#define _ADD  ADD(REG0, REG1, REG2, DUMMY)
 X(add)
 {
-    _ADDR;
+#define add_code(rD, rA, rB)           \
+    addw(rD, rA, rB, host_flags);
+
+    add_code(REG0, REG1, REG2);
 }
 X(add.)
 {
-    _ADDR;
+    add_code(REG0, REG1, REG2);
     update_cr0(1);
 }
 X(addo)
 {
-    _ADDR;
+    add_code(REG0, REG1, REG2);
     update_xer(1);
 }
 X(addo.)
 {
-    _ADDR;
+    add_code(REG0, REG1, REG2);
     update_xer(1);
     update_cr0(1);
 }
@@ -243,46 +269,46 @@ X(addo.)
  * */
 X(addc)
 {
-    _ADDR;
+    add_code(REG0, REG1, REG2);
 }
 X(addc.)
 {
-    _ADDR;
+    add_code(REG0, REG1, REG2);
     update_cr0(1);
 }
 X(addco)
 {
-    _ADDR;
+    add_code(REG0, REG1, REG2);
     update_xer(1);
 }
 X(addco.)
 {
-    _ADDR;
+    add_code(REG0, REG1, REG2);
     update_xer(1);
     update_cr0(1);
 }
 /* Add extended : rA + rB + CA */
 X(adde)
 {
-    UMODE tmp = REG2 + ((XER >> XER_CA_SHIFT) & XER_CA);
-    ADD(REG0, REG1, tmp, HOST_FLAGS);
+    UMODE tmp = REG2 + ((xer >> XER_CA_SHIFT) & XER_CA);
+    add_code(REG0, REG1, tmp);
 }
 X(adde.)
 {
-    UMODE tmp = REG2 + ((XER >> XER_CA_SHIFT) & XER_CA);
-    ADD(REG0, REG1, tmp, HOST_FLAGS);
+    UMODE tmp = REG2 + ((xer >> XER_CA_SHIFT) & XER_CA);
+    add_code(REG0, REG1, tmp);
     update_cr0(1);
 }
 X(addeo)
 {
-    UMODE tmp = REG2 + ((XER >> XER_CA_SHIFT) & XER_CA);
-    ADD(REG0, REG1, tmp, HOST_FLAGS);
+    UMODE tmp = REG2 + ((xer >> XER_CA_SHIFT) & XER_CA);
+    add_code(REG0, REG1, tmp);
     update_xer(1);
 }
 X(addeo.)
 {
-    UMODE tmp = REG2 + ((XER >> XER_CA_SHIFT) & XER_CA);
-    ADD(REG0, REG1, tmp, HOST_FLAGS);
+    UMODE tmp = REG2 + ((xer >> XER_CA_SHIFT) & XER_CA);
+    add_code(REG0, REG1, tmp);
     update_xer(1);
     update_cr0(1);
 }
@@ -299,7 +325,7 @@ X(addeo.)
 X(addi)
 {
     SMODE tmp = (int16_t)ARG2;
-    if(ARG1){ ADD(REG0, REG1, tmp, HOST_FLAGS); }
+    if(ARG1){ add_code(REG0, REG1, tmp); }
     else    { REG0 = (int16_t)ARG2;             }
 }
 X(li)
@@ -309,13 +335,13 @@ X(li)
 X(la)
 {
     SMODE tmp = (int16_t)ARG1;
-    if(ARG2){ ADD(REG0, REG2, tmp, HOST_FLAGS); }
+    if(ARG2){ add_code(REG0, REG2, tmp); }
     else    { REG0 = (int16_t)ARG1;             }
 }
 X(subi)
 {
     SMODE tmp = (int16_t)ARG2;
-    if(ARG1){ SUB(REG0, REG1, tmp, HOST_FLAGS); }
+    if(ARG1){ subw(REG0, REG1, tmp, host_flags); }
     else    { REG0 = -(int16_t)ARG2;            }
 }
 X(li_0)
@@ -334,26 +360,26 @@ X(li_0)
 X(addic)
 {
     SMODE tmp = (int16_t)ARG2;
-    ADD(REG0, REG1, tmp, HOST_FLAGS);
+    add_code(REG0, REG1, tmp);
     update_xer(1);
 }
 X(subic)
 {
     SMODE tmp = (int16_t)ARG2;
-    SUB(REG0, REG1, tmp, HOST_FLAGS);
+    subw(REG0, REG1, tmp, host_flags);
     update_xer(1);
 }
 X(addic.)
 {
     SMODE tmp = (int16_t)ARG2;
-    ADD(REG0, REG1, tmp, HOST_FLAGS);
+    add_code(REG0, REG1, tmp);
     update_xer(1);
     update_cr0(1);
 }
 X(subic.)
 {
     SMODE tmp = (int16_t)ARG2;
-    SUB(REG0, REG1, tmp, HOST_FLAGS);
+    subw(REG0, REG1, tmp, host_flags);
     update_xer(1);
     update_cr0(1);
 }
@@ -368,7 +394,7 @@ X(subic.)
 X(addis)
 {
     SMODE tmp = (((int16_t)ARG2) << 16);
-    if(ARG1){ ADD(REG0, REG1, tmp, HOST_FLAGS); }
+    if(ARG1){ add_code(REG0, REG1, tmp); }
     else    { REG0 = ((int16_t)ARG2) << 16;     }
 }
 X(lis)
@@ -378,61 +404,61 @@ X(lis)
 X(subis)
 {
     SMODE tmp = (((int16_t)ARG2) << 16);
-    if(ARG1){ SUB(REG0, REG1, tmp, HOST_FLAGS); }
+    if(ARG1){ subw(REG0, REG1, tmp, host_flags); }
     else    { REG0 = -((int16_t)ARG2 << 16);    }
 }
 /* addme
- * rA + XER[CA] - 1  
+ * rA + xer[CA] - 1  
  *  */
 X(addme)
 {
-    SMODE tmp = ((XER >> XER_CA_SHIFT) & XER_CA) - 1;
-    ADD(REG0, REG1, tmp, HOST_FLAGS);
+    SMODE tmp = ((xer >> XER_CA_SHIFT) & XER_CA) - 1;
+    add_code(REG0, REG1, tmp);
 }
 X(addme.)
 {
-    SMODE tmp = ((XER >> XER_CA_SHIFT) & XER_CA) - 1;
-    ADD(REG0, REG1, tmp, HOST_FLAGS);
+    SMODE tmp = ((xer >> XER_CA_SHIFT) & XER_CA) - 1;
+    add_code(REG0, REG1, tmp);
     update_cr0(1);
 }
 X(addmeo)
 {
-    SMODE tmp = ((XER >> XER_CA_SHIFT) & XER_CA) - 1;
-    ADD(REG0, REG1, tmp, HOST_FLAGS);
+    SMODE tmp = ((xer >> XER_CA_SHIFT) & XER_CA) - 1;
+    add_code(REG0, REG1, tmp);
     update_xer(1);
 }
 X(addmeo.)
 {
-    SMODE tmp = ((XER >> XER_CA_SHIFT) & XER_CA) - 1;
-    ADD(REG0, REG1, tmp, HOST_FLAGS);
+    SMODE tmp = ((xer >> XER_CA_SHIFT) & XER_CA) - 1;
+    add_code(REG0, REG1, tmp);
     update_xer(1);
     update_cr0(1);
 }
 /*
  * addze
- * rA + XER[CA]
+ * rA + xer[CA]
  */
 X(addze)
 {
-    UMODE tmp = (XER >> XER_CA_SHIFT) & XER_CA;
-    ADD(REG0, REG1, tmp, HOST_FLAGS);
+    UMODE tmp = (xer >> XER_CA_SHIFT) & XER_CA;
+    add_code(REG0, REG1, tmp);
 }
 X(addze.)
 {
-    UMODE tmp = (XER >> XER_CA_SHIFT) & XER_CA;
-    ADD(REG0, REG1, tmp, HOST_FLAGS);
+    UMODE tmp = (xer >> XER_CA_SHIFT) & XER_CA;
+    add_code(REG0, REG1, tmp);
     update_cr0(1);
 }
 X(addzeo)
 {
-    UMODE tmp = (XER >> XER_CA_SHIFT) & XER_CA;
-    ADD(REG0, REG1, tmp, HOST_FLAGS);
+    UMODE tmp = (xer >> XER_CA_SHIFT) & XER_CA;
+    add_code(REG0, REG1, tmp);
     update_xer(1);
 }
 X(addzeo.)
 {
-    UMODE tmp = (XER >> XER_CA_SHIFT) & XER_CA;
-    ADD(REG0, REG1, tmp, HOST_FLAGS);
+    UMODE tmp = (xer >> XER_CA_SHIFT) & XER_CA;
+    add_code(REG0, REG1, tmp);
     update_xer(1);
     update_cr0(1);
 }
@@ -445,9 +471,8 @@ X(and)
 }
 X(and.)
 {
-    UMODE tmp = REG1 & REG2;
-    REG0 = tmp;
-    update_cr0(0, tmp);
+    REG0 = REG1 & REG2;
+    update_cr0(0, ut(REG0));
 }
 X(andc)
 {
@@ -456,24 +481,21 @@ X(andc)
 }
 X(andc.)
 {
-    UMODE tmp = REG1 & (~REG2);
-    REG0 = tmp;
-    update_cr0(0, tmp);
+    REG0 = REG1 & (~REG2);
+    update_cr0(0, ut(REG0));
 }
 /* andi_dot:  AND immediate, update CR.
  * rA <- rS + 16(0) || UIMM
  */
 X(andi.)
 {
-    UMODE tmp = REG1 & (uint16_t)ARG2;
-    REG0 = tmp;
-    update_cr0(0, tmp);
+    REG0 = REG1 & (uint16_t)ARG2;
+    update_cr0(0, ut(REG0));
 }
 X(andis.)
 {
-    UMODE tmp = REG1 & (((uint16_t)ARG2) << 16);
-    REG0 = tmp;
-    update_cr0(0, tmp);
+    REG0 = REG1 & (((uint16_t)ARG2) << 16);
+    update_cr0(0, ut(REG0));
 }
 
 /* cmp variants */
@@ -719,11 +741,99 @@ X(mtcr)
     mtcrf_code(0xff, REG0);
 }
 
-X(msync)
+//  Move to/from MSR
+X(mfmsr)
 {
-    //Do nothing
+#define mfmsr_code(rD)                         \
+    rD = msr;
+
+    mfmsr_code(REG0);
+}
+X(mfpmr)
+{
+#define mfpmr_code(rD, PMRN)                  \
+    rD = pmr[PMRN];
+
+    mfpmr_code(REG0, ARG1);
 }
 
+// Move to/from SPRs referred to by spr name in mnemonic
+#define MNEC_MFR(rD, regname)                 \
+    X(mf##regname){                           \
+        rD = *(m_reghash[#regname]);          \
+    }
+#define MNEC_MTR(regname, rS)                 \
+    X(mt##regname){                           \
+        *(m_reghash[#regname]) = rS;          \
+    }
+
+MNEC_MFR(REG0, xer)
+MNEC_MFR(REG0, ctr)
+
+MNEC_MTR(xer, REG0)
+MNEC_MTR(ctr, REG0)
+
+X(mfspr)
+{
+#define mfspr_code(rD, SPRN)                   \
+    rD = spr[SPRN];
+
+    mfspr_code(REG0, ARG1);
+}
+// Move to MSR
+X(mtmsr)
+{
+#define mtmsr_code(rS)                        \
+    msr = rS;
+
+    mtmsr_code(REG0);
+}
+// Move to PMR
+X(mtpmr)
+{
+#define mtpmr_code(PMRN, rS)                  \
+    pmr[PMRN] = rS;
+
+    mtpmr_code(ARG0, REG1);
+}
+X(mtspr)
+{
+#define mtspr_code(SPRN, rS)                  \
+    spr[SPRN] = rS;
+
+    mtspr_code(ARG0, REG1);
+}
+
+// Move register
+X(mr)
+{
+}
+X(msync)
+{
+    // Do nothing
+}
+
+// Add all mul* instrs here
+//
+//
+
+// Logical instrs
+X(nand)
+{
+#define nand_code(rA, rS, rB)                  \
+    rA = ~(rS & rB);
+
+    nand_code(REG0, REG1, REG2);
+}
+X(nand.)
+{
+    nand_code(REG0, REG1, REG2);
+    update_cr0(0, ut(REG0));
+}
+X(neg)
+{
+
+}
 
 #if 0
 
@@ -1250,7 +1360,7 @@ X(llsc)
 		cpu->cd.ppc.ll_addr = addr;
 		cpu->cd.ppc.ll_bit = 1;
 	} else {
-		uint32_t old_so = cpu->cd.ppc.spr[SPR_XER] & PPC_XER_SO;
+		uint32_t old_so = cpu->cd.ppc.spr[SPR_xer] & PPC_xer_SO;
 		if (!rc) {
 			fatal("sc: rc-bit not set?\n");
 			exit(1);
@@ -1260,7 +1370,7 @@ X(llsc)
 
 		/*  "If the store is performed, bits 0-2 of Condition
 		    Register Field 0 are set to 0b001, otherwise, they are
-		    set to 0b000. The SO bit of the XER is copied to to bit
+		    set to 0b000. The SO bit of the xer is copied to to bit
 		    4 of Condition Register Field 0.  */
 		if (!cpu->cd.ppc.ll_bit || cpu->cd.ppc.ll_addr != addr) {
 			cpu->cd.ppc.cr &= 0x0fffffff;
@@ -1518,7 +1628,7 @@ X(srawi)
 	uint32_t tmp = reg(ic->arg[0]);
 	int i = 0, j = 0, sh = ic->arg[2];
 
-	cpu->cd.ppc.spr[SPR_XER] &= ~PPC_XER_CA;
+	cpu->cd.ppc.spr[SPR_xer] &= ~PPC_XER_CA;
 	if (tmp & 0x80000000)
 		i = 1;
 	while (sh-- > 0) {
@@ -1529,7 +1639,7 @@ X(srawi)
 			tmp |= 0x80000000;
 	}
 	if (i && j>0)
-		cpu->cd.ppc.spr[SPR_XER] |= PPC_XER_CA;
+		cpu->cd.ppc.spr[SPR_xer] |= PPC_XER_CA;
 	reg(ic->arg[1]) = (int64_t)(int32_t)tmp;
 }
 DOT1(srawi)
@@ -1913,7 +2023,7 @@ X(sraw)
 	uint32_t tmp = reg(ic->arg[0]);
 	int i = 0, j = 0, sh = reg(ic->arg[1]) & 31;
 
-	cpu->cd.ppc.spr[SPR_XER] &= ~PPC_XER_CA;
+	cpu->cd.ppc.spr[SPR_xer] &= ~PPC_XER_CA;
 	if (tmp & 0x80000000)
 		i = 1;
 	while (sh-- > 0) {
@@ -1924,7 +2034,7 @@ X(sraw)
 			tmp |= 0x80000000;
 	}
 	if (i && j>0)
-		cpu->cd.ppc.spr[SPR_XER] |= PPC_XER_CA;
+		cpu->cd.ppc.spr[SPR_xer] |= PPC_XER_CA;
 	reg(ic->arg[2]) = (int64_t)(int32_t)tmp;
 }
 DOT2(sraw)
@@ -2025,10 +2135,10 @@ X(addc)
 	/*  TODO: this only works in 32-bit mode  */
 	uint64_t tmp = (uint32_t)reg(ic->arg[0]);
 	uint64_t tmp2 = tmp;
-	cpu->cd.ppc.spr[SPR_XER] &= ~PPC_XER_CA;
+	cpu->cd.ppc.spr[SPR_xer] &= ~PPC_XER_CA;
 	tmp += (uint32_t)reg(ic->arg[1]);
 	if ((tmp >> 32) != (tmp2 >> 32))
-		cpu->cd.ppc.spr[SPR_XER] |= PPC_XER_CA;
+		cpu->cd.ppc.spr[SPR_xer] |= PPC_XER_CA;
 	reg(ic->arg[2]) = (uint32_t)tmp;
 }
 
@@ -2043,44 +2153,44 @@ X(addc)
 X(adde)
 {
 	/*  TODO: this only works in 32-bit mode  */
-	int old_ca = cpu->cd.ppc.spr[SPR_XER] & PPC_XER_CA;
+	int old_ca = cpu->cd.ppc.spr[SPR_xer] & PPC_XER_CA;
 	uint64_t tmp = (uint32_t)reg(ic->arg[0]);
 	uint64_t tmp2 = tmp;
-	cpu->cd.ppc.spr[SPR_XER] &= ~PPC_XER_CA;
+	cpu->cd.ppc.spr[SPR_xer] &= ~PPC_XER_CA;
 	tmp += (uint32_t)reg(ic->arg[1]);
 	if (old_ca)
 		tmp ++;
 	if ((tmp >> 32) != (tmp2 >> 32))
-		cpu->cd.ppc.spr[SPR_XER] |= PPC_XER_CA;
+		cpu->cd.ppc.spr[SPR_xer] |= PPC_XER_CA;
 	reg(ic->arg[2]) = (uint32_t)tmp;
 }
 DOT2(adde)
 X(addme)
 {
 	/*  TODO: this only works in 32-bit mode  */
-	int old_ca = cpu->cd.ppc.spr[SPR_XER] & PPC_XER_CA;
+	int old_ca = cpu->cd.ppc.spr[SPR_xer] & PPC_XER_CA;
 	uint64_t tmp = (uint32_t)reg(ic->arg[0]);
 	uint64_t tmp2 = tmp;
-	cpu->cd.ppc.spr[SPR_XER] &= ~PPC_XER_CA;
+	cpu->cd.ppc.spr[SPR_xer] &= ~PPC_XER_CA;
 	if (old_ca)
 		tmp ++;
 	tmp += 0xffffffffULL;
 	if ((tmp >> 32) != (tmp2 >> 32))
-		cpu->cd.ppc.spr[SPR_XER] |= PPC_XER_CA;
+		cpu->cd.ppc.spr[SPR_xer] |= PPC_XER_CA;
 	reg(ic->arg[2]) = (uint32_t)tmp;
 }
 DOT2(addme)
 X(addze)
 {
 	/*  TODO: this only works in 32-bit mode  */
-	int old_ca = cpu->cd.ppc.spr[SPR_XER] & PPC_XER_CA;
+	int old_ca = cpu->cd.ppc.spr[SPR_xer] & PPC_XER_CA;
 	uint64_t tmp = (uint32_t)reg(ic->arg[0]);
 	uint64_t tmp2 = tmp;
-	cpu->cd.ppc.spr[SPR_XER] &= ~PPC_XER_CA;
+	cpu->cd.ppc.spr[SPR_xer] &= ~PPC_XER_CA;
 	if (old_ca)
 		tmp ++;
 	if ((tmp >> 32) != (tmp2 >> 32))
-		cpu->cd.ppc.spr[SPR_XER] |= PPC_XER_CA;
+		cpu->cd.ppc.spr[SPR_xer] |= PPC_XER_CA;
 	reg(ic->arg[2]) = (uint32_t)tmp;
 }
 DOT2(addze)
@@ -2100,21 +2210,21 @@ X(subf)
 DOT2(subf)
 X(subfc)
 {
-	cpu->cd.ppc.spr[SPR_XER] &= ~PPC_XER_CA;
+	cpu->cd.ppc.spr[SPR_xer] &= ~PPC_XER_CA;
 	if (reg(ic->arg[1]) >= reg(ic->arg[0]))
-		cpu->cd.ppc.spr[SPR_XER] |= PPC_XER_CA;
+		cpu->cd.ppc.spr[SPR_xer] |= PPC_XER_CA;
 	reg(ic->arg[2]) = reg(ic->arg[1]) - reg(ic->arg[0]);
 }
 DOT2(subfc)
 X(subfe)
 {
-	int old_ca = (cpu->cd.ppc.spr[SPR_XER] & PPC_XER_CA)? 1 : 0;
-	cpu->cd.ppc.spr[SPR_XER] &= ~PPC_XER_CA;
+	int old_ca = (cpu->cd.ppc.spr[SPR_xer] & PPC_XER_CA)? 1 : 0;
+	cpu->cd.ppc.spr[SPR_xer] &= ~PPC_XER_CA;
 	if (reg(ic->arg[1]) == reg(ic->arg[0])) {
 		if (old_ca)
-			cpu->cd.ppc.spr[SPR_XER] |= PPC_XER_CA;
+			cpu->cd.ppc.spr[SPR_xer] |= PPC_XER_CA;
 	} else if (reg(ic->arg[1]) >= reg(ic->arg[0]))
-		cpu->cd.ppc.spr[SPR_XER] |= PPC_XER_CA;
+		cpu->cd.ppc.spr[SPR_xer] |= PPC_XER_CA;
 
 	/*
 	 *  TODO: The register value calculation should be correct,
@@ -2126,27 +2236,27 @@ X(subfe)
 DOT2(subfe)
 X(subfme)
 {
-	int old_ca = cpu->cd.ppc.spr[SPR_XER] & PPC_XER_CA;
+	int old_ca = cpu->cd.ppc.spr[SPR_xer] & PPC_XER_CA;
 	uint64_t tmp = (uint32_t)(~reg(ic->arg[0]));
 	tmp += 0xffffffffULL;
-	cpu->cd.ppc.spr[SPR_XER] &= ~PPC_XER_CA;
+	cpu->cd.ppc.spr[SPR_xer] &= ~PPC_XER_CA;
 	if (old_ca)
 		tmp ++;
 	if ((tmp >> 32) != 0)
-		cpu->cd.ppc.spr[SPR_XER] |= PPC_XER_CA;
+		cpu->cd.ppc.spr[SPR_xer] |= PPC_XER_CA;
 	reg(ic->arg[2]) = (uint32_t)tmp;
 }
 DOT2(subfme)
 X(subfze)
 {
-	int old_ca = cpu->cd.ppc.spr[SPR_XER] & PPC_XER_CA;
+	int old_ca = cpu->cd.ppc.spr[SPR_xer] & PPC_XER_CA;
 	uint64_t tmp = (uint32_t)(~reg(ic->arg[0]));
 	uint64_t tmp2 = tmp;
-	cpu->cd.ppc.spr[SPR_XER] &= ~PPC_XER_CA;
+	cpu->cd.ppc.spr[SPR_xer] &= ~PPC_XER_CA;
 	if (old_ca)
 		tmp ++;
 	if ((tmp >> 32) != (tmp2 >> 32))
-		cpu->cd.ppc.spr[SPR_XER] |= PPC_XER_CA;
+		cpu->cd.ppc.spr[SPR_xer] |= PPC_XER_CA;
 	reg(ic->arg[2]) = (uint32_t)tmp;
 }
 DOT2(subfze)
@@ -2470,7 +2580,7 @@ X(tlbsx_dot)
 	/*  TODO  */
 	cpu->cd.ppc.cr &= ~(0xf0000000);
 	cpu->cd.ppc.cr |= 0x20000000;
-	cpu->cd.ppc.cr |= ((cpu->cd.ppc.spr[SPR_XER] >> 3) & 0x10000000);
+	cpu->cd.ppc.cr |= ((cpu->cd.ppc.spr[SPR_xer] >> 3) & 0x10000000);
 }
 
 
