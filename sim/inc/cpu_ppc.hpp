@@ -314,6 +314,8 @@ class ppc_cpu_booke : public cpu {
     // bf may range from [0:7]
     void update_crF(unsigned bf, uint64_t val){
         LOG("DEBUG4") << MSG_FUNC_START;
+        bf &= 0x7;
+        val &= 0xf;
         cr &= ~( 0xf << (7 - bf)*4 );
         cr |=  ((val & 0xf) << (7 - bf)*4);
         LOG("DEBUG4") << MSG_FUNC_END;
@@ -329,6 +331,8 @@ class ppc_cpu_booke : public cpu {
     // Update CR by exact field value [0:31]
     void update_crf(unsigned field, unsigned value){
         LOG("DEBUG4") << MSG_FUNC_START;
+        field &= 0x1f;
+        value &= 0x1;
         cr &= ~(0x1 << (31 - field));
         cr |= (value << (31 - field));
         LOG("DEBUG4") << MSG_FUNC_END;
@@ -362,15 +366,22 @@ class ppc_cpu_booke : public cpu {
         LOG("DEBUG4") << MSG_FUNC_END;
     }
 
+    // bf field can be only 3 bits wide. If not, it's truncated to 3 bits
+    // val can be 4 bits only.
     void update_xerF(unsigned bf, unsigned val){
         LOG("DEBUG4") << MSG_FUNC_START;
+        bf &= 0x7;
+        val &= 0xf;
         spr[SPRN_XER] &= ~( 0xf << (7 - bf)*4 );
         spr[SPRN_XER] |=  ((val & 0xf) << (7 - bf)*4);
         LOG("DEBUG4") << MSG_FUNC_END;
     }
 
+    // value can be either 1 or 0 
     void update_xerf(unsigned field, unsigned value){
         LOG("DEBUG4") << MSG_FUNC_START;
+        field &= 0x1f;
+        value &= 0x1;
         spr[SPRN_XER] &= ~(0x1 << (31 - field));
         spr[SPRN_XER] |= (value << (31 - field));
         LOG("DEBUG4") << MSG_FUNC_END;

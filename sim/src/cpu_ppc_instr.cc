@@ -17,6 +17,9 @@
  *  It's just a template for defining instructions'
  *  pseudocode implementation. An external utility uses this template to generate a new
  *  header/C++ file before direct use.
+ *
+ *  Pseudocodes are written in accordance with Power ISA 2.06 provided by power.org and
+ *  PowerPC e500 core ref. manual provided by Freescale.
  */
 
 /* ---------
@@ -24,8 +27,7 @@
  * ---------
  */
 
-// SPR, GPR, ARG0, ARG1, etc should come from outside ( preferably some top level utility )
-//
+// Global defines for this template file
 
 #define spr                      cpu->spr
 #define xer                      spr[SPRN_XER]
@@ -38,6 +40,7 @@
 #define update_crF               cpu->update_crF
 #define update_crf               cpu->update_crf
 #define update_xer               cpu->update_xer
+#define update_xerf              cpu->update_xerf
 #define get_xer_so               cpu->get_xer_so
 #define get_crf                  cpu->get_crf
 #define get_crF                  cpu->get_crF
@@ -47,13 +50,21 @@
 #define host_flags               cpu->host_state.flags
 #define dummy_flags              cpu->host_state.dummy
 
+// In case of register operands, their pointers are instead passed in corresponding ARG parameter.
 #define REG0   reg(ARG0)
 #define REG1   reg(ARG1)
 #define REG2   reg(ARG2)
 #define REG3   reg(ARG3)
 #define REG4   reg(ARG4)
 
-// target mode
+// target mode , ut -> unsigned target, st -> signed target
+// If target_bits == 32
+//     UMODE -> uint32_t
+//     SMODE -> int32_t
+// else if target_bits == 64
+//     UMODE -> uint64_t
+//     SMODE -> int64_t
+// endif    
 #define ut(arg)   ((UMODE)(arg))
 #define st(arg)   ((SMODE)(arg))
 
@@ -1003,4 +1014,102 @@ X(sc)
 {
 }
 
+// Shift instrs
+X(slw)
+{
+#define slw_code(rA, rS, rB)                                                       \
+    uint32_t tmp = (rS << (rB & 0x1f)) | (rS >> (32 - (rB & 0x1f)));               \
+    uint32_t mask = (((rB >> 5) & 0x1) == 0) ? ~((1L << (rB & 0x1f)) - 1) : 0;     \
+    rA = (tmp & mask);
 
+    slw_code(REG0, REG1, REG2);
+}
+X(slw.)
+{
+    slw_code(REG0, REG1, REG2);
+    update_cr0(0, ut(REG0));
+}
+// slwi rA, rS, n; ( n < 32 )
+X(slwi)
+{
+    rlwinm_code(REG0, REG1, ARG2, 0, (31-ARG2));
+}
+X(sraw)
+{
+#define sraw_code(rA, rS, rB)                                                            \
+    uint32_t tmp = (rS >> (rB & 0x1f)) | (rS << (32 - (rB & 0x1f)));                     \
+    uint64_t mask = (((rB >> 5) & 0x1) == 0) ? ~((1L << (32 - (rB & 0x1f))) - 1) : 0;    \
+    int sign = ((rS >> 31) & 0x1);                                                       \
+    rA = (tmp & mask) | (((sign) ? 0xffffffffffffffffL : 0L) & ~mask);                   \
+    update_xerf(0, (sign & ((tmp & ~mask) != 0)));
+
+    sraw_code(REG0, REG1, REG2);
+}
+X(sraw.)
+{
+    sraw_code(REG0, REG1, REG2);
+    update_cr0(0, ut(REG0));
+}
+X(srawi)
+{
+#define srawi_code(rA, rS, SH)                                                           \
+    uint32_t tmp = (rS >> (SH & 0x1f)) | (rS << (32 - (SH & 0x1f)));                     \
+    uint64_t mask = ~((1L << (32 - (SH & 0x1f))) - 1);                                   \
+    int sign = ((rS >> 31) & 0x1);                                                       \
+    rA = (tmp & mask) | (((sign) ? 0xffffffffffffffffL : 0L) & ~mask);                   \
+    update_xerf(0, (sign & ((tmp & ~mask) != 0)));
+
+    srawi_code(REG0, REG1, ARG2);
+}
+X(srawi.)
+{
+    srawi_code(REG0, REG1, ARG2);
+    update_cr0(0, ut(REG0));
+}
+X(srw)
+{
+#define srw_code(rA, rS, rB)                                                             \
+    uint32_t tmp = (rS >> (rB & 0x1f)) | (rS << (32 - (rB & 0x1f)));                     \
+    uint32_t mask = (((rB >> 5) & 0x1) == 0) ? ~((1L << (32 - (rB & 0x1f))) - 1) : 0;    \
+    rA = (tmp & mask);
+
+    srw_code(REG0, REG1, REG2);
+}
+X(srw.)
+{
+    srw_code(REG0, REG1, REG2);
+    update_cr0(0, ut(REG0));
+}
+// srwi rA, rS, n; ( n < 32 )
+X(srwi)
+{
+    rlwinm_code(REG0, REG1, (32-ARG2), ARG2, 31);
+}
+
+// xor variants
+X(xor)
+{
+#define xor_code(rA, rS, rB)      \
+    rA = rS ^ rB;
+
+    xor_code(REG0, REG1, REG2);
+}
+X(xor.)
+{
+    xor_code(REG0, REG1, REG2);
+    update_cr0(0, ut(REG0));
+}
+X(xori)
+{
+#define xori_code(rA, rS, UIMM)   \
+    rA = rS ^ ((uint16_t)UIMM);
+
+    xori_code(REG0, REG1, ARG2);
+}
+X(xoris)
+{
+#define xoris_code(rA, rS, UIMM)            \
+    rA = rS ^ (((uint16_t)UIMM) << 16);
+
+    xoris_code(REG0, REG1, REG2);
+}
