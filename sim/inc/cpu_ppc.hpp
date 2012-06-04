@@ -3,6 +3,7 @@
 
 #include "config.h"
 #include "tlb_booke.hpp"
+#include "ppc_exception.hpp"
 #include "cpu.hpp"
 #include "cpu_host.h"
 #include "cpu_ppc_quirks.hpp"
@@ -324,8 +325,8 @@ class ppc_cpu_booke : public cpu {
     // Get crF  ( F -> [0:7] )
     unsigned get_crF(unsigned bf){
         LOG("DEBUG4") << MSG_FUNC_START;
-        return (cr >> (7 - bf)*4) & 0xf;
         LOG("DEBUG4") << MSG_FUNC_END;
+        return (cr >> (7 - bf)*4) & 0xf;
     }
 
     // Update CR by exact field value [0:31]
@@ -341,8 +342,8 @@ class ppc_cpu_booke : public cpu {
     // Get CR bit at exact field
     unsigned get_crf(unsigned field){
         LOG("DEBUG4") << MSG_FUNC_START;
-        return (cr >> (31 - field)) & 0x1;
         LOG("DEBUG4") << MSG_FUNC_END;
+        return (cr >> (31 - field)) & 0x1;
     }
 
     // Update XER
@@ -387,24 +388,23 @@ class ppc_cpu_booke : public cpu {
         LOG("DEBUG4") << MSG_FUNC_END;
     }
 
-    public:
     unsigned get_xerF(unsigned bf){
         LOG("DEBUG4") << MSG_FUNC_START;
-        return (spr[SPRN_XER] >> (7 - bf)*4) & 0xf;
         LOG("DEBUG4") << MSG_FUNC_END;
+        return (spr[SPRN_XER] >> (7 - bf)*4) & 0xf;
     }
 
     unsigned get_xerf(unsigned field){
         LOG("DEBUG4") << MSG_FUNC_START;
-        return (spr[SPRN_XER] >> (31 - field)) & 0x1;
         LOG("DEBUG4") << MSG_FUNC_END;
+        return (spr[SPRN_XER] >> (31 - field)) & 0x1;
     }
 
     // Get XER[SO]
     unsigned get_xer_so(){
         LOG("DEBUG4") << MSG_FUNC_START;
-        return (spr[SPRN_XER] >> XER_SO_SHIFT) & XER_SO;
         LOG("DEBUG4") << MSG_FUNC_END;
+        return (spr[SPRN_XER] >> XER_SO_SHIFT) & XER_SO;
     }
 
     protected:
@@ -484,6 +484,92 @@ class ppc_cpu_booke : public cpu {
         // Add more later on
         LOG("DEBUG4") << MSG_FUNC_END;
     }
+
+    // Interrupt handling routines ( they handle exceptions at hardware level only )
+    // @args :
+    //     exception_nr -> exception number
+    //     exception_cause -> a flag denoting the event which caused the exception
+    //     ea -> effective address at the time fault occured ( used in case of DSI faults etc )
+    void ppc_exception(int exception_nr, int exception_cause, uint64_t ea)
+    {
+#define GET_PC_FROM_IVOR_NUM(ivor_num)                          \
+        ((spr[SPRN_IVPR] & 0xffff) << 16) | ((spr[SPRN_IVOR##ivor_num] & 0xfff) << 4)
+#define CLR_DEFAULT_MSR_BITS()                                  \
+        msr &= ~MSR_SPE & ~MSR_WE & ~MSR_EE & ~MSR_PR & ~MSR_FP & ~MSR_FE0 & ~MSR_FE1 & ~MSR_IS & ~MSR_DS
+
+        switch(exception_nr){
+            case  PPC_EXCEPTION_CR:
+                if((msr & MSR_CE) == 0){ return; }
+
+                spr[SPRN_CSRR0] = pc;
+                spr[SPRN_CSRR1] = msr;
+               
+                // Clear default MSR bits. Also clear CE bit 
+                CLR_DEFAULT_MSR_BITS();
+                msr &= ~MSR_CE;
+
+                pc = GET_PC_FROM_IVOR_NUM(0);
+                break;
+            case  PPC_EXCEPTION_MC:
+                if((msr & MSR_ME) == 0){ return; }
+                
+                spr[SPRN_MCSRR0] = pc;
+                spr[SPRN_MCSRR1] = msr;
+
+                // Clear default MSR bits.
+                CLR_DEFAULT_MSR_BITS();
+                msr &= ~MSR_ME;
+
+                pc = GET_PC_FROM_IVOR_NUM(1);
+                break;
+            case  PPC_EXCEPTION_DSI:
+                spr[SPRN_SRR0] = pc;
+                spr[SPRN_SRR1] = msr;
+
+                CLR_DEFAULT_MSR_BITS();
+
+                pc = GET_PC_FROM_IVOR_NUM(2); 
+                break;
+            case  PPC_EXCEPTION_ISI:
+                break;
+            case  PPC_EXCEPTION_EI:
+                break;
+            case  PPC_EXCEPTION_ALIGN:
+                break;
+            case  PPC_EXCEPTION_PRG:
+                break;
+            case  PPC_EXCEPTION_FPU:
+                break;
+            case  PPC_EXCEPTION_SC:
+                break;
+            case  PPC_EXCEPTION_DEC:
+                break;
+            case  PPC_EXCEPTION_FIT:
+                break;
+            case  PPC_EXCEPTION_WTD:
+                break;
+            case  PPC_EXCEPTION_DTLB:
+                break;
+            case  PPC_EXCEPTION_ITLB:
+                break;
+            case  PPC_EXCEPTION_DBG:
+                break;
+            case  PPC_EXCEPTION_SPE_UA:
+                break;
+            case  PPC_EXCEPTION_EM_FP_D:
+                break;
+            case  PPC_EXCEPTION_EM_FP_R:
+                break;
+            case  PPC_EXCEPTION_PMM:
+                break;
+            case  PPC_EXCEPTION_DB:
+                break;
+            case  PPC_EXCEPTION_DB_CR:
+                break;
+            default:
+                break;
+        }
+    } 
 
   
     private: 

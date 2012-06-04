@@ -1086,6 +1086,24 @@ X(srwi)
     rlwinm_code(REG0, REG1, (32-ARG2), ARG2, 31);
 }
 
+// wrtee variants
+X(wrtee)
+{
+#define wrtee_code(rS)            \
+    msr &= ~(1L << 15);           \
+    msr |= rS & (1L << 15);
+
+    wrtee_code(REG0);
+}
+X(wrteei)
+{
+#define wrteei_code(E)            \
+    msr &= ~(1 << 15);            \
+    msr |= ((E & 0x1) << 15);
+
+    wrteei_code(ARG0);
+}
+
 // xor variants
 X(xor)
 {
