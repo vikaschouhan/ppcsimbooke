@@ -11,8 +11,8 @@
  *
  * Copyright 2009-2010 Freescale Semiconductor, Inc.
  */
-#ifndef _POWERPC_REG_BOOKE_H 
-#define _POWERPC_REG_BOOKE_H
+#ifndef _POWERPC_REG_BOOKE_H__
+#define _POWERPC_REG_BOOKE_H__
 
 /* Machine State Register (MSR) Fields */
 #define MSR_GS		(1<<28) /* Guest state */
@@ -26,10 +26,12 @@
 #define MSR_CM		(1<<31) /* Computation Mode (0=32-bit, 1=64-bit) */
 
 #if defined(CONFIG_PPC_BOOK3E_64)
+#define MSR_64BIT	MSR_CM
+
 #define MSR_		MSR_ME | MSR_CE
-#define MSR_KERNEL      MSR_ | MSR_CM
-#define MSR_USER32	MSR_ | MSR_PR | MSR_EE | MSR_DE
-#define MSR_USER64	MSR_USER32 | MSR_CM | MSR_DE
+#define MSR_KERNEL	MSR_ | MSR_64BIT
+#define MSR_USER32	MSR_ | MSR_PR | MSR_EE
+#define MSR_USER64	MSR_USER32 | MSR_64BIT
 #elif defined (CONFIG_40x)
 #define MSR_KERNEL	(MSR_ME|MSR_RI|MSR_IR|MSR_DR|MSR_CE)
 #define MSR_USER	(MSR_KERNEL|MSR_PR|MSR_EE)
@@ -80,6 +82,10 @@
 #define SPRN_IVOR13	0x19D	/* Interrupt Vector Offset Register 13 */
 #define SPRN_IVOR14	0x19E	/* Interrupt Vector Offset Register 14 */
 #define SPRN_IVOR15	0x19F	/* Interrupt Vector Offset Register 15 */
+#define SPRN_IVOR38	0x1B0	/* Interrupt Vector Offset Register 38 */
+#define SPRN_IVOR39	0x1B1	/* Interrupt Vector Offset Register 39 */
+#define SPRN_IVOR40	0x1B2	/* Interrupt Vector Offset Register 40 */
+#define SPRN_IVOR41	0x1B3	/* Interrupt Vector Offset Register 41 */
 #define SPRN_SPEFSCR	0x200	/* SPE & Embedded FP Status & Control */
 #define SPRN_BBEAR	0x201	/* Branch Buffer Entry Address Register */
 #define SPRN_BBTAR	0x202	/* Branch Buffer Target Address Register */
@@ -311,6 +317,7 @@
 #define ESR_ILK		0x00100000	/* Instr. Cache Locking */
 #define ESR_PUO		0x00040000	/* Unimplemented Operation exception */
 #define ESR_BO		0x00020000	/* Byte Ordering */
+#define ESR_SPV		0x00000080	/* Signal Processing operation */
 
 /* Bit definitions related to the DBCR0. */
 #if defined(CONFIG_40x)
@@ -540,6 +547,9 @@
 #define L1CSR1_ICFI	0x00000002	/* Instr Cache Flash Invalidate */
 #define L1CSR1_ICE	0x00000001	/* Instr Cache Enable */
 
+/* Bit definitions for L1CSR2. */
+#define L1CSR2_DCWS	0x40000000	/* Data Cache write shadow */
+
 /* Bit definitions for L2CSR0. */
 #define L2CSR0_L2E	0x80000000	/* L2 Cache Enable */
 #define L2CSR0_L2PE	0x40000000	/* L2 Cache Parity/ECC Enable */
@@ -652,4 +662,4 @@
 #define MMUBE1_VBE4		0x00000002
 #define MMUBE1_VBE5		0x00000001
 
-#endif /* _POWERPC_REG_BOOKE_H */
+#endif /* _POWERPC_REG_BOOKE_H__ */

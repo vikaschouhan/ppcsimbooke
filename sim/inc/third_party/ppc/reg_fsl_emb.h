@@ -2,9 +2,8 @@
  * Contains register definitions for the Freescale Embedded Performance
  * Monitor.
  */
-#ifdef __KERNEL__
-#ifndef __ASM_POWERPC_REG_FSL_EMB_H__
-#define __ASM_POWERPC_REG_FSL_EMB_H__
+#ifndef _POWERPC_REG_FSL_EMB_H__
+#define _POWERPC_REG_FSL_EMB_H__
 
 #ifndef __ASSEMBLY__
 /* Performance Monitor Registers */
@@ -68,5 +67,4 @@
 #define PMRN_UPMGC0	0x180	/* User PM Global Control 0 */
 
 
-#endif /* __ASM_POWERPC_REG_FSL_EMB_H__ */
-#endif /* __KERNEL__ */
+#endif /* _POWERPC_REG_FSL_EMB_H__ */

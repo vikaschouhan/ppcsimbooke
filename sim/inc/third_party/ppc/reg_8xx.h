@@ -1,8 +1,8 @@
 /*
  * Contains register definitions common to PowerPC 8xx CPUs.  Notice
  */
-#ifndef _ASM_POWERPC_REG_8xx_H
-#define _ASM_POWERPC_REG_8xx_H
+#ifndef _POWERPC_REG_8xx_H
+#define _POWERPC_REG_8xx_H
 
 /* Cache control on the MPC8xx is provided through some additional
  * special purpose registers.
