@@ -404,7 +404,13 @@ class ppc_cpu_booke : public cpu {
     unsigned get_xer_so(){
         LOG("DEBUG4") << MSG_FUNC_START;
         LOG("DEBUG4") << MSG_FUNC_END;
-        return (spr[SPRN_XER] >> XER_SO_SHIFT) & XER_SO;
+        return ((spr[SPRN_XER] & XER_SO) ? 1:0);
+    }
+
+    unsigned get_xer_ca(){
+        LOG("DEBUG4") << MSG_FUNC_START;
+        LOG("DEBUG4") << MSG_FUNC_END;
+        return ((spr[SPRN_XER] & XER_CA) ? 1:0);
     }
 
     protected:

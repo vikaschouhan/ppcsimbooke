@@ -68,6 +68,8 @@
 #define ut(arg)   ((UMODE)(arg))
 #define st(arg)   ((SMODE)(arg))
 
+#define reg_bf(reg, mask)   ((reg & mask) ? 1:0)
+
 #if 0
 #ifndef CHECK_FOR_FPU_EXCEPTION
 #define CHECK_FOR_FPU_EXCEPTION { if (!(cpu->cd.ppc.msr & PPC_MSR_FP)) { \
@@ -315,24 +317,24 @@ X(addco.)
 /* Add extended : rA + rB + CA */
 X(adde)
 {
-    UMODE tmp = REG2 + ((xer >> XER_CA_SHIFT) & XER_CA);
+    UMODE tmp = REG2 + reg_bf(xer, XER_CA);
     add_code(REG0, REG1, tmp);
 }
 X(adde.)
 {
-    UMODE tmp = REG2 + ((xer >> XER_CA_SHIFT) & XER_CA);
+    UMODE tmp = REG2 + reg_bf(xer, XER_CA);
     add_code(REG0, REG1, tmp);
     update_cr0(1);
 }
 X(addeo)
 {
-    UMODE tmp = REG2 + ((xer >> XER_CA_SHIFT) & XER_CA);
+    UMODE tmp = REG2 + reg_bf(xer, XER_CA);
     add_code(REG0, REG1, tmp);
     update_xer(1);
 }
 X(addeo.)
 {
-    UMODE tmp = REG2 + ((xer >> XER_CA_SHIFT) & XER_CA);
+    UMODE tmp = REG2 + reg_bf(xer, XER_CA);
     add_code(REG0, REG1, tmp);
     update_xer(1);
     update_cr0(1);
@@ -437,24 +439,24 @@ X(subis)
  *  */
 X(addme)
 {
-    SMODE tmp = ((xer >> XER_CA_SHIFT) & XER_CA) - 1;
+    SMODE tmp = reg_bf(xer, XER_CA) - 1;
     add_code(REG0, REG1, tmp);
 }
 X(addme.)
 {
-    SMODE tmp = ((xer >> XER_CA_SHIFT) & XER_CA) - 1;
+    SMODE tmp = reg_bf(xer, XER_CA) - 1;
     add_code(REG0, REG1, tmp);
     update_cr0(1);
 }
 X(addmeo)
 {
-    SMODE tmp = ((xer >> XER_CA_SHIFT) & XER_CA) - 1;
+    SMODE tmp = reg_bf(xer, XER_CA) - 1;
     add_code(REG0, REG1, tmp);
     update_xer(1);
 }
 X(addmeo.)
 {
-    SMODE tmp = ((xer >> XER_CA_SHIFT) & XER_CA) - 1;
+    SMODE tmp = reg_bf(xer, XER_CA) - 1;
     add_code(REG0, REG1, tmp);
     update_xer(1);
     update_cr0(1);
@@ -465,24 +467,24 @@ X(addmeo.)
  */
 X(addze)
 {
-    UMODE tmp = (xer >> XER_CA_SHIFT) & XER_CA;
+    UMODE tmp = reg_bf(xer, XER_CA);
     add_code(REG0, REG1, tmp);
 }
 X(addze.)
 {
-    UMODE tmp = (xer >> XER_CA_SHIFT) & XER_CA;
+    UMODE tmp = reg_bf(xer, XER_CA);
     add_code(REG0, REG1, tmp);
     update_cr0(1);
 }
 X(addzeo)
 {
-    UMODE tmp = (xer >> XER_CA_SHIFT) & XER_CA;
+    UMODE tmp = reg_bf(xer, XER_CA);
     add_code(REG0, REG1, tmp);
     update_xer(1);
 }
 X(addzeo.)
 {
-    UMODE tmp = (xer >> XER_CA_SHIFT) & XER_CA;
+    UMODE tmp = reg_bf(xer, XER_CA);
     add_code(REG0, REG1, tmp);
     update_xer(1);
     update_cr0(1);
