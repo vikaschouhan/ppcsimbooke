@@ -38,9 +38,11 @@
 // Multiple types can be flagged simultaneously by simply ORing them.
 //
 // Each type will be paired with the exception number from above #defines.
-//
-#define    PPC_EXCEPT_CR                    0x0000000000000001ULL
 
+// subgroups for CR
+#define    PPC_EXCEPT_CR                    0x0000000000000001ULL           // Critical
+
+// Subgroups for MC
 #define    PPC_EXCEPT_MC_MCPBAR             0x0000000000000001ULL           // Negative edge on MCP signal
 #define    PPC_EXCEPT_MC_DCPERR             0x0000000000000002ULL           // Data Cache Parity Error
 #define    PPC_EXCEPT_MC_ICPERR             0x0000000000000004ULL           // Instr. Cache PE
@@ -55,6 +57,7 @@
 #define    PPC_EXCEPT_MC_BUS_RPERR          0x0000000000000800ULL           // Read Parity Error
 #define    PPC_EXCEPT_MC_BUS_FAULT          0x0000000000001000ULL           // Bus Fault
 
+// subgroups for DSI
 #define    PPC_EXCEPT_DSI_ACS_R             0x0000000000000001ULL           // Read Access Control Exception
 #define    PPC_EXCEPT_DSI_ACS_W             0x0000000000000002ULL           // Write Access Control Exception
 #define    PPC_EXCEPT_DSI_RSV_WT            0x0000000000000004ULL           // Load/Store Resv through WT
@@ -62,31 +65,45 @@
 #define    PPC_EXCEPT_DSI_CL                0x0000000000000010ULL           // Cache locking
 #define    PPC_EXCEPT_DSI_BO                0x0000000000000020ULL           // Byte ordering
 
+// subgroups for ISI
 #define    PPC_EXCEPT_ISI_ACS               0x0000000000000001ULL           // Acccess
 #define    PPC_EXCEPT_ISI_BO                0x0000000000000002ULL           // BO
 
+// External
 #define    PPC_EXCEPT_EI                    0x0000000000000001ULL
 
+// Subgroups for ALIGN
 #define    PPC_EXCEPT_ALIGN_DCBZ            0x0000000000000001ULL           // dcbz on page marked as WT ( write through ) or CI ( cache inhibited )
 #define    PPC_EXCEPT_ALIGN_LD              0x0000000000000002ULL           // load not aligned on natural boundary
 #define    PPC_EXCEPT_ALIGN_ST              0x0000000000000004ULL           // store not aligned on natural boundary
 #define    PPC_EXCEPT_ALIGN_SPE             0x0000000000000008ULL           // when SPE/SPFP instrs access address not aligned on their natural boundary
 
+// Subgroups for Program Exception
 #define    PPC_EXCEPT_PRG_ILG               0x0000000000000001ULL           // Illegal
 #define    PPC_EXCEPT_PRG_PRV               0x0000000000000002ULL           // Previledged
 #define    PPC_EXCEPT_PRG_TRAP              0x0000000000000004ULL           // Trap
 #define    PPC_EXCEPT_PRG_UNIMPL            0x0000000000000008ULL           // Unimplemented operation
 
+// System Call
 #define    PPC_EXCEPT_SC                    0x0000000000000001ULL
-#define    PPC_EXCEPT_DEC                   0x0000000000000002ULL
-#define    PPC_EXCEPT_FIT                   0x0000000000000004ULL
-#define    PPC_EXCEPT_WTD                   0x0000000000000008ULL
 
+// Decrementer
+#define    PPC_EXCEPT_DEC                   0x0000000000000001ULL
+
+// Fixed Interval Timer
+#define    PPC_EXCEPT_FIT                   0x0000000000000001ULL
+
+// Watchdog timer
+#define    PPC_EXCEPT_WTD                   0x0000000000000001ULL
+
+// Data TLB Miss
 #define    PPC_EXCEPT_DTLB_MISS_LD          0x0000000000000001ULL           // Data TLB miss on load access
 #define    PPC_EXCEPT_DTLB_MISS_ST          0x0000000000000002ULL           // Data TLB miss on store access
 
+// ITLB miss
 #define    PPC_EXCEPT_ITLB_MISS             0x0000000000000001ULL
 
+// Debug
 #define    PPC_EXCEPT_DBG_TRAP              0x0000000000000001ULL            // Trap
 #define    PPC_EXCEPT_DBG_IAC1              0x0000000000000002ULL            // Instr Address Compare
 #define    PPC_EXCEPT_DBG_IAC2              0x0000000000000004ULL            // Instr Address Compare
@@ -100,8 +117,13 @@
 #define    PPC_EXCEPT_DBG_IRPT              0x0000000000000400ULL            // Interrupt taken
 #define    PPC_EXCEPT_DBG_UDE               0x0000000000000800ULL            // Unconditional Debug Event
 
+// SPE unavail.
 #define    PPC_EXCEPT_SPE_UA                0x0000000000000001ULL            // SPE unavail.
+
+// FP data
 #define    PPC_EXCEPT_EM_FP_D               0x0000000000000001ULL
+
+// FP round
 #define    PPC_EXCEPT_EM_FP_R               0x0000000000000001ULL
 
 #endif
