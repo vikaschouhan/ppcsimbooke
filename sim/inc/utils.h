@@ -93,6 +93,11 @@
 #define MSG_FUNC_START "Entering " << __PRETTY_FUNCTION__ << " ."
 #define MSG_FUNC_END   "Exiting " << __PRETTY_FUNCTION__ << " ."
 
+// Macro for ensuring that function end message is always printed even in case of abrubt returns
+// Void functions don't allow return values
+#define RETURN(retval, DEBUGLEVEL)       LOG(#DEBUGLEVEL) << MSG_FUNC_END; return (retval)
+#define RETURNVOID(DEBUGLEVEL)           LOG(#DEBUGLEVEL) << MSG_FUNC_END; return
+
 // Convert a string to an integer
 // We don't support octal and binary ints for time being
 inline int64_t str_to_int(std::string arg){

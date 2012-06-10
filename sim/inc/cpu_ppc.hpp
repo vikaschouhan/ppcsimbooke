@@ -491,13 +491,19 @@ class ppc_cpu_booke : public cpu {
         LOG("DEBUG4") << MSG_FUNC_END;
     }
 
-    // Interrupt handling routines ( they handle exceptions at hardware level only )
+    // Interrupt handling routines ( they handle exceptions at hardware level only and redirect control
+    //                               to appropriate ISR. ).
     // @args :
     //     exception_nr -> exception number
-    //     exception_cause -> a flag denoting the event which caused the exception
+    //     subtype -> a flag denoting the event which caused the exception
     //     ea -> effective address at the time fault occured ( used in case of DSI faults etc )
-    void ppc_exception(int exception_nr, int exception_cause, uint64_t ea)
+    void ppc_exception(int exception_nr, uint64_t subtype=0, uint64_t ea=-1)
     {
+        LOG("DEBUG4") << MSG_FUNC_START;
+
+        uint64_t *srr0 = NULL;
+        uint64_t *srr1 = NULL;
+
 #define GET_PC_FROM_IVOR_NUM(ivor_num)                          \
         ((spr[SPRN_IVPR] & 0xffff) << 16) | ((spr[SPRN_IVOR##ivor_num] & 0xfff) << 4)
 #define CLR_DEFAULT_MSR_BITS()                                  \
@@ -505,7 +511,7 @@ class ppc_cpu_booke : public cpu {
 
         switch(exception_nr){
             case  PPC_EXCEPTION_CR:
-                if((msr & MSR_CE) == 0){ return; }
+                if((msr & MSR_CE) == 0){ RETURNVOID(DEBUG4); }
 
                 spr[SPRN_CSRR0] = pc;
                 spr[SPRN_CSRR1] = msr;
@@ -513,68 +519,383 @@ class ppc_cpu_booke : public cpu {
                 // Clear default MSR bits. Also clear CE bit 
                 CLR_DEFAULT_MSR_BITS();
                 msr &= ~MSR_CE;
-
                 pc = GET_PC_FROM_IVOR_NUM(0);
                 break;
             case  PPC_EXCEPTION_MC:
-                if((msr & MSR_ME) == 0){ return; }
+                if((msr & MSR_ME) == 0){
+                    std::cout << "Received Machine Check and MSR[ME]=0. Going into checkstop." << std::endl;
+                    exit(1);
+                }
                 
                 spr[SPRN_MCSRR0] = pc;
                 spr[SPRN_MCSRR1] = msr;
+                spr[SPRN_MCAR]   = ea;
+
+                // If no cause specified, skip straight away
+                if(subtype != 0ULL){
+
+                    // Check for sub types
+                    if((subtype & PPC_EXCEPT_MC_DCPERR) == PPC_EXCEPT_MC_DCPERR){
+                        spr[SPRN_MCSR] |= MCSR_DCPERR;
+                    }
+                    if((subtype & PPC_EXCEPT_MC_BUS_RAERR) == PPC_EXCEPT_MC_BUS_RAERR){
+                        spr[SPRN_MCSR] |= MCSR_BUS_RAERR;
+                    }
+                    if((subtype & PPC_EXCEPT_MC_BUS_RBERR) == PPC_EXCEPT_MC_BUS_RBERR){
+                        spr[SPRN_MCSR] |= MCSR_BUS_RBERR;
+                    }
+                    if((subtype & PPC_EXCEPT_MC_BUS_RPERR) == PPC_EXCEPT_MC_BUS_RPERR){
+                        spr[SPRN_MCSR] |= MCSR_BUS_RPERR;
+                    }
+                    if((subtype & PPC_EXCEPT_MC_BUS_WAERR) == PPC_EXCEPT_MC_BUS_WAERR){
+                        spr[SPRN_MCSR] |= MCSR_BUS_WAERR;
+                    }
+                    if((subtype & PPC_EXCEPT_MC_BUS_WBERR) == PPC_EXCEPT_MC_BUS_WBERR){
+                        spr[SPRN_MCSR] |= MCSR_BUS_WBERR;
+                    }
+                    if((subtype & PPC_EXCEPT_MC_DCP_PERR) == PPC_EXCEPT_MC_DCP_PERR){
+                        spr[SPRN_MCSR] |= MCSR_DCP_PERR;
+                    }
+                    if((subtype & PPC_EXCEPT_MC_ICPERR) == PPC_EXCEPT_MC_ICPERR){
+                        spr[SPRN_MCSR] |= MCSR_ICPERR;
+                    }
+                    if((subtype & PPC_EXCEPT_MC_BUS_IAERR) == PPC_EXCEPT_MC_BUS_IAERR){
+                        spr[SPRN_MCSR] |= MCSR_BUS_IAERR;
+                    }
+                    if((subtype & PPC_EXCEPT_MC_BUS_IBERR) == PPC_EXCEPT_MC_BUS_IBERR){
+                         spr[SPRN_MCSR] |= MCSR_BUS_IBERR;
+                    }
+                    if((subtype & PPC_EXCEPT_MC_BUS_IPERR) == PPC_EXCEPT_MC_BUS_IPERR){
+                            spr[SPRN_MCSR] |= MCSR_BUS_IPERR;
+                    }
+                }
 
                 // Clear default MSR bits.
                 CLR_DEFAULT_MSR_BITS();
                 msr &= ~MSR_ME;
-
                 pc = GET_PC_FROM_IVOR_NUM(1);
                 break;
             case  PPC_EXCEPTION_DSI:
                 spr[SPRN_SRR0] = pc;
                 spr[SPRN_SRR1] = msr;
+                spr[SPRN_DEAR] = ea;
+                spr[SPRN_ESR] = 0;   // Clear ESR first
+
+                if(subtype != 0ULL){
+                    if((subtype & PPC_EXCEPT_DSI_ACS_W) == PPC_EXCEPT_DSI_ACS_W){
+                        spr[SPRN_ESR] |= ESR_ST;
+                    }
+                    if((subtype & PPC_EXCEPT_DSI_CL) == PPC_EXCEPT_DSI_CL){
+                        spr[SPRN_ESR] |= ESR_DLK;
+                    }
+                    if((subtype & PPC_EXCEPT_DSI_BO) == PPC_EXCEPT_DSI_BO){
+                        spr[SPRN_ESR] |= ESR_BO;
+                    }
+                }
 
                 CLR_DEFAULT_MSR_BITS();
-
                 pc = GET_PC_FROM_IVOR_NUM(2); 
                 break;
             case  PPC_EXCEPTION_ISI:
+                spr[SPRN_SRR0] = pc;
+                spr[SPRN_SRR1] = msr;
+                spr[SPRN_ESR] = 0;
+
+                if(subtype != 0ULL){
+                    if((subtype & PPC_EXCEPT_ISI_BO) == PPC_EXCEPT_ISI_BO){
+                        spr[SPRN_ESR] |= ESR_BO;
+                    }
+                    if((subtype & PPC_EXCEPT_ISI_ACS) == PPC_EXCEPT_ISI_ACS){
+                        // No bit is said to be affected for this in e500 core RM
+                    }
+                }
+
+                CLR_DEFAULT_MSR_BITS();
+                pc = GET_PC_FROM_IVOR_NUM(3);
                 break;
             case  PPC_EXCEPTION_EI:
+                if((msr & MSR_EE) == 0){ RETURNVOID(DEBUG4); }
+                spr[SPRN_SRR0] = pc;
+                spr[SPRN_SRR1] = msr;
+
+                CLR_DEFAULT_MSR_BITS();  // MSR[EE] is also cleared by this.
+                pc = GET_PC_FROM_IVOR_NUM(4);
                 break;
             case  PPC_EXCEPTION_ALIGN:
+                spr[SPRN_SRR0] = pc;
+                spr[SPRN_SRR1] = msr;
+                spr[SPRN_DEAR] = ea;
+                spr[SPRN_ESR]  = 0;
+
+                if(subtype != 0ULL){
+                    if((subtype & PPC_EXCEPT_ALIGN_SPE) == PPC_EXCEPT_ALIGN_SPE){
+                        spr[SPRN_ESR] |= ESR_SPV;
+                    }
+                    if((subtype & PPC_EXCEPT_ALIGN_ST) == PPC_EXCEPT_ALIGN_ST){
+                        spr[SPRN_ESR] |= ESR_ST;
+                    }
+                }
+
+                CLR_DEFAULT_MSR_BITS();
+                pc = GET_PC_FROM_IVOR_NUM(5);
                 break;
             case  PPC_EXCEPTION_PRG:
+                spr[SPRN_SRR0] = pc;
+                spr[SPRN_SRR1] = msr;
+                spr[SPRN_ESR]  = 0;
+
+                if(subtype != 0ULL){
+                    if((subtype & PPC_EXCEPT_PRG_ILG) == PPC_EXCEPT_PRG_ILG){
+                        spr[SPRN_ESR] |= ESR_PIL;
+                    }
+                    if((subtype & PPC_EXCEPT_PRG_PRV) == PPC_EXCEPT_PRG_PRV){
+                        spr[SPRN_ESR] |= ESR_PPR;
+                    }
+                    if((subtype & PPC_EXCEPT_PRG_TRAP) == PPC_EXCEPT_PRG_TRAP){
+                        spr[SPRN_ESR] |= ESR_PTR;
+                    }
+                }
+          
+                CLR_DEFAULT_MSR_BITS();
+                pc = GET_PC_FROM_IVOR_NUM(6);
                 break;
             case  PPC_EXCEPTION_FPU:
+                // Is FPU there in e500v2 ??
                 break;
             case  PPC_EXCEPTION_SC:
+                spr[SPRN_SRR0] = pc;
+                spr[SPRN_SRR1] = msr;
+
+                CLR_DEFAULT_MSR_BITS();
+                pc = GET_PC_FROM_IVOR_NUM(8);
                 break;
             case  PPC_EXCEPTION_DEC:
+                // A decrementer intr. occurs when no higher priority exception exists ,
+                // a decrementer exception exists (TSR[DIS] = 1), and the interrupt is
+                // enabled (TCR[DIE] =1 and MSR[EE] = 1)
+                if((spr[SPRN_TSR] & TSR_DIS) && (spr[SPRN_TCR] & TCR_DIE) && (msr & MSR_EE)){
+                    // Do nothing
+                }else{
+                    RETURNVOID(DEBUG4);
+                }
+                spr[SPRN_SRR0] = pc;
+                spr[SPRN_SRR1] = msr;
+
+                CLR_DEFAULT_MSR_BITS();
+                spr[SPRN_TSR] |= TSR_DIS; // Why the hell, am I doing it ?? TSR[DIS] is already set. Isn't it ?
+                pc = GET_PC_FROM_IVOR_NUM(10);
                 break;
             case  PPC_EXCEPTION_FIT:
+                // A fixed interval timer interrupt occurs when no higher priority exception exists,
+                // and a FIT exception exists (TSR[FIS] = 1) and the interrupt is enabled
+                // (TCR[FIE] = 1 and MSR[EE] = 1)
+                if((spr[SPRN_TSR] & TSR_FIS) && (spr[SPRN_TCR] & TCR_FIE) && (msr & MSR_EE)){
+                }else{
+                    RETURNVOID(DEBUG4);
+                }
+                spr[SPRN_SRR0] = pc;
+                spr[SPRN_SRR1] = msr;
+
+                CLR_DEFAULT_MSR_BITS();
+                spr[SPRN_TSR] |= TSR_FIS;
+                pc = GET_PC_FROM_IVOR_NUM(11);
                 break;
             case  PPC_EXCEPTION_WTD:
+                // A watchdog timer interrupt occurs when no higher priority exception exists,
+                // and a FIT exception exists (TSR[WIS] = 1) and the interrupt is enabled
+                // (TCR[WIE] = 1 and MSR[CE] = 1)
+                if((spr[SPRN_TSR] & TSR_WIS) && (spr[SPRN_TCR] & TCR_WIE) && (msr & MSR_CE)){
+                }else{
+                    RETURNVOID(DEBUG4);
+                }
+                spr[SPRN_CSRR0] = pc;
+                spr[SPRN_CSRR1] = msr;
+
+                CLR_DEFAULT_MSR_BITS();
+                msr &= ~MSR_CE;               // Clear CE bit, since WDT is critical type
+                spr[SPRN_TSR] |= TSR_WIS;
+                pc = GET_PC_FROM_IVOR_NUM(12);
                 break;
             case  PPC_EXCEPTION_DTLB:
+                spr[SPRN_SRR0] = pc;
+                spr[SPRN_SRR1] = msr;
+                spr[SPRN_DEAR] = ea;
+                spr[SPRN_ESR]  = 0;
+
+                if(subtype != 0ULL){
+                    if((subtype & PPC_EXCEPT_DTLB_MISS_ST) == PPC_EXCEPT_DTLB_MISS_ST){
+                        spr[SPRN_ESR] |= ESR_ST;
+                    }
+                }
+
+                // TODO:
+                // Load Default MAS* values in MAS registers
+
+                CLR_DEFAULT_MSR_BITS();
+                pc = GET_PC_FROM_IVOR_NUM(13);
                 break;
             case  PPC_EXCEPTION_ITLB:
+                spr[SPRN_SRR0] = pc;
+                spr[SPRN_SRR1] = msr;
+
+                // TODO:
+                // Load Default MAS* values in MAS registers
+
+                CLR_DEFAULT_MSR_BITS();
+                pc = GET_PC_FROM_IVOR_NUM(14);
                 break;
             case  PPC_EXCEPTION_DBG:
+                // First check if DBCR0[IDM] is set then check if MSR[DE] is set
+                if((spr[SPRN_DBCR0] & DBCR0_IDM) == 0){ RETURNVOID(DEBUG4); }
+                if((msr & MSR_DE) == 0){ RETURNVOID(DEBUG4); }
+
+                // Debug exceptions are of "CRITICAL" type in e500v2, but "DEBUG" type in e500mc and later
+#ifdef CONFIG_E500
+                srr0 = &spr[SPRN_CSRR0];
+                srr1 = &spr[SPRN_CSRR1];
+#else
+                srr0 = &spr[SPRN_DSRR0];
+                srr1 = &spr[SPRN_DSRR0];
+#endif
+                // FIXME:
+                // Some references are ambiguous ( for eg. the e500v2 RM says that,
+                // for return from interrupt (RET) debug exceptions, CSRR0 is set
+                // to the address of the instruction that would have executed after
+                // the rfi, rfci, or rfmci that caused the debug interrupt.
+                // Not "that" instr is pc+4 or the return address ( which rfxi was supposed
+                // to jump onto ), is unclear. This needs to be fixed. )
+
+                if(subtype != 0ULL){
+                    if((subtype & PPC_EXCEPT_DBG_TRAP) == PPC_EXCEPT_DBG_TRAP){
+                        *srr0 = pc;
+                        spr[SPRN_DBSR] |= DBSR_TIE;
+                    }
+                    if((subtype & PPC_EXCEPT_DBG_IAC1) == PPC_EXCEPT_DBG_IAC1){
+                        *srr0 = pc;
+                        spr[SPRN_DBSR] |= DBSR_IAC1;
+                    }
+                    if((subtype & PPC_EXCEPT_DBG_IAC2) == PPC_EXCEPT_DBG_IAC2){
+                        *srr0 = pc;
+                        spr[SPRN_DBSR] |= DBSR_IAC2;
+                    }
+                    if((subtype & PPC_EXCEPT_DBG_DAC1R) == PPC_EXCEPT_DBG_DAC1R){
+                        *srr0 = pc;
+                        spr[SPRN_DBSR] |= DBSR_DAC1R;
+                    }
+                    if((subtype & PPC_EXCEPT_DBG_DAC1W) == PPC_EXCEPT_DBG_DAC1W){
+                        *srr0 = pc;
+                        spr[SPRN_DBSR] |= DBSR_DAC1W;
+                    }
+                    if((subtype & PPC_EXCEPT_DBG_DAC2R) == PPC_EXCEPT_DBG_DAC2R){
+                        *srr0 = pc;
+                        spr[SPRN_DBSR] |= DBSR_DAC2R;
+                    }
+                    if((subtype & PPC_EXCEPT_DBG_DAC2W) == PPC_EXCEPT_DBG_DAC2W){
+                        *srr0 = pc;
+                        spr[SPRN_DBSR] |= DBSR_DAC2W;
+                    }
+                    if((subtype & PPC_EXCEPT_DBG_ICMP) == PPC_EXCEPT_DBG_ICMP){
+                        *srr0 = pc + 4;
+                        spr[SPRN_DBSR] |= DBSR_IC;
+                    }
+                    if((subtype & PPC_EXCEPT_DBG_BRT) == PPC_EXCEPT_DBG_BRT){
+                        *srr0 = pc;
+                        spr[SPRN_DBSR] |= DBSR_BT;
+                    }
+                    if((subtype & PPC_EXCEPT_DBG_RET) == PPC_EXCEPT_DBG_RET){
+                        *srr0 = pc + 4;
+                        spr[SPRN_DBSR] |= DBSR_RET;
+                    }
+                    if((subtype & PPC_EXCEPT_DBG_IRPT) == PPC_EXCEPT_DBG_IRPT){
+                        //srr0 = intr vector
+                        spr[SPRN_DBSR] |= DBSR_IRPT;
+                    }
+                    if((subtype & PPC_EXCEPT_DBG_UDE) == PPC_EXCEPT_DBG_UDE){
+                        *srr0 = pc + 4;
+                        spr[SPRN_DBSR] |= DBSR_UDE;
+                    }
+                }
+                
+                *srr1 = msr;
+
+                CLR_DEFAULT_MSR_BITS();
+                msr &= ~MSR_DE;               // Clear DE bit
+                pc = GET_PC_FROM_IVOR_NUM(15);
                 break;
             case  PPC_EXCEPTION_SPE_UA:
+                spr[SPRN_SRR0] = pc;
+                spr[SPRN_SRR1] = msr;
+ 
+                spr[SPRN_ESR]  = ESR_SPV;              // Set ESR[SPE]
+
+                CLR_DEFAULT_MSR_BITS();
+                pc = GET_PC_FROM_IVOR_NUM(32);
                 break;
             case  PPC_EXCEPTION_EM_FP_D:
+                // Check conditions
+                if(((spr[SPRN_SPEFSCR] & SPEFSCR_FINVE) != 0) && (((spr[SPRN_SPEFSCR] & SPEFSCR_FINVH) != 0) ||
+                            ((spr[SPRN_SPEFSCR] & SPEFSCR_FINV) != 0))){
+                    goto skip_0;
+                }
+                if(((spr[SPRN_SPEFSCR] & SPEFSCR_FDBZE) != 0) && (((spr[SPRN_SPEFSCR] & SPEFSCR_FDBZH) != 0) ||
+                            ((spr[SPRN_SPEFSCR] & SPEFSCR_FDBZ) != 0))){
+                    goto skip_0;
+                }
+                if(((spr[SPRN_SPEFSCR] & SPEFSCR_FUNFE) != 0) && (((spr[SPRN_SPEFSCR] & SPEFSCR_FUNFH) != 0) ||
+                            ((spr[SPRN_SPEFSCR] & SPEFSCR_FUNF) != 0))){
+                    goto skip_0;
+                }
+                if(((spr[SPRN_SPEFSCR] & SPEFSCR_FOVFE) != 0) && (((spr[SPRN_SPEFSCR] & SPEFSCR_FOVFH) != 0) ||
+                            ((spr[SPRN_SPEFSCR] & SPEFSCR_FOVF) != 0))){
+                    goto skip_0;
+                }
+                RETURNVOID(DEBUG4);
+
+                skip_0:
+                spr[SPRN_SRR0] = pc;
+                spr[SPRN_SRR1] = msr;
+
+                spr[SPRN_ESR]  = ESR_SPV;  // Set ESR[SPE]
+
+                CLR_DEFAULT_MSR_BITS();
+                pc = GET_PC_FROM_IVOR_NUM(33);
                 break;
             case  PPC_EXCEPTION_EM_FP_R:
+                // Check conditions
+                if(((spr[SPRN_SPEFSCR] & SPEFSCR_FINXE) != 0) &&
+                       (((spr[SPRN_SPEFSCR] & SPEFSCR_FGH) != 0) ||
+                       ((spr[SPRN_SPEFSCR] & SPEFSCR_FXH) != 0)  ||
+                       ((spr[SPRN_SPEFSCR] & SPEFSCR_FG) != 0)  ||
+                       ((spr[SPRN_SPEFSCR] & SPEFSCR_FX) != 0))){
+                    goto skip_1;
+                }
+                if(((spr[SPRN_SPEFSCR] & SPEFSCR_FRMC) == 0x2) || ((spr[SPRN_SPEFSCR] & SPEFSCR_FRMC) == 0x3)){
+                    goto skip_1;
+                }
+                RETURNVOID(DEBUG4);
+
+                skip_1:
+                spr[SPRN_SRR0] = pc;
+                spr[SPRN_SRR1] = msr;
+
+                spr[SPRN_ESR] = ESR_SPV;   // Set ESR[SPE]
+
+                CLR_DEFAULT_MSR_BITS();
+                pc = GET_PC_FROM_IVOR_NUM(34);
                 break;
             case  PPC_EXCEPTION_PMM:
+                // TODO: perf mon intr not supported for time being.
                 break;
             case  PPC_EXCEPTION_DB:
+                // Door bell. Nothing to do
                 break;
             case  PPC_EXCEPTION_DB_CR:
+                // Door bell. Nothing to do
                 break;
             default:
                 break;
         }
+        LOG("DEBUG4") << MSG_FUNC_END;
     } 
 
   

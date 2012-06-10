@@ -23,7 +23,7 @@ EXES    := $(patsubst %.cxx, %, $(SOURCES))
 CFLAGS   := -I${CINCLUDES} -I.
 CXXFLAGS := -I${CXXINCLUDES} -I.
 # enable this for <cstdint>
-EXTFLAGS := -std=c++0x -g -O -Wall -DCONFIG_BOOKE -O2
+EXTFLAGS := -std=c++0x -g -O -Wall -DCONFIG_BOOKE -DCONFIG_E500 -O2
 
 HOST_ARCH := $(shell uname -m)
 
