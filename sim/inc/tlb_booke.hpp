@@ -197,8 +197,6 @@ class ppc_tlb {
             uint64_t valid : 1;  /* Valid ? */
         } tflags;
 
-        /* Host resources */
-        void     *host_page;  /* host page ( for emulation ) */
     };
 
     struct t_tlb_set {

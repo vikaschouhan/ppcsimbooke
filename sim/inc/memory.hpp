@@ -88,6 +88,12 @@ class memory {
     // Memory target attributes
     int                                     n_tgts;             /* Number of targets */
     std::list<t_mem_tgt>                    mem_tgt;            /* List of memory targets */
+    static int                              mem_tgt_modified;   // Flag to assert that memory targets were modified
+
+    // This cache will be searched unless mem_tgt_modified=1.
+    // If mem_tgt_modified=1, that means memory targets have been modified somehow and
+    // we need to re-locate host page for the effective number ( and also update this cache )
+    std::map<uint64_t, uint8_t*>            page_hash_cache;    // Cache of page_hash
 
     public:
     typedef std::list<t_mem_tgt>::iterator  mem_tgt_iter;       /* Memory target iterator */
@@ -246,16 +252,29 @@ class memory {
      */
     uint8_t *paddr_to_hostpage(uint64_t paddr){
         LOG("DEBUG4") << MSG_FUNC_START;
-        mem_tgt_iter iter_this = select_mem_tgt(paddr);
+       
         uint64_t pageno = (paddr >> MIN_PGSZ_SHIFT);
+        // Search in cache first
+        if(mem_tgt_modified == 0){
+            if((page_hash_cache.find(pageno) != page_hash_cache.end()) && page_hash_cache[pageno] != NULL){
+                return page_hash_cache[pageno];
+            }
+        }
+
+        mem_tgt_iter iter_this = select_mem_tgt(paddr);
         if(iter_this == mem_tgt.end()) {
             std::cout << "No valid memory mapped target found for this address." << std:: endl;
             LOG("DEBUG4") << MSG_FUNC_END;
             return NULL;
         }
 
-        if(!iter_this->page_hash[pageno])
+        if(!iter_this->page_hash[pageno]){
             iter_this->page_hash[pageno] = new uint8_t[MIN_PGSZ];
+            page_hash_cache[pageno] = iter_this->page_hash[pageno];   // Cache this newly created page
+        }
+
+        // Clear mem_tgt_modified, just in case it was already set
+        mem_tgt_modified = 0;
 
         LOG("DEBUG4") << MSG_FUNC_END;
         return iter_this->page_hash[pageno];
@@ -643,6 +662,7 @@ class memory {
 
 // All static variables
 std::shared_ptr<memory> memory::mem_ptr;
+int                     memory::mem_tgt_modified;
 
 
 #endif    /*  _MEMORY_HPP_  */
