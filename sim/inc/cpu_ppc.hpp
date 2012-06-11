@@ -320,9 +320,9 @@ void ppc_cpu_booke::init_spr_attrs(){
     spr_attr[SPRN_CTR]      = SPR_ACS_READ  | SPR_ACS_WRITE;
     spr_attr[SPRN_DAC1]     = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV;
     spr_attr[SPRN_DAC2]     = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV;
-    spr_attr[SPRN_DBCR0]    = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV  | SPR_REQ_SYNC;
-    spr_attr[SPRN_DBCR1]    = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV  | SPR_REQ_SYNC; 
-    spr_attr[SPRN_DBCR2]    = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV  | SPR_REQ_SYNC;
+    spr_attr[SPRN_DBCR0]    = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV      | SPR_REQ_SYNC;
+    spr_attr[SPRN_DBCR1]    = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV      | SPR_REQ_SYNC; 
+    spr_attr[SPRN_DBCR2]    = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV      | SPR_REQ_SYNC;
     spr_attr[SPRN_DBSR]     = SPR_ACS_READ  | SPR_CLEAR_W1C  | SPR_PRIV;
     spr_attr[SPRN_DEAR]     = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV;
     spr_attr[SPRN_DEC]      = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV;
@@ -366,6 +366,48 @@ void ppc_cpu_booke::init_spr_attrs(){
     spr_attr[SPRN_SRR1]     = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV;
     spr_attr[SPRN_TBRL]     = SPR_ACS_READ;
     spr_attr[SPRN_TBWL]     = SPR_ACS_WRITE | SPR_PRIV;
+    spr_attr[SPRN_TBRU]     = SPR_ACS_READ;
+    spr_attr[SPRN_TBWU]     = SPR_ACS_WRITE | SPR_PRIV;
+    spr_attr[SPRN_TCR]      = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV;
+    spr_attr[SPRN_TSR]      = SPR_ACS_READ  | SPR_CLEAR_W1C  | SPR_PRIV;
+    spr_attr[SPRN_USPRG0]   = SPR_ACS_READ  | SPR_ACS_WRITE;
+    spr_attr[SPRN_XER]      = SPR_ACS_READ  | SPR_ACS_WRITE;
+
+    spr_attr[SPRN_BBEAR]    = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_REQ_SYNC;
+    spr_attr[SPRN_BBTAR]    = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_REQ_SYNC;
+    spr_attr[SPRN_BUCSR]    = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV      | SPR_REQ_SYNC;
+    spr_attr[SPRN_HID0]     = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV      | SPR_REQ_SYNC;
+    spr_attr[SPRN_HID1]     = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV      | SPR_REQ_SYNC;
+    spr_attr[SPRN_IVOR32]   = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV;
+    spr_attr[SPRN_IVOR33]   = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV;
+    spr_attr[SPRN_IVOR34]   = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV;
+    spr_attr[SPRN_IVOR35]   = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV;
+    spr_attr[SPRN_L1CFG0]   = SPR_ACS_READ;
+    spr_attr[SPRN_L1CFG1]   = SPR_ACS_READ;
+    spr_attr[SPRN_L1CSR0]   = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV      | SPR_REQ_SYNC;
+    spr_attr[SPRN_L1CSR1]   = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV      | SPR_REQ_SYNC;
+    spr_attr[SPRN_MAS0]     = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV      | SPR_REQ_SYNC;
+    spr_attr[SPRN_MAS1]     = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV      | SPR_REQ_SYNC;
+    spr_attr[SPRN_MAS2]     = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV      | SPR_REQ_SYNC;
+    spr_attr[SPRN_MAS3]     = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV      | SPR_REQ_SYNC;
+    spr_attr[SPRN_MAS4]     = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV      | SPR_REQ_SYNC;
+    spr_attr[SPRN_MAS6]     = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV      | SPR_REQ_SYNC;
+    spr_attr[SPRN_MAS7]     = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV      | SPR_REQ_SYNC;
+    spr_attr[SPRN_MCAR]     = SPR_ACS_READ  | SPR_PRIV;
+    spr_attr[SPRN_MCSR]     = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV;
+    spr_attr[SPRN_MCSRR0]   = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV;
+    spr_attr[SPRN_MCSRR1]   = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV;
+    spr_attr[SPRN_MMUCFG]   = SPR_ACS_READ  | SPR_PRIV;
+    spr_attr[SPRN_MMUCSR0]  = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV      | SPR_REQ_SYNC;
+    spr_attr[SPRN_PID0]     = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV      | SPR_REQ_SYNC;
+    spr_attr[SPRN_PID1]     = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV      | SPR_REQ_SYNC;
+    spr_attr[SPRN_PID2]     = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV      | SPR_REQ_SYNC;
+    spr_attr[SPRN_SPEFSCR]  = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_REQ_SYNC;
+    spr_attr[SPRN_SVR]      = SPR_ACS_READ  | SPR_PRIV;
+    spr_attr[SPRN_TLB0CFG]  = SPR_ACS_READ  | SPR_PRIV;
+    spr_attr[SPRN_TLB1CFG]  = SPR_ACS_READ  | SPR_PRIV;
+
+
 }                              
 
 // Interrupt handling routines ( they handle exceptions at hardware level only and redirect control
