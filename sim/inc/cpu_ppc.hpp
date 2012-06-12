@@ -192,7 +192,7 @@ class ppc_cpu_booke : public cpu {
      *  Instruction translation cache and Virtual->Physical->Host
      *  address translation:
      */
-    ppc_tlb     l2tlb;            /* Only L2 tlb is implemented */
+    ppc_tlb_booke     l2tlb;            /* Only L2 tlb is implemented */
 
     // memory module
     std::shared_ptr<memory> mem_ptr;
