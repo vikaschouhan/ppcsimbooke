@@ -7,7 +7,7 @@
 using std::string;
 
 int main(){
-    ppc_tlb tlbl2;
+    ppc_tlb_booke tlbl2;
     tlbl2.add_tlb(256, 4, 0, 0, "tlb0");
     tlbl2.add_tlb(16, 0, 0, 1, "tlb1");
     //ppc_tlb tlbl2(2, 256, 2, 0, 0, "tlb0", 16, 0, 0, 1, "tlb1" );
