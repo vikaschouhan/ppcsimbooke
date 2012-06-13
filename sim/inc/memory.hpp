@@ -149,6 +149,7 @@ class memory {
     void register_memory_target(uint64_t ba, size_t size, std::string name, uint32_t flags, int tgt_type, int prio = 0);
     void dump_all_memory_targets();
     void dump_all_page_maps();
+    void dump_all_pages(std::ostream &ostr = std::cout);
 
     // Memory I/O
     inline void write_from_buffer(uint64_t addr, uint8_t* buff, size_t size);
@@ -442,6 +443,53 @@ void memory::dump_all_page_maps(){
         }
         std::cout << BAR0 << std::endl;
     }
+    LOG("DEBUG4") << MSG_FUNC_END;
+}
+
+/*
+ * @func  : dump_all_pages
+ * @args  : none
+ *
+ * @brief : dump all pages, along with their contents into a text file / binary files
+ * @type  : debug
+ */
+void memory::dump_all_pages(std::ostream &ostr){
+    LOG("DEBUG4") << MSG_FUNC_START;
+    uint8_t *ptr = NULL;
+    int grp_size = 4;
+    int columns = 8;
+    uint64_t addr = 0;
+    int i;
+
+    ostr << std::noshowbase;
+
+    for(mem_tgt_iter iter_this = mem_tgt.begin(); iter_this != mem_tgt.end(); iter_this++){
+        for(page_hash_iter iter_this_1 = iter_this->page_hash.begin();
+                iter_this_1 != iter_this->page_hash.end(); iter_this_1++){
+            // Print base address of this page
+            ostr << BAR0 << std::endl;
+            ostr << "ra:" << "0x" << std::hex << std::setfill('0') << std::setw(16) << (iter_this_1->first << MIN_PGSZ_SHIFT) << std::endl;
+            ostr << BAR0 << std::endl;
+
+            ptr = iter_this_1->second;
+            addr = 0;
+
+            for(i=0; i<MIN_PGSZ; i++){
+                if(!(i % (columns*grp_size))){
+                    ostr << std::endl;
+                    ostr << std::hex << "0x" << std::setfill('0') << std::setw(16) << addr ;
+                    addr += grp_size*columns;
+                }
+                if(!(i % grp_size)){
+                    ostr << "    ";
+                }
+                ostr << std::hex << std::setw(2) << (unsigned int)(*ptr);
+                ptr++;
+            }
+            ostr << std::endl;
+
+        }
+    } 
     LOG("DEBUG4") << MSG_FUNC_END;
 }
 
