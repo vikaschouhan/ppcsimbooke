@@ -39,16 +39,15 @@ class cpu {
 
     public:
     virtual int        run_instr(instr_call *ic) = 0;
-    virtual int        translate_v2p(uint64_t vaddr, uint64_t *return_paddr, int flags) = 0;
-    virtual void       update_translation_table(uint64_t vaddr_page, unsigned char *host_page, int writeflag, uint64_t paddr_page) = 0;
-    virtual void       invalidate_translation_caches(uint64_t paddr, int flags) = 0;
-    virtual void       invalidate_code_translation(uint64_t paddr, int flags) = 0;
+    virtual int        run_instr(std::string opcode, std::string arg0, std::string arg1, std::string arg2,
+                                        std::string arg3, std::string arg4, std::string arg5);
+    virtual int        xlate_v2p(uint64_t vaddr, uint64_t *return_paddr, int flags) = 0;
 
     public:
     /* Constructor */
     cpu(uint64_t cpuid, string name, uint64_t pc=0) {
         if (name.empty()) {
-            cerr << "cpu(): cpu name = NULL?" << endl;
+            cerr << "cpu(): cpu name = NULL?" << std::endl;
             exit(1);
         }
 

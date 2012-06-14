@@ -33,10 +33,7 @@ class ppc_cpu_booke : public cpu {
 
     // All virtual functions
     int run_instr(instr_call *ic);
-    int translate_v2p(uint64_t vaddr, uint64_t *return_paddr, int flags);
-    void update_translation_table(uint64_t vaddr_page, unsigned char *host_page, int writeflag, uint64_t paddr_page);
-    void invalidate_translation_caches(uint64_t paddr, int flags);
-    void invalidate_code_translation(uint64_t paddr, int flags);
+    int xlate_v2p(uint64_t vaddr, uint64_t *return_paddr, int flags);
     // Overloaded run
     int run_instr(std::string opcode, std::string arg0="", std::string arg1="", std::string arg2="",
             std::string arg3="", std::string arg4="", std::string arg5="");
@@ -248,17 +245,8 @@ int ppc_cpu_booke::run_instr(instr_call *ic){
     return 0;
 }
 
-int ppc_cpu_booke::translate_v2p(uint64_t vaddr, uint64_t *return_paddr, int flags){
+int ppc_cpu_booke::xlate_v2p(uint64_t vaddr, uint64_t *return_paddr, int flags){
     return 0;
-}
-
-void ppc_cpu_booke::update_translation_table(uint64_t vaddr_page, unsigned char *host_page, int writeflag, uint64_t paddr_page){
-}
-
-void ppc_cpu_booke::invalidate_translation_caches(uint64_t paddr, int flags){
-}
-
-void ppc_cpu_booke::invalidate_code_translation(uint64_t paddr, int flags){
 }
 
 // Second form of run_instr
