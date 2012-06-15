@@ -28,6 +28,9 @@ class cpu_wrap : public cpu, public boost::python::wrapper<cpu>
     }
 };
 
+// Overloads for cpu_ppc_booke::dump_state()
+BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(dump_state_overloads, dump_state, 0, 3);
+
 BOOST_PYTHON_MODULE(ppcsim)
 {
     using namespace boost::python;
@@ -61,7 +64,8 @@ BOOST_PYTHON_MODULE(ppcsim)
         .def("get_fpr",     &cpu_ppc_booke::get_fpr)
         .def("get_cr",      &cpu_ppc_booke::get_cr)
         .def("get_fpscr",   &cpu_ppc_booke::get_fpscr)
-        .def("dump_state",  &cpu_ppc_booke::dump_state)
+        .def("get_reg",     &cpu_ppc_booke::get_reg)
+        .def("dump_state",  &cpu_ppc_booke::dump_state, dump_state_overloads())
         .def("set_msr",     &cpu_ppc_booke::set_msr)
         .def("set_gpr",     &cpu_ppc_booke::set_gpr)
         .def("set_spr",     &cpu_ppc_booke::set_spr)
