@@ -117,4 +117,10 @@ FILE* Log::stream = stdout;
 #define LOG(level_str) Log___(Log::from_string(level_str))
 #define LOG_TO_FILE(file_name) Log::direct_to_file(file_name)
 
+// for Boost.Python
+// We don't want to expose the whole logging framewok, only the log_to_file functionality
+inline void log_to_file(std::string file_name){
+    LOG_TO_FILE(file_name);
+}
+
 #endif //__Log_H__

@@ -75,20 +75,20 @@ my $ppc_ic_arg3 = "\"ic->arg[3]\"";   # -DARG3
 my $ppc_ic_arg4 = "\"ic->arg[4]\"";   # -DARG4
 my $ppc_ic_arg5 = "\"ic->arg[5]\"";   # -DARG5
 
-my $ppc_cpu_umode = "\"uint32_t\"";   # -DUMODE
-my $ppc_cpu_smode = "\"int32_t\"";    # -DSMODE
+my $cpu_ppc_umode = "\"uint32_t\"";   # -DUMODE
+my $cpu_ppc_smode = "\"int32_t\"";    # -DSMODE
 
-my $ppc_cpu_name  = "\"cpu\"";
+my $cpu_ppc_name  = "\"cpu\"";
 
 # create some of the macros for gcc command line
 my $ppc_macros_list = " -DARG0="   . $ppc_ic_arg0   . " -DARG1="   . $ppc_ic_arg1   .
                       " -DARG2="   . $ppc_ic_arg2   . " -DARG3="   . $ppc_ic_arg3   .
                       " -DARG4="   . $ppc_ic_arg4   . " -DARG5="   . $ppc_ic_arg5   .
-                      " -DUMODE="  . $ppc_cpu_umode . " -DSMODE="  . $ppc_cpu_smode .
-                      " -Dcpu="    . $ppc_cpu_name  ;
+                      " -DUMODE="  . $cpu_ppc_umode . " -DSMODE="  . $cpu_ppc_smode .
+                      " -Dcpu="    . $cpu_ppc_name  ;
 
 # defines going directly to the file
-my $ppc_cpu_defines = [ "#define reg(x) (*((uint64_t *)(x)))" ];
+my $cpu_ppc_defines = [ "#define reg(x) (*((uint64_t *)(x)))" ];
 
 
 #-----------------------------------------------------------------------------------------
@@ -106,12 +106,12 @@ $fh->open("<$tmp_file");
 $fho->open(">$o_fname");
 
 # Insert all defines into the file
-foreach (@$ppc_cpu_defines) {
+foreach (@$cpu_ppc_defines) {
     print_f $fho, 0, $_, "\n";
 }
 # Start the function definition
-print_f $fho, 0, "void $ppc_func_name(ppc_cpu_booke *cpu){\n\n";
-#print_f $fho, 4, "typedef void (*ppc_opc_fun_ptr)(ppc_cpu_booke *, struct instr_call *);\n";
+print_f $fho, 0, "void $ppc_func_name(cpu_ppc_booke *cpu){\n\n";
+#print_f $fho, 4, "typedef void (*ppc_opc_fun_ptr)(cpu_ppc_booke *, struct instr_call *);\n";
 #print_f $fho, 4, "static std::map<std::string, ppc_opc_fun_ptr>  ppc_func_hash;\n"; 
 
 WHILE_00: while(<$fh>){
@@ -167,7 +167,7 @@ WHILE_00: while(<$fh>){
             $opc_func =~ s/\./_dot/g;   # substitute all .'s with dot
             print_f $fho, 4, "// $opc\n";
             print_f $fho, 4, "struct ___${opc_func}___ {\n";
-            print_f $fho, 8, "static void ${opc_func}___(ppc_cpu_booke *cpu, struct instr_call *ic)";
+            print_f $fho, 8, "static void ${opc_func}___(cpu_ppc_booke *cpu, struct instr_call *ic)";
             print_f $fho, 8, @lines;
             print_f $fho, 4, "};\n";
             print_f $fho, 4, "cpu->ppc_func_hash[\"$opc\"] = ___${opc_func}___\:\:${opc_func}___;\n";

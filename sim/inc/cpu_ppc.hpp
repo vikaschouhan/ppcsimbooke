@@ -27,7 +27,7 @@
  * NOTE: All registers are 64 bits.
  *       ( even if some of them are 32 bits in actual hardware. Upper 32 bits are just ignored in those cases )
  */
-class ppc_cpu_booke : public cpu {
+class cpu_ppc_booke : public cpu {
 
     public:
 
@@ -38,7 +38,6 @@ class ppc_cpu_booke : public cpu {
     int run_instr(std::string opcode, std::string arg0="", std::string arg1="", std::string arg2="",
             std::string arg3="", std::string arg4="", std::string arg5="");
 
-    protected:
     // Set GPR value
     void set_gpr(int gprno, uint64_t value) throw(sim_exception);
     // Set spr value
@@ -52,9 +51,8 @@ class ppc_cpu_booke : public cpu {
     // set cr
     void set_cr(uint32_t value) throw();
     // set fpscr
-    void set_fprscr(uint32_t value) throw();
+    void set_fpscr(uint32_t value) throw();
 
-    public:
     // Get GPR value
     uint64_t get_gpr(int gprno) throw(sim_exception);
     // Get spr value
@@ -68,14 +66,14 @@ class ppc_cpu_booke : public cpu {
     // Get cr
     uint64_t get_cr() throw();
     // Get fpscr
-    uint64_t get_fprscr() throw();
+    uint64_t get_fpscr() throw();
     // Dump CPU state
     void dump_state(int columns=0, std::ostream &ostr=std::cout, int dump_all_sprs=0);
 
     // Create a new CPU instance
-    static ppc_cpu_booke *create(uint64_t cpuid, std::string name);
+    static cpu_ppc_booke *create(uint64_t cpuid, std::string name);
     // Destroy cpu instance
-    static void destroy(ppc_cpu_booke *cpu);
+    static void destroy(cpu_ppc_booke *cpu);
 
     protected:
     // Update CR0
@@ -108,7 +106,7 @@ class ppc_cpu_booke : public cpu {
      *
      * @brief : inittializes a new cpu instance
      */
-    ppc_cpu_booke(uint64_t cpuid, string name): cpu(cpuid, name, 0xfffffffc){
+    cpu_ppc_booke(uint64_t cpuid, string name): cpu(cpuid, name, 0xfffffffc){
         LOG("DEBUG4") << MSG_FUNC_START;
         this->cpu_no = this->ncpus++;
         init_reghash();
@@ -116,10 +114,13 @@ class ppc_cpu_booke : public cpu {
         LOG("DEBUG4") << MSG_FUNC_END;
     }
 
+    public:
+
+    // Boost.Python doesn't seem to accept protected/private destructors
     /*
      * @func : destructor
      */
-    ~ppc_cpu_booke(){
+    ~cpu_ppc_booke(){
         LOG("DEBUG4") << MSG_FUNC_START;
         this->ncpus--;
         LOG("DEBUG4") << MSG_FUNC_END;
@@ -138,7 +139,7 @@ class ppc_cpu_booke : public cpu {
     //
     // NOTE : It's the responsibility of this function to populate ppc_func_hash and
     //        it has to be called once in the constructor.
-    friend void gen_ppc_opc_func_hash(ppc_cpu_booke *cpu);
+    friend void gen_ppc_opc_func_hash(cpu_ppc_booke *cpu);
 
     uint64_t    of_emul_addr;
 
@@ -179,7 +180,7 @@ class ppc_cpu_booke : public cpu {
 
     /* Processor bookkeeping */
     static size_t                         ncpus;
-    static std::list<ppc_cpu_booke *>     cpu_list;  /* vector of pointers to cpus */
+    static std::list<cpu_ppc_booke *>     cpu_list;  /* vector of pointers to cpus */
 
     // Pointers to generic registers/stuff hashed by name
     std::map<std::string, uint64_t*>      m_reghash;
@@ -202,22 +203,22 @@ class ppc_cpu_booke : public cpu {
 #endif
 
     // opcode to function pointer map
-    typedef void (*ppc_opc_fun_ptr)(ppc_cpu_booke *, struct instr_call *);
+    typedef void (*ppc_opc_fun_ptr)(cpu_ppc_booke *, struct instr_call *);
     std::map<std::string, ppc_opc_fun_ptr>  ppc_func_hash;
 
     // Implementaion specific fixes
-    static ppc_cpu_booke_quirks  quirks;
+    static cpu_ppc_booke_quirks  quirks;
 
 };
 
 // --------------------------- STATIC DATA ---------------------------------------------------
 
 // This is list of pointers to all alive cpu objects , so that we could refer them using it's class type only.
-std::list<ppc_cpu_booke *>     ppc_cpu_booke::cpu_list; /* vector of pointers to cpus */
-size_t                         ppc_cpu_booke::ncpus = 0; /* Current number of powerpc cpus */
+std::list<cpu_ppc_booke *>     cpu_ppc_booke::cpu_list; /* vector of pointers to cpus */
+size_t                         cpu_ppc_booke::ncpus = 0; /* Current number of powerpc cpus */
 
 // Cpu fixes for booke
-ppc_cpu_booke_quirks           ppc_cpu_booke::quirks;
+cpu_ppc_booke_quirks           cpu_ppc_booke::quirks;
 
 // --------------------------- Include external files ----------------------------------------
 
@@ -238,21 +239,21 @@ ppc_cpu_booke_quirks           ppc_cpu_booke::quirks;
 // --------------------------- Member function definitions -----------------------------------
 //
 // All virtual functions
-int ppc_cpu_booke::run_instr(instr_call *ic){
+int cpu_ppc_booke::run_instr(instr_call *ic){
     LOG("DEBUG4") << MSG_FUNC_START;
     ppc_func_hash[ic->opcode](this, ic);
     LOG("DEBUG4") << MSG_FUNC_END;
     return 0;
 }
 
-int ppc_cpu_booke::xlate_v2p(uint64_t vaddr, uint64_t *return_paddr, int flags){
+int cpu_ppc_booke::xlate_v2p(uint64_t vaddr, uint64_t *return_paddr, int flags){
     return 0;
 }
 
 // Second form of run_instr
 // Seems like c++ doesn't have an very effective way of handling non POD objects
 //  with variadic arg funcs
-int ppc_cpu_booke::run_instr(std::string opcode, std::string arg0, std::string arg1, std::string arg2,
+int cpu_ppc_booke::run_instr(std::string opcode, std::string arg0, std::string arg1, std::string arg2,
         std::string arg3, std::string arg4, std::string arg5){
     LOG("DEBUG4") << MSG_FUNC_START;
     instr_call call_this;
@@ -290,7 +291,7 @@ int ppc_cpu_booke::run_instr(std::string opcode, std::string arg0, std::string a
 }
 
 // Initialize SPR attributes
-void ppc_cpu_booke::init_spr_attrs(){
+void cpu_ppc_booke::init_spr_attrs(){
     // spr_no[5] denotes priviledge level of SPR
     // If 1 -> the SPR is supervisor only,
     // If 0 -> it's accessible from both User and supervisor mode
@@ -404,7 +405,7 @@ void ppc_cpu_booke::init_spr_attrs(){
 //     exception_nr -> exception number
 //     subtype -> a flag denoting the event which caused the exception
 //     ea -> effective address at the time fault occured ( used in case of DSI faults etc )
-void ppc_cpu_booke::ppc_exception(int exception_nr, uint64_t subtype=0, uint64_t ea)
+void cpu_ppc_booke::ppc_exception(int exception_nr, uint64_t subtype=0, uint64_t ea)
 {
     LOG("DEBUG4") << MSG_FUNC_START;
 
@@ -811,7 +812,7 @@ void ppc_cpu_booke::ppc_exception(int exception_nr, uint64_t subtype=0, uint64_t
  *
  * @brief : Initialize register pointers' hash for easy accessibility
  */
-void ppc_cpu_booke::init_reghash(){
+void cpu_ppc_booke::init_reghash(){
      LOG("DEBUG4") << MSG_FUNC_START;
     // SPRS 
     m_reghash["pc"]         = &(pc);
@@ -855,7 +856,7 @@ void ppc_cpu_booke::init_reghash(){
 }
 
 // Update CR0
-void ppc_cpu_booke::update_cr0(bool use_host, uint64_t value){
+void cpu_ppc_booke::update_cr0(bool use_host, uint64_t value){
     LOG("DEBUG4") << MSG_FUNC_START;
     int c;
     if(use_host){
@@ -889,7 +890,7 @@ void ppc_cpu_booke::update_cr0(bool use_host, uint64_t value){
 
 // Updates CR[bf] with val i.e CR[bf] <- (val & 0xf)
 // bf may range from [0:7]
-void ppc_cpu_booke::update_crF(unsigned bf, uint64_t val){
+void cpu_ppc_booke::update_crF(unsigned bf, uint64_t val){
     LOG("DEBUG4") << MSG_FUNC_START;
     bf &= 0x7;
     val &= 0xf;
@@ -899,14 +900,14 @@ void ppc_cpu_booke::update_crF(unsigned bf, uint64_t val){
 }
 
 // Get crF  ( F -> [0:7] )
-unsigned ppc_cpu_booke::get_crF(unsigned bf){
+unsigned cpu_ppc_booke::get_crF(unsigned bf){
     LOG("DEBUG4") << MSG_FUNC_START;
     LOG("DEBUG4") << MSG_FUNC_END;
     return (cr >> (7 - bf)*4) & 0xf;
 }
 
 // Update CR by exact field value [0:31]
-void ppc_cpu_booke::update_crf(unsigned field, unsigned value){
+void cpu_ppc_booke::update_crf(unsigned field, unsigned value){
     LOG("DEBUG4") << MSG_FUNC_START;
     field &= 0x1f;
     value &= 0x1;
@@ -916,14 +917,14 @@ void ppc_cpu_booke::update_crf(unsigned field, unsigned value){
 }
 
 // Get CR bit at exact field
-unsigned ppc_cpu_booke::get_crf(unsigned field){
+unsigned cpu_ppc_booke::get_crf(unsigned field){
     LOG("DEBUG4") << MSG_FUNC_START;
     LOG("DEBUG4") << MSG_FUNC_END;
     return (cr >> (31 - field)) & 0x1;
 }
 
 // Update XER
-void ppc_cpu_booke::update_xer(bool use_host, uint64_t value){
+void cpu_ppc_booke::update_xer(bool use_host, uint64_t value){
     LOG("DEBUG4") << MSG_FUNC_START;
     uint32_t c = 0;
     if(!use_host){
@@ -945,7 +946,7 @@ void ppc_cpu_booke::update_xer(bool use_host, uint64_t value){
 
 // bf field can be only 3 bits wide. If not, it's truncated to 3 bits
 // val can be 4 bits only.
-void ppc_cpu_booke::update_xerF(unsigned bf, unsigned val){
+void cpu_ppc_booke::update_xerF(unsigned bf, unsigned val){
     LOG("DEBUG4") << MSG_FUNC_START;
     bf &= 0x7;
     val &= 0xf;
@@ -955,7 +956,7 @@ void ppc_cpu_booke::update_xerF(unsigned bf, unsigned val){
 }
 
 // value can be either 1 or 0 
-void ppc_cpu_booke::update_xerf(unsigned field, unsigned value){
+void cpu_ppc_booke::update_xerf(unsigned field, unsigned value){
     LOG("DEBUG4") << MSG_FUNC_START;
     field &= 0x1f;
     value &= 0x1;
@@ -964,33 +965,33 @@ void ppc_cpu_booke::update_xerf(unsigned field, unsigned value){
     LOG("DEBUG4") << MSG_FUNC_END;
 }
 
-unsigned ppc_cpu_booke::get_xerF(unsigned bf){
+unsigned cpu_ppc_booke::get_xerF(unsigned bf){
     LOG("DEBUG4") << MSG_FUNC_START;
     LOG("DEBUG4") << MSG_FUNC_END;
     return (spr[SPRN_XER] >> (7 - bf)*4) & 0xf;
 }
 
-unsigned ppc_cpu_booke::get_xerf(unsigned field){
+unsigned cpu_ppc_booke::get_xerf(unsigned field){
     LOG("DEBUG4") << MSG_FUNC_START;
     LOG("DEBUG4") << MSG_FUNC_END;
     return (spr[SPRN_XER] >> (31 - field)) & 0x1;
 }
 
 // Get XER[SO]
-unsigned ppc_cpu_booke::get_xer_so(){
+unsigned cpu_ppc_booke::get_xer_so(){
     LOG("DEBUG4") << MSG_FUNC_START;
     LOG("DEBUG4") << MSG_FUNC_END;
     return ((spr[SPRN_XER] & XER_SO) ? 1:0);
 }
 
-unsigned ppc_cpu_booke::get_xer_ca(){
+unsigned cpu_ppc_booke::get_xer_ca(){
     LOG("DEBUG4") << MSG_FUNC_START;
     LOG("DEBUG4") << MSG_FUNC_END;
     return ((spr[SPRN_XER] & XER_CA) ? 1:0);
 }
 
 // Set GPR value
-void ppc_cpu_booke::set_gpr(int gprno, uint64_t value) throw(sim_exception){
+void cpu_ppc_booke::set_gpr(int gprno, uint64_t value) throw(sim_exception){
     LOG("DEBUG4") << MSG_FUNC_START;
     if(gprno >= PPC_NGPRS) throw sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Illegal gprno");
     gpr[gprno] = value;
@@ -998,7 +999,7 @@ void ppc_cpu_booke::set_gpr(int gprno, uint64_t value) throw(sim_exception){
 }
 
 // Set spr value
-void ppc_cpu_booke::set_spr(int sprno, uint64_t value) throw(sim_exception){
+void cpu_ppc_booke::set_spr(int sprno, uint64_t value) throw(sim_exception){
     LOG("DEBUG4") << MSG_FUNC_START;
     if(sprno >= PPC_NSPRS) throw sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Illegal sprno");
     spr[sprno] = value;
@@ -1006,7 +1007,7 @@ void ppc_cpu_booke::set_spr(int sprno, uint64_t value) throw(sim_exception){
 }
 
 // Set pmr value
-void ppc_cpu_booke::set_pmr(int pmrno, uint64_t value) throw(sim_exception){
+void cpu_ppc_booke::set_pmr(int pmrno, uint64_t value) throw(sim_exception){
     LOG("DEBUG4") << MSG_FUNC_START;
     if(pmrno >= PPC_NPMRS) throw sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Illegal pmrno");
     pmr[pmrno] = value;
@@ -1014,7 +1015,7 @@ void ppc_cpu_booke::set_pmr(int pmrno, uint64_t value) throw(sim_exception){
 }
 
 // set fpr value
-void ppc_cpu_booke::set_fpr(int fprno, uint64_t value) throw(sim_exception){
+void cpu_ppc_booke::set_fpr(int fprno, uint64_t value) throw(sim_exception){
     LOG("DEBUG4") << MSG_FUNC_START;
     if(fprno >= PPC_NFPRS) throw sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Illegal fprno");
     fpr[fprno] = value;
@@ -1022,28 +1023,28 @@ void ppc_cpu_booke::set_fpr(int fprno, uint64_t value) throw(sim_exception){
 }
 
 // set msr
-void ppc_cpu_booke::set_msr(uint32_t value) throw() {
+void cpu_ppc_booke::set_msr(uint32_t value) throw() {
     LOG("DEBUG4") << MSG_FUNC_START;
     msr = static_cast<uint64_t>(value);
     LOG("DEBUG4") << MSG_FUNC_END;
 }
 
 // set cr
-void ppc_cpu_booke::set_cr(uint32_t value) throw() {
+void cpu_ppc_booke::set_cr(uint32_t value) throw() {
     LOG("DEBUG4") << MSG_FUNC_START;
     cr = static_cast<uint64_t>(value);
     LOG("DEBUG4") << MSG_FUNC_END;
 }
 
 // set fpscr
-void ppc_cpu_booke::set_fprscr(uint32_t value) throw() {
+void cpu_ppc_booke::set_fpscr(uint32_t value) throw() {
     LOG("DEBUG4") << MSG_FUNC_START;
     fpscr = static_cast<uint64_t>(value);
     LOG("DEBUG4") << MSG_FUNC_END;
 }
 
 // Get GPR value
-uint64_t ppc_cpu_booke::get_gpr(int gprno) throw(sim_exception){
+uint64_t cpu_ppc_booke::get_gpr(int gprno) throw(sim_exception){
     LOG("DEBUG4") << MSG_FUNC_START;
     if(gprno >= PPC_NGPRS) throw sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Illegal gprno");
     LOG("DEBUG4") << MSG_FUNC_END;
@@ -1051,7 +1052,7 @@ uint64_t ppc_cpu_booke::get_gpr(int gprno) throw(sim_exception){
 }
 
 // Get spr value
-uint64_t ppc_cpu_booke::get_spr(int sprno) throw(sim_exception){
+uint64_t cpu_ppc_booke::get_spr(int sprno) throw(sim_exception){
     LOG("DEBUG4") << MSG_FUNC_START;
     if(sprno >= PPC_NSPRS) throw sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Illegal sprno");
     LOG("DEBUG4") << MSG_FUNC_END;
@@ -1059,7 +1060,7 @@ uint64_t ppc_cpu_booke::get_spr(int sprno) throw(sim_exception){
 }
 
 // Get pmr value
-uint64_t ppc_cpu_booke::get_pmr(int pmrno) throw (sim_exception){
+uint64_t cpu_ppc_booke::get_pmr(int pmrno) throw (sim_exception){
     LOG("DEBUG4") << MSG_FUNC_START;
     if(pmrno >= PPC_NPMRS) throw sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Illegal pmrno");
     LOG("DEBUG4") << MSG_FUNC_END;
@@ -1067,7 +1068,7 @@ uint64_t ppc_cpu_booke::get_pmr(int pmrno) throw (sim_exception){
 }
 
 // Get fpr value
-uint64_t ppc_cpu_booke::get_fpr(int fprno) throw(sim_exception){
+uint64_t cpu_ppc_booke::get_fpr(int fprno) throw(sim_exception){
     LOG("DEBUG4") << MSG_FUNC_START;
     if(fprno >= PPC_NFPRS) throw sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Illegal fprno");
     LOG("DEBUG4") << MSG_FUNC_END;
@@ -1075,28 +1076,28 @@ uint64_t ppc_cpu_booke::get_fpr(int fprno) throw(sim_exception){
 }
 
 // Get msr
-uint64_t ppc_cpu_booke::get_msr() throw() {
+uint64_t cpu_ppc_booke::get_msr() throw() {
     LOG("DEBUG4") << MSG_FUNC_START;
     LOG("DEBUG4") << MSG_FUNC_END;
     return msr;
 }
 
 // Get cr
-uint64_t ppc_cpu_booke::get_cr() throw() {
+uint64_t cpu_ppc_booke::get_cr() throw() {
     LOG("DEBUG4") << MSG_FUNC_START;
     LOG("DEBUG4") << MSG_FUNC_END;
     return cr;
 }
 
 // Get fpscr
-uint64_t ppc_cpu_booke::get_fprscr() throw() {
+uint64_t cpu_ppc_booke::get_fpscr() throw() {
     LOG("DEBUG4") << MSG_FUNC_START;
     LOG("DEBUG4") << MSG_FUNC_END;
     return fpscr;
 }
 
 // Dump CPU state
-void ppc_cpu_booke::dump_state(int columns, std::ostream &ostr, int dump_all_sprs){
+void cpu_ppc_booke::dump_state(int columns, std::ostream &ostr, int dump_all_sprs){
     LOG("DEBUG4") << MSG_FUNC_START;
     int i;
     int colno = 0;
@@ -1170,9 +1171,9 @@ void ppc_cpu_booke::dump_state(int columns, std::ostream &ostr, int dump_all_spr
 
 
 // Create a new CPU instance
-ppc_cpu_booke* ppc_cpu_booke::create(uint64_t cpuid, string name){
+cpu_ppc_booke* cpu_ppc_booke::create(uint64_t cpuid, string name){
     LOG("DEBUG4") << MSG_FUNC_START;
-    ppc_cpu_booke *new_cpu = new ppc_cpu_booke(cpuid, name);
+    cpu_ppc_booke *new_cpu = new cpu_ppc_booke(cpuid, name);
     // Generate opc to func_ptr hash
     gen_ppc_opc_func_hash(new_cpu);
     cpu_list.push_back(new_cpu);
@@ -1181,7 +1182,7 @@ ppc_cpu_booke* ppc_cpu_booke::create(uint64_t cpuid, string name){
 }
 
 // Destroy cpu instance
-void ppc_cpu_booke::destroy(ppc_cpu_booke *cpu){
+void cpu_ppc_booke::destroy(cpu_ppc_booke *cpu){
     LOG("DEBUG4") << MSG_FUNC_START;
     cpu_list.remove(cpu);
     LOG("DEBUG4") << MSG_FUNC_END;

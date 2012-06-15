@@ -1,10 +1,11 @@
 # Makefile for all tests 
 #
 
-CC  := gcc
-CXX := g++
-AS  := as
-LD  := ld
+CC     := cc
+CXX    := c++
+AS     := as
+LD     := ld
+FMT_PL := format_instrs2.pl
 
 SUFFIXES += .d
 
@@ -19,13 +20,16 @@ HOST_ARCH := $(shell uname -m)
 CXXFLAGS += -DHOST_ARCH=$(HOST_ARCH)
 
 # Generate the ppc_instrs as part of build process at the very beginning
+EXEC_PPC_INSTR_RES := $(shell ../../utils/$(FMT_PL) --ifile ../../src/cpu_ppc_instr.cc --ofile cpu_ppc_instr.h)
+
+# Generate the ppc_instrs as part of build process at the very beginning
 all: ppcsim
 
 ppcsim: ppcsimbooke.cpp
 	$(CXX) $(CXXFLAGS) -Wl,-soname,"$@.so"  -fpic -o $@.so $^
 
 clean:
-	rm -rf *.so
+	rm -rf *.so *.h
 
 distclean: clean
 	echo "Done"

@@ -23,15 +23,15 @@
 #define _CPU_PPC_QUIRKS_HPP_
 #include "config.h"
 
-class ppc_cpu_booke_quirks {
+class cpu_ppc_booke_quirks {
     public:
     // Constructor
-    ppc_cpu_booke_quirks(){
+    cpu_ppc_booke_quirks(){
         // Add instruction specific quirks
         instr_quirks["addi"] = instr_arg_quirks(0x2);
     }
     // Destructor
-    ~ppc_cpu_booke_quirks() {}
+    ~cpu_ppc_booke_quirks() {}
 
     // zero arg fix quirk
     std::string arg_fix_zero_quirk(std::string opc, std::string arg, int argno){
