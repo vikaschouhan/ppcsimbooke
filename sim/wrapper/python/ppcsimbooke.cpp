@@ -11,9 +11,12 @@ int (cpu::*run_instr_ptr)(instr_call*) = &cpu::run_instr;
 int (cpu::*run_instr_ptr2)(std::string, std::string, std::string, std::string, std::string,
         std::string, std::string) = &cpu::run_instr;
 
-class cpu_wrap : public cpu, public boost::python::wrapper<cpu>
+int (cpu_ppc_booke::*run_instr_ptr_d0)(instr_call*) = &cpu_ppc_booke::run_instr;
+int (cpu_ppc_booke::*run_instr_ptr2_d0)(std::string, std::string, std::string, std::string, std::string,
+        std::string, std::string) = &cpu_ppc_booke::run_instr;
+
+struct cpu_wrap : public cpu, public boost::python::wrapper<cpu>
 {
-    public:
     int run_instr(instr_call *ic){
         return this->get_override("run_instr")(ic);
     }
@@ -30,6 +33,8 @@ class cpu_wrap : public cpu, public boost::python::wrapper<cpu>
 
 // Overloads for cpu_ppc_booke::dump_state()
 BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(dump_state_overloads, dump_state, 0, 3);
+// Overloads for cpu_ppc_booke::run_instr()
+BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(run_instr_overloads, run_instr, 1, 7);
 
 BOOST_PYTHON_MODULE(ppcsim)
 {
@@ -57,21 +62,24 @@ BOOST_PYTHON_MODULE(ppcsim)
 
     class_<cpu_ppc_booke>("cpu_ppc", no_init)
         .def("create",      &cpu_ppc_booke::create, return_value_policy<manage_new_object>()).staticmethod("create")
-        .def("get_msr",     &cpu_ppc_booke::get_msr)
-        .def("get_gpr",     &cpu_ppc_booke::get_gpr)
-        .def("get_spr",     &cpu_ppc_booke::get_spr)
-        .def("get_pmr",     &cpu_ppc_booke::get_pmr)
-        .def("get_fpr",     &cpu_ppc_booke::get_fpr)
-        .def("get_cr",      &cpu_ppc_booke::get_cr)
-        .def("get_fpscr",   &cpu_ppc_booke::get_fpscr)
-        .def("get_reg",     &cpu_ppc_booke::get_reg)
+        .def("destroy",     &cpu_ppc_booke::destroy).staticmethod("destroy")
+        .def("run_instr",   run_instr_ptr_d0)
+        .def("run_instr",   run_instr_ptr2_d0, run_instr_overloads())
+        .def("msr",     &cpu_ppc_booke::get_msr)
+        .def("gpr",     &cpu_ppc_booke::get_gpr)
+        .def("spr",     &cpu_ppc_booke::get_spr)
+        .def("pmr",     &cpu_ppc_booke::get_pmr)
+        .def("fpr",     &cpu_ppc_booke::get_fpr)
+        .def("cr",      &cpu_ppc_booke::get_cr)
+        .def("fpscr",   &cpu_ppc_booke::get_fpscr)
+        .def("reg",     &cpu_ppc_booke::get_reg)
         .def("dump_state",  &cpu_ppc_booke::dump_state, dump_state_overloads())
-        .def("set_msr",     &cpu_ppc_booke::set_msr)
-        .def("set_gpr",     &cpu_ppc_booke::set_gpr)
-        .def("set_spr",     &cpu_ppc_booke::set_spr)
-        .def("set_pmr",     &cpu_ppc_booke::set_pmr)
-        .def("set_fpr",     &cpu_ppc_booke::set_fpr)
-        .def("set_cr",      &cpu_ppc_booke::set_spr)
-        .def("set_fpscr",   &cpu_ppc_booke::set_fpscr)
+        .def("msr",     &cpu_ppc_booke::set_msr)
+        .def("gpr",     &cpu_ppc_booke::set_gpr)
+        .def("spr",     &cpu_ppc_booke::set_spr)
+        .def("pmr",     &cpu_ppc_booke::set_pmr)
+        .def("fpr",     &cpu_ppc_booke::set_fpr)
+        .def("cr",      &cpu_ppc_booke::set_spr)
+        .def("fpscr",   &cpu_ppc_booke::set_fpscr)
         ;
 }
