@@ -105,7 +105,7 @@ class memory {
     //typedef std::vector<uint64_t>::iterator pn_vec_iter;        /* page number vector iterator */
 
     // Static pointer to the memory object
-    typedef std::shared_ptr<memory> shared_ptr_memory;
+    typedef boost::shared_ptr<memory> shared_ptr_memory;
     static  shared_ptr_memory mem_ptr;                /* Pointer back to memory object */
 
     protected:
@@ -154,24 +154,24 @@ class memory {
     // Memory I/O
     inline void write_from_buffer(uint64_t addr, uint8_t* buff, size_t size);
     inline uint8_t *read_to_buffer(uint64_t addr, uint8_t *buff, size_t size);
-    inline uint8_t read8(uint64_t addr, int endianness);
-    inline void write8(uint64_t addr, uint8_t value, int endianness);
-    inline uint16_t read16(uint64_t addr, int endianness);
-    inline void write16(uint64_t addr, uint16_t value, int endianness);
-    inline uint32_t read32(uint64_t addr, int endianness);
-    inline void write32(uint64_t addr, uint32_t value, int endianness);
-    inline uint64_t read64(uint64_t addr, int endianness);
-    inline void write64(uint64_t addr, uint64_t value, int endianness);
+    inline uint8_t read8(uint64_t addr, int endianness = EMUL_BIG_ENDIAN);
+    inline void write8(uint64_t addr, uint8_t value, int endianness = EMUL_BIG_ENDIAN);
+    inline uint16_t read16(uint64_t addr, int endianness = EMUL_BIG_ENDIAN);
+    inline void write16(uint64_t addr, uint16_t value, int endianness = EMUL_BIG_ENDIAN);
+    inline uint32_t read32(uint64_t addr, int endianness = EMUL_BIG_ENDIAN);
+    inline void write32(uint64_t addr, uint32_t value, int endianness = EMUL_BIG_ENDIAN);
+    inline uint64_t read64(uint64_t addr, int endianness = EMUL_BIG_ENDIAN);
+    inline void write64(uint64_t addr, uint64_t value, int endianness = EMUL_BIG_ENDIAN);
 
     // Load /store versions for integers
-    uint8_t load_byte(uint64_t addr, int endianness);
-    void store_byte(uint64_t addr, uint8_t data, int endianness);
-    uint16_t load_halfword(uint64_t addr, int endianness);
-    void store_halfword(uint64_t addr, uint16_t data, int endianness);
-    uint32_t load_word(uint64_t addr, int endianness);
-    void store_word(uint64_t addr, uint32_t data, int endianness);
-    uint64_t load_doubleword(uint64_t addr, int endianness);
-    void store_doubleword(uint64_t addr, uint64_t data, int endianness);
+    uint8_t load_byte(uint64_t addr, int endianness = EMUL_BIG_ENDIAN);
+    void store_byte(uint64_t addr, uint8_t data, int endianness = EMUL_BIG_ENDIAN);
+    uint16_t load_halfword(uint64_t addr, int endianness = EMUL_BIG_ENDIAN);
+    void store_halfword(uint64_t addr, uint16_t data, int endianness = EMUL_BIG_ENDIAN);
+    uint32_t load_word(uint64_t addr, int endianness = EMUL_BIG_ENDIAN);
+    void store_word(uint64_t addr, uint32_t data, int endianness = EMUL_BIG_ENDIAN);
+    uint64_t load_doubleword(uint64_t addr, int endianness = EMUL_BIG_ENDIAN);
+    void store_doubleword(uint64_t addr, uint64_t data, int endianness = EMUL_BIG_ENDIAN);
     // Load /store versions for buffers
     void store_buffer(uint64_t addr, uint8_t* buff, size_t size);
     uint8_t *load_buffer(uint64_t addr, uint8_t *buff, size_t size);
@@ -179,8 +179,8 @@ class memory {
 };
 
 // All static variables
-std::shared_ptr<memory> memory::mem_ptr;
-int                     memory::mem_tgt_modified;
+boost::shared_ptr<memory> memory::mem_ptr;
+int                       memory::mem_tgt_modified;
 
 // Member functions
 

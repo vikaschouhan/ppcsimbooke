@@ -21,6 +21,7 @@
 
 // Boost headers
 #include <boost/algorithm/string.hpp>
+#include <boost/shared_ptr.hpp>
 
 // Include all common misc local header files
 #include "misc.hpp"
