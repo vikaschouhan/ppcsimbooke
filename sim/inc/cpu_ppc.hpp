@@ -52,6 +52,7 @@ class cpu_ppc_booke : public cpu {
     void set_cr(uint32_t value) throw();
     // set fpscr
     void set_fpscr(uint32_t value) throw();
+    
 
     // Get GPR value
     uint64_t get_gpr(int gprno) throw(sim_exception);
@@ -76,6 +77,17 @@ class cpu_ppc_booke : public cpu {
     static cpu_ppc_booke *create(uint64_t cpuid, std::string name);
     // Destroy cpu instance
     static void destroy(cpu_ppc_booke *cpu);
+
+    //
+    // for boost::python
+    // Set Register by name ( templatized version for boost::python export )
+    template <std::string& reg_name> void ___set_reg(uint64_t val){
+        *m_reghash[reg_name] = val;
+    }
+    // Get Register by name ( templatized version for boost::python export )
+    template <std::string& reg_name> uint64_t ___get_reg(){
+        return *m_reghash[reg_name];
+    }
 
     protected:
     // Update CR0
