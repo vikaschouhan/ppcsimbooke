@@ -1,3 +1,27 @@
+
+// ppcsimbooke.cpp ( python wrapper for our simulator )
+// This file contains wrappping macros and classes for our simulator modules
+//
+// Author : Vikas Chouhan ( presentisgood@gmail.com )
+// Copyright 2012.
+//
+// This file is part of ppc-sim library bundled with ppcsimbooke.
+//
+// This library is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 3, or (at your option)
+// any later version.
+//
+// It is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
+// License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this file; see the file COPYING.  If not, write to the
+// Free Software Foundation, 51 Franklin Street - Fifth Floor, Boston,
+// MA 02110-1301, USA.
+
 #include <boost/python.hpp>
 #include <boost/python/class.hpp>
 #include <boost/python/module.hpp>
@@ -185,8 +209,8 @@ BOOST_PYTHON_MODULE(ppcsim)
     str_ref = "msr"     ; cpu_ppc_py.add_property("MSR",     &cpu_ppc_booke::___get_reg<str_ref>, &cpu_ppc_booke::___set_reg<str_ref>);
     str_ref = "cr"      ; cpu_ppc_py.add_property("CR",      &cpu_ppc_booke::___get_reg<str_ref>, &cpu_ppc_booke::___set_reg<str_ref>);
     str_ref = "fpscr"   ; cpu_ppc_py.add_property("FPSCR",   &cpu_ppc_booke::___get_reg<str_ref>, &cpu_ppc_booke::___set_reg<str_ref>);
-    str_ref = "atbl"    ; cpu_ppc_py.add_property("ATBL",    &cpu_ppc_booke::___get_reg<str_ref>, &cpu_ppc_booke::___set_reg<str_ref>);
-    str_ref = "atbu"    ; cpu_ppc_py.add_property("ATBU",    &cpu_ppc_booke::___get_reg<str_ref>, &cpu_ppc_booke::___set_reg<str_ref>);
+    str_ref = "atbl"    ; cpu_ppc_py.add_property("ATBL",    &cpu_ppc_booke::___get_reg<str_ref>);
+    str_ref = "atbu"    ; cpu_ppc_py.add_property("ATBU",    &cpu_ppc_booke::___get_reg<str_ref>);
     str_ref = "csrr0"   ; cpu_ppc_py.add_property("CSRR0",   &cpu_ppc_booke::___get_reg<str_ref>, &cpu_ppc_booke::___set_reg<str_ref>);
     str_ref = "csrr1"   ; cpu_ppc_py.add_property("CSRR1",   &cpu_ppc_booke::___get_reg<str_ref>, &cpu_ppc_booke::___set_reg<str_ref>);
     str_ref = "ctr"     ; cpu_ppc_py.add_property("CTR",     &cpu_ppc_booke::___get_reg<str_ref>, &cpu_ppc_booke::___set_reg<str_ref>);
@@ -219,26 +243,26 @@ BOOST_PYTHON_MODULE(ppcsim)
     str_ref = "ivpr"    ; cpu_ppc_py.add_property("IVPR",    &cpu_ppc_booke::___get_reg<str_ref>, &cpu_ppc_booke::___set_reg<str_ref>);
     str_ref = "lr"      ; cpu_ppc_py.add_property("LR",      &cpu_ppc_booke::___get_reg<str_ref>, &cpu_ppc_booke::___set_reg<str_ref>);
     str_ref = "pid"     ; cpu_ppc_py.add_property("PID",     &cpu_ppc_booke::___get_reg<str_ref>, &cpu_ppc_booke::___set_reg<str_ref>);
-    str_ref = "pir"     ; cpu_ppc_py.add_property("PIR",     &cpu_ppc_booke::___get_reg<str_ref>, &cpu_ppc_booke::___set_reg<str_ref>);
-    str_ref = "pvr"     ; cpu_ppc_py.add_property("PVR",     &cpu_ppc_booke::___get_reg<str_ref>, &cpu_ppc_booke::___set_reg<str_ref>);
+    str_ref = "pir"     ; cpu_ppc_py.add_property("PIR",     &cpu_ppc_booke::___get_reg<str_ref>);
+    str_ref = "pvr"     ; cpu_ppc_py.add_property("PVR",     &cpu_ppc_booke::___get_reg<str_ref>);
     str_ref = "sprg0"   ; cpu_ppc_py.add_property("SPRG0",   &cpu_ppc_booke::___get_reg<str_ref>, &cpu_ppc_booke::___set_reg<str_ref>);
     str_ref = "sprg1"   ; cpu_ppc_py.add_property("SPRG1",   &cpu_ppc_booke::___get_reg<str_ref>, &cpu_ppc_booke::___set_reg<str_ref>);
     str_ref = "sprg2"   ; cpu_ppc_py.add_property("SPRG2",   &cpu_ppc_booke::___get_reg<str_ref>, &cpu_ppc_booke::___set_reg<str_ref>);
-    str_ref = "sprg3r"  ; cpu_ppc_py.add_property("SPRG3R",  &cpu_ppc_booke::___get_reg<str_ref>, &cpu_ppc_booke::___set_reg<str_ref>);
+    str_ref = "sprg3r"  ; cpu_ppc_py.add_property("SPRG3R",  &cpu_ppc_booke::___get_reg<str_ref>);
     str_ref = "sprg3"   ; cpu_ppc_py.add_property("SPRG3",   &cpu_ppc_booke::___get_reg<str_ref>, &cpu_ppc_booke::___set_reg<str_ref>);
-    str_ref = "sprg4r"  ; cpu_ppc_py.add_property("SPRG4R",  &cpu_ppc_booke::___get_reg<str_ref>, &cpu_ppc_booke::___set_reg<str_ref>);
+    str_ref = "sprg4r"  ; cpu_ppc_py.add_property("SPRG4R",  &cpu_ppc_booke::___get_reg<str_ref>);
     str_ref = "sprg4"   ; cpu_ppc_py.add_property("SPRG4",   &cpu_ppc_booke::___get_reg<str_ref>, &cpu_ppc_booke::___set_reg<str_ref>);
-    str_ref = "sprg5r"  ; cpu_ppc_py.add_property("SPRG5R",  &cpu_ppc_booke::___get_reg<str_ref>, &cpu_ppc_booke::___set_reg<str_ref>);
+    str_ref = "sprg5r"  ; cpu_ppc_py.add_property("SPRG5R",  &cpu_ppc_booke::___get_reg<str_ref>);
     str_ref = "sprg5"   ; cpu_ppc_py.add_property("SPRG5",   &cpu_ppc_booke::___get_reg<str_ref>, &cpu_ppc_booke::___set_reg<str_ref>);
-    str_ref = "sprg6r"  ; cpu_ppc_py.add_property("SPRG6R",  &cpu_ppc_booke::___get_reg<str_ref>, &cpu_ppc_booke::___set_reg<str_ref>);
+    str_ref = "sprg6r"  ; cpu_ppc_py.add_property("SPRG6R",  &cpu_ppc_booke::___get_reg<str_ref>);
     str_ref = "sprg6"   ; cpu_ppc_py.add_property("SPRG6",   &cpu_ppc_booke::___get_reg<str_ref>, &cpu_ppc_booke::___set_reg<str_ref>);
-    str_ref = "sprg7r"  ; cpu_ppc_py.add_property("SPRG7R",  &cpu_ppc_booke::___get_reg<str_ref>, &cpu_ppc_booke::___set_reg<str_ref>);
+    str_ref = "sprg7r"  ; cpu_ppc_py.add_property("SPRG7R",  &cpu_ppc_booke::___get_reg<str_ref>);
     str_ref = "sprg7"   ; cpu_ppc_py.add_property("SPRG7",   &cpu_ppc_booke::___get_reg<str_ref>, &cpu_ppc_booke::___set_reg<str_ref>);
     str_ref = "srr0"    ; cpu_ppc_py.add_property("SRR0",    &cpu_ppc_booke::___get_reg<str_ref>, &cpu_ppc_booke::___set_reg<str_ref>);
     str_ref = "srr1"    ; cpu_ppc_py.add_property("SRR1",    &cpu_ppc_booke::___get_reg<str_ref>, &cpu_ppc_booke::___set_reg<str_ref>);
-    str_ref = "tbrl"    ; cpu_ppc_py.add_property("TBRL",    &cpu_ppc_booke::___get_reg<str_ref>, &cpu_ppc_booke::___set_reg<str_ref>);
+    str_ref = "tbrl"    ; cpu_ppc_py.add_property("TBRL",    &cpu_ppc_booke::___get_reg<str_ref>);
     str_ref = "tbwl"    ; cpu_ppc_py.add_property("TBWL",    &cpu_ppc_booke::___get_reg<str_ref>, &cpu_ppc_booke::___set_reg<str_ref>);
-    str_ref = "tbru"    ; cpu_ppc_py.add_property("TBRU",    &cpu_ppc_booke::___get_reg<str_ref>, &cpu_ppc_booke::___set_reg<str_ref>);
+    str_ref = "tbru"    ; cpu_ppc_py.add_property("TBRU",    &cpu_ppc_booke::___get_reg<str_ref>);
     str_ref = "tbwu"    ; cpu_ppc_py.add_property("TBWU",    &cpu_ppc_booke::___get_reg<str_ref>, &cpu_ppc_booke::___set_reg<str_ref>);
     str_ref = "tcr"     ; cpu_ppc_py.add_property("TCR",     &cpu_ppc_booke::___get_reg<str_ref>, &cpu_ppc_booke::___set_reg<str_ref>);
     str_ref = "tsr"     ; cpu_ppc_py.add_property("TSR",     &cpu_ppc_booke::___get_reg<str_ref>, &cpu_ppc_booke::___set_reg<str_ref>);
@@ -253,8 +277,8 @@ BOOST_PYTHON_MODULE(ppcsim)
     str_ref = "ivor33"  ; cpu_ppc_py.add_property("IVOR33",  &cpu_ppc_booke::___get_reg<str_ref>, &cpu_ppc_booke::___set_reg<str_ref>);
     str_ref = "ivor34"  ; cpu_ppc_py.add_property("IVOR34",  &cpu_ppc_booke::___get_reg<str_ref>, &cpu_ppc_booke::___set_reg<str_ref>);
     str_ref = "ivor35"  ; cpu_ppc_py.add_property("IVOR35",  &cpu_ppc_booke::___get_reg<str_ref>, &cpu_ppc_booke::___set_reg<str_ref>);
-    str_ref = "l1cfg0"  ; cpu_ppc_py.add_property("L1CFG0",  &cpu_ppc_booke::___get_reg<str_ref>, &cpu_ppc_booke::___set_reg<str_ref>);
-    str_ref = "l1cfg1"  ; cpu_ppc_py.add_property("L1CFG1",  &cpu_ppc_booke::___get_reg<str_ref>, &cpu_ppc_booke::___set_reg<str_ref>);
+    str_ref = "l1cfg0"  ; cpu_ppc_py.add_property("L1CFG0",  &cpu_ppc_booke::___get_reg<str_ref>);
+    str_ref = "l1cfg1"  ; cpu_ppc_py.add_property("L1CFG1",  &cpu_ppc_booke::___get_reg<str_ref>);
     str_ref = "l1csr0"  ; cpu_ppc_py.add_property("L1CSR0",  &cpu_ppc_booke::___get_reg<str_ref>, &cpu_ppc_booke::___set_reg<str_ref>);
     str_ref = "l1csr1"  ; cpu_ppc_py.add_property("L1CSR1",  &cpu_ppc_booke::___get_reg<str_ref>, &cpu_ppc_booke::___set_reg<str_ref>);
     str_ref = "mas0"    ; cpu_ppc_py.add_property("MAS0",    &cpu_ppc_booke::___get_reg<str_ref>, &cpu_ppc_booke::___set_reg<str_ref>);
@@ -265,18 +289,18 @@ BOOST_PYTHON_MODULE(ppcsim)
     str_ref = "mas5"    ; cpu_ppc_py.add_property("MAS5",    &cpu_ppc_booke::___get_reg<str_ref>, &cpu_ppc_booke::___set_reg<str_ref>);
     str_ref = "mas6"    ; cpu_ppc_py.add_property("MAS6",    &cpu_ppc_booke::___get_reg<str_ref>, &cpu_ppc_booke::___set_reg<str_ref>);
     str_ref = "mas7"    ; cpu_ppc_py.add_property("MAS7",    &cpu_ppc_booke::___get_reg<str_ref>, &cpu_ppc_booke::___set_reg<str_ref>);
-    str_ref = "mcar"    ; cpu_ppc_py.add_property("MCAR",    &cpu_ppc_booke::___get_reg<str_ref>, &cpu_ppc_booke::___set_reg<str_ref>);
+    str_ref = "mcar"    ; cpu_ppc_py.add_property("MCAR",    &cpu_ppc_booke::___get_reg<str_ref>);
     str_ref = "mcsr"    ; cpu_ppc_py.add_property("MCSR",    &cpu_ppc_booke::___get_reg<str_ref>, &cpu_ppc_booke::___set_reg<str_ref>);
     str_ref = "mcsrr0"  ; cpu_ppc_py.add_property("MCSRR0",  &cpu_ppc_booke::___get_reg<str_ref>, &cpu_ppc_booke::___set_reg<str_ref>);
     str_ref = "mcsrr1"  ; cpu_ppc_py.add_property("MCSRR1",  &cpu_ppc_booke::___get_reg<str_ref>, &cpu_ppc_booke::___set_reg<str_ref>);
-    str_ref = "mmucfg"  ; cpu_ppc_py.add_property("MMUCFG",  &cpu_ppc_booke::___get_reg<str_ref>, &cpu_ppc_booke::___set_reg<str_ref>);
+    str_ref = "mmucfg"  ; cpu_ppc_py.add_property("MMUCFG",  &cpu_ppc_booke::___get_reg<str_ref>);
     str_ref = "mmucsr0" ; cpu_ppc_py.add_property("MMUCSR0", &cpu_ppc_booke::___get_reg<str_ref>, &cpu_ppc_booke::___set_reg<str_ref>);
     str_ref = "pid0"    ; cpu_ppc_py.add_property("PID0",    &cpu_ppc_booke::___get_reg<str_ref>, &cpu_ppc_booke::___set_reg<str_ref>);
     str_ref = "pid1"    ; cpu_ppc_py.add_property("PID1",    &cpu_ppc_booke::___get_reg<str_ref>, &cpu_ppc_booke::___set_reg<str_ref>);
     str_ref = "pid2"    ; cpu_ppc_py.add_property("PID2",    &cpu_ppc_booke::___get_reg<str_ref>, &cpu_ppc_booke::___set_reg<str_ref>);
     str_ref = "spefscr" ; cpu_ppc_py.add_property("SPEFSCR", &cpu_ppc_booke::___get_reg<str_ref>, &cpu_ppc_booke::___set_reg<str_ref>);
     str_ref = "svr"     ; cpu_ppc_py.add_property("SVR",     &cpu_ppc_booke::___get_reg<str_ref>, &cpu_ppc_booke::___set_reg<str_ref>);
-    str_ref = "tlb0cfg" ; cpu_ppc_py.add_property("TLB0CFG", &cpu_ppc_booke::___get_reg<str_ref>, &cpu_ppc_booke::___set_reg<str_ref>);
-    str_ref = "tlb1cfg" ; cpu_ppc_py.add_property("TLB1CFG", &cpu_ppc_booke::___get_reg<str_ref>, &cpu_ppc_booke::___set_reg<str_ref>);
+    str_ref = "tlb0cfg" ; cpu_ppc_py.add_property("TLB0CFG", &cpu_ppc_booke::___get_reg<str_ref>);
+    str_ref = "tlb1cfg" ; cpu_ppc_py.add_property("TLB1CFG", &cpu_ppc_booke::___get_reg<str_ref>);
 
 }
