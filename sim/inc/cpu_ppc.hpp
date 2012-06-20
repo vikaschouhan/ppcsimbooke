@@ -82,12 +82,12 @@ class cpu_ppc_booke : public cpu {
     //
     // for boost::python
     // Set Register by name ( templatized version for boost::python export )
-    template <std::string& reg_name> void ___set_reg(uint64_t val){
-        *m_reghash[reg_name] = val;
+    template <int reg_num> void ___set_reg(uint64_t val){
+        *m_ireghash[reg_num] = val;
     }
     // Get Register by name ( templatized version for boost::python export )
-    template <std::string& reg_name> uint64_t ___get_reg(){
-        return *m_reghash[reg_name];
+    template <int reg_num> uint64_t ___get_reg(){
+        return *m_ireghash[reg_num];
     }
 
     protected:
