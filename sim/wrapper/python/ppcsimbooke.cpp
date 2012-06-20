@@ -93,12 +93,12 @@ BOOST_PYTHON_MODULE(ppcsim)
 
     class_<instr_call>("instr_call")
         .def_readwrite("opcode", &instr_call::opcode)
-        .add_property("arg0",    &instr_call::getarg0, &instr_call::setarg0)
-        .add_property("arg1",    &instr_call::getarg1, &instr_call::setarg1)
-        .add_property("arg2",    &instr_call::getarg2, &instr_call::setarg2)
-        .add_property("arg3",    &instr_call::getarg3, &instr_call::setarg3)
-        .add_property("arg4",    &instr_call::getarg4, &instr_call::setarg4)
-        .add_property("arg5",    &instr_call::getarg5, &instr_call::setarg5)
+        .add_property("arg0",    &instr_call::getarg<0>, &instr_call::setarg<0>)
+        .add_property("arg1",    &instr_call::getarg<1>, &instr_call::setarg<1>)
+        .add_property("arg2",    &instr_call::getarg<2>, &instr_call::setarg<2>)
+        .add_property("arg3",    &instr_call::getarg<3>, &instr_call::setarg<3>)
+        .add_property("arg4",    &instr_call::getarg<4>, &instr_call::setarg<4>)
+        .add_property("arg5",    &instr_call::getarg<5>, &instr_call::setarg<5>)
         .def("dump_state",       &instr_call::dump_state)
         ;
 
