@@ -5,6 +5,7 @@
 #include "tlb_booke.hpp"
 #include "ppc_exception.hpp"
 #include "cpu.hpp"
+#include "cpu_ppc_regs.h"
 #include "cpu_host.h"
 #include "cpu_ppc_quirks.hpp"
 #include "memory.hpp"
@@ -196,9 +197,9 @@ class cpu_ppc_booke : public cpu {
     static size_t                         ncpus;
     static std::list<cpu_ppc_booke *>     cpu_list;  /* vector of pointers to cpus */
 
-    // Pointers to generic registers/stuff hashed by name
+    // Pointers to generic registers/stuff hashed by name and numerical identifiers
     std::map<std::string, uint64_t*>      m_reghash;
-    typedef std::map<std::string, uint64_t*>::iterator m_reghash_iter;
+    std::map<int, uint64_t*>              m_ireghash;
 
     /*
      *  Instruction translation cache and Virtual->Physical->Host
@@ -830,114 +831,116 @@ void cpu_ppc_booke::ppc_exception(int exception_nr, uint64_t subtype=0, uint64_t
 void cpu_ppc_booke::init_reghash(){
      LOG("DEBUG4") << MSG_FUNC_START;
 
-    m_reghash["pc"]         = &(pc);
-    m_reghash["msr"]        = &(msr);
-    m_reghash["cr"]         = &(cr);
-    m_reghash["fpscr"]      = &(fpscr);
+    m_reghash["pc"]         = &(pc);                    m_ireghash[REG_PC]          = m_reghash["pc"];
+    m_reghash["msr"]        = &(msr);                   m_ireghash[REG_MSR]         = m_reghash["msr"];
+    m_reghash["cr"]         = &(cr);                    m_ireghash[REG_CR]          = m_reghash["cr"];
+    m_reghash["fpscr"]      = &(fpscr);                 m_ireghash[REG_FPSCR]       = m_reghash["fpscr"];
 
-    m_reghash["atbl"]       = &(spr[SPRN_ATBL]);
-    m_reghash["atbu"]       = &(spr[SPRN_ATBU]);
-    m_reghash["csrr0"]      = &(spr[SPRN_CSRR0]);
-    m_reghash["csrr1"]      = &(spr[SPRN_CSRR1]);
-    m_reghash["ctr"]        = &(spr[SPRN_CTR]);
-    m_reghash["dac1"]       = &(spr[SPRN_DAC1]);
-    m_reghash["dac2"]       = &(spr[SPRN_DAC2]);
-    m_reghash["dbcr0"]      = &(spr[SPRN_DBCR0]);
-    m_reghash["dbcr1"]      = &(spr[SPRN_DBCR1]);
-    m_reghash["dbcr2"]      = &(spr[SPRN_DBCR2]);
-    m_reghash["dbsr"]       = &(spr[SPRN_DBSR]);
-    m_reghash["dear"]       = &(spr[SPRN_DEAR]);
-    m_reghash["dec"]        = &(spr[SPRN_DEC]);
-    m_reghash["decar"]      = &(spr[SPRN_DECAR]);
-    m_reghash["esr"]        = &(spr[SPRN_ESR]);
-    m_reghash["iac1"]       = &(spr[SPRN_IAC1]);
-    m_reghash["iac2"]       = &(spr[SPRN_IAC2]);
-    m_reghash["ivor0"]      = &(spr[SPRN_IVOR0]);
-    m_reghash["ivor1"]      = &(spr[SPRN_IVOR1]);
-    m_reghash["ivor2"]      = &(spr[SPRN_IVOR2]);
-    m_reghash["ivor3"]      = &(spr[SPRN_IVOR3]);
-    m_reghash["ivor4"]      = &(spr[SPRN_IVOR4]);
-    m_reghash["ivor5"]      = &(spr[SPRN_IVOR5]);
-    m_reghash["ivor6"]      = &(spr[SPRN_IVOR6]);
-    m_reghash["ivor8"]      = &(spr[SPRN_IVOR8]);
-    m_reghash["ivor10"]     = &(spr[SPRN_IVOR10]);
-    m_reghash["ivor11"]     = &(spr[SPRN_IVOR11]);
-    m_reghash["ivor12"]     = &(spr[SPRN_IVOR12]);
-    m_reghash["ivor13"]     = &(spr[SPRN_IVOR13]);
-    m_reghash["ivor14"]     = &(spr[SPRN_IVOR14]);
-    m_reghash["ivor15"]     = &(spr[SPRN_IVOR15]);
-    m_reghash["ivpr"]       = &(spr[SPRN_IVPR]);
-    m_reghash["lr"]         = &(spr[SPRN_LR]);
-    m_reghash["pid"]        = &(spr[SPRN_PID]);
-    m_reghash["pir"]        = &(spr[SPRN_PIR]);
-    m_reghash["pvr"]        = &(spr[SPRN_PVR]);
-    m_reghash["sprg0"]      = &(spr[SPRN_SPRG0]);
-    m_reghash["sprg1"]      = &(spr[SPRN_SPRG1]);
-    m_reghash["sprg2"]      = &(spr[SPRN_SPRG2]);
-    m_reghash["sprg3r"]     = &(spr[SPRN_SPRG3R]);
-    m_reghash["sprg3"]      = &(spr[SPRN_SPRG3]);
-    m_reghash["sprg4r"]     = &(spr[SPRN_SPRG4R]);
-    m_reghash["sprg4"]      = &(spr[SPRN_SPRG4]);
-    m_reghash["sprg5r"]     = &(spr[SPRN_SPRG5R]);
-    m_reghash["sprg5"]      = &(spr[SPRN_SPRG5]);
-    m_reghash["sprg6r"]     = &(spr[SPRN_SPRG6R]);
-    m_reghash["sprg6"]      = &(spr[SPRN_SPRG6]);
-    m_reghash["sprg7r"]     = &(spr[SPRN_SPRG7R]);
-    m_reghash["sprg7"]      = &(spr[SPRN_SPRG7]);
-    m_reghash["srr0"]       = &(spr[SPRN_SRR0]);
-    m_reghash["srr1"]       = &(spr[SPRN_SRR1]);
-    m_reghash["tbrl"]       = &(spr[SPRN_TBRL]);
-    m_reghash["tbwl"]       = &(spr[SPRN_TBWL]);
-    m_reghash["tbru"]       = &(spr[SPRN_TBRU]);
-    m_reghash["tbwu"]       = &(spr[SPRN_TBWU]);
-    m_reghash["tcr"]        = &(spr[SPRN_TCR]);
-    m_reghash["tsr"]        = &(spr[SPRN_TSR]);
-    m_reghash["usprg0"]     = &(spr[SPRN_USPRG0]);
-    m_reghash["xer"]        = &(spr[SPRN_XER]);
+    m_reghash["atbl"]       = &(spr[SPRN_ATBL]);        m_ireghash[REG_ATBL]        = m_reghash["atbl"];
+    m_reghash["atbu"]       = &(spr[SPRN_ATBU]);        m_ireghash[REG_ATBU]        = m_reghash["atbu"];
+    m_reghash["csrr0"]      = &(spr[SPRN_CSRR0]);       m_ireghash[REG_CSRR0]       = m_reghash["csrr0"];
+    m_reghash["csrr1"]      = &(spr[SPRN_CSRR1]);       m_ireghash[REG_CSRR1]       = m_reghash["csrr1"];
+    m_reghash["ctr"]        = &(spr[SPRN_CTR]);         m_ireghash[REG_CTR]         = m_reghash["ctr"];
+    m_reghash["dac1"]       = &(spr[SPRN_DAC1]);        m_ireghash[REG_DAC1]        = m_reghash["dac1"];
+    m_reghash["dac2"]       = &(spr[SPRN_DAC2]);        m_ireghash[REG_DAC2]        = m_reghash["dac2"];
+    m_reghash["dbcr0"]      = &(spr[SPRN_DBCR0]);       m_ireghash[REG_DBCR0]       = m_reghash["dbcr0"];
+    m_reghash["dbcr1"]      = &(spr[SPRN_DBCR1]);       m_ireghash[REG_DBCR1]       = m_reghash["dbcr1"];
+    m_reghash["dbcr2"]      = &(spr[SPRN_DBCR2]);       m_ireghash[REG_DBCR2]       = m_reghash["dbcr2"];
+    m_reghash["dbsr"]       = &(spr[SPRN_DBSR]);        m_ireghash[REG_DBSR]        = m_reghash["dbsr"];
+    m_reghash["dear"]       = &(spr[SPRN_DEAR]);        m_ireghash[REG_DEAR]        = m_reghash["dear"];
+    m_reghash["dec"]        = &(spr[SPRN_DEC]);         m_ireghash[REG_DEC]         = m_reghash["dec"];
+    m_reghash["decar"]      = &(spr[SPRN_DECAR]);       m_ireghash[REG_DECAR]       = m_reghash["decar"];
+    m_reghash["esr"]        = &(spr[SPRN_ESR]);         m_ireghash[REG_ESR]         = m_reghash["esr"];
+    m_reghash["iac1"]       = &(spr[SPRN_IAC1]);        m_ireghash[REG_IAC1]        = m_reghash["iac1"];
+    m_reghash["iac2"]       = &(spr[SPRN_IAC2]);        m_ireghash[REG_IAC2]        = m_reghash["iac2"];
+    m_reghash["ivor0"]      = &(spr[SPRN_IVOR0]);       m_ireghash[REG_IVOR0]       = m_reghash["ivor0"];
+    m_reghash["ivor1"]      = &(spr[SPRN_IVOR1]);       m_ireghash[REG_IVOR1]       = m_reghash["ivor1"]; 
+    m_reghash["ivor2"]      = &(spr[SPRN_IVOR2]);       m_ireghash[REG_IVOR2]       = m_reghash["ivor2"];
+    m_reghash["ivor3"]      = &(spr[SPRN_IVOR3]);       m_ireghash[REG_IVOR3]       = m_reghash["ivor3"];
+    m_reghash["ivor4"]      = &(spr[SPRN_IVOR4]);       m_ireghash[REG_IVOR4]       = m_reghash["ivor4"];
+    m_reghash["ivor5"]      = &(spr[SPRN_IVOR5]);       m_ireghash[REG_IVOR5]       = m_reghash["ivor5"];
+    m_reghash["ivor6"]      = &(spr[SPRN_IVOR6]);       m_ireghash[REG_IVOR6]       = m_reghash["ivor6"];
+    m_reghash["ivor8"]      = &(spr[SPRN_IVOR8]);       m_ireghash[REG_IVOR8]       = m_reghash["ivor8"];
+    m_reghash["ivor10"]     = &(spr[SPRN_IVOR10]);      m_ireghash[REG_IVOR10]      = m_reghash["ivor10"];
+    m_reghash["ivor11"]     = &(spr[SPRN_IVOR11]);      m_ireghash[REG_IVOR11]      = m_reghash["ivor11"];
+    m_reghash["ivor12"]     = &(spr[SPRN_IVOR12]);      m_ireghash[REG_IVOR12]      = m_reghash["ivor12"];
+    m_reghash["ivor13"]     = &(spr[SPRN_IVOR13]);      m_ireghash[REG_IVOR13]      = m_reghash["ivor13"];
+    m_reghash["ivor14"]     = &(spr[SPRN_IVOR14]);      m_ireghash[REG_IVOR14]      = m_reghash["ivor14"];
+    m_reghash["ivor15"]     = &(spr[SPRN_IVOR15]);      m_ireghash[REG_IVOR15]      = m_reghash["ivor15"];
+    m_reghash["ivpr"]       = &(spr[SPRN_IVPR]);        m_ireghash[REG_IVPR]        = m_reghash["ivpr"];
+    m_reghash["lr"]         = &(spr[SPRN_LR]);          m_ireghash[REG_LR]          = m_reghash["lr"];
+    m_reghash["pid"]        = &(spr[SPRN_PID]);         m_ireghash[REG_PID]         = m_reghash["pid"];
+    m_reghash["pir"]        = &(spr[SPRN_PIR]);         m_ireghash[REG_PIR]         = m_reghash["pir"];
+    m_reghash["pvr"]        = &(spr[SPRN_PVR]);         m_ireghash[REG_PVR]         = m_reghash["pvr"];
+    m_reghash["sprg0"]      = &(spr[SPRN_SPRG0]);       m_ireghash[REG_SPRG0]       = m_reghash["sprg0"];
+    m_reghash["sprg1"]      = &(spr[SPRN_SPRG1]);       m_ireghash[REG_SPRG1]       = m_reghash["sprg1"];
+    m_reghash["sprg2"]      = &(spr[SPRN_SPRG2]);       m_ireghash[REG_SPRG2]       = m_reghash["sprg2"];
+    m_reghash["sprg3r"]     = &(spr[SPRN_SPRG3R]);      m_ireghash[REG_SPRG3R]      = m_reghash["sprg3r"];
+    m_reghash["sprg3"]      = &(spr[SPRN_SPRG3]);       m_ireghash[REG_SPRG3]       = m_reghash["sprg3"];
+    m_reghash["sprg4r"]     = &(spr[SPRN_SPRG4R]);      m_ireghash[REG_SPRG4R]      = m_reghash["sprg4r"];
+    m_reghash["sprg4"]      = &(spr[SPRN_SPRG4]);       m_ireghash[REG_SPRG4]       = m_reghash["sprg4"];
+    m_reghash["sprg5r"]     = &(spr[SPRN_SPRG5R]);      m_ireghash[REG_SPRG5R]      = m_reghash["sprg5r"];
+    m_reghash["sprg5"]      = &(spr[SPRN_SPRG5]);       m_ireghash[REG_SPRG5]       = m_reghash["sprg5"];
+    m_reghash["sprg6r"]     = &(spr[SPRN_SPRG6R]);      m_ireghash[REG_SPRG6R]      = m_reghash["sprg6r"];
+    m_reghash["sprg6"]      = &(spr[SPRN_SPRG6]);       m_ireghash[REG_SPRG6]       = m_reghash["sprg6"];
+    m_reghash["sprg7r"]     = &(spr[SPRN_SPRG7R]);      m_ireghash[REG_SPRG7R]      = m_reghash["sprg7r"];
+    m_reghash["sprg7"]      = &(spr[SPRN_SPRG7]);       m_ireghash[REG_SPRG7]       = m_reghash["sprg7"];
+    m_reghash["srr0"]       = &(spr[SPRN_SRR0]);        m_ireghash[REG_SRR0]        = m_reghash["srr0"];
+    m_reghash["srr1"]       = &(spr[SPRN_SRR1]);        m_ireghash[REG_SRR1]        = m_reghash["srr1"];
+    m_reghash["tbrl"]       = &(spr[SPRN_TBRL]);        m_ireghash[REG_TBRL]        = m_reghash["tbrl"];
+    m_reghash["tbwl"]       = &(spr[SPRN_TBWL]);        m_ireghash[REG_TBWL]        = m_reghash["tbwl"];
+    m_reghash["tbru"]       = &(spr[SPRN_TBRU]);        m_ireghash[REG_TBRU]        = m_reghash["tbru"];
+    m_reghash["tbwu"]       = &(spr[SPRN_TBWU]);        m_ireghash[REG_TBWU]        = m_reghash["tbwu"];
+    m_reghash["tcr"]        = &(spr[SPRN_TCR]);         m_ireghash[REG_TCR]         = m_reghash["tcr"];
+    m_reghash["tsr"]        = &(spr[SPRN_TSR]);         m_ireghash[REG_TSR]         = m_reghash["tsr"];
+    m_reghash["usprg0"]     = &(spr[SPRN_USPRG0]);      m_ireghash[REG_USPRG0]      = m_reghash["usprg0"];
+    m_reghash["xer"]        = &(spr[SPRN_XER]);         m_ireghash[REG_XER]         = m_reghash["xer"];
 
-    m_reghash["bbear"]      = &(spr[SPRN_BBEAR]);
-    m_reghash["bbtar"]      = &(spr[SPRN_BBTAR]);
-    m_reghash["bucsr"]      = &(spr[SPRN_BUCSR]);
-    m_reghash["hid0"]       = &(spr[SPRN_HID0]);
-    m_reghash["hid1"]       = &(spr[SPRN_HID1]);
-    m_reghash["ivor32"]     = &(spr[SPRN_IVOR32]);
-    m_reghash["ivor33"]     = &(spr[SPRN_IVOR33]);
-    m_reghash["ivor34"]     = &(spr[SPRN_IVOR34]);
-    m_reghash["ivor35"]     = &(spr[SPRN_IVOR35]);
-    m_reghash["l1cfg0"]     = &(spr[SPRN_L1CFG0]);
-    m_reghash["l1cfg1"]     = &(spr[SPRN_L1CFG1]);
-    m_reghash["l1csr0"]     = &(spr[SPRN_L1CSR0]);
-    m_reghash["l1csr1"]     = &(spr[SPRN_L1CSR1]);
-    m_reghash["mas0"]       = &(spr[SPRN_MAS0]);
-    m_reghash["mas1"]       = &(spr[SPRN_MAS1]);
-    m_reghash["mas2"]       = &(spr[SPRN_MAS2]);
-    m_reghash["mas3"]       = &(spr[SPRN_MAS3]);
-    m_reghash["mas4"]       = &(spr[SPRN_MAS4]);
-    m_reghash["mas5"]       = &(spr[SPRN_MAS5]);
-    m_reghash["mas6"]       = &(spr[SPRN_MAS6]);
-    m_reghash["mas7"]       = &(spr[SPRN_MAS7]);
-    m_reghash["mcar"]       = &(spr[SPRN_MCAR]);
-    m_reghash["mcsr"]       = &(spr[SPRN_MCSR]);
-    m_reghash["mcsrr0"]     = &(spr[SPRN_MCSRR0]);
-    m_reghash["mcsrr1"]     = &(spr[SPRN_MCSRR1]);
-    m_reghash["mmucfg"]     = &(spr[SPRN_MMUCFG]);
-    m_reghash["mmucsr0"]    = &(spr[SPRN_MMUCSR0]);
-    m_reghash["pid0"]       = &(spr[SPRN_PID0]);
-    m_reghash["pid1"]       = &(spr[SPRN_PID1]);
-    m_reghash["pid2"]       = &(spr[SPRN_PID2]);
-    m_reghash["spefscr"]    = &(spr[SPRN_SPEFSCR]);
-    m_reghash["svr"]        = &(spr[SPRN_SVR]);
-    m_reghash["tlb0cfg"]    = &(spr[SPRN_TLB0CFG]);
-    m_reghash["tlb1cfg"]    = &(spr[SPRN_TLB1CFG]);
+    m_reghash["bbear"]      = &(spr[SPRN_BBEAR]);       m_ireghash[REG_BBEAR]       = m_reghash["bbear"];
+    m_reghash["bbtar"]      = &(spr[SPRN_BBTAR]);       m_ireghash[REG_BBTAR]       = m_reghash["bbtar"];
+    m_reghash["bucsr"]      = &(spr[SPRN_BUCSR]);       m_ireghash[REG_BUCSR]       = m_reghash["bucsr"];
+    m_reghash["hid0"]       = &(spr[SPRN_HID0]);        m_ireghash[REG_HID0]        = m_reghash["hid0"];
+    m_reghash["hid1"]       = &(spr[SPRN_HID1]);        m_ireghash[REG_HID1]        = m_reghash["hid1"];
+    m_reghash["ivor32"]     = &(spr[SPRN_IVOR32]);      m_ireghash[REG_IVOR32]      = m_reghash["ivor32"];
+    m_reghash["ivor33"]     = &(spr[SPRN_IVOR33]);      m_ireghash[REG_IVOR33]      = m_reghash["ivor33"];
+    m_reghash["ivor34"]     = &(spr[SPRN_IVOR34]);      m_ireghash[REG_IVOR34]      = m_reghash["ivor34"];
+    m_reghash["ivor35"]     = &(spr[SPRN_IVOR35]);      m_ireghash[REG_IVOR35]      = m_reghash["ivor35"];
+    m_reghash["l1cfg0"]     = &(spr[SPRN_L1CFG0]);      m_ireghash[REG_L1CFG0]      = m_reghash["l1cfg0"];
+    m_reghash["l1cfg1"]     = &(spr[SPRN_L1CFG1]);      m_ireghash[REG_L1CFG1]      = m_reghash["l1cfg1"];
+    m_reghash["l1csr0"]     = &(spr[SPRN_L1CSR0]);      m_ireghash[REG_L1CSR0]      = m_reghash["l1csr0"];
+    m_reghash["l1csr1"]     = &(spr[SPRN_L1CSR1]);      m_ireghash[REG_L1CSR1]      = m_reghash["l1csr1"];
+    m_reghash["mas0"]       = &(spr[SPRN_MAS0]);        m_ireghash[REG_MAS0]        = m_reghash["mas0"];
+    m_reghash["mas1"]       = &(spr[SPRN_MAS1]);        m_ireghash[REG_MAS1]        = m_reghash["mas1"];
+    m_reghash["mas2"]       = &(spr[SPRN_MAS2]);        m_ireghash[REG_MAS2]        = m_reghash["mas2"];
+    m_reghash["mas3"]       = &(spr[SPRN_MAS3]);        m_ireghash[REG_MAS3]        = m_reghash["mas3"];
+    m_reghash["mas4"]       = &(spr[SPRN_MAS4]);        m_ireghash[REG_MAS4]        = m_reghash["mas4"];
+    m_reghash["mas5"]       = &(spr[SPRN_MAS5]);        m_ireghash[REG_MAS5]        = m_reghash["mas5"];
+    m_reghash["mas6"]       = &(spr[SPRN_MAS6]);        m_ireghash[REG_MAS6]        = m_reghash["mas6"];
+    m_reghash["mas7"]       = &(spr[SPRN_MAS7]);        m_ireghash[REG_MAS7]        = m_reghash["mas7"];
+    m_reghash["mcar"]       = &(spr[SPRN_MCAR]);        m_ireghash[REG_MCAR]        = m_reghash["mcar"];
+    m_reghash["mcsr"]       = &(spr[SPRN_MCSR]);        m_ireghash[REG_MCSR]        = m_reghash["mcsr"];
+    m_reghash["mcsrr0"]     = &(spr[SPRN_MCSRR0]);      m_ireghash[REG_MCSRR0]      = m_reghash["mcsrr0"];
+    m_reghash["mcsrr1"]     = &(spr[SPRN_MCSRR1]);      m_ireghash[REG_MCSRR1]      = m_reghash["mcsrr1"];
+    m_reghash["mmucfg"]     = &(spr[SPRN_MMUCFG]);      m_ireghash[REG_MMUCFG]      = m_reghash["mmucfg"];
+    m_reghash["mmucsr0"]    = &(spr[SPRN_MMUCSR0]);     m_ireghash[REG_MMUCSR0]     = m_reghash["mmucsr0"];
+    m_reghash["pid0"]       = &(spr[SPRN_PID0]);        m_ireghash[REG_PID0]        = m_reghash["pid0"];
+    m_reghash["pid1"]       = &(spr[SPRN_PID1]);        m_ireghash[REG_PID1]        = m_reghash["pid1"];
+    m_reghash["pid2"]       = &(spr[SPRN_PID2]);        m_ireghash[REG_PID2]        = m_reghash["pid2"];
+    m_reghash["spefscr"]    = &(spr[SPRN_SPEFSCR]);     m_ireghash[REG_SPEFSCR]     = m_reghash["spefscr"];
+    m_reghash["svr"]        = &(spr[SPRN_SVR]);         m_ireghash[REG_SVR]         = m_reghash["svr"];
+    m_reghash["tlb0cfg"]    = &(spr[SPRN_TLB0CFG]);     m_ireghash[REG_TLB0CFG]     = m_reghash["tlb0cfg"];
+    m_reghash["tlb1cfg"]    = &(spr[SPRN_TLB1CFG]);     m_ireghash[REG_TLB1CFG]     = m_reghash["tlb1cfg"];
 
     // GPRS ad FPRS
     for (size_t i=0; i<PPC_NGPRS; i++){
         m_reghash[static_cast<ostringstream *>(&(ostringstream() << "r" << i))->str()] = &(gpr[i]); 
         m_reghash[static_cast<ostringstream *>(&(ostringstream() << "gpr" << i))->str()] = &(gpr[i]);
+        m_ireghash[REG_GPR0 + i] = &(gpr[i]);
     }
     for (size_t i=0; i<PPC_NFPRS; i++){
         m_reghash[static_cast<ostringstream *>(&(ostringstream() << "f" << i))->str()] = &(fpr[i]);
         m_reghash[static_cast<ostringstream *>(&(ostringstream() << "fpr" << i))->str()] = &(fpr[i]);
+        m_ireghash[REG_FPR0 + i] = &(fpr[i]);
     }
 
     // Add more later on
