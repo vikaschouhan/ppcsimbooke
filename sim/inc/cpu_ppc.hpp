@@ -108,6 +108,12 @@ class cpu_ppc_booke : public cpu {
     template <int reg_num> uint64_t ___get_reg(){
         return *m_ireghash[reg_num];
     }
+    bool operator==(cpu_ppc_booke const &x) const {
+        return cpu_no == x.cpu_no;
+    }
+    bool operator!=(cpu_ppc_booke const &x) const {
+        return cpu_no != x.cpu_no;
+    }
 
     protected:
     // Update CR0
@@ -1152,20 +1158,19 @@ void cpu_ppc_booke::dump_state(int columns, std::ostream &ostr, int dump_all_spr
     ostr << std::endl;
 
     // dump gprs
-    ostr << "GPRS" << std::endl;
     for(i=0; i<PPC_NGPRS; i++){
-        strout << "r" << std::dec << i << " = " << std::hex << std::showbase << gpr[i];
+        strout << "r" << std::dec << i << " = " << std::hex << std::showbase << *m_ireghash[REG_GPR0 + i];
         ostr << std::left << std::setw(23) << strout.str() << "    ";
         strout.str("");
         if(++colno >= columns){ ostr << std::endl; colno = 0; }
     }
     ostr << std::endl;
+    ostr << std::endl;
     colno = 0;
 
     // dump fprs
-    ostr << "FPRS" << std::endl;
     for(i=0; i<PPC_NFPRS; i++){
-        strout << "f" << std::dec << i << " = " << std::hex << std::showbase << fpr[i];
+        strout << "f" << std::dec << i << " = " << std::hex << std::showbase << *m_ireghash[REG_FPR0 + i];
         ostr << std::left << std::setw(23) << strout.str() << "    ";
         strout.str("");
         if(++colno >= columns){ ostr << std::endl; colno = 0; }
@@ -1174,7 +1179,6 @@ void cpu_ppc_booke::dump_state(int columns, std::ostream &ostr, int dump_all_spr
     colno = 0;
 
     // dump sprs
-    ostr << "SPRS" << std::endl;
     if(dump_all_sprs){
         for(i=0; i<PPC_NSPRS; i++){
             // TODO: do a check for valid sprs later on
@@ -1192,7 +1196,6 @@ void cpu_ppc_booke::dump_state(int columns, std::ostream &ostr, int dump_all_spr
         ostr << "lr  = " << *m_reghash["lr"] << std::endl;
         ostr << std::endl;
 
-        ostr << "MAS registers" << std::endl;
         ostr << "mas0 = " << *m_reghash["mas0"] << std::endl;
         ostr << "mas1 = " << *m_reghash["mas1"] << std::endl;
         ostr << "mas2 = " << *m_reghash["mas2"] << std::endl;
