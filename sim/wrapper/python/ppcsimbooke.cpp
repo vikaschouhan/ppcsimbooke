@@ -99,9 +99,7 @@ BOOST_PYTHON_MODULE(ppcsim)
         .def("dump_state",       &instr_call::dump_state)
         ;
 
-    class_<memory, boost::shared_ptr<memory> >("memory", no_init)
-        .def("create",    &memory::initialize_memory).staticmethod("create")
-        .def("destroy",   &memory::destroy_memory).staticmethod("destroy")
+    class_<memory>("memory", init<uint64_t>())
         .def("reg_tgt",   &memory::register_memory_target, register_memory_target_overloads())
         .def("dump_tgts", &memory::dump_all_memory_targets)
         .def("dump_page_maps", &memory::dump_all_page_maps)
