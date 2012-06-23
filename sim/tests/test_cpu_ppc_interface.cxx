@@ -10,16 +10,15 @@ int main(){
     LOG_TO_FILE("test_cpu_ppc_interface.log");
     uint32_t cpuid = 0x80101234; // A unique cpu id.
     string cpuname = "e500v2";
-    cpu_ppc_booke *ptr=cpu_ppc_booke::create(cpuid, cpuname);
-    ptr->dump_state(4);
+    cpu_ppc_booke cpu0 = cpu_ppc_booke(cpuid, cpuname);
+    cpu0.dump_state(4);
     std::cout << "Adding some instrs" << std::endl;
-    ptr->run_instr("addi", "r0", "r0", "0x345");
-    ptr->run_instr("add", "r0", "r0", "r0");
+    cpu0.run_instr("addi", "r0", "r0", "0x345");
+    cpu0.run_instr("add", "r0", "r0", "r0");
     //ptr->run_instr("add", "r0", "r0", "r0");
-    ptr->run_instr("mtmsr", "r0");
-    ptr->run_instr("mtctr", "r0");
-    ptr->run_instr("cmpi", "0", "0", "r0", "0x68a");
-    ptr->dump_state(4);
-    cpu_ppc_booke::destroy(ptr);
+    cpu0.run_instr("mtmsr", "r0");
+    cpu0.run_instr("mtctr", "r0");
+    cpu0.run_instr("cmpi", "0", "0", "r0", "0x68a");
+    cpu0.dump_state(4);
     return 0;
 }

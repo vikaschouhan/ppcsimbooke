@@ -31,9 +31,6 @@
 #include "cpu_ppc.hpp"
 #include "memory.hpp"
 
-// Used as temporary string
-std::string str_ref;
-
 // Wrapping some cpu functions
 
 // func ptrs for overloaded cpu::run_instrs()
@@ -127,10 +124,8 @@ BOOST_PYTHON_MODULE(ppcsim)
         .def("xlate_v2p", pure_virtual(&cpu::xlate_v2p))
         ;
 
-    class_<cpu_ppc_booke> cpu_ppc_py("cpu_ppc", no_init);
-    cpu_ppc_py.def("create",      &cpu_ppc_booke::create, return_value_policy<manage_new_object>()).staticmethod("create")
-        .def("destroy",     &cpu_ppc_booke::destroy).staticmethod("destroy")
-        .def("run_instr",   run_instr_ptr_d0)
+    class_<cpu_ppc_booke> cpu_ppc_py("cpu_ppc", init<uint64_t, std::string>());
+    cpu_ppc_py.def("run_instr",   run_instr_ptr_d0)
         .def("run_instr",   run_instr_ptr2_d0, run_instr_overloads())
         .def("get_reg",     &cpu_ppc_booke::get_reg)
         .def("dump_state",  &cpu_ppc_booke::dump_state, dump_state_overloads())

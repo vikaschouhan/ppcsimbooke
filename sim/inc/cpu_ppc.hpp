@@ -32,6 +32,34 @@ class cpu_ppc_booke : public cpu {
 
     public:
 
+    /* We are taking both contructors and destructors private */
+    /* 
+     * @func : constructor for this cpu
+     * @args : cpuid and name
+     *
+     * @notes : Default program counter at beginning ( reset vector ) is 0xfffffffc
+     *
+     * @brief : inittializes a new cpu instance
+     */
+    cpu_ppc_booke(uint64_t cpuid, string name): cpu(cpuid, name, 0xfffffffc){
+        LOG("DEBUG4") << MSG_FUNC_START;
+        this->cpu_no = this->ncpus++;
+        init_reghash();
+        gen_ppc_opc_func_hash(this);
+        /* Add other things */
+        LOG("DEBUG4") << MSG_FUNC_END;
+    }
+
+    // Boost.Python doesn't seem to accept protected/private destructors
+    /*
+     * @func : destructor
+     */
+    ~cpu_ppc_booke(){
+        LOG("DEBUG4") << MSG_FUNC_START;
+        this->ncpus--;
+        LOG("DEBUG4") << MSG_FUNC_END;
+    } 
+
     // All virtual functions
     int run_instr(instr_call *ic);
     int xlate_v2p(uint64_t vaddr, uint64_t *return_paddr, int flags);
@@ -39,21 +67,7 @@ class cpu_ppc_booke : public cpu {
     int run_instr(std::string opcode, std::string arg0="", std::string arg1="", std::string arg2="",
             std::string arg3="", std::string arg4="", std::string arg5="");
 
-    // Set GPR value
-    void set_gpr(int gprno, uint64_t value) throw(sim_exception);
-    // Set spr value
-    void set_spr(int sprno, uint64_t value) throw(sim_exception);
-    // Set pmr value
-    void set_pmr(int pmrno, uint64_t value) throw(sim_exception);
-    // set fpr value
-    void set_fpr(int fprno, uint64_t value) throw(sim_exception);
-    // set msr
-    void set_msr(uint32_t value) throw();
-    // set cr
-    void set_cr(uint32_t value) throw();
-    // set fpscr
-    void set_fpscr(uint32_t value) throw();
-    
+       
 
     // Get GPR value
     uint64_t get_gpr(int gprno) throw(sim_exception);
@@ -73,11 +87,6 @@ class cpu_ppc_booke : public cpu {
     uint64_t get_reg(std::string name) throw(sim_exception);
     // Dump CPU state
     void dump_state(int columns=0, std::ostream &ostr=std::cout, int dump_all_sprs=0);
-
-    // Create a new CPU instance
-    static cpu_ppc_booke *create(uint64_t cpuid, std::string name);
-    // Destroy cpu instance
-    static void destroy(cpu_ppc_booke *cpu);
 
     //
     // for boost::python
@@ -101,6 +110,8 @@ class cpu_ppc_booke : public cpu {
     void update_crf(unsigned field, unsigned value);
     // Get CR bit at exact field
     unsigned get_crf(unsigned field);
+     // set cr
+    void set_cr(uint32_t value) throw();
     // Update XER
     void update_xer(bool use_host, uint64_t value=0);
     void update_xerF(unsigned bf, unsigned val);
@@ -110,36 +121,6 @@ class cpu_ppc_booke : public cpu {
     // Get XER[SO]
     unsigned get_xer_so();
     unsigned get_xer_ca();
-
-    protected:
-    /* We are taking both contructors and destructors private */
-    /* 
-     * @func : constructor for this cpu
-     * @args : cpuid and name
-     *
-     * @notes : Default program counter at beginning ( reset vector ) is 0xfffffffc
-     *
-     * @brief : inittializes a new cpu instance
-     */
-    cpu_ppc_booke(uint64_t cpuid, string name): cpu(cpuid, name, 0xfffffffc){
-        LOG("DEBUG4") << MSG_FUNC_START;
-        this->cpu_no = this->ncpus++;
-        init_reghash();
-        /* Add other things */
-        LOG("DEBUG4") << MSG_FUNC_END;
-    }
-
-    public:
-
-    // Boost.Python doesn't seem to accept protected/private destructors
-    /*
-     * @func : destructor
-     */
-    ~cpu_ppc_booke(){
-        LOG("DEBUG4") << MSG_FUNC_START;
-        this->ncpus--;
-        LOG("DEBUG4") << MSG_FUNC_END;
-    }
 
     private:
     void init_reghash();
@@ -188,14 +169,9 @@ class cpu_ppc_booke : public cpu {
 #define SPR_ILLEGAL     0xffffffffUL       // SPR is illegal
     uint32_t    spr_attr[PPC_NSPRS];
 
-    uint64_t    ll_addr;           /*  Load-linked / store-conditional  */
-    int         ll_bit;
-
-    uint8_t     cpu_no;            /* Numerical cpu no */
-
-    /* Processor bookkeeping */
+    // Book keeping
+    uint8_t                               cpu_no;            /* Numerical cpu no */
     static size_t                         ncpus;
-    static std::list<cpu_ppc_booke *>     cpu_list;  /* vector of pointers to cpus */
 
     // Pointers to generic registers/stuff hashed by name and numerical identifiers
     std::map<std::string, uint64_t*>      m_reghash;
@@ -229,9 +205,7 @@ class cpu_ppc_booke : public cpu {
 // --------------------------- STATIC DATA ---------------------------------------------------
 
 // This is list of pointers to all alive cpu objects , so that we could refer them using it's class type only.
-std::list<cpu_ppc_booke *>     cpu_ppc_booke::cpu_list; /* vector of pointers to cpus */
 size_t                         cpu_ppc_booke::ncpus = 0; /* Current number of powerpc cpus */
-
 // Cpu fixes for booke
 cpu_ppc_booke_quirks           cpu_ppc_booke::quirks;
 
@@ -1082,56 +1056,10 @@ unsigned cpu_ppc_booke::get_xer_ca(){
     return ((spr[SPRN_XER] & XER_CA) ? 1:0);
 }
 
-// Set GPR value
-void cpu_ppc_booke::set_gpr(int gprno, uint64_t value) throw(sim_exception){
-    LOG("DEBUG4") << MSG_FUNC_START;
-    if(gprno >= PPC_NGPRS) throw sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Illegal gprno");
-    gpr[gprno] = value;
-    LOG("DEBUG4") << MSG_FUNC_END;
-}
-
-// Set spr value
-void cpu_ppc_booke::set_spr(int sprno, uint64_t value) throw(sim_exception){
-    LOG("DEBUG4") << MSG_FUNC_START;
-    if(sprno >= PPC_NSPRS) throw sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Illegal sprno");
-    spr[sprno] = value;
-    LOG("DEBUG4") << MSG_FUNC_END;
-}
-
-// Set pmr value
-void cpu_ppc_booke::set_pmr(int pmrno, uint64_t value) throw(sim_exception){
-    LOG("DEBUG4") << MSG_FUNC_START;
-    if(pmrno >= PPC_NPMRS) throw sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Illegal pmrno");
-    pmr[pmrno] = value;
-    LOG("DEBUG4") << MSG_FUNC_END;
-}
-
-// set fpr value
-void cpu_ppc_booke::set_fpr(int fprno, uint64_t value) throw(sim_exception){
-    LOG("DEBUG4") << MSG_FUNC_START;
-    if(fprno >= PPC_NFPRS) throw sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Illegal fprno");
-    fpr[fprno] = value;
-    LOG("DEBUG4") << MSG_FUNC_END;
-}
-
-// set msr
-void cpu_ppc_booke::set_msr(uint32_t value) throw() {
-    LOG("DEBUG4") << MSG_FUNC_START;
-    msr = static_cast<uint64_t>(value);
-    LOG("DEBUG4") << MSG_FUNC_END;
-}
-
 // set cr
 void cpu_ppc_booke::set_cr(uint32_t value) throw() {
     LOG("DEBUG4") << MSG_FUNC_START;
     cr = static_cast<uint64_t>(value);
-    LOG("DEBUG4") << MSG_FUNC_END;
-}
-
-// set fpscr
-void cpu_ppc_booke::set_fpscr(uint32_t value) throw() {
-    LOG("DEBUG4") << MSG_FUNC_START;
-    fpscr = static_cast<uint64_t>(value);
     LOG("DEBUG4") << MSG_FUNC_END;
 }
 
@@ -1267,26 +1195,6 @@ void cpu_ppc_booke::dump_state(int columns, std::ostream &ostr, int dump_all_spr
     }
     ostr << BAR0 << std::endl;
     LOG("DEBUG4") << MSG_FUNC_END;
-}
-
-
-// Create a new CPU instance
-cpu_ppc_booke* cpu_ppc_booke::create(uint64_t cpuid, string name){
-    LOG("DEBUG4") << MSG_FUNC_START;
-    cpu_ppc_booke *new_cpu = new cpu_ppc_booke(cpuid, name);
-    // Generate opc to func_ptr hash
-    gen_ppc_opc_func_hash(new_cpu);
-    cpu_list.push_back(new_cpu);
-    LOG("DEBUG4") << MSG_FUNC_END;
-    return new_cpu;
-}
-
-// Destroy cpu instance
-void cpu_ppc_booke::destroy(cpu_ppc_booke *cpu){
-    LOG("DEBUG4") << MSG_FUNC_START;
-    cpu_list.remove(cpu);
-    LOG("DEBUG4") << MSG_FUNC_END;
-    delete cpu;
 }
 
 #endif    /*  CPU_PPC_H  */

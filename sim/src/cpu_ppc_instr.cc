@@ -28,9 +28,9 @@
  */
 
 // Global defines for this template file
-
-#define spr                      cpu->spr
-#define xer                      spr[SPRN_XER]
+#define spr(sprno)               cpu->spr[sprno]
+#define sprn(spr_name)           (*(cpu->m_reghash[spr_name]))
+#define xer                      spr(SPRN_XER) 
 #define gpr                      cpu->gpr
 #define pmr                      cpu->pmr
 #define msr                      cpu->msr
@@ -803,7 +803,7 @@ MNEC_MTR(ctr, REG0)
 X(mfspr)
 {
 #define mfspr_code(rD, SPRN)                   \
-    rD = spr[SPRN];
+    rD = spr(SPRN);
 
     mfspr_code(REG0, ARG1);
 }
@@ -826,7 +826,7 @@ X(mtpmr)
 X(mtspr)
 {
 #define mtspr_code(SPRN, rS)                  \
-    spr[SPRN] = rS;
+    spr(SPRN) = rS;
 
     mtspr_code(ARG0, REG1);
 }
