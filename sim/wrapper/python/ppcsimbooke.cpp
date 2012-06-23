@@ -22,14 +22,18 @@
 // Free Software Foundation, 51 Franklin Street - Fifth Floor, Boston,
 // MA 02110-1301, USA.
 
+#include <boost/python/suite/indexing/vector_indexing_suite.hpp>
 #include <boost/python.hpp>
 #include <boost/python/class.hpp>
 #include <boost/python/module.hpp>
 #include <boost/python/def.hpp>
+#include <boost/python/implicit.hpp>
 #include <boost/shared_ptr.hpp>
+
 
 #include "cpu_ppc.hpp"
 #include "memory.hpp"
+#include "machine.hpp"
 
 // Wrapping some cpu functions
 
@@ -127,6 +131,17 @@ BOOST_PYTHON_MODULE(ppcsim)
         .def("run_instr",   run_instr_ptr2_d0, run_instr_overloads())
         .def("get_reg",     &cpu_ppc_booke::get_reg)
         .def("dump_state",  &cpu_ppc_booke::dump_state, dump_state_overloads())
+        ;
+
+    // std::vector<cpu_ppc_booke> container map to python
+    class_<std::vector<cpu_ppc_booke> > cpu_list_py("cpu_list");
+    cpu_list_py.def(vector_indexing_suite<std::vector<cpu_ppc_booke> >());
+
+    // Class machine
+    class_<machine> machine_py("machine");
+    machine_py.def_readwrite("cpu", &machine::m_cpu)
+        .add_property("cpu0", make_function(&machine::get_cpu<0>, return_value_policy<reference_existing_object>()))
+        .add_property("cpu1", make_function(&machine::get_cpu<1>, return_value_policy<reference_existing_object>()))
         ;
 
     // Add attributes for GPRs
