@@ -32,7 +32,6 @@ class cpu_ppc_booke : public cpu {
 
     public:
 
-    /* We are taking both contructors and destructors private */
     /* 
      * @func : constructor for this cpu
      * @args : cpuid and name
@@ -41,7 +40,16 @@ class cpu_ppc_booke : public cpu {
      *
      * @brief : inittializes a new cpu instance
      */
-    cpu_ppc_booke(uint64_t cpuid, string name): cpu(cpuid, name, 0xfffffffc){
+    // Default constructor
+    cpu_ppc_booke(){
+        LOG("DEBUG4") << MSG_FUNC_START;
+        this->cpu_no = this->ncpus++;
+        init_reghash();
+        gen_ppc_opc_func_hash(this);
+        LOG("DEBUG4") << MSG_FUNC_END;
+    }
+
+    cpu_ppc_booke(uint64_t cpuid, std::string name): cpu(cpuid, name, 0xfffffffc){
         LOG("DEBUG4") << MSG_FUNC_START;
         this->cpu_no = this->ncpus++;
         init_reghash();
@@ -50,7 +58,6 @@ class cpu_ppc_booke : public cpu {
         LOG("DEBUG4") << MSG_FUNC_END;
     }
 
-    // Boost.Python doesn't seem to accept protected/private destructors
     /*
      * @func : destructor
      */
@@ -60,14 +67,17 @@ class cpu_ppc_booke : public cpu {
         LOG("DEBUG4") << MSG_FUNC_END;
     } 
 
+    // Initalize CPU ( for objects  being created by default constructor )
+    void init_cpu_ppc_booke(uint64_t cpuid, std::string name){
+        init_cpu(cpuid, name, 0xfffffffc);
+    }
+
     // All virtual functions
     int run_instr(instr_call *ic);
     int xlate_v2p(uint64_t vaddr, uint64_t *return_paddr, int flags);
     // Overloaded run
     int run_instr(std::string opcode, std::string arg0="", std::string arg1="", std::string arg2="",
             std::string arg3="", std::string arg4="", std::string arg5="");
-
-       
 
     // Get GPR value
     uint64_t get_gpr(int gprno) throw(sim_exception);

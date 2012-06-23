@@ -45,10 +45,20 @@ class cpu {
 
     public:
     /* Constructor */
+    cpu(){}
     cpu(uint64_t cpuid, string name, uint64_t pc=0) {
+        init_cpu(cpuid, name, pc); 
+    }
+    /* Destructor */
+    virtual ~cpu() {
+        this->ncpus--;
+    }
+
+    void init_cpu(uint64_t cpuid, std::string name, uint64_t pc=0){
+        
         if (name.empty()) {
-            cerr << "cpu(): cpu name = NULL?" << std::endl;
-            exit(1);
+             cerr << "cpu(): cpu name = NULL?" << std::endl;
+             exit(1);
         }
 
         this->name = name;
@@ -62,12 +72,7 @@ class cpu {
          */
         //this->byte_order = EMUL_UNDEFINED_ENDIAN;
         this->byte_order = 1;
-        this->running    = 0;
-
-    }
-    /* Destructor */
-    virtual ~cpu() {
-        this->ncpus--;
+        this->running    = 0; 
     }
 
 

@@ -88,7 +88,7 @@ class memory {
     // Memory target attributes
     int                                     n_tgts;             /* Number of targets */
     std::list<t_mem_tgt>                    mem_tgt;            /* List of memory targets */
-    static int                              mem_tgt_modified;   // Flag to assert that memory targets were modified
+    int                                     mem_tgt_modified;   // Flag to assert that memory targets were modified
 
     // This cache will be searched unless mem_tgt_modified=1.
     // If mem_tgt_modified=1, that means memory targets have been modified somehow and
@@ -104,35 +104,7 @@ class memory {
     //std::vector<uint64_t>                   pn_vec;             /* vector of page numbers */
     //typedef std::vector<uint64_t>::iterator pn_vec_iter;        /* page number vector iterator */
 
-    // Static pointer to the memory object
-    typedef boost::shared_ptr<memory> shared_ptr_memory;
-    static  shared_ptr_memory mem_ptr;                /* Pointer back to memory object */
-
-    protected:
-    /*
-     * @func : constructor
-     * @args : number of physical address lines ( To gauge the total physical address space )
-     */
-    memory(int bits){
-        LOG("DEBUG4") << MSG_FUNC_START;
-        this->bits = bits;
-        this->pa_max = (1LL << bits) - 1 ;
-        this->pn_max = (this->pa_max) >> static_cast<int>(log2(PAGE_SIZE));
-
-        // Register a default DDR of the whole supported address range
-        this->register_memory_target(0x0, (1LL << bits), "ddr0", 0, TGT_DDR, 0);
-        LOG("DEBUG4") << MSG_FUNC_END;
-    }
-
-    public:
-    /*
-     * @func : destructor
-     * @args : none
-     */
-    ~memory(){
-        LOG("DEBUG4") << MSG_FUNC_START; 
-        LOG("DEBUG4") << MSG_FUNC_END;
-    }
+    
 
     private:
     inline void dump_mem_tgt(t_mem_tgt &mem_tgt_this, std::string fmtstr="    ");
@@ -144,8 +116,40 @@ class memory {
     uint8_t *paddr_to_hostaddr(uint64_t paddr);
 
     public:
-    static shared_ptr_memory initialize_memory(int bits);
-    static void destroy_memory();
+    //
+    // @func : constructor
+    // @args : number of physical address lines ( To gauge the total physical address space )
+    //
+    memory(){}
+    memory(int bits){
+        LOG("DEBUG4") << MSG_FUNC_START;
+        init_memory(bits);
+        LOG("DEBUG4") << MSG_FUNC_END;
+    }
+
+    //
+    // @func : destructor
+    // @args : none
+    //
+    ~memory(){
+        LOG("DEBUG4") << MSG_FUNC_START; 
+        LOG("DEBUG4") << MSG_FUNC_END;
+    }
+
+    // For later initalization
+    void init_memory(int bits){
+        LOG("DEBUG4") << MSG_FUNC_START;
+        this->bits = bits;
+        this->pa_max = (1LL << bits) - 1 ;
+        this->pn_max = (this->pa_max) >> static_cast<int>(log2(PAGE_SIZE));
+        this->mem_tgt_modified = 0;
+
+        // Register a default DDR of the whole supported address range
+        this->register_memory_target(0x0, (1LL << bits), "ddr0", 0, TGT_DDR, 0);
+        LOG("DEBUG4") << MSG_FUNC_END;
+    }
+
+
     void register_memory_target(uint64_t ba, size_t size, std::string name, uint32_t flags, int tgt_type, int prio = 0);
     void dump_all_memory_targets();
     void dump_all_page_maps();
@@ -177,10 +181,6 @@ class memory {
     uint8_t *load_buffer(uint64_t addr, uint8_t *buff, size_t size);
     
 };
-
-// All static variables
-boost::shared_ptr<memory> memory::mem_ptr;
-int                       memory::mem_tgt_modified;
 
 // Member functions
 
@@ -342,28 +342,6 @@ uint8_t* memory::paddr_to_hostaddr(uint64_t paddr){
     size_t   offset =  (paddr - (pageno << MIN_PGSZ_SHIFT));
     LOG("DEBUG4") << MSG_FUNC_END;
     return (paddr_to_hostpage(paddr) + offset);
-}
-
-/*
- * @func : initialize_memory
- * @args : number of physical address lines
- *
- * @return : pointer to the memory object
- */
-memory::shared_ptr_memory memory::initialize_memory(int bits){
-    if(static_cast<bool>(mem_ptr)){
-        return mem_ptr;
-    }
-    shared_ptr_memory new_mem(new memory(bits));
-    return (mem_ptr = new_mem);
-}
-
-/*
- * @func : destroy_memory
- * @args : none
- */
-void memory::destroy_memory(){
-    mem_ptr.reset();
 }
 
 /*

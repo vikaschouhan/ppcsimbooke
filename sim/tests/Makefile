@@ -1,7 +1,7 @@
 # Makefile for all tests 
 #
 
-CC  := gcc
+CC  := gcc 
 CXX := g++
 AS  := as
 LD  := ld
@@ -41,6 +41,9 @@ all: $(EXES)
 
 %.o: %.cxx %.d
 	$(CXX) $(CXXFLAGS) $(EXTFLAGS) -o $@ -c $<
+
+test_machine_interface: test_machine_interface.o
+	$(CXX) -o $@ $^
 
 test_cpu_ppc_interface: test_cpu_ppc_interface.o
 	$(CXX) -o $@ $^
