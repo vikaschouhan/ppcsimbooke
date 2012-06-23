@@ -30,6 +30,7 @@
 
 #include <cmath>
 #include <sstream>
+#include <iostream>
 #include "log.hpp"
 
 // Cast to appropriate types
@@ -42,9 +43,9 @@
  * It checks the statement and if false, returns the return value.
  */
 // C like return assertion
-#define assert_ret(x, retv)    if(!(x)){ cout << #x << " failed in " << __FILE__ << " at " << __LINE__ << endl; return (retv); }
+#define assert_ret(x, retv)    if(!(x)){ std::cout << #x << " failed in " << __FILE__ << " at " << __LINE__ << std::endl; return (retv); }
 // C++ specific exception assertion
-#define assert_and_throw(x, expv) if(!(x)){ cout << #x << "failed in " << __FILE__ << " at " << __LINE__ << endl; throw expv; }
+#define assert_and_throw(x, expv) if(!(x)){ std::cout << #x << "failed in " << __FILE__ << " at " << __LINE__ << std::endl; throw expv; }
 
 #define log2(x) static_cast<unsigned>(log2(static_cast<double>(static_cast<unsigned>(x))))
 #define log4(x) static_cast<unsigned>(log2(static_cast<double>(static_cast<unsigned>(x)))/2)

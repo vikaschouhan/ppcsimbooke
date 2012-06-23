@@ -24,10 +24,11 @@
 #include <boost/shared_ptr.hpp>
 
 // Include all common misc local header files
-#include "misc.hpp"
-#include "utils.h"
 #include "exception.hpp"
 #include "log.hpp"
+#include "utils.h"
+
+#include "misc.hpp"
 
 // Define misc macros.
 // For debug couts, printfs etc..

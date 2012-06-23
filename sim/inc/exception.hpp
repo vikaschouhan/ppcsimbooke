@@ -1,7 +1,9 @@
 #ifndef _EXCEPTION_HPP_
 #define _EXCEPTION_HPP_
 
-#include "config.h"
+#include <iostream>
+#include <string>
+#include <map>
 
 // Error codes
 #define SIM_EXCEPT_ILLEGAL_OP    (1)
