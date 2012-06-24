@@ -85,6 +85,12 @@ BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(read64_overloads, read64, 1, 2);
 // Overloads for memory::write64()
 BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(write64_overloads, write64, 2, 3);
 
+// Dummy class to be used for adding extra classes in python proxies
+template <int x> class dummy{
+    private:
+    dummy(){}
+};
+
 BOOST_PYTHON_MODULE(ppcsim)
 {
     using namespace boost::python;
@@ -92,106 +98,133 @@ BOOST_PYTHON_MODULE(ppcsim)
     // Wrap log_to_file()
     def("log_to_file", log_to_file);
 
-    class_<instr_call>("instr_call")
-        .def_readwrite("opcode", &instr_call::opcode)
-        .add_property("arg0",    &instr_call::getarg<0>, &instr_call::setarg<0>)
-        .add_property("arg1",    &instr_call::getarg<1>, &instr_call::setarg<1>)
-        .add_property("arg2",    &instr_call::getarg<2>, &instr_call::setarg<2>)
-        .add_property("arg3",    &instr_call::getarg<3>, &instr_call::setarg<3>)
-        .add_property("arg4",    &instr_call::getarg<4>, &instr_call::setarg<4>)
-        .add_property("arg5",    &instr_call::getarg<5>, &instr_call::setarg<5>)
-        .def("dump_state",       &instr_call::dump_state)
-        ;
+    // Types namespace ( defines all class types being used in our module, one way of other )
+    {
+        class_<dummy<0> > types_py("types", no_init);
+        scope types_scope = types_py;
 
-    class_<memory>("memory", init<uint64_t>())
-        .def("reg_tgt",   &memory::register_memory_target, register_memory_target_overloads())
-        .def("dump_tgts", &memory::dump_all_memory_targets)
-        .def("dump_page_maps", &memory::dump_all_page_maps)
-        .def("dump_pages", &memory::dump_all_pages, dump_all_pages_overloads())
-        //.def("write_buf",  &memory::write_from_buffer)
-        //.def("read_buf",   &memory::read_to_buffer, return_value_policy<manage_new_object>())
-        .def("read8",        &memory::read8)
-        .def("write8",       &memory::write8)
-        .def("read16",       &memory::read16, read16_overloads())
-        .def("write16",      &memory::write16, write16_overloads())
-        .def("read32",       &memory::read32, read32_overloads())
-        .def("write32",      &memory::write32, write32_overloads())
-        .def("read64",       &memory::read64, read64_overloads())
-        .def("write64",      &memory::write64, write64_overloads())
-        ;
+        // instr_call type ( We will probably never use this directly )
+        class_<instr_call>("instr_call")
+            .def_readwrite("opcode", &instr_call::opcode)
+            .add_property("arg0",    &instr_call::getarg<0>, &instr_call::setarg<0>)
+            .add_property("arg1",    &instr_call::getarg<1>, &instr_call::setarg<1>)
+            .add_property("arg2",    &instr_call::getarg<2>, &instr_call::setarg<2>)
+            .add_property("arg3",    &instr_call::getarg<3>, &instr_call::setarg<3>)
+            .add_property("arg4",    &instr_call::getarg<4>, &instr_call::setarg<4>)
+            .add_property("arg5",    &instr_call::getarg<5>, &instr_call::setarg<5>)
+            .def("dump_state",       &instr_call::dump_state)
+            ;
 
-    class_<cpu_wrap, boost::noncopyable>("cpu", init<uint64_t, std::string, uint64_t>())
-        .def("run_instr", pure_virtual(run_instr_ptr))
-        .def("run_instr", pure_virtual(run_instr_ptr2))
-        .def("xlate_v2p", pure_virtual(&cpu::xlate_v2p))
-        ;
+        // Memory namespace
+        {
+            class_<memory> memory_py("memory", init<uint64_t>());
+            scope memory_scope = memory_py;
+            memory_py.def("reg_tgt",   &memory::register_memory_target, register_memory_target_overloads())
+                .def("dump_tgts", &memory::dump_all_memory_targets)
+                .def("dump_page_maps", &memory::dump_all_page_maps)
+                .def("dump_pages", &memory::dump_all_pages, dump_all_pages_overloads())
+                //.def("write_buf",  &memory::write_from_buffer)
+                //.def("read_buf",   &memory::read_to_buffer, return_value_policy<manage_new_object>())
+                .def("read8",        &memory::read8)
+                .def("write8",       &memory::write8)
+                .def("read16",       &memory::read16, read16_overloads())
+                .def("write16",      &memory::write16, write16_overloads())
+                .def("read32",       &memory::read32, read32_overloads())
+                .def("write32",      &memory::write32, write32_overloads())
+                .def("read64",       &memory::read64, read64_overloads())
+                .def("write64",      &memory::write64, write64_overloads())
+                ;
 
-    class_<cpu_ppc_booke> cpu_ppc_py("cpu_ppc", init<uint64_t, std::string>());
-    cpu_ppc_py.def("run_instr",   run_instr_ptr_d0)
-        .def("run_instr",   run_instr_ptr2_d0, run_instr_overloads())
-        .def("get_reg",     &cpu_ppc_booke::get_reg)
-        .def("dump_state",  &cpu_ppc_booke::dump_state, dump_state_overloads())
-        ;
+            // Memory targets namespace ( defines constants for memory targets )
+            {
+                class_<dummy<1> > mem_tgts_py("tgts", no_init);
+                scope mem_tgts_scope = mem_tgts_py;
+                mem_tgts_py.def_readonly("TGT_DDR", TGT_DDR)
+                    .def_readonly("TGT_CCSR", &TGT_CCSR)
+                    .def_readonly("TGT_IFC", &TGT_IFC)
+                    ;
+            }
+        }
 
-    // std::vector<cpu_ppc_booke> container map to python
-    class_<std::vector<cpu_ppc_booke> > cpu_list_py("cpu_list");
-    cpu_list_py.def(vector_indexing_suite<std::vector<cpu_ppc_booke> >());
+        // The abstract cpu class
+        class_<cpu_wrap, boost::noncopyable>("cpu", init<uint64_t, std::string, uint64_t>())
+            .def("run_instr", pure_virtual(run_instr_ptr))
+            .def("run_instr", pure_virtual(run_instr_ptr2))
+            .def("xlate_v2p", pure_virtual(&cpu::xlate_v2p))
+            ;
 
-    // Class machine
-    class_<machine> machine_py("machine");
-    machine_py.def_readwrite("cpu", &machine::m_cpu)
-        .add_property("cpu0", make_function(&machine::get_cpu<0>, return_value_policy<reference_existing_object>()))
-        .add_property("cpu1", make_function(&machine::get_cpu<1>, return_value_policy<reference_existing_object>()))
-        ;
+        // The derived cpu_ppc_book class ( Our main cpu class )
+        class_<cpu_ppc_booke> cpu_ppc_py("cpu_ppc", init<uint64_t, std::string>());
+        cpu_ppc_py.def("run_instr",   run_instr_ptr_d0)
+            .def("run_instr",   run_instr_ptr2_d0, run_instr_overloads())
+            .def("get_reg",     &cpu_ppc_booke::get_reg)
+            .def("dump_state",  &cpu_ppc_booke::dump_state, dump_state_overloads())
+            ;
 
-    // Add attributes for GPRs
+        // Add attributes for GPRs
 #define ADD_REG(reg_num, reg_alias)    cpu_ppc_py.add_property(reg_alias,  &cpu_ppc_booke::___get_reg<reg_num>, &cpu_ppc_booke::___set_reg<reg_num>)
 #define ADD_REGR(reg_num, reg_alias)   cpu_ppc_py.add_property(reg_alias,  &cpu_ppc_booke::___get_reg<reg_num>)
 
-    ADD_REG(REG_GPR0,  "_R0"  ); ADD_REG(REG_GPR1,  "_R1"  ); ADD_REG(REG_GPR2,  "_R2"  ); ADD_REG(REG_GPR3,  "_R3"  );
-    ADD_REG(REG_GPR4,  "_R4"  ); ADD_REG(REG_GPR5,  "_R5"  ); ADD_REG(REG_GPR6,  "_R6"  ); ADD_REG(REG_GPR7,  "_R7"  );
-    ADD_REG(REG_GPR8,  "_R8"  ); ADD_REG(REG_GPR9,  "_R9"  ); ADD_REG(REG_GPR10, "_R10" ); ADD_REG(REG_GPR11, "_R11" );
-    ADD_REG(REG_GPR12, "_R12" ); ADD_REG(REG_GPR13, "_R13" ); ADD_REG(REG_GPR14, "_R14" ); ADD_REG(REG_GPR15, "_R15" );
-    ADD_REG(REG_GPR16, "_R16" ); ADD_REG(REG_GPR17, "_R17" ); ADD_REG(REG_GPR18, "_R18" ); ADD_REG(REG_GPR19, "_R19" );
-    ADD_REG(REG_GPR20, "_R20" ); ADD_REG(REG_GPR21, "_R21" ); ADD_REG(REG_GPR22, "_R22" ); ADD_REG(REG_GPR23, "_R23" );
-    ADD_REG(REG_GPR24, "_R24" ); ADD_REG(REG_GPR25, "_R25" ); ADD_REG(REG_GPR26, "_R26" ); ADD_REG(REG_GPR27, "_R27" );
-    ADD_REG(REG_GPR28, "_R28" ); ADD_REG(REG_GPR29, "_R29" ); ADD_REG(REG_GPR30, "_R30" ); ADD_REG(REG_GPR31, "_R31" );
+        ADD_REG(REG_GPR0,  "_R0"  ); ADD_REG(REG_GPR1,  "_R1"  ); ADD_REG(REG_GPR2,  "_R2"  ); ADD_REG(REG_GPR3,  "_R3"  );
+        ADD_REG(REG_GPR4,  "_R4"  ); ADD_REG(REG_GPR5,  "_R5"  ); ADD_REG(REG_GPR6,  "_R6"  ); ADD_REG(REG_GPR7,  "_R7"  );
+        ADD_REG(REG_GPR8,  "_R8"  ); ADD_REG(REG_GPR9,  "_R9"  ); ADD_REG(REG_GPR10, "_R10" ); ADD_REG(REG_GPR11, "_R11" );
+        ADD_REG(REG_GPR12, "_R12" ); ADD_REG(REG_GPR13, "_R13" ); ADD_REG(REG_GPR14, "_R14" ); ADD_REG(REG_GPR15, "_R15" );
+        ADD_REG(REG_GPR16, "_R16" ); ADD_REG(REG_GPR17, "_R17" ); ADD_REG(REG_GPR18, "_R18" ); ADD_REG(REG_GPR19, "_R19" );
+        ADD_REG(REG_GPR20, "_R20" ); ADD_REG(REG_GPR21, "_R21" ); ADD_REG(REG_GPR22, "_R22" ); ADD_REG(REG_GPR23, "_R23" );
+        ADD_REG(REG_GPR24, "_R24" ); ADD_REG(REG_GPR25, "_R25" ); ADD_REG(REG_GPR26, "_R26" ); ADD_REG(REG_GPR27, "_R27" );
+        ADD_REG(REG_GPR28, "_R28" ); ADD_REG(REG_GPR29, "_R29" ); ADD_REG(REG_GPR30, "_R30" ); ADD_REG(REG_GPR31, "_R31" );
 
-    // Add attributes for FPRS
-    ADD_REG(REG_FPR0,  "_F0"  ); ADD_REG(REG_FPR1,  "_F1"  ); ADD_REG(REG_FPR2,  "_F2"  ); ADD_REG(REG_FPR3,  "_F3"  );
-    ADD_REG(REG_FPR4,  "_F4"  ); ADD_REG(REG_FPR5,  "_F5"  ); ADD_REG(REG_FPR6,  "_F6"  ); ADD_REG(REG_FPR7,  "_F7"  );
-    ADD_REG(REG_FPR8,  "_F8"  ); ADD_REG(REG_FPR9,  "_F9"  ); ADD_REG(REG_FPR10, "_F10" ); ADD_REG(REG_FPR11, "_F11" );
-    ADD_REG(REG_FPR12, "_F12" ); ADD_REG(REG_FPR13, "_F13" ); ADD_REG(REG_FPR14, "_F14" ); ADD_REG(REG_FPR15, "_F15" );
-    ADD_REG(REG_FPR16, "_F16" ); ADD_REG(REG_FPR17, "_F17" ); ADD_REG(REG_FPR18, "_F18" ); ADD_REG(REG_FPR19, "_F19" );
-    ADD_REG(REG_FPR20, "_F20" ); ADD_REG(REG_FPR21, "_F21" ); ADD_REG(REG_FPR22, "_F22" ); ADD_REG(REG_FPR23, "_F23" );
-    ADD_REG(REG_FPR24, "_F24" ); ADD_REG(REG_FPR25, "_F25" ); ADD_REG(REG_FPR26, "_F26" ); ADD_REG(REG_FPR27, "_F27" );
-    ADD_REG(REG_FPR28, "_F28" ); ADD_REG(REG_FPR29, "_F29" ); ADD_REG(REG_FPR30, "_F30" ); ADD_REG(REG_FPR31, "_F31" );
+        // Add attributes for FPRS
+        ADD_REG(REG_FPR0,  "_F0"  ); ADD_REG(REG_FPR1,  "_F1"  ); ADD_REG(REG_FPR2,  "_F2"  ); ADD_REG(REG_FPR3,  "_F3"  );
+        ADD_REG(REG_FPR4,  "_F4"  ); ADD_REG(REG_FPR5,  "_F5"  ); ADD_REG(REG_FPR6,  "_F6"  ); ADD_REG(REG_FPR7,  "_F7"  );
+        ADD_REG(REG_FPR8,  "_F8"  ); ADD_REG(REG_FPR9,  "_F9"  ); ADD_REG(REG_FPR10, "_F10" ); ADD_REG(REG_FPR11, "_F11" );
+        ADD_REG(REG_FPR12, "_F12" ); ADD_REG(REG_FPR13, "_F13" ); ADD_REG(REG_FPR14, "_F14" ); ADD_REG(REG_FPR15, "_F15" );
+        ADD_REG(REG_FPR16, "_F16" ); ADD_REG(REG_FPR17, "_F17" ); ADD_REG(REG_FPR18, "_F18" ); ADD_REG(REG_FPR19, "_F19" );
+        ADD_REG(REG_FPR20, "_F20" ); ADD_REG(REG_FPR21, "_F21" ); ADD_REG(REG_FPR22, "_F22" ); ADD_REG(REG_FPR23, "_F23" );
+        ADD_REG(REG_FPR24, "_F24" ); ADD_REG(REG_FPR25, "_F25" ); ADD_REG(REG_FPR26, "_F26" ); ADD_REG(REG_FPR27, "_F27" );
+        ADD_REG(REG_FPR28, "_F28" ); ADD_REG(REG_FPR29, "_F29" ); ADD_REG(REG_FPR30, "_F30" ); ADD_REG(REG_FPR31, "_F31" );
 
-    //// Add attributes for other registers
-    ADD_REG(REG_PC,      "_PC"     ); ADD_REG(REG_MSR,     "_MSR"     ); ADD_REG(REG_CR,      "_CR"     ); ADD_REG(REG_FPSCR,    "_FPSCR"  );
-    ADD_REGR(REG_ATBL,   "_ATBL"   ); ADD_REGR(REG_ATBU,   "_ATBU"    ); ADD_REG(REG_CSRR0,   "_CSRR0"  ); ADD_REG(REG_CSRR1,    "_CSRR1"  );
-    ADD_REG(REG_CTR,     "_CTR"    ); ADD_REG(REG_DAC1,    "_DAC1"    ); ADD_REG(REG_DAC2,    "_DAC2"   ); ADD_REG(REG_DBCR0,    "_DBCR0"  );
-    ADD_REG(REG_DBCR1,   "_DBCR1"  ); ADD_REG(REG_DBCR2,   "_DBCR2"   ); ADD_REG(REG_DBSR,    "_DBSR"   ); ADD_REG(REG_DEAR,     "_DEAR"   );
-    ADD_REG(REG_DEC,     "_DEC"    ); ADD_REG(REG_DECAR,   "_DECAR"   ); ADD_REG(REG_ESR,     "_ESR"    ); ADD_REG(REG_IAC1,     "_IAC1"   ); 
-    ADD_REG(REG_IAC2,    "_IAC2"   ); ADD_REG(REG_IVOR0,   "_IVOR0"   ); ADD_REG(REG_IVOR1,   "_IVOR1"  ); ADD_REG(REG_IVOR2,    "_IVOR2"  );
-    ADD_REG(REG_IVOR3,   "_IVOR3"  ); ADD_REG(REG_IVOR4,   "_IVOR4"   ); ADD_REG(REG_IVOR5,   "_IVOR5"  ); ADD_REG(REG_IVOR6,    "_IVOR6"  );
-    ADD_REG(REG_IVOR8,   "_IVOR8"  ); ADD_REG(REG_IVOR10,  "_IVOR10"  ); ADD_REG(REG_IVOR11,  "_IVOR11" ); ADD_REG(REG_IVOR12,   "_IVOR12" );
-    ADD_REG(REG_IVOR13,  "_IVOR13" ); ADD_REG(REG_IVOR14,  "_IVOR14"  ); ADD_REG(REG_IVOR15,  "_IVOR15" ); ADD_REG(REG_IVPR,     "_IVPR"   );
-    ADD_REG(REG_LR,      "_LR"     ); ADD_REG(REG_PID,     "_PID"     ); ADD_REGR(REG_PIR,    "_PIR"    ); ADD_REGR(REG_PVR,     "_PVR"    ); 
-    ADD_REG(REG_SPRG0,   "_SPRG0"  ); ADD_REG(REG_SPRG1,   "_SPRG1"   ); ADD_REG(REG_SPRG2,   "_SPRG2"  ); ADD_REGR(REG_SPRG3R,  "_SPRG3R" );
-    ADD_REG(REG_SPRG3,   "_SPRG3"  ); ADD_REGR(REG_SPRG4R, "_SPRG4R"  ); ADD_REG(REG_SPRG4,   "_SPRG4"  ); ADD_REGR(REG_SPRG5R,  "_SPRG5R" );
-    ADD_REG(REG_SPRG5,   "_SPRG5"  ); ADD_REGR(REG_SPRG6R, "_SPRG6R"  ); ADD_REG(REG_SPRG6,   "_SPRG6"  ); ADD_REGR(REG_SPRG7R,  "_SPRG7R" );
-    ADD_REG(REG_SPRG7,   "_SPRG7"  ); ADD_REG(REG_SRR0,    "_SRR0"    ); ADD_REG(REG_SRR1,    "_SRR1"   ); ADD_REGR(REG_TBRL,    "_TBRL"   );
-    ADD_REG(REG_TBWL,    "_TBWL"   ); ADD_REGR(REG_TBRU,   "_TBRU"    ); ADD_REG(REG_TBWU,    "_TBWU"   ); ADD_REG(REG_TCR,      "_TCR"    );   
-    ADD_REG(REG_TSR,     "_TSR"    ); ADD_REG(REG_USPRG0,  "_USPRG0"  ); ADD_REG(REG_XER,     "_XER"    ); ADD_REG(REG_BBEAR,    "_BBEAR"  );
-    ADD_REG(REG_BBTAR,   "_BBTAR"  ); ADD_REG(REG_BUCSR,   "_BUCSR"   ); ADD_REG(REG_HID0,    "_HID0"   ); ADD_REG(REG_HID1,     "_HID1"   );
-    ADD_REG(REG_IVOR32,  "_IVOR32" ); ADD_REG(REG_IVOR33,  "_IVOR33"  ); ADD_REG(REG_IVOR34,  "_IVOR34" ); ADD_REG(REG_IVOR35,   "_IVOR35" );
-    ADD_REGR(REG_L1CFG0, "_L1CFG0" ); ADD_REGR(REG_L1CFG1, "_L1CFG1"  ); ADD_REG(REG_L1CSR0,  "_L1CSR0" ); ADD_REG(REG_L1CSR1,   "_L1CSR1" );
-    ADD_REG(REG_MAS0,    "_MAS0"   ); ADD_REG(REG_MAS1,    "_MAS1"    ); ADD_REG(REG_MAS2,    "_MAS2"   ); ADD_REG(REG_MAS3,     "_MAS3"   );
-    ADD_REG(REG_MAS4,    "_MAS4"   ); ADD_REG(REG_MAS5,    "_MAS5"    ); ADD_REG(REG_MAS6,    "_MAS6"   ); ADD_REG(REG_MAS7,     "_MAS7"   );
-    ADD_REGR(REG_MCAR,   "_MCAR"   ); ADD_REGR(REG_MCSR,   "_MCSR"    ); ADD_REG(REG_MCSRR0,  "_MCSRR0" ); ADD_REG(REG_MCSRR1,   "_MCSRR1" );
-    ADD_REGR(REG_MMUCFG, "_MMUCFG" ); ADD_REG(REG_MMUCSR0, "_MMUCSR0" ); ADD_REG(REG_PID0,    "_PID0"   ); ADD_REG(REG_PID1,     "_PID1"   ); 
-    ADD_REG(REG_PID2,    "_PID2"   ); ADD_REG(REG_SPEFSCR, "_SPEFSCR" ); ADD_REG(REG_SVR,     "_SVR"    ); ADD_REGR(REG_TLB0CFG, "_TLB0CFG");
-    ADD_REG(REG_TLB1CFG, "_TLB1CFG");
+        //// Add attributes for other registers
+        ADD_REG(REG_PC,      "_PC"     ); ADD_REG(REG_MSR,     "_MSR"     ); ADD_REG(REG_CR,      "_CR"     ); ADD_REG(REG_FPSCR,    "_FPSCR"  );
+        ADD_REGR(REG_ATBL,   "_ATBL"   ); ADD_REGR(REG_ATBU,   "_ATBU"    ); ADD_REG(REG_CSRR0,   "_CSRR0"  ); ADD_REG(REG_CSRR1,    "_CSRR1"  );
+        ADD_REG(REG_CTR,     "_CTR"    ); ADD_REG(REG_DAC1,    "_DAC1"    ); ADD_REG(REG_DAC2,    "_DAC2"   ); ADD_REG(REG_DBCR0,    "_DBCR0"  );
+        ADD_REG(REG_DBCR1,   "_DBCR1"  ); ADD_REG(REG_DBCR2,   "_DBCR2"   ); ADD_REG(REG_DBSR,    "_DBSR"   ); ADD_REG(REG_DEAR,     "_DEAR"   );
+        ADD_REG(REG_DEC,     "_DEC"    ); ADD_REG(REG_DECAR,   "_DECAR"   ); ADD_REG(REG_ESR,     "_ESR"    ); ADD_REG(REG_IAC1,     "_IAC1"   ); 
+        ADD_REG(REG_IAC2,    "_IAC2"   ); ADD_REG(REG_IVOR0,   "_IVOR0"   ); ADD_REG(REG_IVOR1,   "_IVOR1"  ); ADD_REG(REG_IVOR2,    "_IVOR2"  );
+        ADD_REG(REG_IVOR3,   "_IVOR3"  ); ADD_REG(REG_IVOR4,   "_IVOR4"   ); ADD_REG(REG_IVOR5,   "_IVOR5"  ); ADD_REG(REG_IVOR6,    "_IVOR6"  );
+        ADD_REG(REG_IVOR8,   "_IVOR8"  ); ADD_REG(REG_IVOR10,  "_IVOR10"  ); ADD_REG(REG_IVOR11,  "_IVOR11" ); ADD_REG(REG_IVOR12,   "_IVOR12" );
+        ADD_REG(REG_IVOR13,  "_IVOR13" ); ADD_REG(REG_IVOR14,  "_IVOR14"  ); ADD_REG(REG_IVOR15,  "_IVOR15" ); ADD_REG(REG_IVPR,     "_IVPR"   );
+        ADD_REG(REG_LR,      "_LR"     ); ADD_REG(REG_PID,     "_PID"     ); ADD_REGR(REG_PIR,    "_PIR"    ); ADD_REGR(REG_PVR,     "_PVR"    ); 
+        ADD_REG(REG_SPRG0,   "_SPRG0"  ); ADD_REG(REG_SPRG1,   "_SPRG1"   ); ADD_REG(REG_SPRG2,   "_SPRG2"  ); ADD_REGR(REG_SPRG3R,  "_SPRG3R" );
+        ADD_REG(REG_SPRG3,   "_SPRG3"  ); ADD_REGR(REG_SPRG4R, "_SPRG4R"  ); ADD_REG(REG_SPRG4,   "_SPRG4"  ); ADD_REGR(REG_SPRG5R,  "_SPRG5R" );
+        ADD_REG(REG_SPRG5,   "_SPRG5"  ); ADD_REGR(REG_SPRG6R, "_SPRG6R"  ); ADD_REG(REG_SPRG6,   "_SPRG6"  ); ADD_REGR(REG_SPRG7R,  "_SPRG7R" );
+        ADD_REG(REG_SPRG7,   "_SPRG7"  ); ADD_REG(REG_SRR0,    "_SRR0"    ); ADD_REG(REG_SRR1,    "_SRR1"   ); ADD_REGR(REG_TBRL,    "_TBRL"   );
+        ADD_REG(REG_TBWL,    "_TBWL"   ); ADD_REGR(REG_TBRU,   "_TBRU"    ); ADD_REG(REG_TBWU,    "_TBWU"   ); ADD_REG(REG_TCR,      "_TCR"    );   
+        ADD_REG(REG_TSR,     "_TSR"    ); ADD_REG(REG_USPRG0,  "_USPRG0"  ); ADD_REG(REG_XER,     "_XER"    ); ADD_REG(REG_BBEAR,    "_BBEAR"  );
+        ADD_REG(REG_BBTAR,   "_BBTAR"  ); ADD_REG(REG_BUCSR,   "_BUCSR"   ); ADD_REG(REG_HID0,    "_HID0"   ); ADD_REG(REG_HID1,     "_HID1"   );
+        ADD_REG(REG_IVOR32,  "_IVOR32" ); ADD_REG(REG_IVOR33,  "_IVOR33"  ); ADD_REG(REG_IVOR34,  "_IVOR34" ); ADD_REG(REG_IVOR35,   "_IVOR35" );
+        ADD_REGR(REG_L1CFG0, "_L1CFG0" ); ADD_REGR(REG_L1CFG1, "_L1CFG1"  ); ADD_REG(REG_L1CSR0,  "_L1CSR0" ); ADD_REG(REG_L1CSR1,   "_L1CSR1" );
+        ADD_REG(REG_MAS0,    "_MAS0"   ); ADD_REG(REG_MAS1,    "_MAS1"    ); ADD_REG(REG_MAS2,    "_MAS2"   ); ADD_REG(REG_MAS3,     "_MAS3"   );
+        ADD_REG(REG_MAS4,    "_MAS4"   ); ADD_REG(REG_MAS5,    "_MAS5"    ); ADD_REG(REG_MAS6,    "_MAS6"   ); ADD_REG(REG_MAS7,     "_MAS7"   );
+        ADD_REGR(REG_MCAR,   "_MCAR"   ); ADD_REGR(REG_MCSR,   "_MCSR"    ); ADD_REG(REG_MCSRR0,  "_MCSRR0" ); ADD_REG(REG_MCSRR1,   "_MCSRR1" );
+        ADD_REGR(REG_MMUCFG, "_MMUCFG" ); ADD_REG(REG_MMUCSR0, "_MMUCSR0" ); ADD_REG(REG_PID0,    "_PID0"   ); ADD_REG(REG_PID1,     "_PID1"   ); 
+        ADD_REG(REG_PID2,    "_PID2"   ); ADD_REG(REG_SPEFSCR, "_SPEFSCR" ); ADD_REG(REG_SVR,     "_SVR"    ); ADD_REGR(REG_TLB0CFG, "_TLB0CFG");
+        ADD_REG(REG_TLB1CFG, "_TLB1CFG");
 
+
+        // std::vector<cpu_ppc_booke> container map to python
+        class_<std::vector<cpu_ppc_booke> > cpu_list_py("cpu_list");
+        cpu_list_py.def(vector_indexing_suite<std::vector<cpu_ppc_booke> >());
+
+    }
+
+    // Class machine ( Our top level machine class. This is the class we are going to use directly. )
+    class_<machine> machine_py("machine");
+    machine_py.def_readwrite("cpu", &machine::m_cpu)
+        .def_readonly("ncpus", &machine::m_ncpus)
+        .def_readwrite("memory", &machine::m_memory)
+        .add_property("cpu0", make_function(&machine::get_cpu<0>, return_value_policy<reference_existing_object>()))
+        .add_property("cpu1", make_function(&machine::get_cpu<1>, return_value_policy<reference_existing_object>()))
+        ;
+    
 }

@@ -30,9 +30,9 @@
 #include "utils.h"
 
 /* Memory target types */
-#define    TGT_DDR           (1)       // DDR
-#define    TGT_CCSR          (2)       // CCSR
-#define    TGT_IFC           (3)       // Integrated Flash Controller
+static const int TGT_DDR  = 1;      // DDR
+static const int TGT_CCSR = 2;      // CCSR
+static const int TGT_IFC  = 3;      // Integrated Flash Controller
 
 /*
  * Main memory class
