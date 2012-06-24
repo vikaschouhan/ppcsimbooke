@@ -42,6 +42,9 @@ all: $(EXES)
 %.o: %.cxx %.d
 	$(CXX) $(CXXFLAGS) $(EXTFLAGS) -o $@ -c $<
 
+test_ppcdis_interface: test_ppcdis_interface.o
+	$(CXX) -o $@ $^
+
 test_machine_interface: test_machine_interface.o
 	$(CXX) -o $@ $^
 
