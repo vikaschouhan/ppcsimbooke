@@ -7,19 +7,13 @@
 // NOTE:
 // Changes for ppcsimbooke :-
 //   1. Changed type of ppc_opts from "struct" to "static const struct"
-//   2. Changed name of "dis_private" instance from "private" to "private_data" ( since "private"
-//      is a reserved keyword in c++ ).
-//   3. Changed type of private_data to static.
+//   2. Moved "dis_private" instance to the bottom level header with a new name.
 
 struct dis_private
 {
   /* Stash the result of parsing disassembler_options here.  */
   ppc_cpu_t dialect;
 };
-static dis_private private_data;
-
-#define POWERPC_DIALECT(INFO) \
-  (((struct dis_private *) ((INFO)->private_data))->dialect)
 
 struct ppc_mopt {
   const char *opt;
