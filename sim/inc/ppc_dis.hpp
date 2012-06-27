@@ -154,6 +154,132 @@ class ppc_dis_booke{
             m_opcd_indices_done = 1;
         }
     }
+
+    // Disassemble a 32 bit opcode into a call frame
+    instr_call disasm(uint32_t opcd, int endianness)
+    {
+        instr_call  call_this;
+        unsigned long insn;
+        const struct powerpc_opcode *opcode;
+
+        // We reverse endianness if LITTLE endian specified
+        if (endianness == EMUL_LITTLE_ENDIAN)
+            insn = (((opcd >>  0) & 0xff) << 24) |
+                   (((opcd >>  8) & 0xff) << 16) |
+                   (((opcd >> 16) & 0xff) <<  8) |
+                   (((opcd >> 24) & 0xff) <<  0) ;
+        else
+            insn = opcd;
+
+        opcode = lookup_powerpc (insn);
+
+        if (opcode == NULL && (m_dialect & PPC_OPCODE_ANY) != 0)
+        {
+            m_dialect = -1;
+            opcode = lookup_powerpc (insn);
+        }
+
+        if (opcode != NULL)
+        {
+            const unsigned char *opindex;
+            const struct powerpc_operand *operand;
+            int need_comma;
+            int need_paren;
+            int arg_idx = 0;
+
+            /* If we are here, it means correct opcode was found in the table */
+            /* Store opcode name in passed disassemble_info */
+            call_this.opcode = std::string(opcode->name);
+
+            if (opcode->operands[0] != 0)
+                call_this.fmt = "%-7s ";
+            else
+                call_this.fmt = "%s";
+
+            /* Now extract and print the operands.  */
+            need_comma = 0;
+            need_paren = 0;
+            for (opindex = opcode->operands; *opindex != 0; opindex++)
+            {
+                long value;
+
+                operand = powerpc_operands + *opindex;
+
+                /* Operands that are marked FAKE are simply ignored.  We
+                   already made sure that the extract function considered
+                   the instruction to be valid.  */
+                if ((operand->flags & PPC_OPERAND_FAKE) != 0)
+                    continue;
+
+                /* If all of the optional operands have the value zero,
+                   then don't print any of them.  */
+                //if ((operand->flags & PPC_OPERAND_OPTIONAL) != 0)
+                //{
+                //}
+
+                value = operand_value_powerpc (operand, insn);
+                call_this.arg[arg_idx++] = value;
+
+                if (need_comma)
+                {
+                    call_this.fmt += ",";
+                    need_comma = 0;
+                }
+
+                /* Print the operand as directed by the flags.  */
+                if ((operand->flags & PPC_OPERAND_GPR) != 0 || ((operand->flags & PPC_OPERAND_GPR_0) != 0 && value != 0)){
+                    call_this.fmt += "r%ld";
+                } else if ((operand->flags & PPC_OPERAND_FPR) != 0){
+                    call_this.fmt += "f%ld";
+                } else if ((operand->flags & PPC_OPERAND_VR) != 0){
+                    call_this.fmt += "v%ld";
+                } else if ((operand->flags & PPC_OPERAND_VSR) != 0){
+                    call_this.fmt += "vs%ld";
+                } else if ((operand->flags & PPC_OPERAND_RELATIVE) != 0){
+                    //call_this.fmt += "";
+                } else if ((operand->flags & PPC_OPERAND_ABSOLUTE) != 0){
+                    //
+                } else if ((operand->flags & PPC_OPERAND_FSL) != 0){
+                    call_this.fmt += "fsl%ld";
+                } else if ((operand->flags & PPC_OPERAND_FCR) != 0){
+                    call_this.fmt += "fcr%ld";
+                } else if ((operand->flags & PPC_OPERAND_UDI) != 0){
+                    call_this.fmt += "%ld";
+                } else if ((operand->flags & PPC_OPERAND_CR) != 0 && (m_dialect & PPC_OPCODE_PPC) != 0){
+                
+                    if (operand->bitm == 7)
+                        call_this.fmt += "cr%ld";
+                    else
+                        call_this.fmt += "cr[%ld]";
+                }
+                else
+                    call_this.fmt += "0x%x";
+
+                if (need_paren)
+                {
+                    call_this.fmt += ")";
+                    need_paren = 0;
+                }
+
+                if ((operand->flags & PPC_OPERAND_PARENS) == 0)
+                    need_comma = 1;
+                else
+                {
+                    call_this.fmt += "(";
+                    need_paren = 1;
+                }
+            }
+
+            return call_this;
+        }
+
+        /* We could not find a match. Return with NULL opcode */
+        call_this.opcode  = "";
+        call_this.arg[0]  = insn;
+
+        return call_this;
+    }
+
 };
 
 // Static members

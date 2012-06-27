@@ -32,6 +32,7 @@
 #include <sstream>
 #include <iostream>
 #include "log.hpp"
+#include "misc.hpp"
 
 // Cast to appropriate types
 #define u32(arg)  ((uint32_t)(arg))
@@ -131,6 +132,16 @@ inline int64_t str_to_int(std::string arg){
 #define check_add_uf_s64(arg0, arg1)      (s64(arg0) < INT64_MIN  - s64(arg1))?1:0
 #define check_add_uf_u32(arg0, arg1)      (u32(arg0) < 0          - u32(arg1))?1:0
 #define check_add_uf_u64(arg0, arg1)      (u64(arg0) < 0          - u64(arg1))?1:0
+
+// Get host endianness
+inline int host_endianness(){
+    unsigned int __v0 =  0x1;
+    unsigned char *__ptr0 = reinterpret_cast<unsigned char*>(&__v0);
+    if(*__ptr0 == __v0)
+        return EMUL_LITTLE_ENDIAN;
+    else
+        return EMUL_BIG_ENDIAN;
+}
 
 
 #endif
