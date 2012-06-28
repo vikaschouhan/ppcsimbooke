@@ -7,19 +7,24 @@ static const int  EMUL_LITTLE_ENDIAN     =  1;
 static const int  EMUL_BIG_ENDIAN        =  2;
 
 // instruction call frame
-#define N_IC_ARGS 6
+#define N_IC_ARGS 6           // Max arguments supported
 struct instr_call {
-    std::string opcode;
-    std::string fmt;
-    int nargs;
-    size_t arg[N_IC_ARGS];
+    std::string opcode;       // Opcode
+    std::string fmt;          // Display format
+    int nargs;                // Number of arguments
+    size_t arg[N_IC_ARGS];    // Arguments themselves
     void *fptr;               // Function pointer
 
+    instr_call(){
+        opcode = "";
+        fmt    = "";
+        nargs  = 0;
+    }
     // Dump state
     void dump_state(){
         std::cout << "opcode : " << opcode << std::endl;
         std::cout << "args   : ";
-        for(int i=0; i<N_IC_ARGS; i++){
+        for(int i=0; i<nargs; i++){
             std::cout << std::hex << std::showbase << arg[i] << " ";
         }
         std::cout << std::endl;

@@ -87,6 +87,9 @@ BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(read64_overloads, read64, 1, 2);
 // Overloads for memory::write64()
 BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(write64_overloads, write64, 2, 3);
 
+// Overloads for ppc_dis::disasm()
+BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(disasm_overloads, disasm, 1, 2);
+
 // Dummy class to be used for adding extra classes in python proxies
 template <int x> class dummy{
     private:
@@ -105,14 +108,16 @@ BOOST_PYTHON_MODULE(ppcsim)
         class_<dummy<0> > types_py("types", no_init);
         scope types_scope = types_py;
 
-        //types_py.def_readonly("EMUL_UNDEFINED_ENDIAN", &EMUL_UNDEFINED_ENDIAN)
-        //        .def_readonly("EMUL_LITTLE_ENDIAN",    &EMUL_LITTLE_ENDIAN)
-        //        .def_readonly("EMUL_BIG_ENDIAN",       &EMUL_BIG_ENDIAN)
-        //        ;
+        // Endianness attributes
+        types_py.def_readonly("EMUL_UNDEFINED_ENDIAN", &EMUL_UNDEFINED_ENDIAN)
+                .def_readonly("EMUL_LITTLE_ENDIAN",    &EMUL_LITTLE_ENDIAN)
+                .def_readonly("EMUL_BIG_ENDIAN",       &EMUL_BIG_ENDIAN)
+                ;
 
-       //class_<ppc_dis_booke>("ppc_dis")
-       //    .def("disasm", &ppc_dis_booke::disasm)
-       //    ;
+        // Disassembler class type
+        class_<ppc_dis_booke>("ppc_dis")
+            .def("disasm", &ppc_dis_booke::disasm, disasm_overloads())
+            ;
 
         // instr_call type ( We will probably never use this directly )
         class_<instr_call>("instr_call")
@@ -124,6 +129,7 @@ BOOST_PYTHON_MODULE(ppcsim)
             .add_property("arg4",    &instr_call::getarg<4>, &instr_call::setarg<4>)
             .add_property("arg5",    &instr_call::getarg<5>, &instr_call::setarg<5>)
             .def("dump_state",       &instr_call::dump_state)
+            .def("print_instr",      &instr_call::print_instr)
             ;
 
         // Memory namespace

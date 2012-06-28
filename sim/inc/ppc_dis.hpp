@@ -184,7 +184,6 @@ class ppc_dis_booke{
             const struct powerpc_operand *operand;
             int need_comma;
             int need_paren;
-            int arg_idx = 0;
 
             /* If we are here, it means correct opcode was found in the table */
             /* Store opcode name in passed disassemble_info */
@@ -217,7 +216,7 @@ class ppc_dis_booke{
                 //}
 
                 value = operand_value_powerpc (operand, insn);
-                call_this.arg[arg_idx++] = value;
+                call_this.arg[call_this.nargs++] = value;
 
                 if (need_comma)
                 {
