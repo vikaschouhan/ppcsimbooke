@@ -1,10 +1,10 @@
 #ifndef _MISC_HPP
 #define _MISC_HPP
 
-// Misc macros ( specific to simulator ) library
-#define    EMUL_UNDEFINED_ENDIAN    0
-#define    EMUL_LITTLE_ENDIAN       1
-#define    EMUL_BIG_ENDIAN          2
+// endianness consts
+static const int  EMUL_UNDEFINED_ENDIAN  =  0;
+static const int  EMUL_LITTLE_ENDIAN     =  1;
+static const int  EMUL_BIG_ENDIAN        =  2;
 
 // instruction call frame
 #define N_IC_ARGS 6

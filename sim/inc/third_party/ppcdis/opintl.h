@@ -20,6 +20,9 @@
    Free Software Foundation, 51 Franklin Street - Fifth Floor, Boston,
    MA 02110-1301, USA.  */
 
+#ifndef _OPINTL_H
+#define _OPINTL_H
+
 #ifdef ENABLE_NLS
 # include <libintl.h>
 /* Note the use of dgetext() and PACKAGE here, rather than gettext().
@@ -49,4 +52,6 @@
 # define bindtextdomain(Domainname, Dirname) while (0) /* nothing */
 # define _(String) (String)
 # define N_(String) (String)
+#endif
+
 #endif

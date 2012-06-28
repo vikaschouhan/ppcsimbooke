@@ -1,0 +1,6 @@
+NOTE : Very Very important
+
+This file was converted from ppc-opc.c from GNU binutils project into a header format suitable for inclusion in our project.
+This file contains lots and lots of macros, due to which there are many instances of namespace collisions when using with some external C++ libraries like boost.
+To avoid the namespace collisions, this file is converted instead to a template format. Actual header file will be generated after resolving all macros ( which it contains ).
+To generate the actual ppc-opc.h header file, we just do a "gcc -E template/ppc-opc.hxx >! ppc-opc.h" from the parent directory. This header file needs to be generated whenever this template file is updated.

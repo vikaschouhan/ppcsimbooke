@@ -2,8 +2,7 @@
 #define _PPC_DIS_HPP_
 
 #include "config.h"
-#include "third_party/ppcdis/ppc-opc.h"
-#include "third_party/ppcdis/ppc-dis.h"
+#include "third_party/ppcdis/ppcdis.h"
 
 #define  N_PPC_OPCODES  65
 
@@ -156,7 +155,7 @@ class ppc_dis_booke{
     }
 
     // Disassemble a 32 bit opcode into a call frame
-    instr_call disasm(uint32_t opcd, int endianness)
+    instr_call disasm(uint32_t opcd, int endianness = EMUL_BIG_ENDIAN)
     {
         instr_call  call_this;
         unsigned long insn;

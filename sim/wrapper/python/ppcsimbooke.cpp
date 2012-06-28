@@ -34,9 +34,11 @@
 #include "cpu_ppc.hpp"
 #include "memory.hpp"
 #include "machine.hpp"
-
-// Wrapping some cpu functions
-
+#include "ppc_dis.hpp"
+ 
+ 
+ // Wrapping some cpu functions
+ 
 // func ptrs for overloaded cpu::run_instrs()
 int (cpu::*run_instr_ptr)(instr_call*) = &cpu::run_instr;
 int (cpu::*run_instr_ptr2)(std::string, std::string, std::string, std::string, std::string,
@@ -103,6 +105,15 @@ BOOST_PYTHON_MODULE(ppcsim)
         class_<dummy<0> > types_py("types", no_init);
         scope types_scope = types_py;
 
+        //types_py.def_readonly("EMUL_UNDEFINED_ENDIAN", &EMUL_UNDEFINED_ENDIAN)
+        //        .def_readonly("EMUL_LITTLE_ENDIAN",    &EMUL_LITTLE_ENDIAN)
+        //        .def_readonly("EMUL_BIG_ENDIAN",       &EMUL_BIG_ENDIAN)
+        //        ;
+
+       //class_<ppc_dis_booke>("ppc_dis")
+       //    .def("disasm", &ppc_dis_booke::disasm)
+       //    ;
+
         // instr_call type ( We will probably never use this directly )
         class_<instr_call>("instr_call")
             .def_readwrite("opcode", &instr_call::opcode)
@@ -139,7 +150,7 @@ BOOST_PYTHON_MODULE(ppcsim)
             {
                 class_<dummy<1> > mem_tgts_py("tgts", no_init);
                 scope mem_tgts_scope = mem_tgts_py;
-                mem_tgts_py.def_readonly("TGT_DDR", TGT_DDR)
+                mem_tgts_py.def_readonly("TGT_DDR", &TGT_DDR)
                     .def_readonly("TGT_CCSR", &TGT_CCSR)
                     .def_readonly("TGT_IFC", &TGT_IFC)
                     ;
