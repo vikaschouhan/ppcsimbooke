@@ -21,7 +21,10 @@ template < typename K, typename V > class lru_cache
     typedef V value_type; 
  
     typedef boost::bimaps::bimap< boost::bimaps::unordered_set_of<key_type>, boost::bimaps::list_of<value_type> > container_type; 
- 
+
+    // Default constructor
+    lru_cache() : _capacity(256) { } 
+
     // Constuctor specifies the cached function and 
     // the maximum number of records to be stored. 
     lru_cache(size_t c) : _capacity(c) 
@@ -71,8 +74,16 @@ template < typename K, typename V > class lru_cache
         _container.insert(typename container_type::value_type(k,v)); 
     } 
 
+    // @func  : set_size
+    // @brief : set size
+    void set_size(size_t c){
+        _capacity = c;
+    }
+
+    size_t size(){ return _capacity; }
+
     private: 
-    const size_t _capacity; 
+    size_t _capacity; 
     container_type _container; 
 }; 
  

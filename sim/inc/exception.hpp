@@ -41,6 +41,10 @@ class sim_exception : public std::exception {
     ~sim_exception() throw(){
     }
 
+    const int err_code(){
+        return errcode_;
+    }
+
     // Virtual what for this class
     const char *what() throw(){
         std::string final_message = errhash_[errcode_] + ". " + message_;

@@ -3,11 +3,17 @@
 
 #include "config.h"
 #include "third_party/ppcdis/ppcdis.h"
+#include "third_party/lru/lru.hpp"
 
 #define  N_PPC_OPCODES  65
 
 class ppc_dis_booke{
-    ppc_cpu_t m_dialect;
+    public:
+    typedef lru_cache<uint32_t, instr_call> ppc_dis_cache;
+
+    private:
+    ppc_cpu_t       m_dialect;
+    ppc_dis_cache   m_dis_cache;                         // Disassembler cache
     static uint16_t m_ppc_opcd_indices[N_PPC_OPCODES];
     static bool     m_opcd_indices_done;
 
@@ -152,6 +158,7 @@ class ppc_dis_booke{
             init_opcd_indices();
             m_opcd_indices_done = 1;
         }
+        m_dis_cache.set_size(256);   // 256 entry cache
     }
 
     // Disassemble a 32 bit opcode into a call frame
@@ -169,6 +176,14 @@ class ppc_dis_booke{
                    (((opcd >> 24) & 0xff) <<  0) ;
         else
             insn = opcd;
+
+        try{
+            call_this = m_dis_cache[insn];
+        }catch(sim_exception& e){
+            if(e.err_code() != SIM_EXCEPT_ILLEGAL_OP){
+                throw(sim_exception(SIM_EXCEPT_FATAL, "Fatal error. This should never happen"));
+            }
+        }
 
         opcode = lookup_powerpc (insn);
 
@@ -216,7 +231,7 @@ class ppc_dis_booke{
                 //}
 
                 value = operand_value_powerpc (operand, insn);
-                call_this.arg[call_this.nargs++] = value;
+                call_this.arg[call_this.nargs] = value;
 
                 if (need_comma)
                 {
@@ -227,31 +242,41 @@ class ppc_dis_booke{
                 /* Print the operand as directed by the flags.  */
                 if ((operand->flags & PPC_OPERAND_GPR) != 0 || ((operand->flags & PPC_OPERAND_GPR_0) != 0 && value != 0)){
                     call_this.fmt += "r%ld";
+                    call_this.targ[call_this.nargs] = PPC_ARG_GPR;
                 } else if ((operand->flags & PPC_OPERAND_FPR) != 0){
                     call_this.fmt += "f%ld";
+                    call_this.targ[call_this.nargs] = PPC_ARG_FPR;
                 } else if ((operand->flags & PPC_OPERAND_VR) != 0){
                     call_this.fmt += "v%ld";
+                    call_this.targ[call_this.nargs] = PPC_ARG_VR;
                 } else if ((operand->flags & PPC_OPERAND_VSR) != 0){
                     call_this.fmt += "vs%ld";
+                    call_this.targ[call_this.nargs] = PPC_ARG_VSR;
                 } else if ((operand->flags & PPC_OPERAND_RELATIVE) != 0){
                     //call_this.fmt += "";
                 } else if ((operand->flags & PPC_OPERAND_ABSOLUTE) != 0){
                     //
                 } else if ((operand->flags & PPC_OPERAND_FSL) != 0){
                     call_this.fmt += "fsl%ld";
+                    call_this.targ[call_this.nargs] = PPC_ARG_FSL;
                 } else if ((operand->flags & PPC_OPERAND_FCR) != 0){
                     call_this.fmt += "fcr%ld";
+                    call_this.targ[call_this.nargs] = PPC_ARG_FCR;
                 } else if ((operand->flags & PPC_OPERAND_UDI) != 0){
                     call_this.fmt += "%ld";
+                    call_this.targ[call_this.nargs] = PPC_ARG_VAL;
                 } else if ((operand->flags & PPC_OPERAND_CR) != 0 && (m_dialect & PPC_OPCODE_PPC) != 0){
                 
                     if (operand->bitm == 7)
                         call_this.fmt += "cr%ld";
                     else
                         call_this.fmt += "cr[%ld]";
+                    call_this.targ[call_this.nargs] = PPC_ARG_CR;
                 }
-                else
+                else{
                     call_this.fmt += "0x%x";
+                    call_this.targ[call_this.nargs] = PPC_ARG_VAL;
+                }
 
                 if (need_paren)
                 {
@@ -266,14 +291,19 @@ class ppc_dis_booke{
                     call_this.fmt += "(";
                     need_paren = 1;
                 }
+
+                // Increment argument count
+                call_this.nargs++;
             }
 
-            return call_this;
+        }else{
+            /* We could not find a match. Return with NULL opcode */
+            call_this.opcode  = "";
+            call_this.arg[0]  = insn;
         }
 
-        /* We could not find a match. Return with NULL opcode */
-        call_this.opcode  = "";
-        call_this.arg[0]  = insn;
+        // Update cache
+        m_dis_cache.insert(insn, call_this);
 
         return call_this;
     }
