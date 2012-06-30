@@ -2,6 +2,7 @@
 #define _PPC_DIS_HPP_
 
 #include "config.h"
+#include "cpu_ppc_regs.h"
 #include "third_party/ppcdis/ppcdis.h"
 #include "third_party/lru/lru.hpp"
 
@@ -242,40 +243,42 @@ class ppc_dis_booke{
                 /* Print the operand as directed by the flags.  */
                 if ((operand->flags & PPC_OPERAND_GPR) != 0 || ((operand->flags & PPC_OPERAND_GPR_0) != 0 && value != 0)){
                     call_this.fmt += "r%ld";
-                    call_this.targ[call_this.nargs] = PPC_ARG_GPR;
+                    call_this.targ[call_this.nargs] = (REG_GPR0 + value);
                 } else if ((operand->flags & PPC_OPERAND_FPR) != 0){
                     call_this.fmt += "f%ld";
-                    call_this.targ[call_this.nargs] = PPC_ARG_FPR;
+                    call_this.targ[call_this.nargs] = (REG_FPR0 + value);
                 } else if ((operand->flags & PPC_OPERAND_VR) != 0){
                     call_this.fmt += "v%ld";
-                    call_this.targ[call_this.nargs] = PPC_ARG_VR;
+                    // VRs are not supported at this time.
                 } else if ((operand->flags & PPC_OPERAND_VSR) != 0){
                     call_this.fmt += "vs%ld";
-                    call_this.targ[call_this.nargs] = PPC_ARG_VSR;
+                    // Booke cpus shouldn't come here
                 } else if ((operand->flags & PPC_OPERAND_RELATIVE) != 0){
-                    //call_this.fmt += "";
+                    call_this.fmt += "0x%lx";
+                    call_this.targ[call_this.nargs] = value;
                 } else if ((operand->flags & PPC_OPERAND_ABSOLUTE) != 0){
-                    //
+                    call_this.fmt += "0x%lx";
+                    call_this.targ[call_this.nargs] = value;
                 } else if ((operand->flags & PPC_OPERAND_FSL) != 0){
                     call_this.fmt += "fsl%ld";
-                    call_this.targ[call_this.nargs] = PPC_ARG_FSL;
+                    // Booke cpus shouln't come here
                 } else if ((operand->flags & PPC_OPERAND_FCR) != 0){
                     call_this.fmt += "fcr%ld";
-                    call_this.targ[call_this.nargs] = PPC_ARG_FCR;
+                    // Booke cpus shouldn't come here
                 } else if ((operand->flags & PPC_OPERAND_UDI) != 0){
                     call_this.fmt += "%ld";
-                    call_this.targ[call_this.nargs] = PPC_ARG_VAL;
+                    // Booke cpus shouldn't come here
                 } else if ((operand->flags & PPC_OPERAND_CR) != 0 && (m_dialect & PPC_OPCODE_PPC) != 0){
                 
                     if (operand->bitm == 7)
                         call_this.fmt += "cr%ld";
                     else
                         call_this.fmt += "cr[%ld]";
-                    call_this.targ[call_this.nargs] = PPC_ARG_CR;
+                    call_this.targ[call_this.nargs] = value;
                 }
                 else{
                     call_this.fmt += "0x%x";
-                    call_this.targ[call_this.nargs] = PPC_ARG_VAL;
+                    call_this.targ[call_this.nargs] = value;
                 }
 
                 if (need_paren)

@@ -1,16 +1,6 @@
 #ifndef _MISC_HPP
 #define _MISC_HPP
 
-// Types of arguments
-#define  PPC_ARG_GPR     1
-#define  PPC_ARG_FPR     2
-#define  PPC_ARG_VAL     3
-#define  PPC_ARG_VR      4    // Most probably these are not valid
-#define  PPC_ARG_VSR     5    //
-#define  PPC_ARG_FSL     6    //
-#define  PPC_ARG_FCR     7    //
-#define  PPC_ARG_CR      8    //
-
 // instruction call frame
 #define N_IC_ARGS 6           // Max arguments supported
 struct instr_call {
@@ -18,7 +8,7 @@ struct instr_call {
     std::string   fmt;                  // Display format
     int           nargs;                // Number of arguments
     size_t        arg[N_IC_ARGS];       // Arguments themselves
-    int           targ[N_IC_ARGS];      // type of args
+    int           targ[N_IC_ARGS];      // arguments suitable for our purpose
     void          *fptr;                // Function pointer
 
     instr_call(){
