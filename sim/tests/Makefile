@@ -66,6 +66,9 @@ test_exception_class: test_exception_class.o
 test_log_class: test_log_class.o
 	$(CXX) -o $@ $^
 
+test_lru_class: test_lru_class.o
+	$(CXX) -o $@ $^
+
 clean:
 	rm -rf *.o $(DEPS) $(EXES) *.txt *.log cpu_ppc_instr.h
 

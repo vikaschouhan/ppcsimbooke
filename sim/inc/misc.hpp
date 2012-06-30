@@ -1,11 +1,6 @@
 #ifndef _MISC_HPP
 #define _MISC_HPP
 
-// endianness consts
-static const int  EMUL_UNDEFINED_ENDIAN  =  0;
-static const int  EMUL_LITTLE_ENDIAN     =  1;
-static const int  EMUL_BIG_ENDIAN        =  2;
-
 // instruction call frame
 #define N_IC_ARGS 6           // Max arguments supported
 struct instr_call {

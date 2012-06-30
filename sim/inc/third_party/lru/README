@@ -1,0 +1,2 @@
+This cache implementation is a slightly modified version of lru cache implementation by Tim Day using boost::bimap.
+This code is distributed under ISC ( Internet Systems Consortium ) License. Details are in the LICENSE file.

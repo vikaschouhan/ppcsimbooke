@@ -34,6 +34,11 @@
 #include "log.hpp"
 #include "misc.hpp"
 
+// endianness consts
+static const int  EMUL_UNDEFINED_ENDIAN  =  0;
+static const int  EMUL_LITTLE_ENDIAN     =  1;
+static const int  EMUL_BIG_ENDIAN        =  2;
+
 // Cast to appropriate types
 #define u32(arg)  ((uint32_t)(arg))
 #define s32(arg)  ((int32_t)(arg))
@@ -46,7 +51,7 @@
 // C like return assertion
 #define assert_ret(x, retv)    if(!(x)){ std::cout << #x << " failed in " << __FILE__ << " at " << __LINE__ << std::endl; return (retv); }
 // C++ specific exception assertion
-#define assert_and_throw(x, expv) if(!(x)){ std::cout << #x << "failed in " << __FILE__ << " at " << __LINE__ << std::endl; throw expv; }
+#define assert_and_throw(x, expv) if(!(x)){ std::cout << #x << " failed in " << __FILE__ << " at " << __LINE__ << std::endl; throw expv; }
 
 #define log2(x) static_cast<unsigned>(log2(static_cast<double>(static_cast<unsigned>(x))))
 #define log4(x) static_cast<unsigned>(log2(static_cast<double>(static_cast<unsigned>(x)))/2)
