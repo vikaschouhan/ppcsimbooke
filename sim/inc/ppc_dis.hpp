@@ -432,11 +432,15 @@ instr_call ppc_dis_booke::disasm(std::string instr)
 
     // Get opcode's name
     call_this.opcode = std::string(opcode->name);
+    if (opcode->operands[0] != 0)
+        call_this.fmt = "%-7s ";
+    else
+        call_this.fmt = "%s";
 
     /* Get number of operands */
     noperands = get_num_operands(opcode);
     for(i=0; i<noperands; i++){
-
+        
         if(tmp_str == NULL || *tmp_str == '\0'){
             printf("Wrong instr format. Correct instr format is \n");
             print_insn_fmt(opcode->name);
@@ -474,36 +478,45 @@ instr_call ppc_dis_booke::disasm(std::string instr)
         if ((operand->flags & PPC_OPERAND_GPR) != 0
             || ((operand->flags & PPC_OPERAND_GPR_0) != 0 && token != 0)){
             sscanf(token, "r%ld", &value);
+            call_this.fmt    += "r%ld";
             call_this.targ[i] = (REG_GPR0 + value);
         }
         else if ((operand->flags & PPC_OPERAND_FPR) != 0){
             sscanf(token, "f%ld", &value);
+            call_this.fmt    += "f%ld";
             call_this.targ[i] = (REG_FPR0 + value);
         }
         else if ((operand->flags & PPC_OPERAND_VR) != 0){
             sscanf(token, "v%ld", &value);
+            call_this.fmt    += "v%ld";
             // VRs not supported at this time. targ should be specified when supported
         }
         else if ((operand->flags & PPC_OPERAND_VSR) != 0){
             sscanf(token, "vs%ld", &value);
+            call_this.fmt    += "vs%ld";
             // Booke cpus shouldn't come here
         }
         else if ((operand->flags & PPC_OPERAND_FSL) != 0){
             sscanf(token, "fsl%ld", &value);
+            call_this.fmt    += "fsl%ld";
             // booke cpus shouldn't come here
         }
         else if ((operand->flags & PPC_OPERAND_FCR) != 0){
             sscanf(token, "fcr%ld", &value);
+            call_this.fmt    += "fcr%ld";
             // booke cpus shouldn't come here
         }
         else if ((operand->flags & PPC_OPERAND_UDI) != 0){
             sscanf(token, "0x%lx", &value);
+            call_this.fmt    += "0x%lx";
             // booke cpus shouldn't come here
         }
         else if ((operand->flags & PPC_OPERAND_CR) != 0)
         {
-            if (operand->bitm == 7)
+            if (operand->bitm == 7){
                 sscanf(token, "cr%ld", &value);
+                call_this.fmt  += "cr%ld";
+            }
             else
             {
                 static const char *cbnames[4] = { "lt", "gt", "eq", "so" };
@@ -519,13 +532,17 @@ instr_call ppc_dis_booke::disasm(std::string instr)
                     /* Error */
                 }
                 value = 4*cr + ind;
+                call_this.fmt  += "cr[%ld]";
             }
             call_this.targ[i] = value;
         }
         else{
             sscanf(token, "0x%lx", &value);
+            call_this.fmt  += "0x%lx";
             call_this.targ[i] = value;
         }
+
+        call_this.fmt += std::string(1, delim);    // Add delimiter to format string
 
         call_this.arg[i] = value;
         call_this.nargs++;

@@ -37,7 +37,7 @@
 #include "ppc_dis.hpp"
  
  
- // Wrapping some cpu functions
+// Wrapping some cpu functions
  
 // func ptrs for overloaded cpu::run_instrs()
 int (cpu::*run_instr_ptr)(instr_call*) = &cpu::run_instr;
@@ -48,6 +48,10 @@ int (cpu::*run_instr_ptr2)(std::string, std::string, std::string, std::string, s
 int (cpu_ppc_booke::*run_instr_ptr_d0)(instr_call*) = &cpu_ppc_booke::run_instr;
 int (cpu_ppc_booke::*run_instr_ptr2_d0)(std::string, std::string, std::string, std::string, std::string,
         std::string, std::string) = &cpu_ppc_booke::run_instr;
+
+// Wrapping some ppc_dis functions
+instr_call (ppc_dis_booke::*disasm_ptr)(uint32_t, int) = &ppc_dis_booke::disasm;
+instr_call (ppc_dis_booke::*disasm_ptr2)(std::string)  = &ppc_dis_booke::disasm;
 
 struct cpu_wrap : public cpu, public boost::python::wrapper<cpu>
 {
@@ -116,7 +120,8 @@ BOOST_PYTHON_MODULE(ppcsim)
 
         // Disassembler class type
         class_<ppc_dis_booke>("ppc_dis")
-            .def("disasm", &ppc_dis_booke::disasm, disasm_overloads())
+            .def("disasm", disasm_ptr, disasm_overloads())
+            .def("disasm", disasm_ptr2) 
             ;
 
         // instr_call type ( We will probably never use this directly )
