@@ -31,6 +31,7 @@
 #include <cmath>
 #include <sstream>
 #include <iostream>
+#include <cstring>
 #include "log.hpp"
 #include "misc.hpp"
 
@@ -148,5 +149,30 @@ inline int host_endianness(){
         return EMUL_BIG_ENDIAN;
 }
 
+// Remove all spaces from str
+inline int prune_all_spaces(char *str){
+    char tmpstr[100];
+    int i;
+    int ctr = 0;
+    if(str == NULL)
+        return -1;
 
+    for(i=0; str[i] != '\0'; i++){
+        if(str[i] != ' '){ tmpstr[ctr++] = str[i]; }
+    }
+    tmpstr[ctr++] = '\0';
+    strncpy(str, tmpstr, ctr);
+    return 1;
+}
+
+// find pointer to first instance of token and return the remaining string ( don't remove the delimiting character )
+inline char *find_tok(char **str, char delim){
+    static char tmp_str[100];
+    char *tmp_str_ptr = tmp_str;
+    for(; ((**str != delim) && (**str != '\0'));){
+        *tmp_str_ptr++ = *(*str)++;
+    }
+    *tmp_str_ptr = '\0';
+    return tmp_str;
+}
 #endif
