@@ -56,4 +56,51 @@ struct instr_call {
     }
 };
 
+// Some constants
+#define    PPC_NGPRS        32
+#define    PPC_NFPRS        32
+#define    PPC_NVRS         32
+#define    PPC_NSPRS        1024
+#define    PPC_NPMRS        1024
+#define    PPC_NTGPRS       4
+
+// PPC register ( 64 bit only )
+struct ppc_reg64 {
+    uint64_t value;
+
+    // Constructors
+    ppc_reg64(){
+        value = 0;
+    }
+    ppc_reg64(uint64_t val) : value(val) {}
+
+    // Getter/Setter functions for bit fields. ( Mainly for boost::python )
+    template<int bfpos, uint64_t mask> uint64_t get_bf(){
+        return ((value & mask) >> (63-bfpos));
+    }
+    template<int bfpos, uint64_t mask> void set_bf(uint64_t bf){
+        value &= ~mask;
+        value |= ((bf << (63-bfpos)) & mask);
+    }
+};
+
+// PPC register file ( this is the file we are gonna use in our cpu )
+struct ppc_regs {
+    typedef std::vector<ppc_reg64>  ppc_reg64_vector;
+    ppc_reg64                cr;
+    ppc_reg64                fpscr;
+    ppc_reg64                msr;
+    ppc_reg64_vector         gpr;
+    ppc_reg64_vector         fpr;
+    ppc_reg64_vector         spr;
+    ppc_reg64_vector         pmr;
+
+    ppc_regs(){
+        gpr.resize(PPC_NGPRS);
+        fpr.resize(PPC_NFPRS);
+        spr.resize(PPC_NSPRS);
+        pmr.resize(PPC_NPMRS);
+    }
+};
+
 #endif

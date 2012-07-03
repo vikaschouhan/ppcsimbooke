@@ -137,6 +137,10 @@ BOOST_PYTHON_MODULE(ppcsim)
             .def("print_instr",      &instr_call::print_instr)
             ;
 
+        class_<ppc_reg64>("reg64")
+            .def_readwrite("value", &ppc_reg64::value)
+        ;
+
         // Memory namespace
         {
             class_<memory> memory_py("memory", init<uint64_t>());

@@ -12,14 +12,6 @@
 #include "third_party/ppc/reg.h"
 #include "regfields.h"
 
-
-#define    PPC_NGPRS        32
-#define    PPC_NFPRS        32
-#define    PPC_NVRS         32
-#define    PPC_NSPRS        1024
-#define    PPC_NPMRS        1024
-#define    PPC_NTGPRS       4
-
 /* 64 bit MSRs were used in older powerPC designs */
 /* All BookE cores have 32 bit MSRs only */
 
