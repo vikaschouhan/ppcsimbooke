@@ -913,6 +913,34 @@ void cpu_ppc_booke::init_reghash(){
     m_reghash["tlb0cfg"]    = &(spr[SPRN_TLB0CFG]);     m_ireghash[REG_TLB0CFG]     = m_reghash["tlb0cfg"];
     m_reghash["tlb1cfg"]    = &(spr[SPRN_TLB1CFG]);     m_ireghash[REG_TLB1CFG]     = m_reghash["tlb1cfg"];
 
+    // PMRs
+    m_reghash["pmc0"]       = &(pmr[PMRN_PMC0]);        m_ireghash[REG_PMC0]        = m_reghash["pmc0"];
+    m_reghash["pmc1"]       = &(pmr[PMRN_PMC1]);        m_ireghash[REG_PMC1]        = m_reghash["pmc1"];
+    m_reghash["pmc2"]       = &(pmr[PMRN_PMC2]);        m_ireghash[REG_PMC2]        = m_reghash["pmc2"];
+    m_reghash["pmc3"]       = &(pmr[PMRN_PMC3]);        m_ireghash[REG_PMC3]        = m_reghash["pmc3"];
+    m_reghash["pmlca0"]     = &(pmr[PMRN_PMLCA0]);      m_ireghash[REG_PMLCA0]      = m_reghash["pmlca0"];
+    m_reghash["pmlca1"]     = &(pmr[PMRN_PMLCA1]);      m_ireghash[REG_PMLCA1]      = m_reghash["pmlca1"];
+    m_reghash["pmlca2"]     = &(pmr[PMRN_PMLCA2]);      m_ireghash[REG_PMLCA2]      = m_reghash["pmlca2"];
+    m_reghash["pmlca3"]     = &(pmr[PMRN_PMLCA3]);      m_ireghash[REG_PMLCA3]      = m_reghash["pmlca3"];
+    m_reghash["pmlcb0"]     = &(pmr[PMRN_PMLCB0]);      m_ireghash[REG_PMLCB0]      = m_reghash["pmlcb0"];
+    m_reghash["pmlcb1"]     = &(pmr[PMRN_PMLCB1]);      m_ireghash[REG_PMLCB1]      = m_reghash["pmlcb1"];
+    m_reghash["pmlcb2"]     = &(pmr[PMRN_PMLCB2]);      m_ireghash[REG_PMLCB2]      = m_reghash["pmlcb2"];
+    m_reghash["pmlcb3"]     = &(pmr[PMRN_PMLCB3]);      m_ireghash[REG_PMLCB3]      = m_reghash["pmlcb3"];
+    m_reghash["pmgc0"]      = &(pmr[PMRN_PMGC0]);       m_ireghash[REG_PMGC0]       = m_reghash["pmgc0"];
+    m_reghash["upmc0"]      = &(pmr[PMRN_UPMC0]);       m_ireghash[REG_UPMC0]       = m_reghash["upmc0"];
+    m_reghash["upmc1"]      = &(pmr[PMRN_UPMC1]);       m_ireghash[REG_UPMC1]       = m_reghash["upmc1"];
+    m_reghash["upmc2"]      = &(pmr[PMRN_UPMC2]);       m_ireghash[REG_UPMC2]       = m_reghash["upmc2"];
+    m_reghash["upmc3"]      = &(pmr[PMRN_UPMC3]);       m_ireghash[REG_UPMC3]       = m_reghash["upmc3"];
+    m_reghash["upmlca0"]    = &(pmr[PMRN_UPMLCA0]);     m_ireghash[REG_UPMLCA0]     = m_reghash["upmlca0"];
+    m_reghash["upmlca1"]    = &(pmr[PMRN_UPMLCA1]);     m_ireghash[REG_UPMLCA1]     = m_reghash["upmlca1"];
+    m_reghash["upmlca2"]    = &(pmr[PMRN_UPMLCA2]);     m_ireghash[REG_UPMLCA2]     = m_reghash["upmlca2"];
+    m_reghash["upmlca3"]    = &(pmr[PMRN_UPMLCA3]);     m_ireghash[REG_UPMLCA3]     = m_reghash["upmlca3"];
+    m_reghash["upmlcb0"]    = &(pmr[PMRN_UPMLCB0]);     m_ireghash[REG_UPMLCB0]     = m_reghash["upmlcb0"];
+    m_reghash["upmlcb1"]    = &(pmr[PMRN_UPMLCB1]);     m_ireghash[REG_UPMLCB1]     = m_reghash["upmlcb1"];
+    m_reghash["upmlcb2"]    = &(pmr[PMRN_UPMLCB2]);     m_ireghash[REG_UPMLCB2]     = m_reghash["upmlcb2"];
+    m_reghash["upmlcb3"]    = &(pmr[PMRN_UPMLCB3]);     m_ireghash[REG_UPMLCB3]     = m_reghash["upmlcb3"];
+    m_reghash["upmgc0"]     = &(pmr[PMRN_UPMGC0]);      m_ireghash[REG_UPMGC0]      = m_reghash["upmgc0"];
+
     // GPRS ad FPRS
     for (size_t i=0; i<PPC_NGPRS; i++){
         m_reghash[static_cast<ostringstream *>(&(ostringstream() << "r" << i))->str()] = &(gpr[i]); 

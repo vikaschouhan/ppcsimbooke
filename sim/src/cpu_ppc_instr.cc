@@ -28,13 +28,17 @@
  */
 
 // Global defines for this template file
-#define spr(sprno)               cpu->spr[sprno]
-#define sprn(spr_name)           (*(cpu->m_reghash[spr_name]))
+//
+#define reg(regid)               (*(cpu->m_ireghash[regid]))
+#define regn(reg_name)           (*(cpu->m_reghash[reg_name]))
+
+#define spr(sprno)               reg(REG_SPR0 + sprno) 
+#define sprn(spr_name)           regn(spr_name) 
 #define xer                      spr(SPRN_XER) 
-#define gpr                      cpu->gpr
-#define pmr                      cpu->pmr
-#define msr                      cpu->msr
-#define cr                       cpu->cr
+#define msr                      reg(REG_MSR) 
+#define pmr(pmrno)               reg(REG_PMR0 + pmrno) 
+#define gpr                      reg(REG_MSR) 
+#define cr                       reg(REG_CR)
 #define m_reghash                cpu->m_reghash
 #define update_cr0               cpu->update_cr0
 #define update_crF               cpu->update_crF
@@ -779,7 +783,7 @@ X(mfmsr)
 X(mfpmr)
 {
 #define mfpmr_code(rD, PMRN)                  \
-    rD = pmr[PMRN];
+    rD = pmr(PMRN);
 
     mfpmr_code(REG0, ARG1);
 }
@@ -819,7 +823,7 @@ X(mtmsr)
 X(mtpmr)
 {
 #define mtpmr_code(PMRN, rS)                  \
-    pmr[PMRN] = rS;
+    pmr(PMRN) = rS;
 
     mtpmr_code(ARG0, REG1);
 }
