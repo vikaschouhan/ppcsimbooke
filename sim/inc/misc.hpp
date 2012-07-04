@@ -66,7 +66,8 @@ struct instr_call {
 
 // PPC register ( 64 bit only )
 struct ppc_reg64 {
-    uint64_t value;
+    uint64_t value;     // value
+    uint64_t attr;      // attribute ( permissions etc. )
 
     // Constructors
     ppc_reg64(){

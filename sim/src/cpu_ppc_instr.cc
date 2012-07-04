@@ -29,16 +29,16 @@
 
 // Global defines for this template file
 //
-#define reg(regid)               (*(cpu->m_ireghash[regid]))
-#define regn(reg_name)           (*(cpu->m_reghash[reg_name]))
+#define ppcreg(regid)            (*(cpu->m_ireghash[regid]))
+#define ppcregn(reg_name)        (*(cpu->m_reghash[reg_name]))
 
-#define spr(sprno)               reg(REG_SPR0 + sprno) 
+#define spr(sprno)               ppcreg(REG_SPR0 + sprno) 
 #define sprn(spr_name)           regn(spr_name) 
 #define xer                      spr(SPRN_XER) 
-#define msr                      reg(REG_MSR) 
-#define pmr(pmrno)               reg(REG_PMR0 + pmrno) 
-#define gpr                      reg(REG_MSR) 
-#define cr                       reg(REG_CR)
+#define msr                      ppcreg(REG_MSR) 
+#define pmr(pmrno)               ppcreg(REG_PMR0 + pmrno) 
+#define gpr                      ppcreg(REG_MSR) 
+#define cr                       ppcreg(REG_CR)
 #define m_reghash                cpu->m_reghash
 #define update_cr0               cpu->update_cr0
 #define update_crF               cpu->update_crF

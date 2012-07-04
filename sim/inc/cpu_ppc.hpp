@@ -184,6 +184,8 @@ class cpu_ppc_booke : public cpu {
     // Pointers to generic registers/stuff hashed by name and numerical identifiers
     std::map<std::string, uint64_t*>      m_reghash;
     std::map<int, uint64_t*>              m_ireghash;
+#define PPCREG(reg_id)          (*(m_ireghash[reg_id]))
+#define PPCREGN(reg_name)       (*(m_reghash[reg_name]))
 
     /*
      *  Instruction translation cache and Virtual->Physical->Host
@@ -1104,7 +1106,7 @@ uint64_t cpu_ppc_booke::get_gpr(int gprno) throw(sim_exception){
     LOG("DEBUG4") << MSG_FUNC_START;
     if(gprno >= PPC_NGPRS) throw sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Illegal gprno");
     LOG("DEBUG4") << MSG_FUNC_END;
-    return gpr[gprno];
+    return PPCREG(REG_GPR0 + gprno);
 }
 
 // Get spr value
@@ -1112,7 +1114,7 @@ uint64_t cpu_ppc_booke::get_spr(int sprno) throw(sim_exception){
     LOG("DEBUG4") << MSG_FUNC_START;
     if(sprno >= PPC_NSPRS) throw sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Illegal sprno");
     LOG("DEBUG4") << MSG_FUNC_END;
-    return spr[sprno];
+    return PPCREG(REG_SPR0 + sprno);
 }
 
 // Get pmr value
@@ -1120,7 +1122,7 @@ uint64_t cpu_ppc_booke::get_pmr(int pmrno) throw (sim_exception){
     LOG("DEBUG4") << MSG_FUNC_START;
     if(pmrno >= PPC_NPMRS) throw sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Illegal pmrno");
     LOG("DEBUG4") << MSG_FUNC_END;
-    return pmr[pmrno];
+    return PPCREG(REG_PMR0 + pmrno);
 }
 
 // Get fpr value
@@ -1128,28 +1130,28 @@ uint64_t cpu_ppc_booke::get_fpr(int fprno) throw(sim_exception){
     LOG("DEBUG4") << MSG_FUNC_START;
     if(fprno >= PPC_NFPRS) throw sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Illegal fprno");
     LOG("DEBUG4") << MSG_FUNC_END;
-    return fpr[fprno];
+    return PPCREG(REG_FPR0 + fprno);
 }
 
 // Get msr
 uint64_t cpu_ppc_booke::get_msr() throw() {
     LOG("DEBUG4") << MSG_FUNC_START;
     LOG("DEBUG4") << MSG_FUNC_END;
-    return msr;
+    return PPCREG(REG_MSR);;
 }
 
 // Get cr
 uint64_t cpu_ppc_booke::get_cr() throw() {
     LOG("DEBUG4") << MSG_FUNC_START;
     LOG("DEBUG4") << MSG_FUNC_END;
-    return cr;
+    return PPCREG(REG_CR);
 }
 
 // Get fpscr
 uint64_t cpu_ppc_booke::get_fpscr() throw() {
     LOG("DEBUG4") << MSG_FUNC_START;
     LOG("DEBUG4") << MSG_FUNC_END;
-    return fpscr;
+    return PPCREG(REG_FPSCR);
 }
 
 // Get register value by name
