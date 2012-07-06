@@ -29,8 +29,8 @@
 
 // Global defines for this template file
 //
-#define ppcreg(regid)            (*(cpu->m_ireghash[regid]))
-#define ppcregn(reg_name)        (*(cpu->m_reghash[reg_name]))
+#define ppcreg(regid)            (cpu->m_ireghash[regid]->value)
+#define ppcregn(reg_name)        (cpu->m_reghash[reg_name]->value)
 
 #define spr(sprno)               ppcreg(REG_SPR0 + sprno) 
 #define sprn(spr_name)           regn(spr_name) 
@@ -39,7 +39,6 @@
 #define pmr(pmrno)               ppcreg(REG_PMR0 + pmrno) 
 #define gpr                      ppcreg(REG_MSR) 
 #define cr                       ppcreg(REG_CR)
-#define m_reghash                cpu->m_reghash
 #define update_cr0               cpu->update_cr0
 #define update_crF               cpu->update_crF
 #define update_crf               cpu->update_crf
@@ -791,11 +790,11 @@ X(mfpmr)
 // Move to/from SPRs referred to by spr name in mnemonic
 #define MNEC_MFR(rD, regname)                 \
     X(mf##regname){                           \
-        rD = *(m_reghash[#regname]);          \
+        rD = ppcregn(#regname);               \
     }
 #define MNEC_MTR(regname, rS)                 \
     X(mt##regname){                           \
-        *(m_reghash[#regname]) = rS;          \
+        ppcregn(#regname) = rS;               \
     }
 
 MNEC_MFR(REG0, xer)
