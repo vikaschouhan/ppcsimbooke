@@ -413,91 +413,91 @@ void cpu_ppc_booke::ppc_exception(int exception_nr, uint64_t subtype=0, uint64_t
     uint64_t *srr1 = NULL;
 
 #define GET_PC_FROM_IVOR_NUM(ivor_num)                          \
-    ((spr[SPRN_IVPR] & 0xffff) << 16) | ((spr[SPRN_IVOR##ivor_num] & 0xfff) << 4)
+    ((PPCREG(REG_IVPR) & 0xffff) << 16) | ((PPCREG(REG_IVOR##ivor_num) & 0xfff) << 4)
 #define CLR_DEFAULT_MSR_BITS()                                  \
-    msr &= ~MSR_SPE & ~MSR_WE & ~MSR_EE & ~MSR_PR & ~MSR_FP & ~MSR_FE0 & ~MSR_FE1 & ~MSR_IS & ~MSR_DS
+    PPCREG(REG_MSR) &= ~MSR_SPE & ~MSR_WE & ~MSR_EE & ~MSR_PR & ~MSR_FP & ~MSR_FE0 & ~MSR_FE1 & ~MSR_IS & ~MSR_DS
 
     switch(exception_nr){
         case  PPC_EXCEPTION_CR:
-            if((msr & MSR_CE) == 0){ RETURNVOID(DEBUG4); }
+            if((PPCREG(REG_MSR) & MSR_CE) == 0){ RETURNVOID(DEBUG4); }
 
-            spr[SPRN_CSRR0] = pc;
-            spr[SPRN_CSRR1] = msr;
+            PPCREG(REG_CSRR0) = pc;
+            PPCREG(REG_CSRR1) = PPCREG(REG_MSR);
            
             // Clear default MSR bits. Also clear CE bit 
             CLR_DEFAULT_MSR_BITS();
-            msr &= ~MSR_CE;
+            PPCREG(REG_MSR) &= ~MSR_CE;
             pc = GET_PC_FROM_IVOR_NUM(0);
             break;
         case  PPC_EXCEPTION_MC:
-            if((msr & MSR_ME) == 0){
-                std::cout << "Received Machine Check and MSR[ME]=0. Going into checkstop." << std::endl;
+            if((PPCREG(REG_MSR) & MSR_ME) == 0){
+                std::cerr << "Received Machine Check and MSR[ME]=0. Going into checkstop." << std::endl;
                 exit(1);
             }
             
-            spr[SPRN_MCSRR0] = pc;
-            spr[SPRN_MCSRR1] = msr;
-            spr[SPRN_MCAR]   = ea;
+            PPCREG(REG_MCSRR0) = pc;
+            PPCREG(REG_MCSRR1) = PPCREG(REG_MSR);
+            PPCREG(REG_MCAR)   = ea;
 
             // If no cause specified, skip straight away
             if(subtype != 0ULL){
 
                 // Check for sub types
                 if((subtype & PPC_EXCEPT_MC_DCPERR) == PPC_EXCEPT_MC_DCPERR){
-                    spr[SPRN_MCSR] |= MCSR_DCPERR;
+                    PPCREG(REG_MCSR) |= MCSR_DCPERR;
                 }
                 if((subtype & PPC_EXCEPT_MC_BUS_RAERR) == PPC_EXCEPT_MC_BUS_RAERR){
-                    spr[SPRN_MCSR] |= MCSR_BUS_RAERR;
+                    PPCREG(REG_MCSR) |= MCSR_BUS_RAERR;
                 }
                 if((subtype & PPC_EXCEPT_MC_BUS_RBERR) == PPC_EXCEPT_MC_BUS_RBERR){
-                    spr[SPRN_MCSR] |= MCSR_BUS_RBERR;
+                    PPCREG(REG_MCSR) |= MCSR_BUS_RBERR;
                 }
                 if((subtype & PPC_EXCEPT_MC_BUS_RPERR) == PPC_EXCEPT_MC_BUS_RPERR){
-                    spr[SPRN_MCSR] |= MCSR_BUS_RPERR;
+                    PPCREG(REG_MCSR) |= MCSR_BUS_RPERR;
                 }
                 if((subtype & PPC_EXCEPT_MC_BUS_WAERR) == PPC_EXCEPT_MC_BUS_WAERR){
-                    spr[SPRN_MCSR] |= MCSR_BUS_WAERR;
+                    PPCREG(REG_MCSR) |= MCSR_BUS_WAERR;
                 }
                 if((subtype & PPC_EXCEPT_MC_BUS_WBERR) == PPC_EXCEPT_MC_BUS_WBERR){
-                    spr[SPRN_MCSR] |= MCSR_BUS_WBERR;
+                    PPCREG(REG_MCSR) |= MCSR_BUS_WBERR;
                 }
                 if((subtype & PPC_EXCEPT_MC_DCP_PERR) == PPC_EXCEPT_MC_DCP_PERR){
-                    spr[SPRN_MCSR] |= MCSR_DCP_PERR;
+                    PPCREG(REG_MCSR) |= MCSR_DCP_PERR;
                 }
                 if((subtype & PPC_EXCEPT_MC_ICPERR) == PPC_EXCEPT_MC_ICPERR){
-                    spr[SPRN_MCSR] |= MCSR_ICPERR;
+                    PPCREG(REG_MCSR) |= MCSR_ICPERR;
                 }
                 if((subtype & PPC_EXCEPT_MC_BUS_IAERR) == PPC_EXCEPT_MC_BUS_IAERR){
-                    spr[SPRN_MCSR] |= MCSR_BUS_IAERR;
+                    PPCREG(REG_MCSR) |= MCSR_BUS_IAERR;
                 }
                 if((subtype & PPC_EXCEPT_MC_BUS_IBERR) == PPC_EXCEPT_MC_BUS_IBERR){
-                     spr[SPRN_MCSR] |= MCSR_BUS_IBERR;
+                     PPCREG(REG_MCSR) |= MCSR_BUS_IBERR;
                 }
                 if((subtype & PPC_EXCEPT_MC_BUS_IPERR) == PPC_EXCEPT_MC_BUS_IPERR){
-                        spr[SPRN_MCSR] |= MCSR_BUS_IPERR;
+                        PPCREG(REG_MCSR) |= MCSR_BUS_IPERR;
                 }
             }
 
             // Clear default MSR bits.
             CLR_DEFAULT_MSR_BITS();
-            msr &= ~MSR_ME;
+            PPCREG(REG_MSR) &= ~MSR_ME;
             pc = GET_PC_FROM_IVOR_NUM(1);
             break;
         case  PPC_EXCEPTION_DSI:
-            spr[SPRN_SRR0] = pc;
-            spr[SPRN_SRR1] = msr;
-            spr[SPRN_DEAR] = ea;
-            spr[SPRN_ESR] = 0;   // Clear ESR first
+            PPCREG(REG_SRR0) = pc;
+            PPCREG(REG_SRR1) = PPCREG(REG_MSR);
+            PPCREG(REG_DEAR) = ea;
+            PPCREG(REG_ESR) = 0;   // Clear ESR first
 
             if(subtype != 0ULL){
                 if((subtype & PPC_EXCEPT_DSI_ACS_W) == PPC_EXCEPT_DSI_ACS_W){
-                    spr[SPRN_ESR] |= ESR_ST;
+                    PPCREG(REG_ESR) |= ESR_ST;
                 }
                 if((subtype & PPC_EXCEPT_DSI_CL) == PPC_EXCEPT_DSI_CL){
-                    spr[SPRN_ESR] |= ESR_DLK;
+                    PPCREG(REG_ESR) |= ESR_DLK;
                 }
                 if((subtype & PPC_EXCEPT_DSI_BO) == PPC_EXCEPT_DSI_BO){
-                    spr[SPRN_ESR] |= ESR_BO;
+                    PPCREG(REG_ESR) |= ESR_BO;
                 }
             }
 
@@ -505,13 +505,13 @@ void cpu_ppc_booke::ppc_exception(int exception_nr, uint64_t subtype=0, uint64_t
             pc = GET_PC_FROM_IVOR_NUM(2); 
             break;
         case  PPC_EXCEPTION_ISI:
-            spr[SPRN_SRR0] = pc;
-            spr[SPRN_SRR1] = msr;
-            spr[SPRN_ESR] = 0;
+            PPCREG(REG_SRR0) = pc;
+            PPCREG(REG_SRR1) = PPCREG(REG_MSR);
+            PPCREG(REG_ESR) = 0;
 
             if(subtype != 0ULL){
                 if((subtype & PPC_EXCEPT_ISI_BO) == PPC_EXCEPT_ISI_BO){
-                    spr[SPRN_ESR] |= ESR_BO;
+                    PPCREG(REG_ESR) |= ESR_BO;
                 }
                 if((subtype & PPC_EXCEPT_ISI_ACS) == PPC_EXCEPT_ISI_ACS){
                     // No bit is said to be affected for this in e500 core RM
@@ -522,25 +522,25 @@ void cpu_ppc_booke::ppc_exception(int exception_nr, uint64_t subtype=0, uint64_t
             pc = GET_PC_FROM_IVOR_NUM(3);
             break;
         case  PPC_EXCEPTION_EI:
-            if((msr & MSR_EE) == 0){ RETURNVOID(DEBUG4); }
-            spr[SPRN_SRR0] = pc;
-            spr[SPRN_SRR1] = msr;
+            if((PPCREG(REG_MSR) & MSR_EE) == 0){ RETURNVOID(DEBUG4); }
+            PPCREG(REG_SRR0) = pc;
+            PPCREG(REG_SRR1) = PPCREG(REG_MSR);
 
             CLR_DEFAULT_MSR_BITS();  // MSR[EE] is also cleared by this.
             pc = GET_PC_FROM_IVOR_NUM(4);
             break;
         case  PPC_EXCEPTION_ALIGN:
-            spr[SPRN_SRR0] = pc;
-            spr[SPRN_SRR1] = msr;
-            spr[SPRN_DEAR] = ea;
-            spr[SPRN_ESR]  = 0;
+            PPCREG(REG_SRR0) = pc;
+            PPCREG(REG_SRR1) = PPCREG(REG_MSR);
+            PPCREG(REG_DEAR) = ea;
+            PPCREG(REG_ESR)  = 0;
 
             if(subtype != 0ULL){
                 if((subtype & PPC_EXCEPT_ALIGN_SPE) == PPC_EXCEPT_ALIGN_SPE){
-                    spr[SPRN_ESR] |= ESR_SPV;
+                    PPCREG(REG_ESR) |= ESR_SPV;
                 }
                 if((subtype & PPC_EXCEPT_ALIGN_ST) == PPC_EXCEPT_ALIGN_ST){
-                    spr[SPRN_ESR] |= ESR_ST;
+                    PPCREG(REG_ESR) |= ESR_ST;
                 }
             }
 
@@ -548,19 +548,19 @@ void cpu_ppc_booke::ppc_exception(int exception_nr, uint64_t subtype=0, uint64_t
             pc = GET_PC_FROM_IVOR_NUM(5);
             break;
         case  PPC_EXCEPTION_PRG:
-            spr[SPRN_SRR0] = pc;
-            spr[SPRN_SRR1] = msr;
-            spr[SPRN_ESR]  = 0;
+            PPCREG(REG_SRR0) = pc;
+            PPCREG(REG_SRR1) = PPCREG(REG_MSR);
+            PPCREG(REG_ESR)  = 0;
 
             if(subtype != 0ULL){
                 if((subtype & PPC_EXCEPT_PRG_ILG) == PPC_EXCEPT_PRG_ILG){
-                    spr[SPRN_ESR] |= ESR_PIL;
+                    PPCREG(REG_ESR) |= ESR_PIL;
                 }
                 if((subtype & PPC_EXCEPT_PRG_PRV) == PPC_EXCEPT_PRG_PRV){
-                    spr[SPRN_ESR] |= ESR_PPR;
+                    PPCREG(REG_ESR) |= ESR_PPR;
                 }
                 if((subtype & PPC_EXCEPT_PRG_TRAP) == PPC_EXCEPT_PRG_TRAP){
-                    spr[SPRN_ESR] |= ESR_PTR;
+                    PPCREG(REG_ESR) |= ESR_PTR;
                 }
             }
       
@@ -571,8 +571,8 @@ void cpu_ppc_booke::ppc_exception(int exception_nr, uint64_t subtype=0, uint64_t
             // Is FPU there in e500v2 ??
             break;
         case  PPC_EXCEPTION_SC:
-            spr[SPRN_SRR0] = pc;
-            spr[SPRN_SRR1] = msr;
+            PPCREG(REG_SRR0) = pc;
+            PPCREG(REG_SRR1) = PPCREG(REG_MSR);
 
             CLR_DEFAULT_MSR_BITS();
             pc = GET_PC_FROM_IVOR_NUM(8);
@@ -581,58 +581,58 @@ void cpu_ppc_booke::ppc_exception(int exception_nr, uint64_t subtype=0, uint64_t
             // A decrementer intr. occurs when no higher priority exception exists ,
             // a decrementer exception exists (TSR[DIS] = 1), and the interrupt is
             // enabled (TCR[DIE] =1 and MSR[EE] = 1)
-            if((spr[SPRN_TSR] & TSR_DIS) && (spr[SPRN_TCR] & TCR_DIE) && (msr & MSR_EE)){
+            if((PPCREG(REG_TSR) & TSR_DIS) && (PPCREG(REG_TCR) & TCR_DIE) && (PPCREG(REG_MSR) & MSR_EE)){
                 // Do nothing
             }else{
                 RETURNVOID(DEBUG4);
             }
-            spr[SPRN_SRR0] = pc;
-            spr[SPRN_SRR1] = msr;
+            PPCREG(REG_SRR0) = pc;
+            PPCREG(REG_SRR1) = PPCREG(REG_MSR);
 
             CLR_DEFAULT_MSR_BITS();
-            spr[SPRN_TSR] |= TSR_DIS; // Why the hell, am I doing it ?? TSR[DIS] is already set. Isn't it ?
+            PPCREG(REG_TSR) |= TSR_DIS; // Why the hell, am I doing it ?? TSR[DIS] is already set. Isn't it ?
             pc = GET_PC_FROM_IVOR_NUM(10);
             break;
         case  PPC_EXCEPTION_FIT:
             // A fixed interval timer interrupt occurs when no higher priority exception exists,
             // and a FIT exception exists (TSR[FIS] = 1) and the interrupt is enabled
             // (TCR[FIE] = 1 and MSR[EE] = 1)
-            if((spr[SPRN_TSR] & TSR_FIS) && (spr[SPRN_TCR] & TCR_FIE) && (msr & MSR_EE)){
+            if((PPCREG(REG_TSR) & TSR_FIS) && (PPCREG(REG_TCR) & TCR_FIE) && (PPCREG(REG_MSR) & MSR_EE)){
             }else{
                 RETURNVOID(DEBUG4);
             }
-            spr[SPRN_SRR0] = pc;
-            spr[SPRN_SRR1] = msr;
+            PPCREG(REG_SRR0) = pc;
+            PPCREG(REG_SRR1) = PPCREG(REG_MSR);
 
             CLR_DEFAULT_MSR_BITS();
-            spr[SPRN_TSR] |= TSR_FIS;
+            PPCREG(REG_TSR) |= TSR_FIS;
             pc = GET_PC_FROM_IVOR_NUM(11);
             break;
         case  PPC_EXCEPTION_WTD:
             // A watchdog timer interrupt occurs when no higher priority exception exists,
             // and a FIT exception exists (TSR[WIS] = 1) and the interrupt is enabled
             // (TCR[WIE] = 1 and MSR[CE] = 1)
-            if((spr[SPRN_TSR] & TSR_WIS) && (spr[SPRN_TCR] & TCR_WIE) && (msr & MSR_CE)){
+            if((PPCREG(REG_TSR) & TSR_WIS) && (PPCREG(REG_TCR) & TCR_WIE) && (PPCREG(REG_MSR) & MSR_CE)){
             }else{
                 RETURNVOID(DEBUG4);
             }
-            spr[SPRN_CSRR0] = pc;
-            spr[SPRN_CSRR1] = msr;
+            PPCREG(REG_CSRR0) = pc;
+            PPCREG(REG_CSRR1) = PPCREG(REG_MSR);
 
             CLR_DEFAULT_MSR_BITS();
-            msr &= ~MSR_CE;               // Clear CE bit, since WDT is critical type
-            spr[SPRN_TSR] |= TSR_WIS;
+            PPCREG(REG_MSR) &= ~MSR_CE;               // Clear CE bit, since WDT is critical type
+            PPCREG(REG_TSR) |= TSR_WIS;
             pc = GET_PC_FROM_IVOR_NUM(12);
             break;
         case  PPC_EXCEPTION_DTLB:
-            spr[SPRN_SRR0] = pc;
-            spr[SPRN_SRR1] = msr;
-            spr[SPRN_DEAR] = ea;
-            spr[SPRN_ESR]  = 0;
+            PPCREG(REG_SRR0) = pc;
+            PPCREG(REG_SRR1) = PPCREG(REG_MSR);
+            PPCREG(REG_DEAR) = ea;
+            PPCREG(REG_ESR)  = 0;
 
             if(subtype != 0ULL){
                 if((subtype & PPC_EXCEPT_DTLB_MISS_ST) == PPC_EXCEPT_DTLB_MISS_ST){
-                    spr[SPRN_ESR] |= ESR_ST;
+                    PPCREG(REG_ESR) |= ESR_ST;
                 }
             }
 
@@ -643,8 +643,8 @@ void cpu_ppc_booke::ppc_exception(int exception_nr, uint64_t subtype=0, uint64_t
             pc = GET_PC_FROM_IVOR_NUM(13);
             break;
         case  PPC_EXCEPTION_ITLB:
-            spr[SPRN_SRR0] = pc;
-            spr[SPRN_SRR1] = msr;
+            PPCREG(REG_SRR0) = pc;
+            PPCREG(REG_SRR1) = PPCREG(REG_MSR);
 
             // TODO:
             // Load Default MAS* values in MAS registers
@@ -654,16 +654,16 @@ void cpu_ppc_booke::ppc_exception(int exception_nr, uint64_t subtype=0, uint64_t
             break;
         case  PPC_EXCEPTION_DBG:
             // First check if DBCR0[IDM] is set then check if MSR[DE] is set
-            if((spr[SPRN_DBCR0] & DBCR0_IDM) == 0){ RETURNVOID(DEBUG4); }
-            if((msr & MSR_DE) == 0){ RETURNVOID(DEBUG4); }
+            if((PPCREG(REG_DBCR0) & DBCR0_IDM) == 0){ RETURNVOID(DEBUG4); }
+            if((PPCREG(REG_MSR) & MSR_DE) == 0){ RETURNVOID(DEBUG4); }
 
             // Debug exceptions are of "CRITICAL" type in e500v2, but "DEBUG" type in e500mc and later
 #ifdef CONFIG_E500
-            srr0 = &spr[SPRN_CSRR0];
-            srr1 = &spr[SPRN_CSRR1];
+            srr0 = &PPCREG(REG_CSRR0);
+            srr1 = &PPCREG(REG_CSRR1);
 #else
-            srr0 = &spr[SPRN_DSRR0];
-            srr1 = &spr[SPRN_DSRR0];
+            srr0 = &PPCREG(REG_DSRR0);
+            srr1 = &PPCREG(REG_DSRR0);
 #endif
             // FIXME:
             // Some references are ambiguous ( for eg. the e500v2 RM says that,
@@ -676,117 +676,117 @@ void cpu_ppc_booke::ppc_exception(int exception_nr, uint64_t subtype=0, uint64_t
             if(subtype != 0ULL){
                 if((subtype & PPC_EXCEPT_DBG_TRAP) == PPC_EXCEPT_DBG_TRAP){
                     *srr0 = pc;
-                    spr[SPRN_DBSR] |= DBSR_TIE;
+                    PPCREG(REG_DBSR) |= DBSR_TIE;
                 }
                 if((subtype & PPC_EXCEPT_DBG_IAC1) == PPC_EXCEPT_DBG_IAC1){
                     *srr0 = pc;
-                    spr[SPRN_DBSR] |= DBSR_IAC1;
+                    PPCREG(REG_DBSR) |= DBSR_IAC1;
                 }
                 if((subtype & PPC_EXCEPT_DBG_IAC2) == PPC_EXCEPT_DBG_IAC2){
                     *srr0 = pc;
-                    spr[SPRN_DBSR] |= DBSR_IAC2;
+                    PPCREG(REG_DBSR) |= DBSR_IAC2;
                 }
                 if((subtype & PPC_EXCEPT_DBG_DAC1R) == PPC_EXCEPT_DBG_DAC1R){
                     *srr0 = pc;
-                    spr[SPRN_DBSR] |= DBSR_DAC1R;
+                    PPCREG(REG_DBSR) |= DBSR_DAC1R;
                 }
                 if((subtype & PPC_EXCEPT_DBG_DAC1W) == PPC_EXCEPT_DBG_DAC1W){
                     *srr0 = pc;
-                    spr[SPRN_DBSR] |= DBSR_DAC1W;
+                    PPCREG(REG_DBSR) |= DBSR_DAC1W;
                 }
                 if((subtype & PPC_EXCEPT_DBG_DAC2R) == PPC_EXCEPT_DBG_DAC2R){
                     *srr0 = pc;
-                    spr[SPRN_DBSR] |= DBSR_DAC2R;
+                    PPCREG(REG_DBSR) |= DBSR_DAC2R;
                 }
                 if((subtype & PPC_EXCEPT_DBG_DAC2W) == PPC_EXCEPT_DBG_DAC2W){
                     *srr0 = pc;
-                    spr[SPRN_DBSR] |= DBSR_DAC2W;
+                    PPCREG(REG_DBSR) |= DBSR_DAC2W;
                 }
                 if((subtype & PPC_EXCEPT_DBG_ICMP) == PPC_EXCEPT_DBG_ICMP){
                     *srr0 = pc + 4;
-                    spr[SPRN_DBSR] |= DBSR_IC;
+                    PPCREG(REG_DBSR) |= DBSR_IC;
                 }
                 if((subtype & PPC_EXCEPT_DBG_BRT) == PPC_EXCEPT_DBG_BRT){
                     *srr0 = pc;
-                    spr[SPRN_DBSR] |= DBSR_BT;
+                    PPCREG(REG_DBSR) |= DBSR_BT;
                 }
                 if((subtype & PPC_EXCEPT_DBG_RET) == PPC_EXCEPT_DBG_RET){
                     *srr0 = pc + 4;
-                    spr[SPRN_DBSR] |= DBSR_RET;
+                    PPCREG(REG_DBSR) |= DBSR_RET;
                 }
                 if((subtype & PPC_EXCEPT_DBG_IRPT) == PPC_EXCEPT_DBG_IRPT){
                     //srr0 = intr vector
-                    spr[SPRN_DBSR] |= DBSR_IRPT;
+                    PPCREG(REG_DBSR) |= DBSR_IRPT;
                 }
                 if((subtype & PPC_EXCEPT_DBG_UDE) == PPC_EXCEPT_DBG_UDE){
                     *srr0 = pc + 4;
-                    spr[SPRN_DBSR] |= DBSR_UDE;
+                    PPCREG(REG_DBSR) |= DBSR_UDE;
                 }
             }
             
-            *srr1 = msr;
+            *srr1 = PPCREG(REG_MSR);
 
             CLR_DEFAULT_MSR_BITS();
-            msr &= ~MSR_DE;               // Clear DE bit
+            PPCREG(REG_MSR) &= ~MSR_DE;               // Clear DE bit
             pc = GET_PC_FROM_IVOR_NUM(15);
             break;
         case  PPC_EXCEPTION_SPE_UA:
-            spr[SPRN_SRR0] = pc;
-            spr[SPRN_SRR1] = msr;
+            PPCREG(REG_SRR0) = pc;
+            PPCREG(REG_SRR1) = PPCREG(REG_MSR);
 
-            spr[SPRN_ESR]  = ESR_SPV;              // Set ESR[SPE]
+            PPCREG(REG_ESR)  = ESR_SPV;              // Set ESR[SPE]
 
             CLR_DEFAULT_MSR_BITS();
             pc = GET_PC_FROM_IVOR_NUM(32);
             break;
         case  PPC_EXCEPTION_EM_FP_D:
             // Check conditions
-            if(((spr[SPRN_SPEFSCR] & SPEFSCR_FINVE) != 0) && (((spr[SPRN_SPEFSCR] & SPEFSCR_FINVH) != 0) ||
-                        ((spr[SPRN_SPEFSCR] & SPEFSCR_FINV) != 0))){
+            if(((PPCREG(REG_SPEFSCR) & SPEFSCR_FINVE) != 0) && (((PPCREG(REG_SPEFSCR) & SPEFSCR_FINVH) != 0) ||
+                        ((PPCREG(REG_SPEFSCR) & SPEFSCR_FINV) != 0))){
                 goto skip_0;
             }
-            if(((spr[SPRN_SPEFSCR] & SPEFSCR_FDBZE) != 0) && (((spr[SPRN_SPEFSCR] & SPEFSCR_FDBZH) != 0) ||
-                        ((spr[SPRN_SPEFSCR] & SPEFSCR_FDBZ) != 0))){
+            if(((PPCREG(REG_SPEFSCR) & SPEFSCR_FDBZE) != 0) && (((PPCREG(REG_SPEFSCR) & SPEFSCR_FDBZH) != 0) ||
+                        ((PPCREG(REG_SPEFSCR) & SPEFSCR_FDBZ) != 0))){
                 goto skip_0;
             }
-            if(((spr[SPRN_SPEFSCR] & SPEFSCR_FUNFE) != 0) && (((spr[SPRN_SPEFSCR] & SPEFSCR_FUNFH) != 0) ||
-                        ((spr[SPRN_SPEFSCR] & SPEFSCR_FUNF) != 0))){
+            if(((PPCREG(REG_SPEFSCR) & SPEFSCR_FUNFE) != 0) && (((PPCREG(REG_SPEFSCR) & SPEFSCR_FUNFH) != 0) ||
+                        ((PPCREG(REG_SPEFSCR) & SPEFSCR_FUNF) != 0))){
                 goto skip_0;
             }
-            if(((spr[SPRN_SPEFSCR] & SPEFSCR_FOVFE) != 0) && (((spr[SPRN_SPEFSCR] & SPEFSCR_FOVFH) != 0) ||
-                        ((spr[SPRN_SPEFSCR] & SPEFSCR_FOVF) != 0))){
+            if(((PPCREG(REG_SPEFSCR) & SPEFSCR_FOVFE) != 0) && (((PPCREG(REG_SPEFSCR) & SPEFSCR_FOVFH) != 0) ||
+                        ((PPCREG(REG_SPEFSCR) & SPEFSCR_FOVF) != 0))){
                 goto skip_0;
             }
             RETURNVOID(DEBUG4);
 
             skip_0:
-            spr[SPRN_SRR0] = pc;
-            spr[SPRN_SRR1] = msr;
+            PPCREG(REG_SRR0) = pc;
+            PPCREG(REG_SRR1) = PPCREG(REG_MSR);
 
-            spr[SPRN_ESR]  = ESR_SPV;  // Set ESR[SPE]
+            PPCREG(REG_ESR)  = ESR_SPV;  // Set ESR[SPE]
 
             CLR_DEFAULT_MSR_BITS();
             pc = GET_PC_FROM_IVOR_NUM(33);
             break;
         case  PPC_EXCEPTION_EM_FP_R:
             // Check conditions
-            if(((spr[SPRN_SPEFSCR] & SPEFSCR_FINXE) != 0) &&
-                   (((spr[SPRN_SPEFSCR] & SPEFSCR_FGH) != 0) ||
-                   ((spr[SPRN_SPEFSCR] & SPEFSCR_FXH) != 0)  ||
-                   ((spr[SPRN_SPEFSCR] & SPEFSCR_FG) != 0)  ||
-                   ((spr[SPRN_SPEFSCR] & SPEFSCR_FX) != 0))){
+            if(((PPCREG(REG_SPEFSCR) & SPEFSCR_FINXE) != 0) &&
+                   (((PPCREG(REG_SPEFSCR) & SPEFSCR_FGH) != 0) ||
+                   ((PPCREG(REG_SPEFSCR) & SPEFSCR_FXH) != 0)  ||
+                   ((PPCREG(REG_SPEFSCR) & SPEFSCR_FG) != 0)  ||
+                   ((PPCREG(REG_SPEFSCR) & SPEFSCR_FX) != 0))){
                 goto skip_1;
             }
-            if(((spr[SPRN_SPEFSCR] & SPEFSCR_FRMC) == 0x2) || ((spr[SPRN_SPEFSCR] & SPEFSCR_FRMC) == 0x3)){
+            if(((PPCREG(REG_SPEFSCR) & SPEFSCR_FRMC) == 0x2) || ((PPCREG(REG_SPEFSCR) & SPEFSCR_FRMC) == 0x3)){
                 goto skip_1;
             }
             RETURNVOID(DEBUG4);
 
             skip_1:
-            spr[SPRN_SRR0] = pc;
-            spr[SPRN_SRR1] = msr;
+            PPCREG(REG_SRR0) = pc;
+            PPCREG(REG_SRR1) = PPCREG(REG_MSR);
 
-            spr[SPRN_ESR] = ESR_SPV;   // Set ESR[SPE]
+            PPCREG(REG_ESR) = ESR_SPV;   // Set ESR[SPE]
 
             CLR_DEFAULT_MSR_BITS();
             pc = GET_PC_FROM_IVOR_NUM(34);
@@ -985,10 +985,10 @@ void cpu_ppc_booke::update_cr0(bool use_host, uint64_t value){
     }
 
     /*  SO bit, copied from XER:  */
-    c |= ((spr[SPRN_XER] >> 31) & 1);
+    c |= ((PPCREG(REG_XER) >> 31) & 1);
 
-    cr &= ~((uint32_t)0xf << 28);
-    cr |= ((uint32_t)c << 28);
+    PPCREG(REG_CR) &= ~((uint32_t)0xf << 28);
+    PPCREG(REG_CR) |= ((uint32_t)c << 28);
     LOG("DEBUG4") << MSG_FUNC_END;
 }
 
@@ -998,8 +998,8 @@ void cpu_ppc_booke::update_crF(unsigned bf, uint64_t val){
     LOG("DEBUG4") << MSG_FUNC_START;
     bf &= 0x7;
     val &= 0xf;
-    cr &= ~( 0xf << (7 - bf)*4 );
-    cr |=  ((val & 0xf) << (7 - bf)*4);
+    PPCREG(REG_CR) &= ~( 0xf << (7 - bf)*4 );
+    PPCREG(REG_CR) |=  ((val & 0xf) << (7 - bf)*4);
     LOG("DEBUG4") << MSG_FUNC_END;
 }
 
@@ -1007,7 +1007,7 @@ void cpu_ppc_booke::update_crF(unsigned bf, uint64_t val){
 unsigned cpu_ppc_booke::get_crF(unsigned bf){
     LOG("DEBUG4") << MSG_FUNC_START;
     LOG("DEBUG4") << MSG_FUNC_END;
-    return (cr >> (7 - bf)*4) & 0xf;
+    return (PPCREG(REG_CR) >> (7 - bf)*4) & 0xf;
 }
 
 // Update CR by exact field value [0:31]
@@ -1015,8 +1015,8 @@ void cpu_ppc_booke::update_crf(unsigned field, unsigned value){
     LOG("DEBUG4") << MSG_FUNC_START;
     field &= 0x1f;
     value &= 0x1;
-    cr &= ~(0x1 << (31 - field));
-    cr |= (value << (31 - field));
+    PPCREG(REG_CR) &= ~(0x1 << (31 - field));
+    PPCREG(REG_CR) |= (value << (31 - field));
     LOG("DEBUG4") << MSG_FUNC_END;
 }
 
@@ -1024,7 +1024,7 @@ void cpu_ppc_booke::update_crf(unsigned field, unsigned value){
 unsigned cpu_ppc_booke::get_crf(unsigned field){
     LOG("DEBUG4") << MSG_FUNC_START;
     LOG("DEBUG4") << MSG_FUNC_END;
-    return (cr >> (31 - field)) & 0x1;
+    return (PPCREG(REG_CR) >> (31 - field)) & 0x1;
 }
 
 // Update XER
@@ -1043,8 +1043,8 @@ void cpu_ppc_booke::update_xer(bool use_host, uint64_t value){
         }
     }
     /* Set XER */
-    spr[SPRN_XER] &= ~((uint32_t)0xf << 28);
-    spr[SPRN_XER] |= (c << 28);
+    PPCREG(REG_XER) &= ~((uint32_t)0xf << 28);
+    PPCREG(REG_XER) |= (c << 28);
     LOG("DEBUG4") << MSG_FUNC_END;
 }
 
@@ -1054,8 +1054,8 @@ void cpu_ppc_booke::update_xerF(unsigned bf, unsigned val){
     LOG("DEBUG4") << MSG_FUNC_START;
     bf &= 0x7;
     val &= 0xf;
-    spr[SPRN_XER] &= ~( 0xf << (7 - bf)*4 );
-    spr[SPRN_XER] |=  ((val & 0xf) << (7 - bf)*4);
+    PPCREG(REG_XER) &= ~( 0xf << (7 - bf)*4 );
+    PPCREG(REG_XER) |=  ((val & 0xf) << (7 - bf)*4);
     LOG("DEBUG4") << MSG_FUNC_END;
 }
 
@@ -1064,40 +1064,40 @@ void cpu_ppc_booke::update_xerf(unsigned field, unsigned value){
     LOG("DEBUG4") << MSG_FUNC_START;
     field &= 0x1f;
     value &= 0x1;
-    spr[SPRN_XER] &= ~(0x1 << (31 - field));
-    spr[SPRN_XER] |= (value << (31 - field));
+    PPCREG(REG_XER) &= ~(0x1 << (31 - field));
+    PPCREG(REG_XER) |= (value << (31 - field));
     LOG("DEBUG4") << MSG_FUNC_END;
 }
 
 unsigned cpu_ppc_booke::get_xerF(unsigned bf){
     LOG("DEBUG4") << MSG_FUNC_START;
     LOG("DEBUG4") << MSG_FUNC_END;
-    return (spr[SPRN_XER] >> (7 - bf)*4) & 0xf;
+    return (PPCREG(REG_XER) >> (7 - bf)*4) & 0xf;
 }
 
 unsigned cpu_ppc_booke::get_xerf(unsigned field){
     LOG("DEBUG4") << MSG_FUNC_START;
     LOG("DEBUG4") << MSG_FUNC_END;
-    return (spr[SPRN_XER] >> (31 - field)) & 0x1;
+    return (PPCREG(REG_XER) >> (31 - field)) & 0x1;
 }
 
 // Get XER[SO]
 unsigned cpu_ppc_booke::get_xer_so(){
     LOG("DEBUG4") << MSG_FUNC_START;
     LOG("DEBUG4") << MSG_FUNC_END;
-    return ((spr[SPRN_XER] & XER_SO) ? 1:0);
+    return ((PPCREG(REG_XER) & XER_SO) ? 1:0);
 }
 
 unsigned cpu_ppc_booke::get_xer_ca(){
     LOG("DEBUG4") << MSG_FUNC_START;
     LOG("DEBUG4") << MSG_FUNC_END;
-    return ((spr[SPRN_XER] & XER_CA) ? 1:0);
+    return ((PPCREG(REG_XER) & XER_CA) ? 1:0);
 }
 
 // set cr
 void cpu_ppc_booke::set_cr(uint32_t value) throw() {
     LOG("DEBUG4") << MSG_FUNC_START;
-    cr = static_cast<uint64_t>(value);
+    PPCREG(REG_CR) = static_cast<uint64_t>(value);
     LOG("DEBUG4") << MSG_FUNC_END;
 }
 
@@ -1174,8 +1174,8 @@ void cpu_ppc_booke::dump_state(int columns, std::ostream &ostr, int dump_all_spr
     ostr << "CPU STATE" << std::endl;
     ostr << BAR0 << std::endl;
 
-    ostr << "msr = " << std::hex << std::showbase << msr << std::endl;
-    ostr << "cr  = " << std::hex << std::showbase << cr << std::endl;
+    ostr << "msr = " << std::hex << std::showbase << PPCREG(REG_MSR) << std::endl;
+    ostr << "cr  = " << std::hex << std::showbase << PPCREG(REG_CR) << std::endl;
     ostr << "iar = " << std::hex << std::showbase << pc << std::endl;
     ostr << std::endl;
 
@@ -1204,7 +1204,7 @@ void cpu_ppc_booke::dump_state(int columns, std::ostream &ostr, int dump_all_spr
     if(dump_all_sprs){
         for(i=0; i<PPC_NSPRS; i++){
             // TODO: do a check for valid sprs later on
-            strout << "spr[" << std::dec << i << "] = " << std::hex << std::showbase << spr[i];
+            strout << "spr[" << std::dec << i << "] = " << std::hex << std::showbase << PPCREG(REG_SPR0 + i);
             ostr << std::left << std::setw(26) << strout.str() << "    ";
             strout.str("");
             if(++colno >= columns){ ostr << std::endl; colno = 0; }

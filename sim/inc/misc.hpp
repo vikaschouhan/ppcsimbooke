@@ -1,6 +1,8 @@
 #ifndef _MISC_HPP
 #define _MISC_HPP
 
+#include "utils.h"
+
 // instruction call frame
 #define N_IC_ARGS 6           // Max arguments supported
 struct instr_call {
@@ -76,12 +78,12 @@ struct ppc_reg64 {
     ppc_reg64(uint64_t val) : value(val) {}
 
     // Getter/Setter functions for bit fields. ( Mainly for boost::python )
-    template<int bfpos, uint64_t mask> uint64_t get_bf(){
-        return ((value & mask) >> (63-bfpos));
+    template<uint64_t mask> uint64_t get_bf(){
+        return ((value & mask) >> rshift<mask>::value);
     }
-    template<int bfpos, uint64_t mask> void set_bf(uint64_t bf){
+    template<uint64_t mask> void set_bf(uint64_t bf){
         value &= ~mask;
-        value |= ((bf << (63-bfpos)) & mask);
+        value |= ((bf << rshift<mask>::value) & mask);
     }
 };
 

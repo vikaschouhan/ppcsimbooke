@@ -33,7 +33,6 @@
 #include <iostream>
 #include <cstring>
 #include "log.hpp"
-#include "misc.hpp"
 
 // endianness consts
 static const int  EMUL_UNDEFINED_ENDIAN  =  0;
@@ -175,4 +174,21 @@ inline char *find_tok(char **str, char delim){
     *tmp_str_ptr = '\0';
     return tmp_str;
 }
+
+// Get left shift values for a bitfield mask
+// x is the mask
+template <uint64_t x> struct rshift{
+    enum {
+        value = (((x & 0x1) ? 0:1) + rshift< ((x & 0x1) ? 0:(x>>1)) >::value),
+    };
+};
+
+template <> struct rshift<0>{
+    enum {
+        value = 0,
+    };
+};
+
+
+
 #endif
