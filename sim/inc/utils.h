@@ -177,18 +177,23 @@ inline char *find_tok(char **str, char delim){
 
 // Get left shift values for a bitfield mask
 // x is the mask
-template <uint64_t x> struct rshift{
+template <uint64_t x> struct RSHIFT{
     enum {
-        value = (((x & 0x1) ? 0:1) + rshift< ((x & 0x1) ? 0:(x>>1)) >::value),
+        VAL = (((x & 0x1) ? 0:1) + RSHIFT< ((x & 0x1) ? 0:(x>>1)) >::VAL),
     };
 };
 
-template <> struct rshift<0>{
+template <> struct RSHIFT<0>{
     enum {
-        value = 0,
+        VAL = 0,
     };
 };
 
-
+// Run time variant
+inline int rshift(uint64_t x){
+    int res = 0;
+    while(!(x & 0x1)){ res++; x>>=1; }
+    return res;
+}
 
 #endif

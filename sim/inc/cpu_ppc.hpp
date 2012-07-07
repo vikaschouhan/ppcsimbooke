@@ -92,13 +92,8 @@ class cpu_ppc_booke : public cpu {
 
     //
     // for boost::python
-    // Set Register by name ( templatized version for boost::python export )
-    template <int reg_num> void ___set_reg(uint64_t val){
-        *m_ireghash[reg_num] = val;
-    }
-    // Get Register by name ( templatized version for boost::python export )
-    template <int reg_num> uint64_t ___get_reg(){
-        return *m_ireghash[reg_num];
+    ppc_regs& ___get_regs(){
+        return regs;
     }
     bool operator==(cpu_ppc_booke const &x) const {
         return cpu_no == x.cpu_no;

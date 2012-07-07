@@ -78,12 +78,12 @@ struct ppc_reg64 {
     ppc_reg64(uint64_t val) : value(val) {}
 
     // Getter/Setter functions for bit fields. ( Mainly for boost::python )
-    template<uint64_t mask> uint64_t get_bf(){
-        return ((value & mask) >> rshift<mask>::value);
+    uint64_t bf(uint64_t mask){
+        return ((value & mask) >> rshift(mask));
     }
-    template<uint64_t mask> void set_bf(uint64_t bf){
+    void bf(uint64_t bf, uint64_t mask){
         value &= ~mask;
-        value |= ((bf << rshift<mask>::value) & mask);
+        value |= ((bf << rshift(mask)) & mask);
     }
 };
 
@@ -103,6 +103,20 @@ struct ppc_regs {
         fpr.resize(PPC_NFPRS);
         spr.resize(PPC_NSPRS);
         pmr.resize(PPC_NPMRS);
+    }
+
+    // Functions for boost::python usage only
+    template<int gprno> ppc_reg64& get_gpr(){
+        return gpr[gprno];
+    }
+    template<int fprno> ppc_reg64& get_fpr(){
+        return fpr[fprno];
+    }
+    template<int sprno> ppc_reg64& get_spr(){
+        return spr[sprno];
+    }
+    template<int pmrno> ppc_reg64& get_pmr(){
+        return pmr[pmrno];
     }
 };
 
