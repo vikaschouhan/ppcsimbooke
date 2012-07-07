@@ -78,10 +78,10 @@ struct ppc_reg64 {
     ppc_reg64(uint64_t val) : value(val) {}
 
     // Getter/Setter functions for bit fields. ( Mainly for boost::python )
-    uint64_t bf(uint64_t mask){
+    uint64_t get_bf(uint64_t mask){
         return ((value & mask) >> rshift(mask));
     }
-    void bf(uint64_t bf, uint64_t mask){
+    void set_bf(uint64_t bf, uint64_t mask){
         value &= ~mask;
         value |= ((bf << rshift(mask)) & mask);
     }
@@ -90,20 +90,13 @@ struct ppc_reg64 {
 // PPC register file ( this is the file we are gonna use in our cpu )
 struct ppc_regs {
     typedef std::vector<ppc_reg64>  ppc_reg64_vector;
-    ppc_reg64                cr;
-    ppc_reg64                fpscr;
-    ppc_reg64                msr;
-    ppc_reg64_vector         gpr;
-    ppc_reg64_vector         fpr;
-    ppc_reg64_vector         spr;
-    ppc_reg64_vector         pmr;
-
-    ppc_regs(){
-        gpr.resize(PPC_NGPRS);
-        fpr.resize(PPC_NFPRS);
-        spr.resize(PPC_NSPRS);
-        pmr.resize(PPC_NPMRS);
-    }
+    ppc_reg64         cr;
+    ppc_reg64         fpscr;
+    ppc_reg64         msr;
+    ppc_reg64         gpr[PPC_NGPRS];
+    ppc_reg64         fpr[PPC_NFPRS];
+    ppc_reg64         spr[PPC_NSPRS];
+    ppc_reg64         pmr[PPC_NPMRS];
 
     // Functions for boost::python usage only
     template<int gprno> ppc_reg64& get_gpr(){

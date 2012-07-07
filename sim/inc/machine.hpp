@@ -5,19 +5,18 @@
 #include "cpu_ppc.hpp"
 #include "memory.hpp"
 
-class machine {
+// Machine class
+template <int ncpus> class machine {
     public:
-    int                           m_ncpus;
-    std::vector<cpu_ppc_booke>    m_cpu;   // only 1 cpu
+    cpu_ppc_booke                 m_cpu[ncpus];
     memory                        m_memory;   // one memory module
+    const int                     m_ncpus;
 
-    machine(){
+    machine() : m_ncpus(ncpus){
         uint64_t cpuid = 0x81008100;   // An id
         std::string name = "e500v2";
         std::ostringstream ostr;
-        m_ncpus = 2;
-        m_cpu.resize(m_ncpus);
-        for(int i=0; i<m_ncpus; i++){
+        for(int i=0; i<ncpus; i++){
             ostr.clear();
             ostr << i;
             m_cpu[i].init_cpu_ppc_booke(cpuid, "e500v2_" + ostr.str());

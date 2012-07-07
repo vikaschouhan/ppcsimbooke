@@ -166,8 +166,8 @@ class cpu_ppc_booke : public cpu {
     // Pointers to generic registers/stuff hashed by name and numerical identifiers
     std::map<std::string, ppc_reg64*>      m_reghash;
     std::map<int, ppc_reg64*>              m_ireghash;
-#define PPCREG(reg_id)          ((m_ireghash[reg_id])->value)
-#define PPCREGN(reg_name)       ((m_reghash[reg_name])->value)
+#define PPCREG(reg_id)          (m_ireghash[reg_id]->value)
+#define PPCREGN(reg_name)       (m_reghash[reg_name]->value)
 
     /*
      *  Instruction translation cache and Virtual->Physical->Host
@@ -252,7 +252,7 @@ int cpu_ppc_booke::run_instr(std::string opcode, std::string arg0, std::string a
                 boost::algorithm::to_lower(arg_this);                                                         \
                 assert_and_throw(m_reghash.find(arg_this) != m_reghash.end(),                                 \
                         sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Illegal ppc register"));                        \
-                call_this.arg[argno] = reinterpret_cast<size_t>(m_reghash[arg_this]);                         \
+                call_this.arg[argno] = reinterpret_cast<size_t>(&(m_reghash[arg_this]->value));               \
             }else{                                                                                            \
                 /* Assuming it's an immediate value */                                                        \
                 call_this.arg[argno] = static_cast<size_t>(str_to_int(arg_this));                             \
@@ -1154,7 +1154,7 @@ void cpu_ppc_booke::dump_state(int columns, std::ostream &ostr, int dump_all_spr
     ostr << BAR0 << std::endl;
     ostr << "CPU STATE" << std::endl;
     ostr << BAR0 << std::endl;
-
+    ostr << "cpu no = " << (int)cpu_no << std::endl;
     ostr << "msr = " << std::hex << std::showbase << PPCREG(REG_MSR) << std::endl;
     ostr << "cr  = " << std::hex << std::showbase << PPCREG(REG_CR) << std::endl;
     ostr << "iar = " << std::hex << std::showbase << pc << std::endl;

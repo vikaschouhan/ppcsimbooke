@@ -22,7 +22,6 @@
 // Free Software Foundation, 51 Franklin Street - Fifth Floor, Boston,
 // MA 02110-1301, USA.
 
-#include <boost/python/suite/indexing/vector_indexing_suite.hpp>
 #include <boost/python.hpp>
 #include <boost/python/class.hpp>
 #include <boost/python/module.hpp>
@@ -106,6 +105,66 @@ template <uint64_t x> struct new_const{
 };
 template<uint64_t x> const uint64_t new_const<x>::val = x;
 
+
+// Add attributes for GPRs
+#define ADD_GPR(reg_num, reg_alias) \
+    ppc_regs_py.add_property(reg_alias, make_function(&ppc_regs::get_gpr<reg_num>, return_value_policy<reference_existing_object>()))
+#define ADD_FPR(reg_num, reg_alias) \
+    ppc_regs_py.add_property(reg_alias, make_function(&ppc_regs::get_fpr<reg_num>, return_value_policy<reference_existing_object>()))
+#define ADD_SPR(reg_num, reg_alias) \
+    ppc_regs_py.add_property(reg_alias, make_function(&ppc_regs::get_spr<reg_num>, return_value_policy<reference_existing_object>()))
+#define ADD_PMR(reg_num, reg_alias) \
+    ppc_regs_py.add_property(reg_alias, make_function(&ppc_regs::get_pmr<reg_num>, return_value_policy<reference_existing_object>()))
+
+// Add all registers
+#define ADD_ALL_REGS() \
+       ADD_GPR(0,  "R0"  ); ADD_GPR(1,  "R1"  ); ADD_GPR(2,  "R2"  ); ADD_GPR(3,  "R3"  );  \
+       ADD_GPR(4,  "R4"  ); ADD_GPR(5,  "R5"  ); ADD_GPR(6,  "R6"  ); ADD_GPR(7,  "R7"  );  \
+       ADD_GPR(8,  "R8"  ); ADD_GPR(9,  "R9"  ); ADD_GPR(10, "R10" ); ADD_GPR(11, "R11" );  \
+       ADD_GPR(12, "R12" ); ADD_GPR(13, "R13" ); ADD_GPR(14, "R14" ); ADD_GPR(15, "R15" );  \
+       ADD_GPR(16, "R16" ); ADD_GPR(17, "R17" ); ADD_GPR(18, "R18" ); ADD_GPR(19, "R19" );  \
+       ADD_GPR(20, "R20" ); ADD_GPR(21, "R21" ); ADD_GPR(22, "R22" ); ADD_GPR(23, "R23" );  \
+       ADD_GPR(24, "R24" ); ADD_GPR(25, "R25" ); ADD_GPR(26, "R26" ); ADD_GPR(27, "R27" );  \
+       ADD_GPR(28, "R28" ); ADD_GPR(29, "R29" ); ADD_GPR(30, "R30" ); ADD_GPR(31, "R31" );  \
+                                                                                            \
+      /* Add attributes for FPRS */                                                         \
+      ADD_FPR(0,  "F0"  ); ADD_FPR(1,  "F1"  ); ADD_FPR(2,  "F2"  ); ADD_FPR(3,  "F3"  );   \
+      ADD_FPR(4,  "F4"  ); ADD_FPR(5,  "F5"  ); ADD_FPR(6,  "F6"  ); ADD_FPR(7,  "F7"  );   \
+      ADD_FPR(8,  "F8"  ); ADD_FPR(9,  "F9"  ); ADD_FPR(10, "F10" ); ADD_FPR(11, "F11" );   \
+      ADD_FPR(12, "F12" ); ADD_FPR(13, "F13" ); ADD_FPR(14, "F14" ); ADD_FPR(15, "F15" );   \
+      ADD_FPR(16, "F16" ); ADD_FPR(17, "F17" ); ADD_FPR(18, "F18" ); ADD_FPR(19, "F19" );   \
+      ADD_FPR(20, "F20" ); ADD_FPR(21, "F21" ); ADD_FPR(22, "F22" ); ADD_FPR(23, "F23" );   \
+      ADD_FPR(24, "F24" ); ADD_FPR(25, "F25" ); ADD_FPR(26, "F26" ); ADD_FPR(27, "F27" );   \
+      ADD_FPR(28, "F28" ); ADD_FPR(29, "F29" ); ADD_FPR(30, "F30" ); ADD_FPR(31, "F31" );   \
+                                                                                            \
+      /* Add attributes for other registers */                                              \
+      ADD_SPR(SPRN_ATBL,    "ATBL"   ); ADD_SPR(SPRN_ATBU,    "ATBU"    ); ADD_SPR(SPRN_CSRR0,   "CSRR0"  ); ADD_SPR(SPRN_CSRR1,    "CSRR1"  );    \
+      ADD_SPR(SPRN_CTR,     "CTR"    ); ADD_SPR(SPRN_DAC1,    "DAC1"    ); ADD_SPR(SPRN_DAC2,    "DAC2"   ); ADD_SPR(SPRN_DBCR0,    "DBCR0"  );    \
+      ADD_SPR(SPRN_DBCR1,   "DBCR1"  ); ADD_SPR(SPRN_DBCR2,   "DBCR2"   ); ADD_SPR(SPRN_DBSR,    "DBSR"   ); ADD_SPR(SPRN_DEAR,     "DEAR"   );    \
+      ADD_SPR(SPRN_DEC,     "DEC"    ); ADD_SPR(SPRN_DECAR,   "DECAR"   ); ADD_SPR(SPRN_ESR,     "ESR"    ); ADD_SPR(SPRN_IAC1,     "IAC1"   );    \
+      ADD_SPR(SPRN_IAC2,    "IAC2"   ); ADD_SPR(SPRN_IVOR0,   "IVOR0"   ); ADD_SPR(SPRN_IVOR1,   "IVOR1"  ); ADD_SPR(SPRN_IVOR2,    "IVOR2"  );    \
+      ADD_SPR(SPRN_IVOR3,   "IVOR3"  ); ADD_SPR(SPRN_IVOR4,   "IVOR4"   ); ADD_SPR(SPRN_IVOR5,   "IVOR5"  ); ADD_SPR(SPRN_IVOR6,    "IVOR6"  );    \
+      ADD_SPR(SPRN_IVOR8,   "IVOR8"  ); ADD_SPR(SPRN_IVOR10,  "IVOR10"  ); ADD_SPR(SPRN_IVOR11,  "IVOR11" ); ADD_SPR(SPRN_IVOR12,   "IVOR12" );    \
+      ADD_SPR(SPRN_IVOR13,  "IVOR13" ); ADD_SPR(SPRN_IVOR14,  "IVOR14"  ); ADD_SPR(SPRN_IVOR15,  "IVOR15" ); ADD_SPR(SPRN_IVPR,     "IVPR"   );    \
+      ADD_SPR(SPRN_LR,      "LR"     ); ADD_SPR(SPRN_PID,     "PID"     ); ADD_SPR(SPRN_PIR,     "PIR"    ); ADD_SPR(SPRN_PVR,      "PVR"    );    \
+      ADD_SPR(SPRN_SPRG0,   "SPRG0"  ); ADD_SPR(SPRN_SPRG1,   "SPRG1"   ); ADD_SPR(SPRN_SPRG2,   "SPRG2"  ); ADD_SPR(SPRN_SPRG3R,   "SPRG3R" );    \
+      ADD_SPR(SPRN_SPRG3,   "SPRG3"  ); ADD_SPR(SPRN_SPRG4R,  "SPRG4R"  ); ADD_SPR(SPRN_SPRG4,   "SPRG4"  ); ADD_SPR(SPRN_SPRG5R,   "SPRG5R" );    \
+      ADD_SPR(SPRN_SPRG5,   "SPRG5"  ); ADD_SPR(SPRN_SPRG6R,  "SPRG6R"  ); ADD_SPR(SPRN_SPRG6,   "SPRG6"  ); ADD_SPR(SPRN_SPRG7R,   "SPRG7R" );    \
+      ADD_SPR(SPRN_SPRG7,   "SPRG7"  ); ADD_SPR(SPRN_SRR0,    "SRR0"    ); ADD_SPR(SPRN_SRR1,    "SRR1"   ); ADD_SPR(SPRN_TBRL,     "TBRL"   );    \
+      ADD_SPR(SPRN_TBWL,    "TBWL"   ); ADD_SPR(SPRN_TBRU,    "TBRU"    ); ADD_SPR(SPRN_TBWU,    "TBWU"   ); ADD_SPR(SPRN_TCR,      "TCR"    );    \
+      ADD_SPR(SPRN_TSR,     "TSR"    ); ADD_SPR(SPRN_USPRG0,  "USPRG0"  ); ADD_SPR(SPRN_XER,     "XER"    ); ADD_SPR(SPRN_BBEAR,    "BBEAR"  );    \
+      ADD_SPR(SPRN_BBTAR,   "BBTAR"  ); ADD_SPR(SPRN_BUCSR,   "BUCSR"   ); ADD_SPR(SPRN_HID0,    "HID0"   ); ADD_SPR(SPRN_HID1,     "HID1"   );    \
+      ADD_SPR(SPRN_IVOR32,  "IVOR32" ); ADD_SPR(SPRN_IVOR33,  "IVOR33"  ); ADD_SPR(SPRN_IVOR34,  "IVOR34" ); ADD_SPR(SPRN_IVOR35,   "IVOR35" );    \
+      ADD_SPR(SPRN_L1CFG0,  "L1CFG0" ); ADD_SPR(SPRN_L1CFG1,  "L1CFG1"  ); ADD_SPR(SPRN_L1CSR0,  "L1CSR0" ); ADD_SPR(SPRN_L1CSR1,   "L1CSR1" );    \
+      ADD_SPR(SPRN_MAS0,    "MAS0"   ); ADD_SPR(SPRN_MAS1,    "MAS1"    ); ADD_SPR(SPRN_MAS2,    "MAS2"   ); ADD_SPR(SPRN_MAS3,     "MAS3"   );    \
+      ADD_SPR(SPRN_MAS4,    "MAS4"   ); ADD_SPR(SPRN_MAS5,    "MAS5"    ); ADD_SPR(SPRN_MAS6,    "MAS6"   ); ADD_SPR(SPRN_MAS7,     "MAS7"   );    \
+      ADD_SPR(SPRN_MCAR,    "MCAR"   ); ADD_SPR(SPRN_MCSR,    "MCSR"    ); ADD_SPR(SPRN_MCSRR0,  "MCSRR0" ); ADD_SPR(SPRN_MCSRR1,   "MCSRR1" );    \
+      ADD_SPR(SPRN_MMUCFG,  "MMUCFG" ); ADD_SPR(SPRN_MMUCSR0, "MMUCSR0" ); ADD_SPR(SPRN_PID0,    "PID0"   ); ADD_SPR(SPRN_PID1,     "PID1"   );    \
+      ADD_SPR(SPRN_PID2,    "PID2"   ); ADD_SPR(SPRN_SPEFSCR, "SPEFSCR" ); ADD_SPR(SPRN_SVR,     "SVR"    ); ADD_SPR(SPRN_TLB0CFG,  "TLB0CFG");    \
+      ADD_SPR(SPRN_TLB1CFG, "TLB1CFG")
+
+
+// Main module
 BOOST_PYTHON_MODULE(ppcsim)
 {
     using namespace boost::python;
@@ -143,16 +202,20 @@ BOOST_PYTHON_MODULE(ppcsim)
             .def("print_instr",      &instr_call::print_instr)
             ;
 
+        // ppc register type ( 64 bit )
         class_<ppc_reg64>("ppc_reg64")
             .def_readwrite("value", &ppc_reg64::value)
             .def_readonly("attr",   &ppc_reg64::attr)
+            .def("set_bf",          &ppc_reg64::set_bf)
+            .def("get_bf",          &ppc_reg64::get_bf)
             ;
 
-        //// std::vector<ppc_reg64> container map to python
-        //class_<std::vector<ppc_reg64> > ppc_reg64_list_py("ppc_reg64_list");
-        //ppc_reg64_list_py.def(vector_indexing_suite<std::vector<ppc_reg64> >());
-
+        // PPC register file type ( contains all registers, GPRs, FPRs, SPRs etc. )
         class_<ppc_regs> ppc_regs_py("ppc_regs");
+        ppc_regs_py.add_property("MSR", &ppc_regs::msr)
+            .add_property("CR",  &ppc_regs::cr)
+            ;
+        ADD_ALL_REGS();
 
         // Memory namespace
         {
@@ -201,70 +264,15 @@ BOOST_PYTHON_MODULE(ppcsim)
             .add_property("regs", make_function(&cpu_ppc_booke::___get_regs, return_value_policy<reference_existing_object>()))
             ;
 
-        // Add attributes for GPRs
-//#define ADD_REG(reg_num, reg_alias)    cpu_ppc_py.add_property(reg_alias,  &cpu_ppc_booke::___get_reg<reg_num>, &cpu_ppc_booke::___set_reg<reg_num>)
-//#define ADD_REGR(reg_num, reg_alias)   cpu_ppc_py.add_property(reg_alias,  &cpu_ppc_booke::___get_reg<reg_num>)
-
-//       ADD_REG(REG_GPR0,  "_R0"  ); ADD_REG(REG_GPR1,  "_R1"  ); ADD_REG(REG_GPR2,  "_R2"  ); ADD_REG(REG_GPR3,  "_R3"  );
-//       ADD_REG(REG_GPR4,  "_R4"  ); ADD_REG(REG_GPR5,  "_R5"  ); ADD_REG(REG_GPR6,  "_R6"  ); ADD_REG(REG_GPR7,  "_R7"  );
-//       ADD_REG(REG_GPR8,  "_R8"  ); ADD_REG(REG_GPR9,  "_R9"  ); ADD_REG(REG_GPR10, "_R10" ); ADD_REG(REG_GPR11, "_R11" );
-//       ADD_REG(REG_GPR12, "_R12" ); ADD_REG(REG_GPR13, "_R13" ); ADD_REG(REG_GPR14, "_R14" ); ADD_REG(REG_GPR15, "_R15" );
-//       ADD_REG(REG_GPR16, "_R16" ); ADD_REG(REG_GPR17, "_R17" ); ADD_REG(REG_GPR18, "_R18" ); ADD_REG(REG_GPR19, "_R19" );
-//       ADD_REG(REG_GPR20, "_R20" ); ADD_REG(REG_GPR21, "_R21" ); ADD_REG(REG_GPR22, "_R22" ); ADD_REG(REG_GPR23, "_R23" );
-//       ADD_REG(REG_GPR24, "_R24" ); ADD_REG(REG_GPR25, "_R25" ); ADD_REG(REG_GPR26, "_R26" ); ADD_REG(REG_GPR27, "_R27" );
-//       ADD_REG(REG_GPR28, "_R28" ); ADD_REG(REG_GPR29, "_R29" ); ADD_REG(REG_GPR30, "_R30" ); ADD_REG(REG_GPR31, "_R31" );
-//
-//       // Add attributes for FPRS
-//       ADD_REG(REG_FPR0,  "_F0"  ); ADD_REG(REG_FPR1,  "_F1"  ); ADD_REG(REG_FPR2,  "_F2"  ); ADD_REG(REG_FPR3,  "_F3"  );
-//       ADD_REG(REG_FPR4,  "_F4"  ); ADD_REG(REG_FPR5,  "_F5"  ); ADD_REG(REG_FPR6,  "_F6"  ); ADD_REG(REG_FPR7,  "_F7"  );
-//       ADD_REG(REG_FPR8,  "_F8"  ); ADD_REG(REG_FPR9,  "_F9"  ); ADD_REG(REG_FPR10, "_F10" ); ADD_REG(REG_FPR11, "_F11" );
-//       ADD_REG(REG_FPR12, "_F12" ); ADD_REG(REG_FPR13, "_F13" ); ADD_REG(REG_FPR14, "_F14" ); ADD_REG(REG_FPR15, "_F15" );
-//       ADD_REG(REG_FPR16, "_F16" ); ADD_REG(REG_FPR17, "_F17" ); ADD_REG(REG_FPR18, "_F18" ); ADD_REG(REG_FPR19, "_F19" );
-//       ADD_REG(REG_FPR20, "_F20" ); ADD_REG(REG_FPR21, "_F21" ); ADD_REG(REG_FPR22, "_F22" ); ADD_REG(REG_FPR23, "_F23" );
-//       ADD_REG(REG_FPR24, "_F24" ); ADD_REG(REG_FPR25, "_F25" ); ADD_REG(REG_FPR26, "_F26" ); ADD_REG(REG_FPR27, "_F27" );
-//       ADD_REG(REG_FPR28, "_F28" ); ADD_REG(REG_FPR29, "_F29" ); ADD_REG(REG_FPR30, "_F30" ); ADD_REG(REG_FPR31, "_F31" );
-//
-//       //// Add attributes for other registers
-//       ADD_REG(REG_PC,      "_PC"     ); ADD_REG(REG_MSR,     "_MSR"     ); ADD_REG(REG_CR,      "_CR"     ); ADD_REG(REG_FPSCR,    "_FPSCR"  );
-//       ADD_REGR(REG_ATBL,   "_ATBL"   ); ADD_REGR(REG_ATBU,   "_ATBU"    ); ADD_REG(REG_CSRR0,   "_CSRR0"  ); ADD_REG(REG_CSRR1,    "_CSRR1"  );
-//       ADD_REG(REG_CTR,     "_CTR"    ); ADD_REG(REG_DAC1,    "_DAC1"    ); ADD_REG(REG_DAC2,    "_DAC2"   ); ADD_REG(REG_DBCR0,    "_DBCR0"  );
-//       ADD_REG(REG_DBCR1,   "_DBCR1"  ); ADD_REG(REG_DBCR2,   "_DBCR2"   ); ADD_REG(REG_DBSR,    "_DBSR"   ); ADD_REG(REG_DEAR,     "_DEAR"   );
-//       ADD_REG(REG_DEC,     "_DEC"    ); ADD_REG(REG_DECAR,   "_DECAR"   ); ADD_REG(REG_ESR,     "_ESR"    ); ADD_REG(REG_IAC1,     "_IAC1"   ); 
-//       ADD_REG(REG_IAC2,    "_IAC2"   ); ADD_REG(REG_IVOR0,   "_IVOR0"   ); ADD_REG(REG_IVOR1,   "_IVOR1"  ); ADD_REG(REG_IVOR2,    "_IVOR2"  );
-//       ADD_REG(REG_IVOR3,   "_IVOR3"  ); ADD_REG(REG_IVOR4,   "_IVOR4"   ); ADD_REG(REG_IVOR5,   "_IVOR5"  ); ADD_REG(REG_IVOR6,    "_IVOR6"  );
-//       ADD_REG(REG_IVOR8,   "_IVOR8"  ); ADD_REG(REG_IVOR10,  "_IVOR10"  ); ADD_REG(REG_IVOR11,  "_IVOR11" ); ADD_REG(REG_IVOR12,   "_IVOR12" );
-//       ADD_REG(REG_IVOR13,  "_IVOR13" ); ADD_REG(REG_IVOR14,  "_IVOR14"  ); ADD_REG(REG_IVOR15,  "_IVOR15" ); ADD_REG(REG_IVPR,     "_IVPR"   );
-//       ADD_REG(REG_LR,      "_LR"     ); ADD_REG(REG_PID,     "_PID"     ); ADD_REGR(REG_PIR,    "_PIR"    ); ADD_REGR(REG_PVR,     "_PVR"    ); 
-//       ADD_REG(REG_SPRG0,   "_SPRG0"  ); ADD_REG(REG_SPRG1,   "_SPRG1"   ); ADD_REG(REG_SPRG2,   "_SPRG2"  ); ADD_REGR(REG_SPRG3R,  "_SPRG3R" );
-//       ADD_REG(REG_SPRG3,   "_SPRG3"  ); ADD_REGR(REG_SPRG4R, "_SPRG4R"  ); ADD_REG(REG_SPRG4,   "_SPRG4"  ); ADD_REGR(REG_SPRG5R,  "_SPRG5R" );
-//       ADD_REG(REG_SPRG5,   "_SPRG5"  ); ADD_REGR(REG_SPRG6R, "_SPRG6R"  ); ADD_REG(REG_SPRG6,   "_SPRG6"  ); ADD_REGR(REG_SPRG7R,  "_SPRG7R" );
-//       ADD_REG(REG_SPRG7,   "_SPRG7"  ); ADD_REG(REG_SRR0,    "_SRR0"    ); ADD_REG(REG_SRR1,    "_SRR1"   ); ADD_REGR(REG_TBRL,    "_TBRL"   );
-//       ADD_REG(REG_TBWL,    "_TBWL"   ); ADD_REGR(REG_TBRU,   "_TBRU"    ); ADD_REG(REG_TBWU,    "_TBWU"   ); ADD_REG(REG_TCR,      "_TCR"    );   
-//       ADD_REG(REG_TSR,     "_TSR"    ); ADD_REG(REG_USPRG0,  "_USPRG0"  ); ADD_REG(REG_XER,     "_XER"    ); ADD_REG(REG_BBEAR,    "_BBEAR"  );
-//       ADD_REG(REG_BBTAR,   "_BBTAR"  ); ADD_REG(REG_BUCSR,   "_BUCSR"   ); ADD_REG(REG_HID0,    "_HID0"   ); ADD_REG(REG_HID1,     "_HID1"   );
-//       ADD_REG(REG_IVOR32,  "_IVOR32" ); ADD_REG(REG_IVOR33,  "_IVOR33"  ); ADD_REG(REG_IVOR34,  "_IVOR34" ); ADD_REG(REG_IVOR35,   "_IVOR35" );
-//       ADD_REGR(REG_L1CFG0, "_L1CFG0" ); ADD_REGR(REG_L1CFG1, "_L1CFG1"  ); ADD_REG(REG_L1CSR0,  "_L1CSR0" ); ADD_REG(REG_L1CSR1,   "_L1CSR1" );
-//       ADD_REG(REG_MAS0,    "_MAS0"   ); ADD_REG(REG_MAS1,    "_MAS1"    ); ADD_REG(REG_MAS2,    "_MAS2"   ); ADD_REG(REG_MAS3,     "_MAS3"   );
-//       ADD_REG(REG_MAS4,    "_MAS4"   ); ADD_REG(REG_MAS5,    "_MAS5"    ); ADD_REG(REG_MAS6,    "_MAS6"   ); ADD_REG(REG_MAS7,     "_MAS7"   );
-//       ADD_REGR(REG_MCAR,   "_MCAR"   ); ADD_REGR(REG_MCSR,   "_MCSR"    ); ADD_REG(REG_MCSRR0,  "_MCSRR0" ); ADD_REG(REG_MCSRR1,   "_MCSRR1" );
-//       ADD_REGR(REG_MMUCFG, "_MMUCFG" ); ADD_REG(REG_MMUCSR0, "_MMUCSR0" ); ADD_REG(REG_PID0,    "_PID0"   ); ADD_REG(REG_PID1,     "_PID1"   ); 
-//       ADD_REG(REG_PID2,    "_PID2"   ); ADD_REG(REG_SPEFSCR, "_SPEFSCR" ); ADD_REG(REG_SVR,     "_SVR"    ); ADD_REGR(REG_TLB0CFG, "_TLB0CFG");
-//       ADD_REG(REG_TLB1CFG, "_TLB1CFG");
-
-
-        // std::vector<cpu_ppc_booke> container map to python
-        class_<std::vector<cpu_ppc_booke> > cpu_list_py("cpu_list");
-        cpu_list_py.def(vector_indexing_suite<std::vector<cpu_ppc_booke> >());
 
     }
 
     // Class machine ( Our top level machine class. This is the class we are going to use directly. )
-    class_<machine> machine_py("machine");
-    machine_py.def_readwrite("cpu", &machine::m_cpu)
-        .def_readonly("ncpus", &machine::m_ncpus)
-        .def_readwrite("memory", &machine::m_memory)
-        .add_property("cpu0", make_function(&machine::get_cpu<0>, return_value_policy<reference_existing_object>()))
-        .add_property("cpu1", make_function(&machine::get_cpu<1>, return_value_policy<reference_existing_object>()))
+    class_<machine<2> > machine_py("machine");
+    machine_py.def_readonly("ncpus", &machine<2>::m_ncpus)
+        .def_readwrite("memory", &machine<2>::m_memory)
+        .add_property("cpu0", make_function(&machine<2>::get_cpu<0>, return_value_policy<reference_existing_object>()))
+        .add_property("cpu1", make_function(&machine<2>::get_cpu<1>, return_value_policy<reference_existing_object>()))
         ;
     
 }

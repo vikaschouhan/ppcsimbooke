@@ -20,5 +20,6 @@ int main(){
     cpu0.run_instr("mtctr", "r0");
     cpu0.run_instr("cmpi", "0", "0", "r0", "0x68a");
     cpu0.dump_state(4);
+    cpu0.get_reg("r0");
     return 0;
 }
