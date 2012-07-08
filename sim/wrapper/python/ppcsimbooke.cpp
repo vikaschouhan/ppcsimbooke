@@ -185,17 +185,33 @@ BOOST_PYTHON_MODULE(ppcsim)
             ;
 
         // instr_call type ( We will probably never use this directly )
-        class_<instr_call>("instr_call")
-            .def_readwrite("opcode", &instr_call::opcode)
-            .add_property("arg0",    &instr_call::getarg<0>, &instr_call::setarg<0>)
-            .add_property("arg1",    &instr_call::getarg<1>, &instr_call::setarg<1>)
-            .add_property("arg2",    &instr_call::getarg<2>, &instr_call::setarg<2>)
-            .add_property("arg3",    &instr_call::getarg<3>, &instr_call::setarg<3>)
-            .add_property("arg4",    &instr_call::getarg<4>, &instr_call::setarg<4>)
-            .add_property("arg5",    &instr_call::getarg<5>, &instr_call::setarg<5>)
-            .def("dump_state",       &instr_call::dump_state)
-            .def("print_instr",      &instr_call::print_instr)
-            ;
+        {
+            class_<instr_call> instr_call_py("instr_call");
+            scope instr_call_scope = instr_call_py;
+            instr_call_py.def_readwrite("opcode", &instr_call::opcode)
+                .def_readwrite("nargs",  &instr_call::nargs)
+                .def("dump_state",       &instr_call::dump_state)
+                .def("print_instr",      &instr_call::print_instr)
+                ;
+
+            // instr_arg type
+            {
+                class_<instr_call::instr_arg> instr_arg_py("instr_arg");
+                instr_arg_py.def_readwrite("v", &instr_call::instr_arg::v)
+                    .def_readwrite("p",   &instr_call::instr_arg::p)
+                    .def_readwrite("t",   &instr_call::instr_arg::t)
+                    ;
+            }
+
+            // Add arguments
+            instr_call_py.add_property("arg0", make_function(&instr_call::getarg<0>, return_value_policy<reference_existing_object>()))
+                .add_property("arg1",          make_function(&instr_call::getarg<1>, return_value_policy<reference_existing_object>()))
+                .add_property("arg2",          make_function(&instr_call::getarg<2>, return_value_policy<reference_existing_object>()))
+                .add_property("arg3",          make_function(&instr_call::getarg<3>, return_value_policy<reference_existing_object>()))
+                .add_property("arg4",          make_function(&instr_call::getarg<4>, return_value_policy<reference_existing_object>()))
+                .add_property("arg5",          make_function(&instr_call::getarg<5>, return_value_policy<reference_existing_object>()))
+                ;
+        }
 
         // ppc register type ( 64 bit )
         class_<ppc_reg64>("ppc_reg64")

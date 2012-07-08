@@ -60,12 +60,9 @@ struct instr_call {
             printf(lfmt.c_str(), opcode.c_str(), arg[0].v, arg[1].v, arg[2].v, arg[3].v, arg[4].v, arg[5].v);
     }
 
-    // Get/Set functions for boost::python. We don't really need these in our c++ library
-    template <int ARG_NUM> void setarg(size_t val){
-        arg[ARG_NUM].v = val;
-    }
-    template <int ARG_NUM> size_t getarg(){
-        return arg[ARG_NUM].v;
+    // Get function for boost::python. We don't really need these in our c++ library
+    template <int ARG_NUM> instr_arg& getarg(){
+        return arg[ARG_NUM];
     }
 };
 
