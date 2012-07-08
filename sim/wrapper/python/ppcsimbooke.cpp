@@ -40,13 +40,11 @@
  
 // func ptrs for overloaded cpu::run_instrs()
 int (cpu::*run_instr_ptr)(instr_call*) = &cpu::run_instr;
-int (cpu::*run_instr_ptr2)(std::string, std::string, std::string, std::string, std::string,
-        std::string, std::string) = &cpu::run_instr;
+int (cpu::*run_instr_ptr2)(std::string) = &cpu::run_instr;
 
 // func ptrs for overloaded cpu_ppc_booke::run_instrs()
 int (cpu_ppc_booke::*run_instr_ptr_d0)(instr_call*) = &cpu_ppc_booke::run_instr;
-int (cpu_ppc_booke::*run_instr_ptr2_d0)(std::string, std::string, std::string, std::string, std::string,
-        std::string, std::string) = &cpu_ppc_booke::run_instr;
+int (cpu_ppc_booke::*run_instr_ptr2_d0)(std::string) = &cpu_ppc_booke::run_instr;
 
 // Wrapping some ppc_dis functions
 instr_call (ppc_dis_booke::*disasm_ptr)(uint32_t, int) = &ppc_dis_booke::disasm;
@@ -57,9 +55,8 @@ struct cpu_wrap : public cpu, public boost::python::wrapper<cpu>
     int run_instr(instr_call *ic){
         return this->get_override("run_instr")(ic);
     }
-    int run_instr(std::string opcode, std::string arg0, std::string arg1, std::string arg2, std::string arg3,
-            std::string arg4, std::string arg5){
-        return this->get_override("run_instr")(opcode, arg0, arg1, arg2, arg3, arg4, arg5);
+    int run_instr(std::string instr){
+        return this->get_override("run_instr")(instr);
     }
     int xlate_v2p(uint64_t vaddr, uint64_t *paddr, int flags){
         return this->get_override("xlate_v2p")(vaddr, paddr, flags);
@@ -70,8 +67,6 @@ struct cpu_wrap : public cpu, public boost::python::wrapper<cpu>
 
 // Overloads for cpu_ppc_booke::dump_state()
 BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(dump_state_overloads, dump_state, 0, 3);
-// Overloads for cpu_ppc_booke::run_instr()
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(run_instr_overloads, run_instr, 1, 7);
 
 // Overloads for memory::register_memory_target()
 BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(register_memory_target_overloads, register_memory_target, 5, 6);
@@ -258,7 +253,7 @@ BOOST_PYTHON_MODULE(ppcsim)
         // The derived cpu_ppc_book class ( Our main cpu class )
         class_<cpu_ppc_booke> cpu_ppc_py("cpu_ppc", init<uint64_t, std::string>());
         cpu_ppc_py.def("run_instr",   run_instr_ptr_d0)
-            .def("run_instr",         run_instr_ptr2_d0, run_instr_overloads())
+            .def("run_instr",         run_instr_ptr2_d0)
             .def("get_reg",           &cpu_ppc_booke::get_reg)
             .def("dump_state",        &cpu_ppc_booke::dump_state, dump_state_overloads())
             .def("init_reg_attrs",    &cpu_ppc_booke::init_reg_attrs)
