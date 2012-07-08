@@ -258,10 +258,12 @@ BOOST_PYTHON_MODULE(ppcsim)
         // The derived cpu_ppc_book class ( Our main cpu class )
         class_<cpu_ppc_booke> cpu_ppc_py("cpu_ppc", init<uint64_t, std::string>());
         cpu_ppc_py.def("run_instr",   run_instr_ptr_d0)
-            .def("run_instr",   run_instr_ptr2_d0, run_instr_overloads())
-            .def("get_reg",     &cpu_ppc_booke::get_reg)
-            .def("dump_state",  &cpu_ppc_booke::dump_state, dump_state_overloads())
-            .add_property("regs", make_function(&cpu_ppc_booke::___get_regs, return_value_policy<reference_existing_object>()))
+            .def("run_instr",         run_instr_ptr2_d0, run_instr_overloads())
+            .def("get_reg",           &cpu_ppc_booke::get_reg)
+            .def("dump_state",        &cpu_ppc_booke::dump_state, dump_state_overloads())
+            .def("init_reg_attrs",    &cpu_ppc_booke::init_reg_attrs)
+            .add_property("regs",     make_function(&cpu_ppc_booke::___get_regs, return_value_policy<reference_existing_object>()))
+            .add_property("PC",       &cpu_ppc_booke::get_pc)
             ;
 
 

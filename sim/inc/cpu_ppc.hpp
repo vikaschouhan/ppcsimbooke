@@ -37,6 +37,7 @@ class cpu_ppc_booke : public cpu {
         LOG("DEBUG4") << MSG_FUNC_START;
         this->cpu_no = this->ncpus++;
         init_reghash();
+        init_reg_attrs();
         gen_ppc_opc_func_hash(this);
         LOG("DEBUG4") << MSG_FUNC_END;
     }
@@ -45,6 +46,7 @@ class cpu_ppc_booke : public cpu {
         LOG("DEBUG4") << MSG_FUNC_START;
         this->cpu_no = this->ncpus++;
         init_reghash();
+        init_reg_attrs();
         gen_ppc_opc_func_hash(this);
         /* Add other things */
         LOG("DEBUG4") << MSG_FUNC_END;
@@ -71,6 +73,10 @@ class cpu_ppc_booke : public cpu {
     int run_instr(std::string opcode, std::string arg0="", std::string arg1="", std::string arg2="",
             std::string arg3="", std::string arg4="", std::string arg5="");
 
+    // Get PC
+    uint64_t get_pc(){
+        return pc;
+    }
     // Get GPR value
     uint64_t get_gpr(int gprno) throw(sim_exception);
     // Get spr value
@@ -90,6 +96,8 @@ class cpu_ppc_booke : public cpu {
     // Dump CPU state
     void dump_state(int columns=0, std::ostream &ostr=std::cout, int dump_all_sprs=0);
 
+    // Initialize register attributes
+    void init_reg_attrs();
     //
     // for boost::python
     ppc_regs& ___get_regs(){
@@ -127,7 +135,6 @@ class cpu_ppc_booke : public cpu {
 
     private:
     void init_reghash();
-    void init_spr_attrs();
     void ppc_exception(int exception_nr, uint64_t subtype, uint64_t ea=0xffffffffffffffffULL);
     
     private: 
@@ -149,15 +156,15 @@ class cpu_ppc_booke : public cpu {
     int         dec_intr_pending;  /* Decrementer interrupt pending  */
     uint64_t    zero;              /*  A zero register  */
 
-    ppc_regs    regs;              // PPC register file
+#define REG_ACS_READ    0x00000001UL       // Register has read access
+#define REG_ACS_WRITE   0x00000002UL       // Register has write access
+#define REG_CLEAR_W1C   0x00000010UL       // Register can be cleared by writing 1 to the bits
+#define REG_REQ_SYNC    0x00000020UL       // Register write requires synchronization
+#define REG_PRIV        0x00000100UL       // Register is priviledged
+#define REG_ILLEGAL     0xffffffffUL       // Register is illegal
 
-#define SPR_ACS_READ    0x00000001UL       // SPR has read access
-#define SPR_ACS_WRITE   0x00000002UL       // SPR has write access
-#define SPR_CLEAR_W1C   0x00000010UL       // SPR can be cleared by writing 1 to the bits
-#define SPR_REQ_SYNC    0x00000020UL       // SPR write requires synchronization
-#define SPR_PRIV        0x00000100UL       // SPR is priviledged
-#define SPR_ILLEGAL     0xffffffffUL       // SPR is illegal
-    uint32_t    spr_attr[PPC_NSPRS];
+    ppc_regs    regs;                      // PPC register file
+
 
     // Book keeping
     uint8_t                               cpu_no;            /* Numerical cpu no */
@@ -271,114 +278,114 @@ int cpu_ppc_booke::run_instr(std::string opcode, std::string arg0, std::string a
     return 0;
 }
 
-// Initialize SPR attributes
-void cpu_ppc_booke::init_spr_attrs(){
+// Initialize register attributes
+void cpu_ppc_booke::init_reg_attrs(){
     // spr_no[5] denotes priviledge level of SPR
     // If 1 -> the SPR is supervisor only,
     // If 0 -> it's accessible from both User and supervisor mode
-#define GET_SPR_PRIV(spr_no) (((i >> 4) & 1) ? SPR_PRIV : 0) 
+#define PPCREGATTR(regtype, regno)  (regs.regtype[regno].attr)
     int i;
     for(i=0; i<PPC_NSPRS; i++){
-        spr_attr[i] = SPR_ILLEGAL;
+        PPCREGATTR(spr, i) = REG_ILLEGAL;
     }
 
     // Set permissions for individual sprs
-    spr_attr[SPRN_ATBL]     = SPR_ACS_READ;
-    spr_attr[SPRN_ATBU]     = SPR_ACS_READ;
-    spr_attr[SPRN_CSRR0]    = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV;
-    spr_attr[SPRN_CSRR1]    = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV;
-    spr_attr[SPRN_CTR]      = SPR_ACS_READ  | SPR_ACS_WRITE;
-    spr_attr[SPRN_DAC1]     = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV;
-    spr_attr[SPRN_DAC2]     = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV;
-    spr_attr[SPRN_DBCR0]    = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV      | SPR_REQ_SYNC;
-    spr_attr[SPRN_DBCR1]    = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV      | SPR_REQ_SYNC; 
-    spr_attr[SPRN_DBCR2]    = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV      | SPR_REQ_SYNC;
-    spr_attr[SPRN_DBSR]     = SPR_ACS_READ  | SPR_CLEAR_W1C  | SPR_PRIV;
-    spr_attr[SPRN_DEAR]     = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV;
-    spr_attr[SPRN_DEC]      = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV;
-    spr_attr[SPRN_DECAR]    = SPR_ACS_WRITE | SPR_PRIV;
-    spr_attr[SPRN_ESR]      = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV;
-    spr_attr[SPRN_IAC1]     = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV;
-    spr_attr[SPRN_IAC2]     = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV;
-    spr_attr[SPRN_IVOR0]    = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV;
-    spr_attr[SPRN_IVOR1]    = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV;
-    spr_attr[SPRN_IVOR2]    = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV;
-    spr_attr[SPRN_IVOR3]    = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV;
-    spr_attr[SPRN_IVOR4]    = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV;
-    spr_attr[SPRN_IVOR5]    = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV;
-    spr_attr[SPRN_IVOR6]    = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV;
-    spr_attr[SPRN_IVOR8]    = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV;
-    spr_attr[SPRN_IVOR10]   = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV;
-    spr_attr[SPRN_IVOR11]   = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV;
-    spr_attr[SPRN_IVOR12]   = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV;
-    spr_attr[SPRN_IVOR13]   = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV;
-    spr_attr[SPRN_IVOR14]   = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV;
-    spr_attr[SPRN_IVOR15]   = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV;
-    spr_attr[SPRN_IVPR]     = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV;
-    spr_attr[SPRN_LR]       = SPR_ACS_READ  | SPR_ACS_WRITE;
-    spr_attr[SPRN_PID]      = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV;
-    spr_attr[SPRN_PIR]      = SPR_ACS_READ  | SPR_PRIV;
-    spr_attr[SPRN_PVR]      = SPR_ACS_READ  | SPR_PRIV;
-    spr_attr[SPRN_SPRG0]    = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV;
-    spr_attr[SPRN_SPRG1]    = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV;
-    spr_attr[SPRN_SPRG2]    = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV;
-    spr_attr[SPRN_SPRG3R]   = SPR_ACS_READ;
-    spr_attr[SPRN_SPRG3]    = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV;
-    spr_attr[SPRN_SPRG4R]   = SPR_ACS_READ;
-    spr_attr[SPRN_SPRG4]    = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV;
-    spr_attr[SPRN_SPRG5R]   = SPR_ACS_READ;
-    spr_attr[SPRN_SPRG5]    = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV;
-    spr_attr[SPRN_SPRG6R]   = SPR_ACS_READ;
-    spr_attr[SPRN_SPRG6]    = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV;
-    spr_attr[SPRN_SPRG7R]   = SPR_ACS_READ;
-    spr_attr[SPRN_SPRG7]    = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV;
-    spr_attr[SPRN_SRR0]     = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV;
-    spr_attr[SPRN_SRR1]     = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV;
-    spr_attr[SPRN_TBRL]     = SPR_ACS_READ;
-    spr_attr[SPRN_TBWL]     = SPR_ACS_WRITE | SPR_PRIV;
-    spr_attr[SPRN_TBRU]     = SPR_ACS_READ;
-    spr_attr[SPRN_TBWU]     = SPR_ACS_WRITE | SPR_PRIV;
-    spr_attr[SPRN_TCR]      = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV;
-    spr_attr[SPRN_TSR]      = SPR_ACS_READ  | SPR_CLEAR_W1C  | SPR_PRIV;
-    spr_attr[SPRN_USPRG0]   = SPR_ACS_READ  | SPR_ACS_WRITE;
-    spr_attr[SPRN_XER]      = SPR_ACS_READ  | SPR_ACS_WRITE;
+    PPCREGATTR(spr, SPRN_ATBL     )    = REG_ACS_READ;
+    PPCREGATTR(spr, SPRN_ATBU     )    = REG_ACS_READ;
+    PPCREGATTR(spr, SPRN_CSRR0    )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV;
+    PPCREGATTR(spr, SPRN_CSRR1    )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV;
+    PPCREGATTR(spr, SPRN_CTR      )    = REG_ACS_READ  | REG_ACS_WRITE;
+    PPCREGATTR(spr, SPRN_DAC1     )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV;
+    PPCREGATTR(spr, SPRN_DAC2     )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV;
+    PPCREGATTR(spr, SPRN_DBCR0    )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV      | REG_REQ_SYNC;
+    PPCREGATTR(spr, SPRN_DBCR1    )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV      | REG_REQ_SYNC; 
+    PPCREGATTR(spr, SPRN_DBCR2    )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV      | REG_REQ_SYNC;
+    PPCREGATTR(spr, SPRN_DBSR     )    = REG_ACS_READ  | REG_CLEAR_W1C  | REG_PRIV;
+    PPCREGATTR(spr, SPRN_DEAR     )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV;
+    PPCREGATTR(spr, SPRN_DEC      )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV;
+    PPCREGATTR(spr, SPRN_DECAR    )    = REG_ACS_WRITE | REG_PRIV;
+    PPCREGATTR(spr, SPRN_ESR      )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV;
+    PPCREGATTR(spr, SPRN_IAC1     )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV;
+    PPCREGATTR(spr, SPRN_IAC2     )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV;
+    PPCREGATTR(spr, SPRN_IVOR0    )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV;
+    PPCREGATTR(spr, SPRN_IVOR1    )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV;
+    PPCREGATTR(spr, SPRN_IVOR2    )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV;
+    PPCREGATTR(spr, SPRN_IVOR3    )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV;
+    PPCREGATTR(spr, SPRN_IVOR4    )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV;
+    PPCREGATTR(spr, SPRN_IVOR5    )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV;
+    PPCREGATTR(spr, SPRN_IVOR6    )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV;
+    PPCREGATTR(spr, SPRN_IVOR8    )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV;
+    PPCREGATTR(spr, SPRN_IVOR10   )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV;
+    PPCREGATTR(spr, SPRN_IVOR11   )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV;
+    PPCREGATTR(spr, SPRN_IVOR12   )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV;
+    PPCREGATTR(spr, SPRN_IVOR13   )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV;
+    PPCREGATTR(spr, SPRN_IVOR14   )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV;
+    PPCREGATTR(spr, SPRN_IVOR15   )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV;
+    PPCREGATTR(spr, SPRN_IVPR     )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV;
+    PPCREGATTR(spr, SPRN_LR       )    = REG_ACS_READ  | REG_ACS_WRITE;
+    PPCREGATTR(spr, SPRN_PID      )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV;
+    PPCREGATTR(spr, SPRN_PIR      )    = REG_ACS_READ  | REG_PRIV;
+    PPCREGATTR(spr, SPRN_PVR      )    = REG_ACS_READ  | REG_PRIV;
+    PPCREGATTR(spr, SPRN_SPRG0    )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV;
+    PPCREGATTR(spr, SPRN_SPRG1    )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV;
+    PPCREGATTR(spr, SPRN_SPRG2    )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV;
+    PPCREGATTR(spr, SPRN_SPRG3R   )    = REG_ACS_READ;
+    PPCREGATTR(spr, SPRN_SPRG3    )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV;
+    PPCREGATTR(spr, SPRN_SPRG4R   )    = REG_ACS_READ;
+    PPCREGATTR(spr, SPRN_SPRG4    )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV;
+    PPCREGATTR(spr, SPRN_SPRG5R   )    = REG_ACS_READ;
+    PPCREGATTR(spr, SPRN_SPRG5    )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV;
+    PPCREGATTR(spr, SPRN_SPRG6R   )    = REG_ACS_READ;
+    PPCREGATTR(spr, SPRN_SPRG6    )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV;
+    PPCREGATTR(spr, SPRN_SPRG7R   )    = REG_ACS_READ;
+    PPCREGATTR(spr, SPRN_SPRG7    )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV;
+    PPCREGATTR(spr, SPRN_SRR0     )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV;
+    PPCREGATTR(spr, SPRN_SRR1     )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV;
+    PPCREGATTR(spr, SPRN_TBRL     )    = REG_ACS_READ;
+    PPCREGATTR(spr, SPRN_TBWL     )    = REG_ACS_WRITE | REG_PRIV;
+    PPCREGATTR(spr, SPRN_TBRU     )    = REG_ACS_READ;
+    PPCREGATTR(spr, SPRN_TBWU     )    = REG_ACS_WRITE | REG_PRIV;
+    PPCREGATTR(spr, SPRN_TCR      )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV;
+    PPCREGATTR(spr, SPRN_TSR      )    = REG_ACS_READ  | REG_CLEAR_W1C  | REG_PRIV;
+    PPCREGATTR(spr, SPRN_USPRG0   )    = REG_ACS_READ  | REG_ACS_WRITE;
+    PPCREGATTR(spr, SPRN_XER      )    = REG_ACS_READ  | REG_ACS_WRITE;
 
-    spr_attr[SPRN_BBEAR]    = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_REQ_SYNC;
-    spr_attr[SPRN_BBTAR]    = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_REQ_SYNC;
-    spr_attr[SPRN_BUCSR]    = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV      | SPR_REQ_SYNC;
-    spr_attr[SPRN_HID0]     = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV      | SPR_REQ_SYNC;
-    spr_attr[SPRN_HID1]     = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV      | SPR_REQ_SYNC;
-    spr_attr[SPRN_IVOR32]   = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV;
-    spr_attr[SPRN_IVOR33]   = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV;
-    spr_attr[SPRN_IVOR34]   = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV;
-    spr_attr[SPRN_IVOR35]   = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV;
-    spr_attr[SPRN_L1CFG0]   = SPR_ACS_READ;
-    spr_attr[SPRN_L1CFG1]   = SPR_ACS_READ;
-    spr_attr[SPRN_L1CSR0]   = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV      | SPR_REQ_SYNC;
-    spr_attr[SPRN_L1CSR1]   = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV      | SPR_REQ_SYNC;
-    spr_attr[SPRN_MAS0]     = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV      | SPR_REQ_SYNC;
-    spr_attr[SPRN_MAS1]     = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV      | SPR_REQ_SYNC;
-    spr_attr[SPRN_MAS2]     = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV      | SPR_REQ_SYNC;
-    spr_attr[SPRN_MAS3]     = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV      | SPR_REQ_SYNC;
-    spr_attr[SPRN_MAS4]     = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV      | SPR_REQ_SYNC;
-    spr_attr[SPRN_MAS5]     = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV      | SPR_REQ_SYNC;    // Needs to be verified
-    spr_attr[SPRN_MAS6]     = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV      | SPR_REQ_SYNC;
-    spr_attr[SPRN_MAS7]     = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV      | SPR_REQ_SYNC;
-    spr_attr[SPRN_MCAR]     = SPR_ACS_READ  | SPR_PRIV;
-    spr_attr[SPRN_MCSR]     = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV;
-    spr_attr[SPRN_MCSRR0]   = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV;
-    spr_attr[SPRN_MCSRR1]   = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV;
-    spr_attr[SPRN_MMUCFG]   = SPR_ACS_READ  | SPR_PRIV;
-    spr_attr[SPRN_MMUCSR0]  = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV      | SPR_REQ_SYNC;
-    spr_attr[SPRN_PID0]     = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV      | SPR_REQ_SYNC;
-    spr_attr[SPRN_PID1]     = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV      | SPR_REQ_SYNC;
-    spr_attr[SPRN_PID2]     = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_PRIV      | SPR_REQ_SYNC;
-    spr_attr[SPRN_SPEFSCR]  = SPR_ACS_READ  | SPR_ACS_WRITE  | SPR_REQ_SYNC;
-    spr_attr[SPRN_SVR]      = SPR_ACS_READ  | SPR_PRIV;
-    spr_attr[SPRN_TLB0CFG]  = SPR_ACS_READ  | SPR_PRIV;
-    spr_attr[SPRN_TLB1CFG]  = SPR_ACS_READ  | SPR_PRIV;
+    PPCREGATTR(spr, SPRN_BBEAR    )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_REQ_SYNC;
+    PPCREGATTR(spr, SPRN_BBTAR    )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_REQ_SYNC;
+    PPCREGATTR(spr, SPRN_BUCSR    )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV      | REG_REQ_SYNC;
+    PPCREGATTR(spr, SPRN_HID0     )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV      | REG_REQ_SYNC;
+    PPCREGATTR(spr, SPRN_HID1     )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV      | REG_REQ_SYNC;
+    PPCREGATTR(spr, SPRN_IVOR32   )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV;
+    PPCREGATTR(spr, SPRN_IVOR33   )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV;
+    PPCREGATTR(spr, SPRN_IVOR34   )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV;
+    PPCREGATTR(spr, SPRN_IVOR35   )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV;
+    PPCREGATTR(spr, SPRN_L1CFG0   )    = REG_ACS_READ;
+    PPCREGATTR(spr, SPRN_L1CFG1   )    = REG_ACS_READ;
+    PPCREGATTR(spr, SPRN_L1CSR0   )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV      | REG_REQ_SYNC;
+    PPCREGATTR(spr, SPRN_L1CSR1   )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV      | REG_REQ_SYNC;
+    PPCREGATTR(spr, SPRN_MAS0     )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV      | REG_REQ_SYNC;
+    PPCREGATTR(spr, SPRN_MAS1     )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV      | REG_REQ_SYNC;
+    PPCREGATTR(spr, SPRN_MAS2     )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV      | REG_REQ_SYNC;
+    PPCREGATTR(spr, SPRN_MAS3     )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV      | REG_REQ_SYNC;
+    PPCREGATTR(spr, SPRN_MAS4     )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV      | REG_REQ_SYNC;
+    PPCREGATTR(spr, SPRN_MAS5     )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV      | REG_REQ_SYNC;    // Needs to be verified
+    PPCREGATTR(spr, SPRN_MAS6     )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV      | REG_REQ_SYNC;
+    PPCREGATTR(spr, SPRN_MAS7     )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV      | REG_REQ_SYNC;
+    PPCREGATTR(spr, SPRN_MCAR     )    = REG_ACS_READ  | REG_PRIV;
+    PPCREGATTR(spr, SPRN_MCSR     )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV;
+    PPCREGATTR(spr, SPRN_MCSRR0   )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV;
+    PPCREGATTR(spr, SPRN_MCSRR1   )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV;
+    PPCREGATTR(spr, SPRN_MMUCFG   )    = REG_ACS_READ  | REG_PRIV;
+    PPCREGATTR(spr, SPRN_MMUCSR0  )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV      | REG_REQ_SYNC;
+    PPCREGATTR(spr, SPRN_PID0     )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV      | REG_REQ_SYNC;
+    PPCREGATTR(spr, SPRN_PID1     )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV      | REG_REQ_SYNC;
+    PPCREGATTR(spr, SPRN_PID2     )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV      | REG_REQ_SYNC;
+    PPCREGATTR(spr, SPRN_SPEFSCR  )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_REQ_SYNC;
+    PPCREGATTR(spr, SPRN_SVR      )    = REG_ACS_READ  | REG_PRIV;
+    PPCREGATTR(spr, SPRN_TLB0CFG  )    = REG_ACS_READ  | REG_PRIV;
+    PPCREGATTR(spr, SPRN_TLB1CFG  )    = REG_ACS_READ  | REG_PRIV;
 
-
+#undef PPCREGATTR
 }                              
 
 // Interrupt handling routines ( they handle exceptions at hardware level only and redirect control
