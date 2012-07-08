@@ -258,6 +258,7 @@ instr_call ppc_dis_booke::disasm(uint32_t opcd, int endianness)
     instr_call  call_this;
     unsigned long insn;
     const struct powerpc_opcode *opcode;
+    int i = 0;
 
     // We reverse endianness if LITTLE endian specified
     if (endianness == EMUL_LITTLE_ENDIAN)
@@ -303,7 +304,7 @@ instr_call ppc_dis_booke::disasm(uint32_t opcd, int endianness)
         /* Now extract and print the operands.  */
         need_comma = 0;
         need_paren = 0;
-        for (opindex = opcode->operands; *opindex != 0; opindex++)
+        for (opindex = opcode->operands, i=0; *opindex != 0; opindex++, i++)
         {
             long value;
 
@@ -322,7 +323,7 @@ instr_call ppc_dis_booke::disasm(uint32_t opcd, int endianness)
             //}
 
             value = operand_value_powerpc (operand, insn);
-            call_this.arg[call_this.nargs] = value;
+            call_this.arg[i].v = value;
 
             if (need_comma)
             {
@@ -333,10 +334,12 @@ instr_call ppc_dis_booke::disasm(uint32_t opcd, int endianness)
             /* Print the operand as directed by the flags.  */
             if ((operand->flags & PPC_OPERAND_GPR) != 0 || ((operand->flags & PPC_OPERAND_GPR_0) != 0 && value != 0)){
                 call_this.fmt += "r%ld";
-                call_this.targ[call_this.nargs] = (REG_GPR0 + value);
+                call_this.arg[i].p = (REG_GPR0 + value);
+                call_this.arg[i].t = 1;
             } else if ((operand->flags & PPC_OPERAND_FPR) != 0){
                 call_this.fmt += "f%ld";
-                call_this.targ[call_this.nargs] = (REG_FPR0 + value);
+                call_this.arg[i].p = (REG_FPR0 + value);
+                call_this.arg[i].t = 1;
             } else if ((operand->flags & PPC_OPERAND_VR) != 0){
                 call_this.fmt += "v%ld";
                 // VRs are not supported at this time.
@@ -345,10 +348,12 @@ instr_call ppc_dis_booke::disasm(uint32_t opcd, int endianness)
                 // Booke cpus shouldn't come here
             } else if ((operand->flags & PPC_OPERAND_RELATIVE) != 0){
                 call_this.fmt += "0x%lx";
-                call_this.targ[call_this.nargs] = value;
+                call_this.arg[i].p = value;
+                call_this.arg[i].t = 0;
             } else if ((operand->flags & PPC_OPERAND_ABSOLUTE) != 0){
                 call_this.fmt += "0x%lx";
-                call_this.targ[call_this.nargs] = value;
+                call_this.arg[i].p = value;
+                call_this.arg[i].t = 0;
             } else if ((operand->flags & PPC_OPERAND_FSL) != 0){
                 call_this.fmt += "fsl%ld";
                 // Booke cpus shouln't come here
@@ -364,11 +369,13 @@ instr_call ppc_dis_booke::disasm(uint32_t opcd, int endianness)
                     call_this.fmt += "cr%ld";
                 else
                     call_this.fmt += "cr[%ld]";
-                call_this.targ[call_this.nargs] = value;
+                call_this.arg[i].p = value;
+                call_this.arg[i].t = 0;
             }
             else{
                 call_this.fmt += "0x%x";
-                call_this.targ[call_this.nargs] = value;
+                call_this.arg[i].p = value;
+                call_this.arg[i].t = 0;
             }
 
             if (need_paren)
@@ -391,8 +398,10 @@ instr_call ppc_dis_booke::disasm(uint32_t opcd, int endianness)
 
     }else{
         /* We could not find a match. Return with NULL opcode */
-        call_this.opcode  = "";
-        call_this.arg[0]  = insn;
+        call_this.opcode    = "";
+        call_this.arg[0].v  = insn;
+        call_this.arg[0].p  = insn;
+        call_this.arg[0].t  = 0;
     }
 
     // Update cache
@@ -479,12 +488,14 @@ instr_call ppc_dis_booke::disasm(std::string instr)
             || ((operand->flags & PPC_OPERAND_GPR_0) != 0 && token != 0)){
             sscanf(token, "r%ld", &value);
             call_this.fmt    += "r%ld";
-            call_this.targ[i] = (REG_GPR0 + value);
+            call_this.arg[i].p = (REG_GPR0 + value);
+            call_this.arg[i].t = 1;
         }
         else if ((operand->flags & PPC_OPERAND_FPR) != 0){
             sscanf(token, "f%ld", &value);
             call_this.fmt    += "f%ld";
-            call_this.targ[i] = (REG_FPR0 + value);
+            call_this.arg[i].p = (REG_FPR0 + value);
+            call_this.arg[i].t = 1;
         }
         else if ((operand->flags & PPC_OPERAND_VR) != 0){
             sscanf(token, "v%ld", &value);
@@ -534,17 +545,19 @@ instr_call ppc_dis_booke::disasm(std::string instr)
                 value = 4*cr + ind;
                 call_this.fmt  += "cr[%ld]";
             }
-            call_this.targ[i] = value;
+            call_this.arg[i].p = value;
+            call_this.arg[i].t = 0;
         }
         else{
             sscanf(token, "0x%lx", &value);
-            call_this.fmt  += "0x%lx";
-            call_this.targ[i] = value;
+            call_this.fmt     += "0x%lx";
+            call_this.arg[i].p = value;
+            call_this.arg[i].t = 0;
         }
 
         call_this.fmt += std::string(1, delim);    // Add delimiter to format string
 
-        call_this.arg[i] = value;
+        call_this.arg[i].v = value;
         call_this.nargs++;
     }
 

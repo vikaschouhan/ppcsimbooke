@@ -4,6 +4,7 @@
 #include "config.h"
 #include "tlb_booke.hpp"
 #include "ppc_exception.hpp"
+#include "ppc_dis.hpp"
 #include "cpu.hpp"
 #include "cpu_ppc_regs.h"
 #include "cpu_host.h"
@@ -70,8 +71,7 @@ class cpu_ppc_booke : public cpu {
     int run_instr(instr_call *ic);
     int xlate_v2p(uint64_t vaddr, uint64_t *return_paddr, int flags);
     // Overloaded run
-    int run_instr(std::string opcode, std::string arg0="", std::string arg1="", std::string arg2="",
-            std::string arg3="", std::string arg4="", std::string arg5="");
+    int run_instr(std::string instr);
 
     // Get PC
     uint64_t get_pc(){
@@ -176,6 +176,9 @@ class cpu_ppc_booke : public cpu {
 #define PPCREG(reg_id)          (m_ireghash[reg_id]->value)
 #define PPCREGN(reg_name)       (m_reghash[reg_name]->value)
 
+    // Disassembler module
+    ppc_dis_booke                          m_dis;
+
     /*
      *  Instruction translation cache and Virtual->Physical->Host
      *  address translation:
@@ -241,39 +244,19 @@ int cpu_ppc_booke::xlate_v2p(uint64_t vaddr, uint64_t *return_paddr, int flags){
 // Second form of run_instr
 // Seems like c++ doesn't have an very effective way of handling non POD objects
 //  with variadic arg funcs
-int cpu_ppc_booke::run_instr(std::string opcode, std::string arg0, std::string arg1, std::string arg2,
-        std::string arg3, std::string arg4, std::string arg5){
+int cpu_ppc_booke::run_instr(std::string instr){
     LOG("DEBUG4") << MSG_FUNC_START;
     instr_call call_this;
-    call_this.opcode = opcode;
+    int i;
 
-    // We don't have support for Vector registers 
-    // NOTE: arg is of std::string type only, argno is of type int
-    #define PARSE_INSTR_ARG(opc, arg_this, argno)                                                             \
-        do{                                                                                                   \
-            if((arg_this) == "") break;                                                                       \
-            arg_this = quirks.arg_fix_zero_quirk((opc), (arg_this), (argno));                                 \
-            if(((arg_this).at(0) >= 'A' && (arg_this).at(0) <= 'Z') ||                                        \
-                    ((arg_this).at(0) >= 'a' && (arg_this).at(0) <= 'z')){                                    \
-                /* It starts with a character, so assume it's some register only */                           \
-                boost::algorithm::to_lower(arg_this);                                                         \
-                assert_and_throw(m_reghash.find(arg_this) != m_reghash.end(),                                 \
-                        sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Illegal ppc register"));                        \
-                call_this.arg[argno] = reinterpret_cast<size_t>(&(m_reghash[arg_this]->value));               \
-            }else{                                                                                            \
-                /* Assuming it's an immediate value */                                                        \
-                call_this.arg[argno] = static_cast<size_t>(str_to_int(arg_this));                             \
-            }                                                                                                 \
-        }while(0)
-    PARSE_INSTR_ARG(opcode, arg0, 0);
-    PARSE_INSTR_ARG(opcode, arg1, 1);
-    PARSE_INSTR_ARG(opcode, arg2, 2);
-    PARSE_INSTR_ARG(opcode, arg3, 3);
-    PARSE_INSTR_ARG(opcode, arg4, 4);
-    PARSE_INSTR_ARG(opcode, arg5, 5);
+    call_this = m_dis.disasm(instr);
+    for(i=0; i<call_this.nargs; i++){
+        if (call_this.arg[i].t){
+            call_this.arg[i].p = reinterpret_cast<size_t>(&(m_ireghash[call_this.arg[i].p]->value));
+        }
+    }
 
-    // Call instr_func
-    ppc_func_hash[opcode](this, &call_this);
+    ppc_func_hash[call_this.opcode](this, &call_this);
     LOG("DEBUG4") << MSG_FUNC_END;
     return 0;
 }

@@ -39,8 +39,7 @@ class cpu {
 
     public:
     virtual int        run_instr(instr_call *ic) = 0;
-    virtual int        run_instr(std::string opcode, std::string arg0, std::string arg1, std::string arg2,
-                                        std::string arg3, std::string arg4, std::string arg5) = 0;
+    virtual int        run_instr(std::string instr) = 0;
     virtual int        xlate_v2p(uint64_t vaddr, uint64_t *return_paddr, int flags) = 0;
 
     public:

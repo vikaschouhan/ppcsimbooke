@@ -6,30 +6,41 @@
 // instruction call frame
 #define N_IC_ARGS 6           // Max arguments supported
 struct instr_call {
+    struct instr_arg {
+        size_t  v;         // Actual argument
+        size_t  p;         // Indirect Pointer to the m_ireghash entry
+        bool    t;         // Argument type ( 1=register, 0=value )
+    };
     std::string   opcode;               // Opcode
     std::string   fmt;                  // Display format
     int           nargs;                // Number of arguments
-    size_t        arg[N_IC_ARGS];       // Arguments themselves
-    int           targ[N_IC_ARGS];      // arguments suitable for our purpose
+    instr_arg     arg[N_IC_ARGS];       // Argument array
     void          *fptr;                // Function pointer
 
     instr_call(){
         opcode = "";
         fmt    = "";
         nargs  = 0;
-        for(int i=0; i<N_IC_ARGS; i++){ arg[i] = 0; }
+        for(int i=0; i<N_IC_ARGS; i++){
+            arg[i].v = arg[i].p = arg[i].t = 0;
+        }
     }
     // Dump state
     void dump_state(){
         std::cout << "opcode : " << opcode << std::endl;
         std::cout << "args   : ";
         for(int i=0; i<nargs; i++){
-            std::cout << std::hex << std::showbase << arg[i] << " ";
+            std::cout << std::hex << std::showbase << arg[i].v << " ";
+        }
+        std::cout << std::endl;
+        std::cout << "pargs  : ";
+        for(int i=0; i<nargs; i++){
+            std::cout << std::hex << std::showbase << arg[i].p << " ";
         }
         std::cout << std::endl;
         std::cout << "targs  : ";
         for(int i=0; i<nargs; i++){
-            std::cout << std::hex << std::showbase << targ[i] << " ";
+            std::cout << std::hex << std::showbase << arg[i].t << " ";
         }
         std::cout << std::endl;
         std::cout << "fmt    : " << fmt << std::endl;
@@ -44,17 +55,17 @@ struct instr_call {
         fmt += "\n";
         // We use printf for printing , since we have format of arguments in a string.
         if(opcode == "")
-            printf(".long 0x%lx\n", (arg[0] & 0xffffffff));
+            printf(".long 0x%lx\n", (arg[0].v & 0xffffffff));
         else
-            printf(lfmt.c_str(), opcode.c_str(), arg[0], arg[1], arg[2], arg[3], arg[4], arg[5]);
+            printf(lfmt.c_str(), opcode.c_str(), arg[0].v, arg[1].v, arg[2].v, arg[3].v, arg[4].v, arg[5].v);
     }
 
     // Get/Set functions for boost::python. We don't really need these in our c++ library
     template <int ARG_NUM> void setarg(size_t val){
-        arg[ARG_NUM] = val;
+        arg[ARG_NUM].v = val;
     }
     template <int ARG_NUM> size_t getarg(){
-        return arg[ARG_NUM];
+        return arg[ARG_NUM].v;
     }
 };
 

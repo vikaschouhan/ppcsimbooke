@@ -68,12 +68,12 @@ my $ppc_func_name = "gen_ppc_opc_func_hash";
 # C macros defined here ( imp )
 #
 # Args
-my $ppc_ic_arg0 = "\"ic->arg[0]\"";   # -DARG0
-my $ppc_ic_arg1 = "\"ic->arg[1]\"";   # -DARG1
-my $ppc_ic_arg2 = "\"ic->arg[2]\"";   # -DARG2
-my $ppc_ic_arg3 = "\"ic->arg[3]\"";   # -DARG3
-my $ppc_ic_arg4 = "\"ic->arg[4]\"";   # -DARG4
-my $ppc_ic_arg5 = "\"ic->arg[5]\"";   # -DARG5
+my $ppc_ic_arg0 = "\"ic->arg[0].p\"";   # -DARG0
+my $ppc_ic_arg1 = "\"ic->arg[1].p\"";   # -DARG1
+my $ppc_ic_arg2 = "\"ic->arg[2].p\"";   # -DARG2
+my $ppc_ic_arg3 = "\"ic->arg[3].p\"";   # -DARG3
+my $ppc_ic_arg4 = "\"ic->arg[4].p\"";   # -DARG4
+my $ppc_ic_arg5 = "\"ic->arg[5].p\"";   # -DARG5
 
 my $cpu_ppc_umode = "\"uint32_t\"";   # -DUMODE
 my $cpu_ppc_smode = "\"int32_t\"";    # -DSMODE
