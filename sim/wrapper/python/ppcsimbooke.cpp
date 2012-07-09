@@ -158,6 +158,51 @@ template<uint64_t x> const uint64_t new_const<x>::val = x;
       ADD_SPR(SPRN_PID2,    "PID2"   ); ADD_SPR(SPRN_SPEFSCR, "SPEFSCR" ); ADD_SPR(SPRN_SVR,     "SVR"    ); ADD_SPR(SPRN_TLB0CFG,  "TLB0CFG");    \
       ADD_SPR(SPRN_TLB1CFG, "TLB1CFG")
 
+// Add bitmask constants
+#define ADD_BMASK(mask, mask_alias)  bitmasks_py.def_readonly(mask_alias, &new_const<mask>::val)
+#define ADD_BITMASKS()    \
+      /* MSR */                                                                                                                                                \
+      ADD_BMASK(MSR_UCLE,   "MSR_UCLE"  );  ADD_BMASK(MSR_SPE,    "MSR_SPE"   );  ADD_BMASK(MSR_WE,     "MSR_WE"    );  ADD_BMASK(MSR_CE,     "MSR_CE"    );   \
+      ADD_BMASK(MSR_EE,     "MSR_EE"    );  ADD_BMASK(MSR_PR,     "MSR_PR"    );  ADD_BMASK(MSR_FP,     "MSR_FP"    );  ADD_BMASK(MSR_ME,     "MSR_ME"    );   \
+      ADD_BMASK(MSR_UBLE,   "MSR_UBLE"  );  ADD_BMASK(MSR_DE,     "MSR_DE"    );  ADD_BMASK(MSR_IS,     "MSR_IS"    );  ADD_BMASK(MSR_DS,     "MSR_DS"    );   \
+      ADD_BMASK(MSR_PMM,    "MSR_PMM"   );                                                                                                                     \
+      /* DBSR . Many bitfields are having slightly diff names in the linux' header files */                                                                    \
+      ADD_BMASK(0x80000000, "DBSR_IDE"  );  ADD_BMASK(DBSR_UDE,   "DBSR_UDE"  );  ADD_BMASK(0x30000000, "DBSR_MRR"  );  ADD_BMASK(DBSR_IC,    "DBSR_ICMP" );   \
+      ADD_BMASK(DBSR_BT,    "DBSR_BRT"  );  ADD_BMASK(DBSR_IRPT,  "DBSR_IRPT" );  ADD_BMASK(DBSR_TIE,   "DBSR_TRAP" );  ADD_BMASK(DBSR_IAC1,  "DBSR_IAC1" );   \
+      ADD_BMASK(DBSR_IAC2,  "DBSR_IAC2" );  ADD_BMASK(DBSR_DAC1R, "DBSR_DAC1R");  ADD_BMASK(DBSR_DAC1W, "DBSR_DAC1W");  ADD_BMASK(DBSR_DAC2R, "DBSR_DAC2R");   \
+      ADD_BMASK(DBSR_DAC2W, "DBSR_DAC2W");  ADD_BMASK(DBSR_RET,   "DBSR_RET"  );                                                                               \
+      /* ESR */                                                                                                                                                \
+      ADD_BMASK(ESR_PIL,    "ESR_PIL"   );  ADD_BMASK(ESR_PPR,    "ESR_PPR"   );  ADD_BMASK(ESR_PTR,    "ESR_PTR"   );  ADD_BMASK(ESR_ST,     "EST_ST"    );   \
+      ADD_BMASK(ESR_DLK,    "ESR_DLK"   );  ADD_BMASK(ESR_ILK,    "ESR_ILK"   );  ADD_BMASK(ESR_BO,     "ESR_BO"    );  ADD_BMASK(ESR_SPV,    "ESR_SPE"   );   \
+      /* PVR */                                                                                                                                                \
+      ADD_BMASK(0xffff0000, "PVR_VER"   );  ADD_BMASK(0xffff,     "PVR_REV"   );                                                                               \
+      /* HID0 .  original bitmasks in linux's header files are all wrong, so specified here manually */                                                        \
+      ADD_BMASK(0x80000000, "HID0_EMCP" );  ADD_BMASK(0x800000,   "HID0_DOZE" );  ADD_BMASK(0x400000,   "HID0_NAP"  );  ADD_BMASK(0x200000,   "HID0_SLEEP");   \
+      ADD_BMASK(0x4000,     "HID0_TBEN" );  ADD_BMASK(0x2000, "HID0_SEL_TBCLK");  ADD_BMASK(0x80, "HID0_EN_MAS7_UPDATE");                                      \
+      ADD_BMASK(0x40,       "HID0_DCFA" );  ADD_BMASK(0x1,        "HID0_NOPTI");                                                                               \
+      /* MAS0 */                                                                                                                                               \
+      ADD_BMASK(0x10000000, "MAS0_TLBSEL");                                       ADD_BMASK(0xf0000,    "MAS0_ESEL" );  ADD_BMASK(0x1,        "MAS0_NV"   );   \
+      /* MAS1 */                                                                                                                                               \
+      ADD_BMASK(0x80000000, "MAS1_V"     ); ADD_BMASK(0x40000000, "MAS1_IPROT");  ADD_BMASK(0x00ff0000, "MAS1_TID"  );  ADD_BMASK(0x1000,     "MAS1_TS"   );   \
+      ADD_BMASK(0xf00,      "MAS1_TSIZE" );                                                                                                                    \
+      /* MAS2 */                                                                                                                                               \
+      ADD_BMASK(0xfffff000, "MAS2_EPN"   ); ADD_BMASK(0x40,       "MAS2_X0"   );  ADD_BMASK(0x20,       "MAS2_X1"   );  ADD_BMASK(0x10,       "MAS2_W"    );   \
+      ADD_BMASK(0x8,        "MAS2_I"     ); ADD_BMASK(0x4,        "MAS2_M"    );  ADD_BMASK(0x2,        "MAS2_G"    );  ADD_BMASK(0x1,        "MAS2_E"    );   \
+      ADD_BMASK(0x60,       "MAS2_X01"   ); ADD_BMASK(0x1F,       "MAS2_WIMGE");                                                                               \
+      /* MAS3 */                                                                                                                                               \
+      ADD_BMASK(0xfffff000, "MAS3_RPN"   ); ADD_BMASK(0x3c0,      "MAS3_U03"  );  ADD_BMASK(0x3f,       "MAS3_PERMIS");                                        \
+      ADD_BMASK(0x20,       "MAS3_UX"    ); ADD_BMASK(0x10,       "MAS3_SX"   );  ADD_BMASK(0x8,        "MAS3_UW"    ); ADD_BMASK(0x4,        "MAS3_SW"   );   \
+      ADD_BMASK(0x2,        "MAS3_UR"    ); ADD_BMASK(0x1,        "MAS3_SR"   );                                                                               \
+      /* MAS4 */                                                                                                                                               \
+      ADD_BMASK(0x30000000, "MAS4_TLBSELD");                                      ADD_BMASK(0x30000,    "MAS4_TIDSELD");                                       \
+      ADD_BMASK(0xf00,      "MAS4_TSIZED"); ADD_BMASK(0x40,       "MAS4_X0D"  );  ADD_BMASK(0x20,       "MAS4_X1D"  );  ADD_BMASK(0x10,       "MAS4_WD"   );   \
+      ADD_BMASK(0x8,        "MAS4_ID"    ); ADD_BMASK(0x4,        "MAS4_MD"   );  ADD_BMASK(0x2,        "MAS4_GD"   );  ADD_BMASK(0x1,        "MAS4_ED"   );   \
+      ADD_BMASK(0x60,       "MAS4_X01D"  ); ADD_BMASK(0x1f,       "MAS4_WIMGED");                                                                              \
+      /* MAS6 */                                                                                                                                               \
+      ADD_BMASK(0xff0000,   "MAS6_SPID0" ); ADD_BMASK(0x1,        "MAS6_SAS"  );                                                                               \
+      /* MAS7 */                                                                                                                                               \
+      ADD_BMASK(0xf,        "MAS7_RPN"   )
+
 
 // Main module
 BOOST_PYTHON_MODULE(ppcsim)
@@ -222,11 +267,21 @@ BOOST_PYTHON_MODULE(ppcsim)
             ;
 
         // PPC register file type ( contains all registers, GPRs, FPRs, SPRs etc. )
-        class_<ppc_regs> ppc_regs_py("ppc_regs");
-        ppc_regs_py.add_property("MSR", &ppc_regs::msr)
-            .add_property("CR",  &ppc_regs::cr)
-            ;
-        ADD_ALL_REGS();
+        {
+            class_<ppc_regs> ppc_regs_py("ppc_regs");
+            scope ppc_regs_scope = ppc_regs_py;
+            ppc_regs_py.add_property("MSR", &ppc_regs::msr)
+                .add_property("CR",  &ppc_regs::cr)
+                ;
+            ADD_ALL_REGS();
+
+            // Bit mask constants defined
+            {
+                class_<dummy<1> > bitmasks_py("bitmasks", no_init);
+                scope bitmasks_scope = bitmasks_py;
+                ADD_BITMASKS();
+            }
+        }
 
         // Memory namespace
         {
@@ -250,7 +305,7 @@ BOOST_PYTHON_MODULE(ppcsim)
 
             // Memory targets namespace ( defines constants for memory targets )
             {
-                class_<dummy<1> > mem_tgts_py("tgts", no_init);
+                class_<dummy<2> > mem_tgts_py("tgts", no_init);
                 scope mem_tgts_scope = mem_tgts_py;
                 mem_tgts_py.def_readonly("TGT_DDR", &TGT_DDR)
                     .def_readonly("TGT_CCSR", &TGT_CCSR)
