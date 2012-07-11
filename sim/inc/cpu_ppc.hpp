@@ -10,8 +10,6 @@
 #include "cpu_host.h"
 #include "cpu_ppc_quirks.hpp"
 #include "memory.hpp"
-#include "third_party/ppc/reg.h"
-#include "regfields.h"
 
 /* 64 bit MSRs were used in older powerPC designs */
 /* All BookE cores have 32 bit MSRs only */

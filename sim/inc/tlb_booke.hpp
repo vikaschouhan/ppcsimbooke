@@ -35,8 +35,6 @@ using std::setw;
 using std::right;
 using std::ofstream;
 
-#define HID0_EN_MAS7_UPDATE (1 << 7)
-
 /* We will move this to a central config file later on */
 #if (defined __x86_64__)
 #define brev(a, b) b a

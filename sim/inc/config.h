@@ -20,6 +20,10 @@
 #include <cstring>
 #include <sstream>
 
+// Define register masks/fields
+#include "third_party/ppc/reg.h"
+#include "regfields.h"
+
 // Boost headers
 #include <boost/algorithm/string.hpp>
 #include <boost/shared_ptr.hpp>
