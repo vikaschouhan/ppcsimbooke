@@ -29,7 +29,7 @@ template < typename K, typename V > class lru_cache
     // the maximum number of records to be stored. 
     lru_cache(size_t c) : _capacity(c) 
     { 
-        assert_and_throw(_capacity != 0, sim_exception(SIM_EXCEPT_FATAL, "lru capcity shouldn't be zero")); 
+        assert_and_throw(_capacity != 0, sim_exception_fatal("lru capcity shouldn't be zero")); 
     }
 
     // @func  : operator[] 
@@ -60,7 +60,7 @@ template < typename K, typename V > class lru_cache
     // @brief : insert new key-value pair into the cache
     void insert(const key_type& k,const value_type& v) { 
     
-        assert_and_throw(_container.size() <= _capacity, sim_exception(SIM_EXCEPT_FATAL, "lru cache size shouldn't grow beyond it's capacity"));
+        assert_and_throw(_container.size() <= _capacity, sim_exception_fatal("lru cache size shouldn't grow beyond it's capacity"));
 
         // If necessary, make space 
         if (_container.size() == _capacity) { 

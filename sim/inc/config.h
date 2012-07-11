@@ -3,6 +3,7 @@
 
 // Include all common std. header files
 #include <iostream>
+#include <fstream>
 #include <cmath>
 #include <exception>
 #include <memory>

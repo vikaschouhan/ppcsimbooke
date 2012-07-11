@@ -21,8 +21,6 @@ template <int ncpus> class machine {
             ostr << i;
             m_cpu[i].init_cpu_ppc_booke(cpuid, "e500v2_" + ostr.str());
         }
-        m_memory.init_memory(36);
-        
     }
     template<int cpu_no> cpu_ppc_booke& get_cpu(){
         return m_cpu[cpu_no];

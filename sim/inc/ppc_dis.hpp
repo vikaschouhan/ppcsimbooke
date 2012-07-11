@@ -273,7 +273,7 @@ instr_call ppc_dis_booke::disasm(uint32_t opcd, int endianness)
         call_this = m_dis_cache[insn];
     }catch(sim_exception& e){
         if(e.err_code() != SIM_EXCEPT_ILLEGAL_OP){
-            throw(sim_exception(SIM_EXCEPT_FATAL, "Fatal error. This should never happen"));
+            throw(sim_exception_fatal("Fatal error. This should never happen"));
         }
     }
 

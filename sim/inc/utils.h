@@ -53,6 +53,7 @@ static const int  EMUL_BIG_ENDIAN        =  2;
 // C++ specific exception assertion
 #define assert_and_throw(x, expv) if(!(x)){ std::cout << #x << " failed in " << __FILE__ << " at " << __LINE__ << std::endl; throw expv; }
 
+
 #define log2(x) static_cast<unsigned>(log2(static_cast<double>(static_cast<unsigned>(x))))
 #define log4(x) static_cast<unsigned>(log2(static_cast<double>(static_cast<unsigned>(x)))/2)
 #define pow4(x) ((1 << static_cast<unsigned>(x)) << static_cast<unsigned>(x))
@@ -104,6 +105,19 @@ static const int  EMUL_BIG_ENDIAN        =  2;
 // Void functions don't allow return values
 #define RETURN(retval, DEBUGLEVEL)       LOG(#DEBUGLEVEL) << MSG_FUNC_END; return (retval)
 #define RETURNVOID(DEBUGLEVEL)           LOG(#DEBUGLEVEL) << MSG_FUNC_END; return
+
+// Log assert and return
+#define LASSERT_RET(x, retv, LEVEL)   if(!(x)){                                                                                               \
+                                          std::cout << #x << " failed in " << __FILE__ << " at " << __LINE__ << std::endl;                    \
+                                          LOG(#LEVEL) << MSG_FUNC_END;                                                                        \
+                                          return (retv);                                                                                      \
+                                      }
+// Log assert and throw
+#define LASSERT_THROW(x, expv, LEVEL) if(!(x)){                                                                                               \
+                                          std::cout << #x << " failed in " << __FILE__ << " at " << __LINE__ << std::endl;                    \
+                                          LOG(#LEVEL) << MSG_FUNC_END;                                                                        \
+                                          throw expv;                                                                                         \
+                                      }
 
 // Convert a string to an integer
 // We don't support octal and binary ints for time being

@@ -158,6 +158,8 @@ class memory {
     // Memory I/O
     inline void write_from_buffer(uint64_t addr, uint8_t* buff, size_t size);
     inline uint8_t *read_to_buffer(uint64_t addr, uint8_t *buff, size_t size);
+    inline void write_from_file(uint64_t addr, std::string file_name, size_t size);
+    inline void read_to_file(uint64_t addr, std::string file_name, size_t size);
     inline uint8_t read8(uint64_t addr, int endianness = EMUL_BIG_ENDIAN);
     inline void write8(uint64_t addr, uint8_t value, int endianness = EMUL_BIG_ENDIAN);
     inline uint16_t read16(uint64_t addr, int endianness = EMUL_BIG_ENDIAN);
@@ -282,7 +284,7 @@ memory::mem_tgt_iter memory::select_mem_tgt(uint64_t paddr) throw(sim_exception)
             else if(iter_last->priority < iter_this->priority){
                 iter_last = iter_this;
             }else if(iter_last->priority == iter_this->priority){
-                throw(sim_exception(SIM_EXCEPT_FATAL, "two overlapping memory targets having same priority"));
+                throw(sim_exception_fatal("two overlapping memory targets having same priority"));
             }
         }
     }
@@ -311,11 +313,7 @@ uint8_t* memory::paddr_to_hostpage(uint64_t paddr){
     }
 
     mem_tgt_iter iter_this = select_mem_tgt(paddr);
-    if(iter_this == mem_tgt.end()) {
-        std::cout << "No valid memory mapped target found for this address." << std:: endl;
-        LOG("DEBUG4") << MSG_FUNC_END;
-        return NULL;
-    }
+    LASSERT_THROW(iter_this != mem_tgt.end(), sim_exception(SIM_EXCEPT_ILLEGAL_OP, "No valid target found for this address"), DEBUG4);
 
     if(!iter_this->page_hash[pageno]){
         iter_this->page_hash[pageno] = new uint8_t[MIN_PGSZ];
@@ -523,6 +521,44 @@ uint8_t* memory::read_to_buffer(uint64_t addr, uint8_t *buff, size_t size){
         size -= curr_size;
     }
     return buff;
+}
+
+/*
+ * @func : write_from_file
+ * @args : physical address, size, file name
+ *
+ * @brief : copies size bytes to physical address "addr" from file named "file_name"
+ */
+void memory::write_from_file(uint64_t addr, std::string file_name, size_t size){
+    std::ifstream ih;
+    ih.open(file_name.c_str(), std::istream::in | std::ifstream::binary);
+    LASSERT_THROW(ih.fail() == 0, sim_exception(SIM_EXCEPT_RESOURCE_UNAVAIL, "opening file failed."), DEBUG4);
+   
+    uint8_t *buff = new uint8_t[size];
+    ih.read(reinterpret_cast<char*>(buff), size);
+    write_from_buffer(addr, buff, size);
+    delete[] buff;
+
+    ih.close();
+}
+
+/*
+ * @func : read_to_file
+ * @args : physical address, file name, size
+ *
+ * @brief : copies size bytes from physical addr "addr" to file name "file_name"
+ */
+void memory::read_to_file(uint64_t addr, std::string file_name, size_t size){
+    std::ofstream oh;
+    oh.open(file_name.c_str(), std::ofstream::out | std::ofstream::binary | std::ofstream::trunc);
+    LASSERT_THROW(oh.fail() == 0, sim_exception(SIM_EXCEPT_RESOURCE_UNAVAIL, "opening file failed."), DEBUG4);
+
+    uint8_t *buff = new uint8_t[size];
+    read_to_buffer(addr, buff, size);
+    oh.write(reinterpret_cast<char*>(buff), size);
+    delete[] buff;
+
+    oh.close();
 }
 
 /*
