@@ -77,20 +77,8 @@ class cpu_ppc_booke : public cpu {
     uint64_t get_pc(){
         return pc;
     }
-    // Get GPR value
-    uint64_t get_gpr(int gprno) throw(sim_exception);
-    // Get spr value
-    uint64_t get_spr(int sprno) throw(sim_exception);
-    // Get pmr value
-    uint64_t get_pmr(int pmrno) throw (sim_exception);
-    // Get fpr value
-    uint64_t get_fpr(int fprno) throw(sim_exception);
-    // Get msr
-    uint64_t get_msr() throw();
     // Get cr
     uint64_t get_cr() throw();
-    // Get fpscr
-    uint64_t get_fpscr() throw();
     // Get Register by name
     uint64_t get_reg(std::string name) throw(sim_exception);
     // Dump CPU state
@@ -1072,57 +1060,11 @@ void cpu_ppc_booke::set_cr(uint32_t value) throw() {
     LOG("DEBUG4") << MSG_FUNC_END;
 }
 
-// Get GPR value
-uint64_t cpu_ppc_booke::get_gpr(int gprno) throw(sim_exception){
-    LOG("DEBUG4") << MSG_FUNC_START;
-    if(gprno >= PPC_NGPRS) throw sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Illegal gprno");
-    LOG("DEBUG4") << MSG_FUNC_END;
-    return PPCREG(REG_GPR0 + gprno);
-}
-
-// Get spr value
-uint64_t cpu_ppc_booke::get_spr(int sprno) throw(sim_exception){
-    LOG("DEBUG4") << MSG_FUNC_START;
-    if(sprno >= PPC_NSPRS) throw sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Illegal sprno");
-    LOG("DEBUG4") << MSG_FUNC_END;
-    return PPCREG(REG_SPR0 + sprno);
-}
-
-// Get pmr value
-uint64_t cpu_ppc_booke::get_pmr(int pmrno) throw (sim_exception){
-    LOG("DEBUG4") << MSG_FUNC_START;
-    if(pmrno >= PPC_NPMRS) throw sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Illegal pmrno");
-    LOG("DEBUG4") << MSG_FUNC_END;
-    return PPCREG(REG_PMR0 + pmrno);
-}
-
-// Get fpr value
-uint64_t cpu_ppc_booke::get_fpr(int fprno) throw(sim_exception){
-    LOG("DEBUG4") << MSG_FUNC_START;
-    if(fprno >= PPC_NFPRS) throw sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Illegal fprno");
-    LOG("DEBUG4") << MSG_FUNC_END;
-    return PPCREG(REG_FPR0 + fprno);
-}
-
-// Get msr
-uint64_t cpu_ppc_booke::get_msr() throw() {
-    LOG("DEBUG4") << MSG_FUNC_START;
-    LOG("DEBUG4") << MSG_FUNC_END;
-    return PPCREG(REG_MSR);;
-}
-
 // Get cr
 uint64_t cpu_ppc_booke::get_cr() throw() {
     LOG("DEBUG4") << MSG_FUNC_START;
     LOG("DEBUG4") << MSG_FUNC_END;
     return PPCREG(REG_CR);
-}
-
-// Get fpscr
-uint64_t cpu_ppc_booke::get_fpscr() throw() {
-    LOG("DEBUG4") << MSG_FUNC_START;
-    LOG("DEBUG4") << MSG_FUNC_END;
-    return PPCREG(REG_FPSCR);
 }
 
 // Get register value by name
