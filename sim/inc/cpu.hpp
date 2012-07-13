@@ -38,7 +38,7 @@ class cpu {
     string            curr_instr;                    /*  current instruction being executed */
 
     public:
-    virtual int        run_instr(instr_call *ic) = 0;
+    virtual int        run_instr(instr_call &ic) = 0;
     virtual int        run_instr(std::string instr) = 0;
     virtual int        xlate_v2p(uint64_t vaddr, uint64_t *return_paddr, int flags) = 0;
 

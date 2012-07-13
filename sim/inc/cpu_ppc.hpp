@@ -66,7 +66,7 @@ class cpu_ppc_booke : public cpu {
     }
 
     // All virtual functions
-    int run_instr(instr_call *ic);
+    int run_instr(instr_call &ic);
     int xlate_v2p(uint64_t vaddr, uint64_t *return_paddr, int flags);
     // Overloaded run
     int run_instr(std::string instr);
@@ -216,9 +216,9 @@ cpu_ppc_booke_quirks           cpu_ppc_booke::m_quirks;
 // --------------------------- Member function definitions -----------------------------------
 //
 // All virtual functions
-int cpu_ppc_booke::run_instr(instr_call *ic){
+int cpu_ppc_booke::run_instr(instr_call &ic){
     LOG("DEBUG4") << MSG_FUNC_START;
-    ppc_func_hash[ic->opcode](this, ic);
+    ppc_func_hash[ic.opcode](this, &ic);
     LOG("DEBUG4") << MSG_FUNC_END;
     return 0;
 }
