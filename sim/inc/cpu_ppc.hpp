@@ -186,7 +186,7 @@ class cpu_ppc_booke : public cpu {
     std::map<std::string, ppc_opc_fun_ptr>  ppc_func_hash;
 
     // Implementaion specific fixes
-    static cpu_ppc_booke_quirks  quirks;
+    static cpu_ppc_booke_quirks  m_quirks;
 
 };
 
@@ -195,7 +195,7 @@ class cpu_ppc_booke : public cpu {
 // This is list of pointers to all alive cpu objects , so that we could refer them using it's class type only.
 size_t                         cpu_ppc_booke::ncpus = 0; /* Current number of powerpc cpus */
 // Cpu fixes for booke
-cpu_ppc_booke_quirks           cpu_ppc_booke::quirks;
+cpu_ppc_booke_quirks           cpu_ppc_booke::m_quirks;
 
 // --------------------------- Include external files ----------------------------------------
 
@@ -241,6 +241,8 @@ int cpu_ppc_booke::run_instr(std::string instr){
             call_this.arg[i].p = reinterpret_cast<size_t>(&(m_ireghash[call_this.arg[i].p]->value));
         }
     }
+    // Apply the zero fix quirk
+    m_quirks.arg_fix_zero_quirk(call_this);
 
     ppc_func_hash[call_this.opcode](this, &call_this);
     LOG("DEBUG4") << MSG_FUNC_END;

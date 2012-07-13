@@ -34,23 +34,25 @@ class cpu_ppc_booke_quirks {
     ~cpu_ppc_booke_quirks() {}
 
     // zero arg fix quirk
-    std::string arg_fix_zero_quirk(std::string opc, std::string arg, int argno){
-        boost::algorithm::to_lower(arg);
-        if(instr_quirks.find(opc) == instr_quirks.end()){
-            return arg;
-        }else if(instr_quirks[opc].set_to_zero_if_zero[argno]){
-            return "0";
+    void arg_fix_zero_quirk(instr_call &_call){
+        int i;
+        if(instr_quirks.find(_call.opcode) != instr_quirks.end()){
+            for(i=0; i<_call.nargs; i++){
+                // If bit for this arg is set "and" this arg is absolute zero "and" this arg is a register,
+                // modify .p (pointer) value.
+                if(instr_quirks[_call.opcode].zero_mask[i] && !_call.arg[i].v && _call.arg[i].t)
+                    _call.arg[i].p = 0;
+            }
         }
-        return arg;
     }
 
     private:
     struct instr_arg_quirks {
-        std::bitset<N_IC_ARGS> set_to_zero_if_zero;   // Bit mask of boolean values
+        std::bitset<N_IC_ARGS>  zero_mask;   // Bit mask of boolean values
 
         instr_arg_quirks(int fix_zero_mask=0){
             for(int i=0; i<N_IC_ARGS; i++){
-                set_to_zero_if_zero[i] = ((fix_zero_mask >> i) & 0x1);
+                zero_mask[i] = ((fix_zero_mask >> i) & 0x1);
             }
         }
         ~instr_arg_quirks() {}

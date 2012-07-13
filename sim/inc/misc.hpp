@@ -97,7 +97,6 @@ struct ppc_reg64 {
 
 // PPC register file ( this is the file we are gonna use in our cpu )
 struct ppc_regs {
-    typedef std::vector<ppc_reg64>  ppc_reg64_vector;
     ppc_reg64         cr;
     ppc_reg64         fpscr;
     ppc_reg64         msr;
