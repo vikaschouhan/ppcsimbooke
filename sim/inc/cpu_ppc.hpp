@@ -164,12 +164,12 @@ class cpu_ppc_booke : public cpu {
 
     // Disassembler module
     ppc_dis_booke                          m_dis;
-
-    /*
-     *  Instruction translation cache and Virtual->Physical->Host
-     *  address translation:
-     */
-    ppc_tlb_booke     l2tlb;            /* Only L2 tlb is implemented */
+    // Tlb
+#if CORE_TYPE == e500v2
+    ppc_tlb_booke<128,4,16>                m_l2tlb;            /* Only L2 tlb is implemented */
+#else
+    ppc_tlb_booke<128,2,16>                m_l2tlb;
+#endif
 
     // memory module
     std::shared_ptr<memory> mem_ptr;

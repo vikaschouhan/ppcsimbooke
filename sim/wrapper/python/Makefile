@@ -14,7 +14,7 @@ CXXFLAGS        := -I../../inc -I`python-config --includes` -I/usr/include/boost
 CXXFLAGS        += -L/usr/lib64 -lboost_python
 
 # enable this for <cstdint>
-CXXFLAGS   += -std=c++0x -g -O -Wall -DCONFIG_BOOKE -DCONFIG_E500 -DCONFIG_FSL_EMB_PERFMON -O2 -fpic -shared
+CXXFLAGS   += -std=c++0x -g -O -Wall -DCONFIG_BOOKE -DCONFIG_E500 -DCORE_TYPE=e500v2 -DCONFIG_FSL_EMB_PERFMON -O2 -fpic -shared
 
 HOST_ARCH := $(shell uname -m)
 CXXFLAGS += -DHOST_ARCH=$(HOST_ARCH)
