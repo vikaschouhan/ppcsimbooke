@@ -35,111 +35,6 @@ using std::setw;
 using std::right;
 using std::ofstream;
 
-/* We will move this to a central config file later on */
-#if (defined __x86_64__)
-#define brev(a, b) b a
-#else
-#define brev(a, b) a b
-#endif
-
-union t_mas0 {
-    struct __mas0 {
-        brev(brev(brev(brev(brev(
-        uint32_t        : 3;     ,
-        uint32_t tlbsel : 1;    ),
-        uint32_t        : 8;    ),
-        uint32_t esel   : 4;    ),
-        uint32_t        :14;    ),
-        uint32_t nv     : 2;    )
-    } bits;
-    uint32_t all;
-};
-
-union t_mas1 {
-    struct __mas1 {
-        brev(brev(brev(brev(brev(brev(brev(
-        uint32_t v      : 1;     ,
-        uint32_t iprot  : 1;    ),
-        uint32_t        : 6;    ),
-        uint32_t tid    : 8;    ),
-        uint32_t        : 3;    ),
-        uint32_t ts     : 1;    ),
-        uint32_t tsize  : 4;    ),
-        uint32_t        : 8;    )
-    } bits;
-    uint32_t all;
-};
-
-union t_mas2 {
-    struct __mas2 {
-        brev(brev(brev(
-        uint32_t epn    :20;     ,
-        uint32_t        : 5;    ),
-        uint32_t x01    : 2;    ),
-        uint32_t wimge  : 5;    )
-    } bits;
-    uint32_t all;
-};
-
-/* Permission bits are specified as ux-sx-uw-sw-ur-sr */
-union t_mas3 {
-    struct __mas3 {
-        brev(brev(brev(
-        uint32_t rpn    :20;     ,
-        uint32_t        : 2;    ),
-        uint32_t u03    : 4;    ),
-        uint32_t permis : 6;    )
-    } bits;
-    uint32_t all;
-};
-
-/* Default values to be loaded during tlb miss exception */
-union t_mas4 {
-    struct __mas4 {
-        brev(brev(brev(brev(brev(brev(brev(brev(
-        uint32_t        : 2;     ,
-        uint32_t tlbseld: 2;    ),
-        uint32_t        :10;    ),
-        uint32_t tidseld: 2;    ),
-        uint32_t        : 4;    ),
-        uint32_t tsized : 4;    ),
-        uint32_t        : 1;    ),
-        uint32_t x01d   : 2;    ),
-        uint32_t wimged : 5;    )
-    } bits;
-    uint32_t all;
-}; 
-
-/* No MAS5 in e500v2 */
-union t_mas5 {
-};
-
-/* Used with tlb search operations */
-union t_mas6 {
-    struct __mas6 {
-        brev(brev(brev(
-        uint32_t        : 8;     ,
-        uint32_t spid0  : 8;    ),
-        uint32_t        :15;    ),
-        uint32_t sas    : 1;    )
-    } bits;
-    uint32_t all;
-};
-
-/* Higher 4 bits of RPN */
-union t_mas7 {
-    struct __mas7 {
-        brev(
-        uint32_t        :28;     ,
-        uint32_t rpn    : 4;    )
-    } bits;
-    uint32_t all;
-};
-
-/* No MAS8 ?? */
-union t_mas8 {
-};
-
 struct t_tlb_params {
     uint32_t  assoc;         /* Associativity level */
     size_t    nentries;      /* Number of entries */
@@ -605,17 +500,10 @@ int ppc_tlb_booke::print_tlbs2(){
  *
  */
 int ppc_tlb_booke::tlbre(uint32_t &mas0, uint32_t &mas1, uint32_t &mas2, uint32_t &mas3, uint32_t &mas7, uint32_t hid0){
-    t_mas0 mas0_;
-    t_mas1 mas1_;
-    t_mas2 mas2_;
-    t_mas3 mas3_;
-    t_mas7 mas7_;
 
-    mas0_.all = mas0; mas1_.all = mas1; mas2_.all = mas2; mas3_.all = mas3; mas7_.all = mas7;
-
-    unsigned tlbsel = mas0_.bits.tlbsel;
-    unsigned esel   = mas0_.bits.esel;
-    uint64_t epn    = mas2_.bits.epn;
+    unsigned tlbsel = EBMASK(mas0,       MAS0_TLBSEL);
+    unsigned esel   = EBMASK(mas0,       MAS0_ESEL);
+    uint64_t epn    = EBMASK(mas2,       MAS2_EPN);
     t_tlb_entry *entry = NULL;
 
     unsigned setn, wayn;
@@ -640,26 +528,24 @@ int ppc_tlb_booke::tlbre(uint32_t &mas0, uint32_t &mas1, uint32_t &mas2, uint32_
     entry = &(tlb_this->tlb_set[setn].tlb_way[wayn]);
 
     /* FIXME: Does the spec. says anything about nv when used with tlbre */
-    mas0_.bits.nv = 0;
+    mas0  |= IBMASK(0,                   MAS0_NV);
 
-    mas1_.bits.v = entry->tflags.valid;
-    mas1_.bits.iprot = entry->tflags.iprot;
-    mas1_.bits.tid = entry->tid;
-    mas1_.bits.ts  = entry->tflags.ts;
-    mas1_.bits.tsize = entry->tflags.tsize;
+    mas1  |= IBMASK(entry->tflags.valid, MAS1_V);
+    mas1  |= IBMASK(entry->tflags.iprot, MAS1_IPROT);
+    mas1  |= IBMASK(entry->tid,          MAS1_TID);
+    mas1  |= IBMASK(entry->tflags.ts,    MAS1_TS);
+    mas1  |= IBMASK(entry->tflags.tsize, MAS1_TSIZE);
    
-    mas2_.bits.epn = entry->epn;
-    mas2_.bits.x01 = entry->x01;
-    mas2_.bits.wimge = entry->wimge;
+    mas2  |= IBMASK(entry->epn,          MAS2_EPN);
+    mas2  |= IBMASK(entry->x01,          MAS2_X01);
+    mas2  |= IBMASK(entry->wimge,        MAS2_WIMGE);
 
-    mas3_.bits.rpn = entry->rpn;
-    mas3_.bits.u03 = entry->u03;
-    mas3_.bits.permis = entry->permis;
+    mas3  |= IBMASK(entry->rpn,          MAS3_RPN);
+    mas3  |= IBMASK(entry->u03,          MAS3_U03);
+    mas3  |= IBMASK(entry->permis,       MAS3_PERMIS);
 
-    if(hid0 & HID0_EN_MAS7_UPDATE)
-        mas7_.bits.rpn = (entry->rpn >> 24) & 0xf;    /* Upper 4 bits of rpn */
-
-    mas0 = mas0_.all; mas1 = mas1_.all; mas2 = mas2_.all; mas3 = mas3_.all; mas7 = mas7_.all;
+    if(EBMASK(hid0, HID0_EN_MAS7_UPDATE))
+        mas7  |= IBMASK((entry->rpn >> 20) & 0xf, MAS7_RPN);    /* Upper 4 bits of rpn */
 
     return 0;
 
@@ -670,17 +556,9 @@ int ppc_tlb_booke::tlbre(uint32_t &mas0, uint32_t &mas1, uint32_t &mas2, uint32_
  *         hid0 -> HID0 register
  */
 int ppc_tlb_booke::tlbwe(uint32_t mas0, uint32_t mas1, uint32_t mas2, uint32_t mas3, uint32_t mas7, uint32_t hid0){
-    t_mas0 mas0_;
-    t_mas1 mas1_;
-    t_mas2 mas2_;
-    t_mas3 mas3_;
-    t_mas7 mas7_;
-
-    mas0_.all = mas0; mas1_.all = mas1; mas2_.all = mas2; mas3_.all = mas3; mas7_.all = mas7;
-
-    unsigned tlbsel = mas0_.bits.tlbsel;
-    unsigned esel   = mas0_.bits.esel;
-    uint64_t epn    = mas2_.bits.epn;
+    unsigned tlbsel = EBMASK(mas0,    MAS0_TLBSEL);
+    unsigned esel   = EBMASK(mas0,    MAS0_ESEL);
+    uint64_t epn    = EBMASK(mas2,    MAS2_EPN);
     t_tlb_entry *entry = NULL;
 
     unsigned setn, wayn;
@@ -705,22 +583,22 @@ int ppc_tlb_booke::tlbwe(uint32_t mas0, uint32_t mas1, uint32_t mas2, uint32_t m
     entry = &(tlb_this->tlb_set[setn].tlb_way[wayn]);
 
     /*FIXME : Need to check, if valid bit is passed as part of MAS1 or set implicitly */
-    entry->tflags.valid = mas1_.bits.v;
-    entry->tflags.iprot = mas1_.bits.iprot; 
-    entry->tid          = mas1_.bits.tid;
-    entry->tflags.ts    = mas1_.bits.ts;
-    entry->tflags.tsize = mas1_.bits.tsize;
+    entry->tflags.valid = EBMASK(mas1,   MAS1_V);
+    entry->tflags.iprot = EBMASK(mas1,   MAS1_IPROT); 
+    entry->tid          = EBMASK(mas1,   MAS1_TID);
+    entry->tflags.ts    = EBMASK(mas1,   MAS1_TS);
+    entry->tflags.tsize = EBMASK(mas1,   MAS1_TSIZE);
    
-    entry->epn          = mas2_.bits.epn;
-    entry->x01          = mas2_.bits.x01;
-    entry->wimge        = mas2_.bits.wimge;
+    entry->epn          = EBMASK(mas2,   MAS2_EPN);
+    entry->x01          = EBMASK(mas2,   MAS2_X01);
+    entry->wimge        = EBMASK(mas2,   MAS2_WIMGE);
 
-    entry->rpn          = mas3_.bits.rpn;
-    entry->u03          = mas3_.bits.u03;
-    entry->permis       = mas3_.bits.permis;
+    entry->rpn          = EBMASK(mas3,   MAS3_RPN);
+    entry->u03          = EBMASK(mas3,   MAS3_U03);
+    entry->permis       = EBMASK(mas3,   MAS3_PERMIS);
 
-    if(hid0 & HID0_EN_MAS7_UPDATE)
-        entry->rpn |= mas7_.bits.rpn << 24;    /* Upper 4 bits of rpn */
+    if(EBMASK(hid0, HID0_EN_MAS7_UPDATE))
+        entry->rpn |= EBMASK(mas7, MAS7_RPN) << 20;    /* Upper 4 bits of rpn */
 
     return 0;
 }
@@ -734,18 +612,9 @@ int ppc_tlb_booke::tlbwe(uint32_t mas0, uint32_t mas1, uint32_t mas2, uint32_t m
  *
  */
 int ppc_tlb_booke::tlbse(uint64_t ea, uint32_t &mas0, uint32_t &mas1, uint32_t &mas2, uint32_t &mas3, uint32_t &mas6, uint32_t &mas7, uint32_t hid0){
-    t_mas0 mas0_;
-    t_mas1 mas1_;
-    t_mas2 mas2_;
-    t_mas3 mas3_;
-    t_mas6 mas6_;
-    t_mas7 mas7_;
-
-    mas0_.all = mas0; mas1_.all = mas1; mas2_.all = mas2; mas3_.all = mas3; mas6_.all =  mas6; mas7_.all = mas7;
-
     uint64_t epn  = (ea >> 12);
-    uint32_t  as  = mas6_.bits.sas;
-    uint32_t pid  = mas6_.bits.spid0;
+    uint32_t  as  = EBMASK(mas6,  MAS6_SAS);
+    uint32_t pid  = EBMASK(mas6,  MAS6_SPID0);
     size_t   tsel = -1;
     size_t   ssel = -1;
     size_t   wsel = -1;
@@ -770,32 +639,31 @@ int ppc_tlb_booke::tlbse(uint64_t ea, uint32_t &mas0, uint32_t &mas1, uint32_t &
 
     exit_loop_0:
     /* Valid bit set means, search was successful */
-    mas1_.bits.v = (entry)?1:0;
+    mas1  |= IBMASK((entry)?1:0, MAS1_V);
     /* Now return if the search was unsuccessful */
     assert_ret(entry != NULL, 1);
 
-    mas0_.bits.tlbsel  = tsel;
-    mas0_.bits.esel  = wsel;
+    mas0  |= IBMASK(tsel,  MAS0_TLBSEL);
+    mas0  |= IBMASK(wsel,  MAS0_ESEL);
     /* FIXME : need to check the behaviour of MAS0[NV] on tlbsx */
-    mas0_.bits.nv    = 0;
+    mas0  |= IBMASK(0,     MAS0_NV);
 
-    mas1_.bits.iprot = entry->tflags.iprot;
-    mas1_.bits.tid   = entry->tid;
-    mas1_.bits.ts    = entry->tflags.ts;
-    mas1_.bits.tsize = entry->tflags.tsize;
+    mas1  |= IBMASK(entry->tflags.iprot, MAS1_IPROT);
+    mas1  |= IBMASK(entry->tid,          MAS1_TID);
+    mas1  |= IBMASK(entry->tflags.ts,    MAS1_TS);
+    mas1  |= IBMASK(entry->tflags.tsize, MAS1_TSIZE);
    
-    mas2_.bits.epn   = entry->epn;
-    mas2_.bits.x01   = entry->x01;
-    mas2_.bits.wimge = entry->wimge;
+    mas2  |= IBMASK(entry->epn,          MAS2_EPN);
+    mas2  |= IBMASK(entry->x01,          MAS2_EPN);
+    mas2  |= IBMASK(entry->wimge,        MAS2_WIMGE);
 
-    mas3_.bits.rpn   = entry->rpn;
-    mas3_.bits.u03   = entry->u03;
-    mas3_.bits.permis = entry->permis;
+    mas3  |= IBMASK(entry->rpn,          MAS3_RPN);
+    mas3  |= IBMASK(entry->u03,          MAS3_U03);
+    mas3  |= IBMASK(entry->permis,       MAS3_PERMIS);
 
-    if(hid0 & HID0_EN_MAS7_UPDATE)
-        mas7_.bits.rpn = (entry->rpn >> 24) & 0xf;    /* Upper 4 bits of rpn */
+    if(EBMASK(hid0, HID0_EN_MAS7_UPDATE))
+        mas7 |= IBMASK((entry->rpn >> 20) & 0xf,  MAS7_RPN);    /* Upper 4 bits of rpn */
 
-    mas0 = mas0_.all; mas1 = mas1_.all; mas2 = mas2_.all; mas3 = mas3_.all; mas7 = mas7_.all;
     return 0;
 }
 

@@ -39,6 +39,13 @@ static const int  EMUL_UNDEFINED_ENDIAN  =  0;
 static const int  EMUL_LITTLE_ENDIAN     =  1;
 static const int  EMUL_BIG_ENDIAN        =  2;
 
+// Used for union'ed bitfields
+#if (defined __x86_64__)
+#define brev(a, b) b a
+#else
+#define brev(a, b) a b
+#endif
+
 // Cast to appropriate types
 #define u32(arg)  ((uint32_t)(arg))
 #define s32(arg)  ((int32_t)(arg))
@@ -209,5 +216,9 @@ inline int rshift(uint64_t x){
     while(!(x & 0x1)){ res++; x>>=1; }
     return res;
 }
+
+// bit field extraction / insertion macros
+#define  EBMASK(reg, bmask)             (((reg)  & (bmask)) >> rshift(bmask))
+#define  IBMASK(val, bmask)             (((val) << rshift(bmask))  & (bmask))
 
 #endif

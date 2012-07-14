@@ -35,7 +35,8 @@
 #include "machine.hpp"
 #include "ppc_dis.hpp"
  
- 
+#define  SIM_REL  "current"
+
 // Wrapping some cpu functions
  
 // func ptrs for overloaded cpu::run_instrs()
@@ -344,5 +345,11 @@ BOOST_PYTHON_MODULE(ppcsim)
         .add_property("cpu0", make_function(&machine<2>::get_cpu<0>, return_value_policy<reference_existing_object>()))
         .add_property("cpu1", make_function(&machine<2>::get_cpu<1>, return_value_policy<reference_existing_object>()))
         ;
-    
+  
+    // Custom message after loading this module 
+    std::cout << "PPCSIMBOOKE"                                                                                                     << std::endl;
+    std::cout << "=============================================================================================================="  << std::endl;
+    std::cout << "This a simulator for booke based powerPC cores and is intended to simulate core, and the memory subsystem."      << std::endl; 
+    std::cout << "Copyright Vikas Chouhan ( presentisgood@gmail.com ) 2012"                                                        << std::endl;
+
 }
