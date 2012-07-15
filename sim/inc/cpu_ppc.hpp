@@ -81,6 +81,8 @@ class cpu_ppc_booke : public cpu {
     uint64_t get_reg(std::string name) throw(sim_exception);
     // Dump CPU state
     void dump_state(int columns=0, std::ostream &ostr=std::cout, int dump_all_sprs=0);
+    // print L2 tlbs
+    void print_L2tlbs();
 
     // Initialize register attributes
     void init_reg_attrs();
@@ -1143,6 +1145,11 @@ void cpu_ppc_booke::dump_state(int columns, std::ostream &ostr, int dump_all_spr
     }
     ostr << BAR0 << std::endl;
     LOG("DEBUG4") << MSG_FUNC_END;
+}
+
+// print all tlbs
+void cpu_ppc_booke::print_L2tlbs(){
+    m_l2tlb.print_tlbs2();
 }
 
 #endif    /*  CPU_PPC_H  */

@@ -8,7 +8,7 @@ using std::string;
 
 int main(){
     LOG_TO_FILE("test_system_interface.log");
-    typedef machine<2>  mc_2cpus;
+    typedef machine<2, 36>  mc_2cpus;
     mc_2cpus m0 = mc_2cpus();
     return 0;
 }

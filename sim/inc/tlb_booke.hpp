@@ -96,11 +96,16 @@ template<int tlb4K_ns, int tlb4K_nw, int tlbCam_ne> class ppc_tlb_booke {
     void tlbwe(uint32_t mas0, uint32_t mas1, uint32_t mas2, uint32_t mas3, uint32_t mas7, uint32_t hid0);
     void tlbse(uint64_t ea, uint32_t &mas0, uint32_t &mas1, uint32_t &mas2, uint32_t &mas3, uint32_t &mas6, uint32_t &mas7, uint32_t hid0);
     void tlbive(uint64_t ea);
+    uint64_t xlate(uint64_t ea, uint64_t as, uint64_t pid, uint64_t permis, uint64_t& wimge);
 
 };
 
-#define TLB_T               template<int x, int y, int z>
-#define PPC_TLB_BOOKE       ppc_tlb_booke<x, y, z>
+// Check if valid page number ( based on tsize )
+#define CHK_VALID_PN(pn, tsize)  ((((log4(tsize) * 0x400) - 1) & pn) == pn)
+#define TSIZE_TO_PSIZE(tsize)    (log4(tsize) * 0x400)
+
+#define TLB_T                    template<int x, int y, int z>
+#define PPC_TLB_BOOKE            ppc_tlb_booke<x, y, z>
 
 // Member functions
 
@@ -171,6 +176,8 @@ TLB_T void PPC_TLB_BOOKE::print_tlb_entry(t_tlb_entry &entry, std::string fmtstr
 
 // Get tlb entry when tlbno, epn and esel are specified.
 TLB_T typename PPC_TLB_BOOKE::t_tlb_entry& PPC_TLB_BOOKE::get_entry(size_t tlbno, uint64_t epn, size_t esel){
+    LOG("DEBUG4") << MSG_FUNC_START;
+
     unsigned setno = 0;
     unsigned wayno = 0;
 
@@ -193,10 +200,14 @@ TLB_T typename PPC_TLB_BOOKE::t_tlb_entry& PPC_TLB_BOOKE::get_entry(size_t tlbno
         LASSERT_THROW(wayno < tlbCam->tlb_set[setno].n_ways, sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Wrong way no ( MAS0 )"), DEBUG4);
         return tlbCam->tlb_set[setno].tlb_way[wayno];
     }
+
+    LOG("DEBUG4") << MSG_FUNC_END;
 }
 
 // Get tlb entry when tlbno, setno and wayno are specified.
 TLB_T typename PPC_TLB_BOOKE::t_tlb_entry& PPC_TLB_BOOKE::get_entry2(size_t tlbno, size_t setno, size_t wayno){
+    LOG("DEBUG4") << MSG_FUNC_START;
+
     /* Wrong tlbsel */
     LASSERT_THROW(tlbno == 0 || tlbno == 1, sim_exception(SIM_EXCEPT_ILLEGAL_OP, "invalid tlbsel ( MAS0 )"), DEBUG4);
    
@@ -209,6 +220,8 @@ TLB_T typename PPC_TLB_BOOKE::t_tlb_entry& PPC_TLB_BOOKE::get_entry2(size_t tlbn
         LASSERT_THROW(wayno < tlbCam->tlb_set[setno].n_ways, sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Wrong way no ( MAS0 )"), DEBUG4);
         return tlbCam->tlb_set[setno].tlb_way[wayno];
     }
+
+    LOG("DEBUG4") << MSG_FUNC_END;
 }
 
 // Constructor
@@ -263,6 +276,8 @@ TLB_T void PPC_TLB_BOOKE::print_tlbs(){
  * @brief : print all tlb entries in a nice form
  */
 TLB_T void PPC_TLB_BOOKE::print_tlbs2(){
+    LOG("DEBUG4") << MSG_FUNC_START;
+
 #define PRINT_TLB_ENT(set, way, epn, rpn, tid, ts, wimge, permis, ps, x01, u03, iprot)                                    \
     std::cout << std::showbase;                                                                                           \
     std::cout << std::setw(4) << std::right << set << std::setw(6) << std::right << way                                   \
@@ -291,6 +306,8 @@ TLB_T void PPC_TLB_BOOKE::print_tlbs2(){
 
     PRINT_TLB2(tlb4K);
     PRINT_TLB2(tlbCam);
+
+    LOG("DEBUG4") << MSG_FUNC_END;
 }
 
 /* 
@@ -303,10 +320,18 @@ TLB_T void PPC_TLB_BOOKE::print_tlbs2(){
  *
  */
 TLB_T void PPC_TLB_BOOKE::tlbre(uint32_t &mas0, uint32_t &mas1, uint32_t &mas2, uint32_t &mas3, uint32_t &mas7, uint32_t hid0){
+    LOG("DEBUG4") << MSG_FUNC_START;
 
     unsigned tlbsel = EBMASK(mas0,       MAS0_TLBSEL);
     unsigned esel   = EBMASK(mas0,       MAS0_ESEL);
     uint64_t epn    = EBMASK(mas2,       MAS2_EPN);
+    uint64_t rpn    = EBMASK(mas3,       MAS3_RPN);
+    unsigned tsize  = EBMASK(mas1,       MAS1_TSIZE);
+
+    // check validity of page numbers
+    LASSERT_THROW(CHK_VALID_PN(epn, tsize), sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Illegal MAS2[EPN] or MAS1[TSIZE]."), DEBUG4);
+    LASSERT_THROW(CHK_VALID_PN(rpn, tsize), sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Illegal MAS3[RPN] or MAS1[TSIZE]."), DEBUG4); 
+
     t_tlb_entry &entry = get_entry(tlbsel, epn, esel);
 
     /* FIXME: Does the spec. says anything about nv when used with tlbre */
@@ -329,6 +354,7 @@ TLB_T void PPC_TLB_BOOKE::tlbre(uint32_t &mas0, uint32_t &mas1, uint32_t &mas2, 
     if(EBMASK(hid0, HID0_EN_MAS7_UPDATE))
         mas7  |= IBMASK((entry.rpn >> 20) & 0xf, MAS7_RPN);    /* Upper 4 bits of rpn */
 
+    LOG("DEBUG4") << MSG_FUNC_END;
 }
 
 /* @func : tlbwe (Tlb write entry)
@@ -337,9 +363,18 @@ TLB_T void PPC_TLB_BOOKE::tlbre(uint32_t &mas0, uint32_t &mas1, uint32_t &mas2, 
  *         hid0 -> HID0 register
  */
 TLB_T void PPC_TLB_BOOKE::tlbwe(uint32_t mas0, uint32_t mas1, uint32_t mas2, uint32_t mas3, uint32_t mas7, uint32_t hid0){
+    LOG("DEBUG4") << MSG_FUNC_START;
+
     unsigned tlbsel = EBMASK(mas0,    MAS0_TLBSEL);
     unsigned esel   = EBMASK(mas0,    MAS0_ESEL);
     uint64_t epn    = EBMASK(mas2,    MAS2_EPN);
+    uint64_t rpn    = EBMASK(mas3,    MAS3_RPN);      // We only require lower 20 bits of rpn for validity check
+    unsigned tsize  = EBMASK(mas1,    MAS1_TSIZE);
+
+    // check validity of page numbers
+    LASSERT_THROW(CHK_VALID_PN(epn, tsize), sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Illegal MAS2[EPN] or MAS1[TSIZE]."), DEBUG4);
+    LASSERT_THROW(CHK_VALID_PN(rpn, tsize), sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Illegal MAS3[RPN] or MAS1[TSIZE]."), DEBUG4);
+
     t_tlb_entry &entry = get_entry(tlbsel, epn, esel);
 
     /*FIXME : Need to check, if valid bit is passed as part of MAS1 or set implicitly */
@@ -347,19 +382,22 @@ TLB_T void PPC_TLB_BOOKE::tlbwe(uint32_t mas0, uint32_t mas1, uint32_t mas2, uin
     entry.tflags.iprot = EBMASK(mas1,   MAS1_IPROT); 
     entry.tid          = EBMASK(mas1,   MAS1_TID);
     entry.tflags.ts    = EBMASK(mas1,   MAS1_TS);
-    entry.tflags.tsize = EBMASK(mas1,   MAS1_TSIZE);
+    entry.tflags.tsize = tsize;
    
-    entry.epn          = EBMASK(mas2,   MAS2_EPN);
+    entry.epn          = epn;
     entry.x01          = EBMASK(mas2,   MAS2_X01);
     entry.wimge        = EBMASK(mas2,   MAS2_WIMGE);
 
-    entry.rpn          = EBMASK(mas3,   MAS3_RPN);
+    entry.rpn          = rpn;
     entry.u03          = EBMASK(mas3,   MAS3_U03);
     entry.permis       = EBMASK(mas3,   MAS3_PERMIS);
 
     if(EBMASK(hid0, HID0_EN_MAS7_UPDATE))
         entry.rpn |= EBMASK(mas7, MAS7_RPN) << 20;    /* Upper 4 bits of rpn */
 
+    entry.ps           = TSIZE_TO_PSIZE(entry.tflags.tsize);
+
+    LOG("DEBUG4") << MSG_FUNC_END;
 }
 
 /* @func : tlbse (Tlb Search entry)
@@ -372,6 +410,8 @@ TLB_T void PPC_TLB_BOOKE::tlbwe(uint32_t mas0, uint32_t mas1, uint32_t mas2, uin
  *
  */
 TLB_T void PPC_TLB_BOOKE::tlbse(uint64_t ea, uint32_t &mas0, uint32_t &mas1, uint32_t &mas2, uint32_t &mas3, uint32_t &mas6, uint32_t &mas7, uint32_t hid0){
+    LOG("DEBUG4") << MSG_FUNC_START;
+
     uint64_t epn  = (ea >> 12);
     uint32_t  as  = EBMASK(mas6,  MAS6_SAS);
     uint32_t pid  = EBMASK(mas6,  MAS6_SPID0);
@@ -426,6 +466,7 @@ TLB_T void PPC_TLB_BOOKE::tlbse(uint64_t ea, uint32_t &mas0, uint32_t &mas1, uin
     if(EBMASK(hid0, HID0_EN_MAS7_UPDATE))
         mas7 |= IBMASK((entry->rpn >> 20) & 0xf,  MAS7_RPN);    /* Upper 4 bits of rpn */
 
+    LOG("DEBUG4") << MSG_FUNC_END;
 }
 
 /* @func : tlbive (TLB INValidate entry)
@@ -444,6 +485,8 @@ TLB_T void PPC_TLB_BOOKE::tlbse(uint64_t ea, uint32_t &mas0, uint32_t &mas1, uin
  *
  * */
 TLB_T void PPC_TLB_BOOKE::tlbive(uint64_t ea){
+    LOG("DEBUG4") << MSG_FUNC_START;
+
     uint64_t epn = (ea >> 12);
     uint8_t  tlbsel = (ea >> 3) & 0x1;
     uint8_t  inv_all = (ea >> 2) & 0x1;
@@ -498,6 +541,56 @@ TLB_T void PPC_TLB_BOOKE::tlbive(uint64_t ea){
     }
     exit_loop_1:
     ;
+
+    LOG("DEBUG4") << MSG_FUNC_END;
+}
+
+// Translate effective address into real address using as bit, an 8 bit PID value and permission attributes
+TLB_T uint64_t PPC_TLB_BOOKE::xlate(uint64_t ea, uint64_t as, uint64_t pid, uint64_t permis, uint64_t& wimge){
+    LOG("DEBUG4") << MSG_FUNC_START;
+
+    uint64_t epn = (ea >> 12);
+    uint64_t offset;
+    t_tlb_entry* entry = NULL;
+
+    // Check validity of AS and PID
+    LASSERT_THROW((as & 0x1) == as, sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Illegal AS"), DEBUG4);
+    LASSERT_THROW((pid & 0xff) == pid, sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Illegal PID"), DEBUG4);
+    LASSERT_THROW((permis & 0x3f) == permis, sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Illegal permis"), DEBUG4);
+
+    // According to e500v2 CRM , multiple hits are considered programming error and the xlated
+    // address may not be valid. An exception ( hardware ) is not generated in this case.
+    // tlb4K
+    for(size_t j=0; j<tlb4K->n_sets; j++){
+        for(size_t k=0; k<tlb4K->tlb_set[j].n_ways; k++){
+            entry = &(tlb4K->tlb_set[j].tlb_way[k]);
+            if(entry->tflags.valid && entry->epn == epn && entry->tid == pid && entry->tflags.ts == as && entry->permis == permis){
+                goto exit_loop_1;
+            }
+        }
+    }
+
+    // tlbcam
+    for(size_t j=0; j<tlbCam->n_sets; j++){
+        for(size_t k=0; k<tlbCam->tlb_set[j].n_ways; k++){
+            entry = &(tlbCam->tlb_set[j].tlb_way[k]);
+            if(entry->tflags.valid && entry->epn == epn && entry->tid == pid && entry->tflags.ts == as && entry->permis == permis){
+                goto exit_loop_1;
+            }
+        }
+    }
+
+    // If no match was found, throw an exception
+    LOG("DEBUG4") << MSG_FUNC_END;
+    throw(sim_exception_fatal("No match found."));
+
+    exit_loop_1:
+
+    offset = ea & ~(TSIZE_TO_PSIZE(entry.tflags.tsize) - 1);
+    wimge  = entry.wimge;
+    return (entry->rpn + offset);
+
+    LOG("DEBUG4") << MSG_FUNC_END;
 }
 
 /* Initialize TLB like this

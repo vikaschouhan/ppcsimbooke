@@ -330,6 +330,7 @@ BOOST_PYTHON_MODULE(ppcsim)
             .def("run_instr",         run_instr_ptr2_d0)
             .def("get_reg",           &cpu_ppc_booke::get_reg)
             .def("dump_state",        &cpu_ppc_booke::dump_state, dump_state_overloads())
+            .def("print_L2tlbs",      &cpu_ppc_booke::print_L2tlbs)
             .def("init_reg_attrs",    &cpu_ppc_booke::init_reg_attrs)
             .add_property("regs",     make_function(&cpu_ppc_booke::___get_regs, return_value_policy<reference_existing_object>()))
             .add_property("PC",       &cpu_ppc_booke::get_pc)
@@ -339,11 +340,12 @@ BOOST_PYTHON_MODULE(ppcsim)
     }
 
     // Class machine ( Our top level machine class. This is the class we are going to use directly. )
-    class_<machine<2> > machine_py("machine");
-    machine_py.def_readonly("ncpus", &machine<2>::m_ncpus)
-        .def_readwrite("memory", &machine<2>::m_memory)
-        .add_property("cpu0", make_function(&machine<2>::get_cpu<0>, return_value_policy<reference_existing_object>()))
-        .add_property("cpu1", make_function(&machine<2>::get_cpu<1>, return_value_policy<reference_existing_object>()))
+    typedef machine<2,36>  machine_2cpus_36pl;
+    class_<machine_2cpus_36pl> machine_py("machine");
+    machine_py.def_readonly("ncpus", &machine_2cpus_36pl::m_ncpus)
+        .def_readwrite("memory",     &machine_2cpus_36pl::m_memory)
+        .add_property("cpu0", make_function(&machine_2cpus_36pl::get_cpu<0>, return_value_policy<reference_existing_object>()))
+        .add_property("cpu1", make_function(&machine_2cpus_36pl::get_cpu<1>, return_value_policy<reference_existing_object>()))
         ;
   
     // Custom message after loading this module 
@@ -351,5 +353,8 @@ BOOST_PYTHON_MODULE(ppcsim)
     std::cout << "=============================================================================================================="  << std::endl;
     std::cout << "This a simulator for booke based powerPC cores and is intended to simulate core, and the memory subsystem."      << std::endl; 
     std::cout << "Copyright Vikas Chouhan ( presentisgood@gmail.com ) 2012"                                                        << std::endl;
+
+    // Redirect all logs to this file.
+    LOG_TO_FILE("ppcsim.log");
 
 }

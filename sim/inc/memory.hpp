@@ -83,7 +83,7 @@ class memory {
     // Memory single element attributes
     uint64_t            pa_max;             /* Maximum physical address */
     uint64_t            pn_max;             /* Page number max ( pa_max / PAGE_SIZE ) */
-    int                 bits;               /* Number of physical address lines */
+    int                 m_bits;             /* Number of physical address lines */
 
     // Memory target attributes
     int                                     n_tgts;             /* Number of targets */
@@ -120,10 +120,14 @@ class memory {
     // @func : constructor
     // @args : number of physical address lines ( To gauge the total physical address space )
     //
-    memory(){}
-    memory(int bits){
+    memory(const int bits) : m_bits(bits){
         LOG("DEBUG4") << MSG_FUNC_START;
-        init_memory(bits);
+        this->pa_max = (1LL << m_bits) - 1 ;
+        this->pn_max = (this->pa_max) >> static_cast<int>(log2(PAGE_SIZE));
+        this->mem_tgt_modified = 0;
+
+        // Register a default DDR of the whole supported address range
+        this->register_memory_target(0x0, (1LL << m_bits), "ddr0", 0, TGT_DDR, 0);
         LOG("DEBUG4") << MSG_FUNC_END;
     }
 
@@ -135,20 +139,6 @@ class memory {
         LOG("DEBUG4") << MSG_FUNC_START; 
         LOG("DEBUG4") << MSG_FUNC_END;
     }
-
-    // For later initalization
-    void init_memory(int bits){
-        LOG("DEBUG4") << MSG_FUNC_START;
-        this->bits = bits;
-        this->pa_max = (1LL << bits) - 1 ;
-        this->pn_max = (this->pa_max) >> static_cast<int>(log2(PAGE_SIZE));
-        this->mem_tgt_modified = 0;
-
-        // Register a default DDR of the whole supported address range
-        this->register_memory_target(0x0, (1LL << bits), "ddr0", 0, TGT_DDR, 0);
-        LOG("DEBUG4") << MSG_FUNC_END;
-    }
-
 
     void register_memory_target(uint64_t ba, size_t size, std::string name, uint32_t flags, int tgt_type, int prio = 0);
     void dump_all_memory_targets();
@@ -350,7 +340,7 @@ uint8_t* memory::paddr_to_hostaddr(uint64_t paddr){
  */
 void memory::register_memory_target(uint64_t ba, size_t size, std::string name, uint32_t flags, int tgt_type, int prio){
     // Check for legal values.
-    if(size > static_cast<size_t>(1 << this->bits)){
+    if(size > static_cast<size_t>(1 << this->m_bits)){
         // throw exception
     }
     if(mem_tgt_str.find(tgt_type) == mem_tgt_str.end()){

@@ -29,7 +29,7 @@ ppcsim: ppcsimbooke.cpp
 	$(CXX) $(CXXFLAGS) -Wl,-soname,"$@.so"  -fpic -o $@.so $^
 
 clean:
-	rm -rf *.so *.h
+	rm -rf *.so *.h *.log
 
 distclean: clean
 	echo "Done"
