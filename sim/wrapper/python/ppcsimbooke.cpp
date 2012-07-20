@@ -71,6 +71,10 @@ BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(register_memory_target_overloads, registe
 // Overloads for memory::dump_all_pages()
 BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(dump_all_pages_overloads, dump_all_pages, 0, 1);
 // Overloads for memory::read16()
+BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(read8_overloads, read8, 1, 2);
+// Overloads for memory::write16()
+BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(write8_overloads, write8, 2, 3);
+// Overloads for memory::read16()
 BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(read16_overloads, read16, 1, 2);
 // Overloads for memory::write16()
 BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(write16_overloads, write16, 2, 3);
@@ -290,8 +294,8 @@ BOOST_PYTHON_MODULE(ppcsim)
                 .def("dump_pages",         &memory::dump_all_pages, dump_all_pages_overloads())
                 //.def("write_buf",         &memory::write_from_buffer)
                 //.def("read_buf",          &memory::read_to_buffer, return_value_policy<manage_new_object>())
-                .def("read8",              &memory::read8)
-                .def("write8",             &memory::write8)
+                .def("read8",              &memory::read8,  read8_overloads())
+                .def("write8",             &memory::write8, write8_overloads())
                 .def("read16",             &memory::read16, read16_overloads())
                 .def("write16",            &memory::write16, write16_overloads())
                 .def("read32",             &memory::read32, read32_overloads())
@@ -327,6 +331,14 @@ BOOST_PYTHON_MODULE(ppcsim)
             .def("dump_state",        &cpu_ppc_booke::dump_state, dump_state_overloads())
             .def("print_L2tlbs",      &cpu_ppc_booke::print_L2tlbs)
             .def("init_reg_attrs",    &cpu_ppc_booke::init_reg_attrs)
+            .def("read8",             &cpu_ppc_booke::read8)
+            .def("write8",            &cpu_ppc_booke::write8)
+            .def("read16",            &cpu_ppc_booke::read16)
+            .def("write16",           &cpu_ppc_booke::write16)
+            .def("read32",            &cpu_ppc_booke::read32)
+            .def("write32",           &cpu_ppc_booke::write32)
+            .def("read64",            &cpu_ppc_booke::read64)
+            .def("write64",           &cpu_ppc_booke::write64)
             .add_property("regs",     make_function(&cpu_ppc_booke::___get_regs, return_value_policy<reference_existing_object>()))
             .add_property("PC",       &cpu_ppc_booke::get_pc)
             ;

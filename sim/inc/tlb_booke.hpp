@@ -112,8 +112,8 @@ template<int tlb4K_ns, int tlb4K_nw, int tlbCam_ne> class ppc_tlb_booke {
 };
 
 // Check if valid page number ( based on tsize )
-#define CHK_VALID_PN(pn, tsize)  ((((log4(tsize) * 0x400) - 1) & pn) == pn)
-#define TSIZE_TO_PSIZE(tsize)    (log4(tsize) * 0x400)
+#define CHK_VALID_PN(pn, tsize)  ((((pow4(tsize) * 0x400) - 1) & pn) == pn)
+#define TSIZE_TO_PSIZE(tsize)    (pow4(tsize) * 0x400)
 
 #define TLB_T                    template<int x, int y, int z>
 #define PPC_TLB_BOOKE            ppc_tlb_booke<x, y, z>
@@ -150,7 +150,7 @@ TLB_T void PPC_TLB_BOOKE::init_ppc_tlb_defaults(void){
     entry.rpn          = 0xfffff;
     entry.tflags.tsize = 1;                   // 4K page size
     entry.ps           = 0x1000;
-    entry.permis       = 0b000111;            // sx-sr-sw = 111, ux-ur-uw = 000
+    entry.permis       = 0b000111;            // sr-sw-sx = 111, ur-uw-ux = 000
     entry.wimge        = 0b01000;             // cahce inhibited
     entry.x01          = 0;
     entry.u03          = 0;
@@ -567,41 +567,50 @@ TLB_T uint64_t PPC_TLB_BOOKE::xlate(uint64_t ea, bool as, uint8_t pid, uint8_t r
     // Check validity of AS and PID
     LASSERT_THROW((as & 0x1)   == as, sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Illegal AS"), DEBUG4);
     LASSERT_THROW((pid & 0xff) == pid, sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Illegal PID"), DEBUG4);
-    LASSERT_THROW((rwx & 0x3)  == rwx, sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Illegal permis rwx"), DEBUG4);
+    LASSERT_THROW((rwx & 0x7)  == rwx, sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Illegal permis rwx"), DEBUG4);
 
     uint16_t perm = (rwx << (pr*3));
 
     // According to e500v2 CRM , multiple hits are considered programming error and the xlated
     // address may not be valid. An exception ( hardware ) is not generated in this case.
-    // tlb4K
-    for(size_t j=0; j<tlb4K.n_sets; j++){
-        for(size_t k=0; k<tlb4K.tlb_set[j].n_ways; k++){
-            entry = &(tlb4K.tlb_set[j].tlb_way[k]);
-            if(entry->tflags.valid && entry->epn == epn && entry->tid == pid && entry->tflags.ts == as && (entry->permis & perm) == perm){
-                goto exit_loop_1;
-            }
-        }
+#define FIND_TLB_MATCH(tlb_type)                                                                                      \
+    for(size_t j=0; j<tlb_type.n_sets; j++){                                                                          \
+        for(size_t k=0; k<tlb_type.tlb_set[j].n_ways; k++){                                                           \
+            entry = &(tlb_type.tlb_set[j].tlb_way[k]);                                                                \
+            if(entry->tflags.valid && entry->epn == epn && entry->tid == pid && entry->tflags.ts == as){              \
+                if((entry->permis & perm) == perm){                                                                   \
+                    goto exit_loop_1;                                                                                 \
+                }else{                                                                                                \
+                    if(rwx & 0x1){                                                                                    \
+                        std::cout << "Got ISI exception" <<std::endl;                                                 \
+                        throw sim_exception(SIM_EXCEPT_PPC, PPC_EXCEPTION_ISI, PPC_EXCEPT_ISI_ACS);                   \
+                    }else if(rwx & 0x2){                                                                              \
+                        std::cout << "Got DSI write exception" << std::endl;                                          \
+                        throw sim_exception(SIM_EXCEPT_PPC, PPC_EXCEPTION_DSI, PPC_EXCEPT_DSI_ACS_W);                 \
+                    }else if(rwx & 0x4){                                                                              \
+                        std::cout << "Got DSI read exception" << std::endl;                                           \
+                        throw sim_exception(SIM_EXCEPT_PPC, PPC_EXCEPTION_DSI, PPC_EXCEPT_DSI_ACS_R);                 \
+                    }                                                                                                 \
+                }                                                                                                     \
+            }                                                                                                         \
+        }                                                                                                             \
     }
 
-    // tlbcam
-    for(size_t j=0; j<tlbCam.n_sets; j++){
-        for(size_t k=0; k<tlbCam.tlb_set[j].n_ways; k++){
-            entry = &(tlbCam.tlb_set[j].tlb_way[k]);
-            if(entry->tflags.valid && entry->epn == epn && entry->tid == pid && entry->tflags.ts == as && (entry->permis & perm) == perm){
-                goto exit_loop_1;
-            }
-        }
-    }
+    FIND_TLB_MATCH(tlb4K)
+    FIND_TLB_MATCH(tlbCam)
 
-    // If no match was found, throw an exception
     LOG("DEBUG4") << MSG_FUNC_END;
+    // Instead of throwing TLB miss exception from here itself we are returning a value of -1
+    // The TLB miss exception will be thrown in the caller after it tries to get a hit with
+    // three different PID registers ( viz. PID0, PID1 and PID2 ) and still fails.
     return -1;
 
     exit_loop_1:
 
-    offset = ea & ~(TSIZE_TO_PSIZE(entry->tflags.tsize) - 1);
+    // Get offset and wimge
+    offset = ea & (TSIZE_TO_PSIZE(entry->tflags.tsize) - 1);
     wimge  = entry->wimge;
-    return (entry->rpn + offset);
+    return ((entry->rpn << 12) + offset);
 
     LOG("DEBUG4") << MSG_FUNC_END;
 }

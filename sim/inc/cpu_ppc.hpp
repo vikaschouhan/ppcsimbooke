@@ -3,7 +3,7 @@
 
 #include "config.h"
 #include "tlb_booke.hpp"
-#include "ppc_exception.hpp"
+#include "ppc_exception.h"
 #include "ppc_dis.hpp"
 #include "cpu.hpp"
 #include "cpu_ppc_regs.h"
@@ -74,21 +74,29 @@ class cpu_ppc_booke : public cpu {
     int run_instr(instr_call &ic);
     // Overloaded run
     int run_instr(std::string instr);
+    // Translate ( conver EA to PA )
+    // Returns a pair ( first arg is the address, second is the wimge attribute )
+    std::pair<uint64_t, uint8_t> xlate(uint64_t addr, bool wr=0);
 
     // All memory read/write functions ( these act on effective addresses and address
     // translation is done by the tlb module )
-    // exec = 1, if load/stores are on instruction pages
-    // exec = 0, if load/stores are on data pages
-    uint8_t read8(uint64_t addr, bool exec=0);
-#if 0
-    void write8(uint64_t addr, uint8_t value, bool exec=0);
-    uint16_t read16(uint64_t addr, bool exec=0);
-    void write16(uint64_t addr, uint16_t value, bool exec=0);
-    uint32_t read32(uint64_t addr, bool exec=0);
-    void write32(uint64_t addr, uint32_t value, bool exec=0);
-    uint64_t read64(uint64_t addr, bool exec=0);
-    void write64(uint64_t addr, uint64_t value, bool exec=0); 
-#endif
+    // These only act on data pages
+    // Even if storing to an instruction page, it should
+    // be treated as data only i.e a separate data tlb entry should be defined which maps
+    // to the instruction physical page ).
+    // NOTE : store to an instruction page always goes through DTLB. ITLB is only used for
+    // instruction fetches.
+    uint8_t read8(uint64_t addr);
+    void write8(uint64_t addr, uint8_t value);
+    uint16_t read16(uint64_t addr);
+    void write16(uint64_t addr, uint16_t value);
+    uint32_t read32(uint64_t addr);
+    void write32(uint64_t addr, uint32_t value);
+    uint64_t read64(uint64_t addr);
+    void write64(uint64_t addr, uint64_t value); 
+    //
+    // Instruction read
+    //uint32_t read_instr(uint64_t addr);
 
     // Get PC
     uint64_t get_pc(){
@@ -266,35 +274,164 @@ int cpu_ppc_booke::run_instr(std::string instr){
 }
 
 #define TO_RWX(r, w, x) (((r & 0x1) << 2) | ((w & 0x1) << 1) | (x & 0x1))
-// Memory I/O functions
-uint8_t cpu_ppc_booke::read8(uint64_t addr, bool exec){
+// Translate EA to RA
+std::pair<uint64_t, uint8_t> cpu_ppc_booke::xlate(uint64_t addr, bool wr){
     uint8_t  wimge;
     uint64_t paddr;
-    uint8_t  perm = TO_RWX(1, 0, exec);
-    bool as = (exec) ? EBMASK(PPCREG(REG_MSR), MSR_IS) : EBMASK(PPCREG(REG_MSR), MSR_DS);
+    uint8_t  perm = (wr) ? TO_RWX(0, 1, 0) : TO_RWX(1, 0, 0);
+    bool as = EBMASK(PPCREG(REG_MSR), MSR_DS);
     bool pr = EBMASK(PPCREG(REG_MSR), MSR_PR);
 
     if((paddr = m_l2tlb.xlate(addr, as, PPCREG(REG_PID0), perm, pr, wimge)) != -1)
-            goto break_0;
+            goto exit_loop_0;
     if((paddr = m_l2tlb.xlate(addr, as, PPCREG(REG_PID1), perm, pr, wimge)) != -1)
-            goto break_0;
+            goto exit_loop_0;
     if((paddr = m_l2tlb.xlate(addr, as, PPCREG(REG_PID2), perm, pr, wimge)) != -1)
-            goto break_0;
-   
-    break_0:
-    LASSERT_THROW(m_mem_ptr != NULL, sim_exception_fatal("no memory module registered."), DEBUG4);
-    return m_mem_ptr->read8(paddr, (wimge & 0x1));
+            goto exit_loop_0;
+
+    // We encountered TLB miss. Throw exceptions
+    std::cout << "DTLB miss" << std::endl;
+    if(wr){
+        LTHROW(sim_exception(SIM_EXCEPT_PPC, PPC_EXCEPTION_DTLB, PPC_EXCEPT_DTLB_MISS_ST), DEBUG4);
+    }else{
+        LTHROW(sim_exception(SIM_EXCEPT_PPC, PPC_EXCEPTION_DTLB, PPC_EXCEPT_DTLB_MISS_LD), DEBUG4);
+    }
+
+    exit_loop_0:
+    LOG("DEBUG4") << std::hex << std::showbase << addr << " -> " << paddr;
+    return std::pair<uint64_t, uint8_t>(paddr, wimge);
 }
 
-#if 0
-void write8(uint64_t addr, uint8_t value);
-uint16_t read16(uint64_t addr);
-void write16(uint64_t addr, uint16_t value);
-uint32_t read32(uint64_t addr);
-void write32(uint64_t addr, uint32_t value);
-uint64_t read64(uint64_t addr);
-void write64(uint64_t addr, uint64_t value);
-#endif
+
+// Memory I/O functions
+uint8_t cpu_ppc_booke::read8(uint64_t addr){
+    std::pair<uint64_t, uint8_t> res;
+    try {
+        res = xlate(addr, 0);
+    }
+    catch(sim_exception &e){
+        // Check for hardware exceptions
+        if(e.err_code() == SIM_EXCEPT_PPC){
+            ppc_exception(e.sec_err_code(0), e.sec_err_code(1), addr);
+        }
+    }
+ 
+    LASSERT_THROW(m_mem_ptr != NULL, sim_exception_fatal("no memory module registered."), DEBUG4);
+    return m_mem_ptr->read8(res.first, (res.second & 0x1));
+}
+
+void cpu_ppc_booke::write8(uint64_t addr, uint8_t value){
+    std::pair<uint64_t, uint8_t> res;
+    try {
+        res = xlate(addr, 0);
+    }
+    catch(sim_exception &e){
+        // Check for hardware exceptions
+        if(e.err_code() == SIM_EXCEPT_PPC){
+            ppc_exception(e.sec_err_code(0), e.sec_err_code(1), addr);
+        }
+    }
+
+    LASSERT_THROW(m_mem_ptr != NULL, sim_exception_fatal("no memory module registered."), DEBUG4);
+    m_mem_ptr->write8(res.first, value, (res.second & 0x1));
+}
+
+uint16_t cpu_ppc_booke::read16(uint64_t addr){
+    std::pair<uint64_t, uint8_t> res;
+    try {
+        res = xlate(addr, 0);
+    }
+    catch(sim_exception &e){
+        // Check for hardware exceptions
+        if(e.err_code() == SIM_EXCEPT_PPC){
+            ppc_exception(e.sec_err_code(0), e.sec_err_code(1), addr);
+        }
+    }
+
+    LASSERT_THROW(m_mem_ptr != NULL, sim_exception_fatal("no memory module registered."), DEBUG4);
+    return m_mem_ptr->read16(res.first, (res.second & 0x1));
+}
+
+
+void cpu_ppc_booke::write16(uint64_t addr, uint16_t value){
+    std::pair<uint64_t, uint8_t> res;
+    try {
+        res = xlate(addr, 0);
+    }
+    catch(sim_exception &e){
+        // Check for hardware exceptions
+        if(e.err_code() == SIM_EXCEPT_PPC){
+            ppc_exception(e.sec_err_code(0), e.sec_err_code(1), addr);
+        }
+    }
+
+    LASSERT_THROW(m_mem_ptr != NULL, sim_exception_fatal("no memory module registered."), DEBUG4);
+    m_mem_ptr->write16(res.first, value, (res.second & 0x1));
+}
+
+uint32_t cpu_ppc_booke::read32(uint64_t addr){
+    std::pair<uint64_t, uint8_t> res;
+    try {
+        res = xlate(addr, 0);
+    }
+    catch(sim_exception &e){
+        // Check for hardware exceptions
+        if(e.err_code() == SIM_EXCEPT_PPC){
+            ppc_exception(e.sec_err_code(0), e.sec_err_code(1), addr);
+        }
+    }
+
+    LASSERT_THROW(m_mem_ptr != NULL, sim_exception_fatal("no memory module registered."), DEBUG4);
+    return m_mem_ptr->read32(res.first, (res.second & 0x1));
+}
+
+void cpu_ppc_booke::write32(uint64_t addr, uint32_t value){
+    std::pair<uint64_t, uint8_t> res;
+    try {
+        res = xlate(addr, 0);
+    }
+    catch(sim_exception &e){
+        // Check for hardware exceptions
+        if(e.err_code() == SIM_EXCEPT_PPC){
+            ppc_exception(e.sec_err_code(0), e.sec_err_code(1), addr);
+        }
+    }
+
+    LASSERT_THROW(m_mem_ptr != NULL, sim_exception_fatal("no memory module registered."), DEBUG4);
+    m_mem_ptr->write32(res.first, value, (res.second & 0x1));
+}
+
+uint64_t cpu_ppc_booke::read64(uint64_t addr){
+    std::pair<uint64_t, uint8_t> res;
+    try {
+        res = xlate(addr, 0);
+    }
+    catch(sim_exception &e){
+        // Check for hardware exceptions
+        if(e.err_code() == SIM_EXCEPT_PPC){
+            ppc_exception(e.sec_err_code(0), e.sec_err_code(1), addr);
+        }
+    }
+
+    LASSERT_THROW(m_mem_ptr != NULL, sim_exception_fatal("no memory module registered."), DEBUG4);
+    return m_mem_ptr->read64(res.first, (res.second & 0x1));
+}
+
+void cpu_ppc_booke::write64(uint64_t addr, uint64_t value){
+    std::pair<uint64_t, uint8_t> res;
+    try {
+        res = xlate(addr, 0);
+    }
+    catch(sim_exception &e){
+        // Check for hardware exceptions
+        if(e.err_code() == SIM_EXCEPT_PPC){
+            ppc_exception(e.sec_err_code(0), e.sec_err_code(1), addr);
+        }
+    }
+
+    LASSERT_THROW(m_mem_ptr != NULL, sim_exception_fatal("no memory module registered."), DEBUG4);
+    m_mem_ptr->write64(res.first, value, (res.second & 0x1));
+}
 
 // Initialize register attributes
 void cpu_ppc_booke::init_reg_attrs(){
@@ -412,6 +549,8 @@ void cpu_ppc_booke::init_reg_attrs(){
 //     exception_nr -> exception number
 //     subtype -> a flag denoting the event which caused the exception
 //     ea -> effective address at the time fault occured ( used in case of DSI faults etc )
+//
+// FIXME : We don't support hardware exceptions yet. This is planned.
 void cpu_ppc_booke::ppc_exception(int exception_nr, uint64_t subtype=0, uint64_t ea)
 {
     LOG("DEBUG4") << MSG_FUNC_START;

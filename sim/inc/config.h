@@ -30,6 +30,7 @@
 
 // Include all common misc local header files
 #include "exception.hpp"
+#include "ppc_exception.h"
 #include "log.hpp"
 #include "utils.h"
 

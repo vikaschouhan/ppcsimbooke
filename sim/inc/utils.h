@@ -124,6 +124,10 @@ static const int  EMUL_LITTLE_ENDIAN     =  1;
                                           LOG(#LEVEL) << MSG_FUNC_END;                                                                        \
                                           throw expv;                                                                                         \
                                       }
+#define LTHROW(expv, LEVEL)           {                                                                                                       \
+                                          LOG(#LEVEL) << MSG_FUNC_END;                                                                        \
+                                          throw expv;                                                                                         \
+                                      } 
 
 // Convert a string to an integer
 // We don't support octal and binary ints for time being
