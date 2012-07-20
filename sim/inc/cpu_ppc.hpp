@@ -64,12 +64,31 @@ class cpu_ppc_booke : public cpu {
     void init_cpu_ppc_booke(uint64_t cpuid, std::string name){
         init_cpu(cpuid, name, 0xfffffffc);
     }
+    // Register memory
+    void register_mem(memory &mem){
+        if(m_mem_ptr == NULL)
+            m_mem_ptr = &mem;
+    }
 
     // All virtual functions
     int run_instr(instr_call &ic);
-    int xlate_v2p(uint64_t vaddr, uint64_t *return_paddr, int flags);
     // Overloaded run
     int run_instr(std::string instr);
+
+    // All memory read/write functions ( these act on effective addresses and address
+    // translation is done by the tlb module )
+    // exec = 1, if load/stores are on instruction pages
+    // exec = 0, if load/stores are on data pages
+    uint8_t read8(uint64_t addr, bool exec=0);
+#if 0
+    void write8(uint64_t addr, uint8_t value, bool exec=0);
+    uint16_t read16(uint64_t addr, bool exec=0);
+    void write16(uint64_t addr, uint16_t value, bool exec=0);
+    uint32_t read32(uint64_t addr, bool exec=0);
+    void write32(uint64_t addr, uint32_t value, bool exec=0);
+    uint64_t read64(uint64_t addr, bool exec=0);
+    void write64(uint64_t addr, uint64_t value, bool exec=0); 
+#endif
 
     // Get PC
     uint64_t get_pc(){
@@ -172,9 +191,8 @@ class cpu_ppc_booke : public cpu {
 #else
     ppc_tlb_booke<128,2,16>                m_l2tlb;
 #endif
-
     // memory module
-    std::shared_ptr<memory> mem_ptr;
+    memory                                 *m_mem_ptr;
 
     /* Host specific stuff */
 #if HOST_ARCH == x86_64
@@ -225,10 +243,6 @@ int cpu_ppc_booke::run_instr(instr_call &ic){
     return 0;
 }
 
-int cpu_ppc_booke::xlate_v2p(uint64_t vaddr, uint64_t *return_paddr, int flags){
-    return 0;
-}
-
 // Second form of run_instr
 // Seems like c++ doesn't have an very effective way of handling non POD objects
 //  with variadic arg funcs
@@ -250,6 +264,37 @@ int cpu_ppc_booke::run_instr(std::string instr){
     LOG("DEBUG4") << MSG_FUNC_END;
     return 0;
 }
+
+#define TO_RWX(r, w, x) (((r & 0x1) << 2) | ((w & 0x1) << 1) | (x & 0x1))
+// Memory I/O functions
+uint8_t cpu_ppc_booke::read8(uint64_t addr, bool exec){
+    uint8_t  wimge;
+    uint64_t paddr;
+    uint8_t  perm = TO_RWX(1, 0, exec);
+    bool as = (exec) ? EBMASK(PPCREG(REG_MSR), MSR_IS) : EBMASK(PPCREG(REG_MSR), MSR_DS);
+    bool pr = EBMASK(PPCREG(REG_MSR), MSR_PR);
+
+    if((paddr = m_l2tlb.xlate(addr, as, PPCREG(REG_PID0), perm, pr, wimge)) != -1)
+            goto break_0;
+    if((paddr = m_l2tlb.xlate(addr, as, PPCREG(REG_PID1), perm, pr, wimge)) != -1)
+            goto break_0;
+    if((paddr = m_l2tlb.xlate(addr, as, PPCREG(REG_PID2), perm, pr, wimge)) != -1)
+            goto break_0;
+   
+    break_0:
+    LASSERT_THROW(m_mem_ptr != NULL, sim_exception_fatal("no memory module registered."), DEBUG4);
+    return m_mem_ptr->read8(paddr, (wimge & 0x1));
+}
+
+#if 0
+void write8(uint64_t addr, uint8_t value);
+uint16_t read16(uint64_t addr);
+void write16(uint64_t addr, uint16_t value);
+uint32_t read32(uint64_t addr);
+void write32(uint64_t addr, uint32_t value);
+uint64_t read64(uint64_t addr);
+void write64(uint64_t addr, uint64_t value);
+#endif
 
 // Initialize register attributes
 void cpu_ppc_booke::init_reg_attrs(){

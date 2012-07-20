@@ -20,6 +20,7 @@ template <int ncpus, int nbits> class machine {
             ostr.clear();
             ostr << i;
             m_cpu[i].init_cpu_ppc_booke(cpuid, "e500v2_" + ostr.str());
+            m_cpu[i].register_mem(m_memory);
         }
     }
     // for boost::python

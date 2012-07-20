@@ -34,15 +34,26 @@ template<int tlb4K_ns, int tlb4K_nw, int tlbCam_ne> class ppc_tlb_booke {
     public:
     // Tlb entry
     struct t_tlb_entry {
-        uint32_t  tid;     /* ~ PID */
-        uint64_t  epn;     /* Effective page no */
-        uint64_t  rpn;     /* Real Page no */
-        uint32_t  rpb;     /* physical address bits ( as supported by implementation ) */
-        uint64_t  ps;      /* page size */
-        uint32_t  wimge;   /* wimge attributes */
-        uint32_t  x01;     /* x0-x1 page attribute */
-        uint32_t  u03;     /* u0-u3 user defined attributes */
-        uint32_t  permis;  /* Permission */
+        uint32_t  tid;     // PID
+        uint64_t  epn;     // Effective page no
+        uint64_t  rpn;     // Real Page no
+        uint64_t  ps;      // page size
+        uint32_t  wimge;   // wimge attributes
+        uint32_t  x01;     // x0-x1 page attribute
+        uint32_t  u03;     // u0-u3 user defined attributes
+        uint32_t  permis;  // Permission . This is stored in
+                           // a diff format than that specified by MAS registers
+                           // ur-uw-ux-sr-sw-sx
+#define PERMIS_TO_PPCPERMIS(_perm)                                                  \
+        (                                                                           \
+        ((_perm & 0x1) << 4) | ((_perm & 0x2) << 1)  | ((_perm & 0x4) >> 2) |       \
+        ((_perm & 0x8) << 2) | ((_perm & 0x10) >> 1) | ((_perm & 0x20) >> 4)        \
+        )
+#define PPCPERMIS_TO_PERMIS(_perm)                                                  \
+        (                                                                           \
+        ((_perm & 0x1) << 2) | ((_perm & 0x2) << 4)  | ((_perm & 0x4) >> 1) |       \
+        ((_perm & 0x8) << 1) | ((_perm & 0x10) >> 4) | ((_perm & 0x20) >> 2)        \
+        )
         struct {
             uint64_t ts    : 1;  /* Translation space */
             uint64_t tsize : 4;  /* Logarithmic page size */
@@ -96,7 +107,7 @@ template<int tlb4K_ns, int tlb4K_nw, int tlbCam_ne> class ppc_tlb_booke {
     void tlbwe(uint32_t mas0, uint32_t mas1, uint32_t mas2, uint32_t mas3, uint32_t mas7, uint32_t hid0);
     void tlbse(uint64_t ea, uint32_t &mas0, uint32_t &mas1, uint32_t &mas2, uint32_t &mas3, uint32_t &mas6, uint32_t &mas7, uint32_t hid0);
     void tlbive(uint64_t ea);
-    uint64_t xlate(uint64_t ea, uint64_t as, uint64_t pid, uint64_t permis, uint64_t& wimge);
+    uint64_t xlate(uint64_t ea, bool as, uint8_t pid, uint8_t rwx, bool pr, uint8_t& wimge);
 
 };
 
@@ -137,10 +148,10 @@ TLB_T void PPC_TLB_BOOKE::init_ppc_tlb_defaults(void){
     entry.tid          = 0;
     entry.epn          = 0xfffff;
     entry.rpn          = 0xfffff;
-    entry.tflags.tsize = 1;                  /* 4K page size */
+    entry.tflags.tsize = 1;                   // 4K page size
     entry.ps           = 0x1000;
-    entry.permis       = 0b10101;            /* sx-sr-sw = 111, ux-ur-uw = 000 */
-    entry.wimge        = 0b1000;
+    entry.permis       = 0b000111;            // sx-sr-sw = 111, ux-ur-uw = 000
+    entry.wimge        = 0b01000;             // cahce inhibited
     entry.x01          = 0;
     entry.u03          = 0;
     entry.tflags.iprot = 1;
@@ -163,7 +174,7 @@ TLB_T void PPC_TLB_BOOKE::print_tlb_entry(t_tlb_entry &entry, std::string fmtstr
     std::cout << fmtstr << "rpn    -> " << std::hex << entry.rpn << std::endl;
     std::cout << fmtstr << "ps     -> " << std::hex << entry.ps  << std::endl;
     std::cout << fmtstr << "wimge  -> " << std::hex << entry.wimge << std::endl;
-    std::cout << fmtstr << "permis -> " << std::hex << entry.permis << std::endl;
+    std::cout << fmtstr << "permis -> " << std::hex << PERMIS_TO_PPCPERMIS(entry.permis) << std::endl;
     std::cout << fmtstr << "x01    -> " << std::hex << entry.x01 << std::endl;
     std::cout << fmtstr << "u03    -> " << std::hex << entry.u03 << std::endl;
     std::cout << fmtstr << "ts     -> " << std::hex << entry.tflags.ts << std::endl;
@@ -187,18 +198,18 @@ TLB_T typename PPC_TLB_BOOKE::t_tlb_entry& PPC_TLB_BOOKE::get_entry(size_t tlbno
     // For fully associative arrays,  esel selects the set_no and epn is not used
     // but for n way set-associative, esel selects way_no and EPN[45-51] selects the desired set_no
     if(tlbno == 0){
-        setno = epn & (tlb4K->assoc - 1);
+        setno = epn & (tlb4K.assoc - 1);
     }
     wayno = esel;
 
     if(tlbno == 0){
-        LASSERT_THROW(setno < tlb4K->n_sets, sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Wrong set no ( MAS2 )"), DEBUG4);
-        LASSERT_THROW(wayno < tlb4K->tlb_set[setno].n_ways, sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Wrong way no ( MAS0 )"), DEBUG4);
-        return tlb4K->tlb_set[setno].tlb_way[wayno];
+        LASSERT_THROW(setno < tlb4K.n_sets, sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Wrong set no ( MAS2 )"), DEBUG4);
+        LASSERT_THROW(wayno < tlb4K.tlb_set[setno].n_ways, sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Wrong way no ( MAS0 )"), DEBUG4);
+        return tlb4K.tlb_set[setno].tlb_way[wayno];
     }else{
-        LASSERT_THROW(setno < tlbCam->n_sets, sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Wrong set no ( MAS2 )"), DEBUG4);
-        LASSERT_THROW(wayno < tlbCam->tlb_set[setno].n_ways, sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Wrong way no ( MAS0 )"), DEBUG4);
-        return tlbCam->tlb_set[setno].tlb_way[wayno];
+        LASSERT_THROW(setno < tlbCam.n_sets, sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Wrong set no ( MAS2 )"), DEBUG4);
+        LASSERT_THROW(wayno < tlbCam.tlb_set[setno].n_ways, sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Wrong way no ( MAS0 )"), DEBUG4);
+        return tlbCam.tlb_set[setno].tlb_way[wayno];
     }
 
     LOG("DEBUG4") << MSG_FUNC_END;
@@ -212,13 +223,13 @@ TLB_T typename PPC_TLB_BOOKE::t_tlb_entry& PPC_TLB_BOOKE::get_entry2(size_t tlbn
     LASSERT_THROW(tlbno == 0 || tlbno == 1, sim_exception(SIM_EXCEPT_ILLEGAL_OP, "invalid tlbsel ( MAS0 )"), DEBUG4);
    
     if(tlbno == 0){
-        LASSERT_THROW(setno < tlb4K->n_sets, sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Wrong set no ( MAS2 )"), DEBUG4);
-        LASSERT_THROW(wayno < tlb4K->tlb_set[setno].n_ways, sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Wrong way no ( MAS0 )"), DEBUG4);
-        return tlb4K->tlb_set[setno].tlb_way[wayno];
+        LASSERT_THROW(setno < tlb4K.n_sets, sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Wrong set no ( MAS2 )"), DEBUG4);
+        LASSERT_THROW(wayno < tlb4K.tlb_set[setno].n_ways, sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Wrong way no ( MAS0 )"), DEBUG4);
+        return tlb4K.tlb_set[setno].tlb_way[wayno];
     }else{
-        LASSERT_THROW(setno < tlbCam->n_sets, sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Wrong set no ( MAS2 )"), DEBUG4);
-        LASSERT_THROW(wayno < tlbCam->tlb_set[setno].n_ways, sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Wrong way no ( MAS0 )"), DEBUG4);
-        return tlbCam->tlb_set[setno].tlb_way[wayno];
+        LASSERT_THROW(setno < tlbCam.n_sets, sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Wrong set no ( MAS2 )"), DEBUG4);
+        LASSERT_THROW(wayno < tlbCam.tlb_set[setno].n_ways, sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Wrong way no ( MAS0 )"), DEBUG4);
+        return tlbCam.tlb_set[setno].tlb_way[wayno];
     }
 
     LOG("DEBUG4") << MSG_FUNC_END;
@@ -296,7 +307,7 @@ TLB_T void PPC_TLB_BOOKE::print_tlbs2(){
             if(entry_this.tflags.valid){           /* print only if the entry is valid */                                 \
                 PRINT_TLB_ENT(j, k, entry_this.epn, entry_this.rpn,                                                       \
                         entry_this.tid,    entry_this.tflags.ts,                                                          \
-                        entry_this.wimge,  entry_this.permis,                                                             \
+                        entry_this.wimge,  PERMIS_TO_PPCPERMIS(entry_this.permis),                                        \
                         entry_this.ps,     entry_this.x01,                                                                \
                         entry_this.u03,    entry_this.tflags.iprot);                                                      \
             }                                                                                                             \
@@ -349,7 +360,7 @@ TLB_T void PPC_TLB_BOOKE::tlbre(uint32_t &mas0, uint32_t &mas1, uint32_t &mas2, 
 
     mas3  |= IBMASK(entry.rpn,          MAS3_RPN);
     mas3  |= IBMASK(entry.u03,          MAS3_U03);
-    mas3  |= IBMASK(entry.permis,       MAS3_PERMIS);
+    mas3  |= IBMASK(PERMIS_TO_PPCPERMIS(entry.permis),       MAS3_PERMIS);
 
     if(EBMASK(hid0, HID0_EN_MAS7_UPDATE))
         mas7  |= IBMASK((entry.rpn >> 20) & 0xf, MAS7_RPN);    /* Upper 4 bits of rpn */
@@ -390,7 +401,7 @@ TLB_T void PPC_TLB_BOOKE::tlbwe(uint32_t mas0, uint32_t mas1, uint32_t mas2, uin
 
     entry.rpn          = rpn;
     entry.u03          = EBMASK(mas3,   MAS3_U03);
-    entry.permis       = EBMASK(mas3,   MAS3_PERMIS);
+    entry.permis       = PPCPERMIS_TO_PERMIS(EBMASK(mas3,   MAS3_PERMIS));
 
     if(EBMASK(hid0, HID0_EN_MAS7_UPDATE))
         entry.rpn |= EBMASK(mas7, MAS7_RPN) << 20;    /* Upper 4 bits of rpn */
@@ -422,13 +433,13 @@ TLB_T void PPC_TLB_BOOKE::tlbse(uint64_t ea, uint32_t &mas0, uint32_t &mas1, uin
 
     /* Start searching in the tlb arrays */
 #define SEARCH_TLB(tlb_type)                                                         \
-    for(size_t j=0; j<tlb_type->n_sets; j++){                                        \
-        for(size_t k=0; k<tlb_type->tlb_set[j].n_ways; k++){                         \
-            if((epn == tlb_type->tlb_set[j].tlb_way[k].epn)        &&                \
-               (as  == tlb_type->tlb_set[j].tlb_way[k].tflags.ts)  &&                \
-               (pid == tlb_type->tlb_set[j].tlb_way[k].tid)){                        \
-                entry = &(tlb_type->tlb_set[j].tlb_way[k]);                          \
-                tsel = tlb_type->tlbno;                                              \
+    for(size_t j=0; j<tlb_type.n_sets; j++){                                         \
+        for(size_t k=0; k<tlb_type.tlb_set[j].n_ways; k++){                          \
+            if((epn == tlb_type.tlb_set[j].tlb_way[k].epn)        &&                 \
+               (as  == tlb_type.tlb_set[j].tlb_way[k].tflags.ts)  &&                 \
+               (pid == tlb_type.tlb_set[j].tlb_way[k].tid)){                         \
+                entry = &(tlb_type.tlb_set[j].tlb_way[k]);                           \
+                tsel = tlb_type.tlbno;                                               \
                 ssel = j;                                                            \
                 wsel = k;                                                            \
                 goto exit_loop_0;                                                    \
@@ -461,7 +472,7 @@ TLB_T void PPC_TLB_BOOKE::tlbse(uint64_t ea, uint32_t &mas0, uint32_t &mas1, uin
 
     mas3  |= IBMASK(entry->rpn,          MAS3_RPN);
     mas3  |= IBMASK(entry->u03,          MAS3_U03);
-    mas3  |= IBMASK(entry->permis,       MAS3_PERMIS);
+    mas3  |= IBMASK(PERMIS_TO_PPC_PERMIS(entry->permis),       MAS3_PERMIS);
 
     if(EBMASK(hid0, HID0_EN_MAS7_UPDATE))
         mas7 |= IBMASK((entry->rpn >> 20) & 0xf,  MAS7_RPN);    /* Upper 4 bits of rpn */
@@ -494,9 +505,9 @@ TLB_T void PPC_TLB_BOOKE::tlbive(uint64_t ea){
 
     /* Test if INV_ALL is set and tlbno = 1 */
     if(inv_all && (tlbsel == 1)){
-        for(size_t j=0; j<tlbCam->n_sets; j++){
-            for(size_t k=0; k<tlbCam->tlb_set[j].n_ways; k++){
-                entry = &(tlbCam->tlb_set[j].tlb_way[k]);
+        for(size_t j=0; j<tlbCam.n_sets; j++){
+            for(size_t k=0; k<tlbCam.tlb_set[j].n_ways; k++){
+                entry = &(tlbCam.tlb_set[j].tlb_way[k]);
                 if(!entry->tflags.iprot){
                     entry->tflags.valid = 0;      /* If IPROT is not set, invalidate this entry */ 
                 }
@@ -504,9 +515,9 @@ TLB_T void PPC_TLB_BOOKE::tlbive(uint64_t ea){
         }
     }else /* Test if inv_all and tlbno = 1 */
     if(inv_all && (tlbsel == 0)){
-        for(size_t j=0; j<tlb4K->n_sets; j++){
-            for(size_t k=0; k<tlb4K->tlb_set[j].n_ways; k++){
-                entry = &(tlb4K->tlb_set[j].tlb_way[k]);
+        for(size_t j=0; j<tlb4K.n_sets; j++){
+            for(size_t k=0; k<tlb4K.tlb_set[j].n_ways; k++){
+                entry = &(tlb4K.tlb_set[j].tlb_way[k]);
                 entry->tflags.valid = 0;      /* If IPROT is not set, invalidate this entry */ 
             }
         }
@@ -514,9 +525,9 @@ TLB_T void PPC_TLB_BOOKE::tlbive(uint64_t ea){
     if(!inv_all)
     {
         // tlb4K
-        for(size_t j=0; j<tlb4K->n_sets; j++){
-            for(size_t k=0; k<tlb4K->tlb_set[j].n_ways; k++){
-                entry = &(tlb4K->tlb_set[j].tlb_way[k]);
+        for(size_t j=0; j<tlb4K.n_sets; j++){
+            for(size_t k=0; k<tlb4K.tlb_set[j].n_ways; k++){
+                entry = &(tlb4K.tlb_set[j].tlb_way[k]);
                 if(entry->epn == epn){
                     entry->tflags.valid = 0;      /* If IPROT is not set, invalidate this entry */ 
                     goto exit_loop_1;
@@ -525,9 +536,9 @@ TLB_T void PPC_TLB_BOOKE::tlbive(uint64_t ea){
         }
 
         // tlbCam
-        for(size_t j=0; j<tlbCam->n_sets; j++){
-            for(size_t k=0; k<tlbCam->tlb_set[j].n_ways; k++){
-                entry = &(tlbCam->tlb_set[j].tlb_way[k]);
+        for(size_t j=0; j<tlbCam.n_sets; j++){
+            for(size_t k=0; k<tlbCam.tlb_set[j].n_ways; k++){
+                entry = &(tlbCam.tlb_set[j].tlb_way[k]);
                 if(entry->epn == epn && !entry->tflags.iprot){
                     entry->tflags.valid = 0;      /* If IPROT is not set, invalidate this entry */ 
                     goto exit_loop_1;
@@ -546,7 +557,7 @@ TLB_T void PPC_TLB_BOOKE::tlbive(uint64_t ea){
 }
 
 // Translate effective address into real address using as bit, an 8 bit PID value and permission attributes
-TLB_T uint64_t PPC_TLB_BOOKE::xlate(uint64_t ea, uint64_t as, uint64_t pid, uint64_t permis, uint64_t& wimge){
+TLB_T uint64_t PPC_TLB_BOOKE::xlate(uint64_t ea, bool as, uint8_t pid, uint8_t rwx, bool pr, uint8_t& wimge){
     LOG("DEBUG4") << MSG_FUNC_START;
 
     uint64_t epn = (ea >> 12);
@@ -554,27 +565,29 @@ TLB_T uint64_t PPC_TLB_BOOKE::xlate(uint64_t ea, uint64_t as, uint64_t pid, uint
     t_tlb_entry* entry = NULL;
 
     // Check validity of AS and PID
-    LASSERT_THROW((as & 0x1) == as, sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Illegal AS"), DEBUG4);
+    LASSERT_THROW((as & 0x1)   == as, sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Illegal AS"), DEBUG4);
     LASSERT_THROW((pid & 0xff) == pid, sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Illegal PID"), DEBUG4);
-    LASSERT_THROW((permis & 0x3f) == permis, sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Illegal permis"), DEBUG4);
+    LASSERT_THROW((rwx & 0x3)  == rwx, sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Illegal permis rwx"), DEBUG4);
+
+    uint16_t perm = (rwx << (pr*3));
 
     // According to e500v2 CRM , multiple hits are considered programming error and the xlated
     // address may not be valid. An exception ( hardware ) is not generated in this case.
     // tlb4K
-    for(size_t j=0; j<tlb4K->n_sets; j++){
-        for(size_t k=0; k<tlb4K->tlb_set[j].n_ways; k++){
-            entry = &(tlb4K->tlb_set[j].tlb_way[k]);
-            if(entry->tflags.valid && entry->epn == epn && entry->tid == pid && entry->tflags.ts == as && entry->permis == permis){
+    for(size_t j=0; j<tlb4K.n_sets; j++){
+        for(size_t k=0; k<tlb4K.tlb_set[j].n_ways; k++){
+            entry = &(tlb4K.tlb_set[j].tlb_way[k]);
+            if(entry->tflags.valid && entry->epn == epn && entry->tid == pid && entry->tflags.ts == as && (entry->permis & perm) == perm){
                 goto exit_loop_1;
             }
         }
     }
 
     // tlbcam
-    for(size_t j=0; j<tlbCam->n_sets; j++){
-        for(size_t k=0; k<tlbCam->tlb_set[j].n_ways; k++){
-            entry = &(tlbCam->tlb_set[j].tlb_way[k]);
-            if(entry->tflags.valid && entry->epn == epn && entry->tid == pid && entry->tflags.ts == as && entry->permis == permis){
+    for(size_t j=0; j<tlbCam.n_sets; j++){
+        for(size_t k=0; k<tlbCam.tlb_set[j].n_ways; k++){
+            entry = &(tlbCam.tlb_set[j].tlb_way[k]);
+            if(entry->tflags.valid && entry->epn == epn && entry->tid == pid && entry->tflags.ts == as && (entry->permis & perm) == perm){
                 goto exit_loop_1;
             }
         }
@@ -582,12 +595,12 @@ TLB_T uint64_t PPC_TLB_BOOKE::xlate(uint64_t ea, uint64_t as, uint64_t pid, uint
 
     // If no match was found, throw an exception
     LOG("DEBUG4") << MSG_FUNC_END;
-    throw(sim_exception_fatal("No match found."));
+    return -1;
 
     exit_loop_1:
 
-    offset = ea & ~(TSIZE_TO_PSIZE(entry.tflags.tsize) - 1);
-    wimge  = entry.wimge;
+    offset = ea & ~(TSIZE_TO_PSIZE(entry->tflags.tsize) - 1);
+    wimge  = entry->wimge;
     return (entry->rpn + offset);
 
     LOG("DEBUG4") << MSG_FUNC_END;

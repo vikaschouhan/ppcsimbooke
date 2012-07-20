@@ -11,6 +11,7 @@
 #define SIM_EXCEPT_UNKNOWN             (0xff)
 
 // generic exception class for our sim module ( only non fatal exception )
+// PPC exceptions are also dealt by our simulator exception mechanism.
 // TODO: This is barebones right now.
 class sim_exception : public std::exception {
     // Error code hash
@@ -20,6 +21,7 @@ class sim_exception : public std::exception {
             (*this)[SIM_EXCEPT_ILLEGAL_OP]       = "std::sim_exception : illegal operand";
             (*this)[SIM_EXCEPT_UNKNOWN]          = "std::sim_exception : unknown exception";
             (*this)[SIM_EXCEPT_RESOURCE_UNAVAIL] = "std::sim_exception : Resource unavailable";
+            //(*this)[SIM_EXCEPT_PPC_DSI]          = "std::sim_exception : PPC DSI exception";
         }
         ~_err_hash(){}
     } errhash_;

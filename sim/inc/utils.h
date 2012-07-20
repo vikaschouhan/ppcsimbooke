@@ -35,9 +35,8 @@
 #include "log.hpp"
 
 // endianness consts
-static const int  EMUL_UNDEFINED_ENDIAN  =  0;
+static const int  EMUL_BIG_ENDIAN        =  0;
 static const int  EMUL_LITTLE_ENDIAN     =  1;
-static const int  EMUL_BIG_ENDIAN        =  2;
 
 // Used for union'ed bitfields
 #if (defined __x86_64__)

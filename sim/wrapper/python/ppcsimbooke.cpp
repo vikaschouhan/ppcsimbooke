@@ -59,9 +59,6 @@ struct cpu_wrap : public cpu, public boost::python::wrapper<cpu>
     int run_instr(std::string instr){
         return this->get_override("run_instr")(instr);
     }
-    int xlate_v2p(uint64_t vaddr, uint64_t *paddr, int flags){
-        return this->get_override("xlate_v2p")(vaddr, paddr, flags);
-    }
     cpu_wrap(uint64_t cpuid, std::string name, uint64_t pc) : cpu(cpuid, name, pc){
     }
 };
@@ -219,8 +216,7 @@ BOOST_PYTHON_MODULE(ppcsim)
         scope types_scope = types_py;
 
         // Endianness attributes
-        types_py.def_readonly("EMUL_UNDEFINED_ENDIAN", &EMUL_UNDEFINED_ENDIAN)
-                .def_readonly("EMUL_LITTLE_ENDIAN",    &EMUL_LITTLE_ENDIAN)
+        types_py.def_readonly("EMUL_LITTLE_ENDIAN",    &EMUL_LITTLE_ENDIAN)
                 .def_readonly("EMUL_BIG_ENDIAN",       &EMUL_BIG_ENDIAN)
                 ;
 
@@ -321,7 +317,6 @@ BOOST_PYTHON_MODULE(ppcsim)
         class_<cpu_wrap, boost::noncopyable>("cpu", init<uint64_t, std::string, uint64_t>())
             .def("run_instr", pure_virtual(run_instr_ptr))
             .def("run_instr", pure_virtual(run_instr_ptr2))
-            .def("xlate_v2p", pure_virtual(&cpu::xlate_v2p))
             ;
 
         // The derived cpu_ppc_book class ( Our main cpu class )
