@@ -29,8 +29,34 @@
 
 // Global defines for this template file
 //
+#undef  ppcreg
+#undef  ppcregattr
+#undef  ppcregn
+#undef  ppcregnattr
+
+#undef  spr
+#undef  sprn
+#undef  xer
+#undef  msr
+#undef  pmr
+#undef  gpr
+#undef  cr
+#undef  update_cr0
+#undef  update_crF  
+#undef  update_crf  
+#undef  update_xer  
+#undef  update_xerf 
+#undef  get_xer_so  
+#undef  get_crf     
+#undef  get_crF     
+#undef  get_xerF    
+#undef  host_flags  
+#undef  dummy_flags 
+
 #define ppcreg(regid)            (cpu->m_ireghash[regid]->value)
+#define ppcregattr(regid)        (cpu->m_ireghash[regid]->attr)
 #define ppcregn(reg_name)        (cpu->m_reghash[reg_name]->value)
+#define ppcregnattr(reg_name)    (cpu->m_reghash[reg_name]->attr)
 
 #define spr(sprno)               ppcreg(REG_SPR0 + sprno) 
 #define sprn(spr_name)           regn(spr_name) 
@@ -48,15 +74,12 @@
 #define get_crf                  cpu->get_crf
 #define get_crF                  cpu->get_crF
 #define get_xerF                 cpu->get_xerF
-#define get_cr                   cpu->get_cr
-#define set_cr                   cpu->set_cr
 #define host_flags               cpu->host_state.flags
 #define dummy_flags              cpu->host_state.dummy
 
 // In case of register operands, their pointers are instead passed in corresponding ARG parameter.
 #define ARG_BASE                 ic->arg
 
-#define reg(x) (*((uint64_t *)(x)))
 #define REG0_P                   (ARG_BASE[0].p)
 #define REG1_P                   (ARG_BASE[1].p)
 #define REG2_P                   (ARG_BASE[2].p)
@@ -764,7 +787,7 @@ X(mcrxr)
 X(mfcr)
 {
 #define mfcr_code(rD)                               \
-    rD = (get_cr() & (uint64_t)0xffffffff);
+    rD = (cr & (uint64_t)0xffffffff);
 
     mfcr_code(ARG0);
 }
@@ -777,7 +800,7 @@ X(mtcrf)
         mask |= (tmp & 0x80)?(0xf << (7 - i)*4):0;  \
         tmp <<= 1;                                  \
     }                                               \
-    set_cr((rS & mask) | (get_cr() & ~mask));
+    cr = ((rS & mask) | (cr & ~mask));
 
     mtcrf_code(ARG0, REG1);
 }

@@ -40,12 +40,12 @@
 // Wrapping some cpu functions
  
 // func ptrs for overloaded cpu::run_instrs()
-int (cpu::*run_instr_ptr)(instr_call&) = &cpu::run_instr;
-int (cpu::*run_instr_ptr2)(std::string) = &cpu::run_instr;
+void (cpu::*run_instr_ptr)(instr_call&) = &cpu::run_instr;
+void (cpu::*run_instr_ptr2)(std::string) = &cpu::run_instr;
 
 // func ptrs for overloaded cpu_ppc_booke::run_instrs()
-int (cpu_ppc_booke::*run_instr_ptr_d0)(instr_call&) = &cpu_ppc_booke::run_instr;
-int (cpu_ppc_booke::*run_instr_ptr2_d0)(std::string) = &cpu_ppc_booke::run_instr;
+void (cpu_ppc_booke::*run_instr_ptr_d0)(instr_call&) = &cpu_ppc_booke::run_instr;
+void (cpu_ppc_booke::*run_instr_ptr2_d0)(std::string) = &cpu_ppc_booke::run_instr;
 
 // Wrapping some ppc_dis functions
 instr_call (ppc_dis_booke::*disasm_ptr)(uint32_t, int) = &ppc_dis_booke::disasm;
@@ -53,11 +53,11 @@ instr_call (ppc_dis_booke::*disasm_ptr2)(std::string)  = &ppc_dis_booke::disasm;
 
 struct cpu_wrap : public cpu, public boost::python::wrapper<cpu>
 {
-    int run_instr(instr_call &ic){
-        return this->get_override("run_instr")(ic);
+    void run_instr(instr_call &ic){
+        this->get_override("run_instr")(ic);
     }
-    int run_instr(std::string instr){
-        return this->get_override("run_instr")(instr);
+    void run_instr(std::string instr){
+        this->get_override("run_instr")(instr);
     }
     cpu_wrap(uint64_t cpuid, std::string name, uint64_t pc) : cpu(cpuid, name, pc){
     }

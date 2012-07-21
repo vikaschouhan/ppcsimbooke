@@ -74,6 +74,12 @@ template < typename K, typename V > class lru_cache
         _container.insert(typename container_type::value_type(k,v)); 
     } 
 
+    // @func  : clear
+    // @brief : clears the cache
+    void clear(){
+        _container.clear();
+    }
+
     // @func  : set_size
     // @brief : set size
     void set_size(size_t c){

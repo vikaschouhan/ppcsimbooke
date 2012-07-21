@@ -33,20 +33,13 @@ class cpu_ppc_booke : public cpu {
     // Default constructor
     cpu_ppc_booke(){
         LOG("DEBUG4") << MSG_FUNC_START;
-        this->cpu_no = this->ncpus++;
-        init_reghash();
-        init_reg_attrs();
-        gen_ppc_opc_func_hash(this);
+        init_common();
         LOG("DEBUG4") << MSG_FUNC_END;
     }
 
     cpu_ppc_booke(uint64_t cpuid, std::string name): cpu(cpuid, name, 0xfffffffc){
         LOG("DEBUG4") << MSG_FUNC_START;
-        this->cpu_no = this->ncpus++;
-        init_reghash();
-        init_reg_attrs();
-        gen_ppc_opc_func_hash(this);
-        /* Add other things */
+        init_common(); 
         LOG("DEBUG4") << MSG_FUNC_END;
     }
 
@@ -63,6 +56,7 @@ class cpu_ppc_booke : public cpu {
     void init_cpu_ppc_booke(uint64_t cpuid, std::string name){
         init_cpu(cpuid, name, 0xfffffffc);
     }
+    
     // Register memory
     void register_mem(memory &mem){
         if(m_mem_ptr == NULL)
@@ -70,9 +64,9 @@ class cpu_ppc_booke : public cpu {
     }
 
     // All virtual functions
-    int run_instr(instr_call &ic);
+    void run_instr(instr_call &ic);
     // Overloaded run
-    int run_instr(std::string instr);
+    void run_instr(std::string instr);
     // Translate ( conver EA to PA )
     // Returns a pair ( first arg is the address, second is the wimge attribute )
     std::pair<uint64_t, uint8_t> xlate(uint64_t addr, bool wr=0);
@@ -98,8 +92,6 @@ class cpu_ppc_booke : public cpu {
     uint64_t get_pc(){
         return pc;
     }
-    // Get cr
-    uint64_t get_cr() throw();
     // Get Register by name
     uint64_t get_reg(std::string name) throw(sim_exception);
     // Dump CPU state
@@ -122,6 +114,9 @@ class cpu_ppc_booke : public cpu {
     }
 
     protected:
+    // notify of context switches ( called by context syncronizing instructions
+    // such as rfi, sc etc. )
+    void notify_ctxt_switch();
     // Update CR0
     void update_cr0(bool use_host, uint64_t value=0);
     // Updates CR[bf] with val i.e CR[bf] <- (val & 0xf)
@@ -132,8 +127,6 @@ class cpu_ppc_booke : public cpu {
     void update_crf(unsigned field, unsigned value);
     // Get CR bit at exact field
     unsigned get_crf(unsigned field);
-     // set cr
-    void set_cr(uint32_t value) throw();
     // Update XER
     void update_xer(bool use_host, uint64_t value=0);
     void update_xerF(unsigned bf, unsigned val);
@@ -147,7 +140,18 @@ class cpu_ppc_booke : public cpu {
     private:
     void init_reghash();
     void ppc_exception(int exception_nr, uint64_t subtype, uint64_t ea=0xffffffffffffffffULL);
-    uint32_t get_instr();           // Automatically tries to read instr from next NIP(PC)
+    instr_call get_instr();           // Automatically tries to read instr from next NIP(PC)
+    // Init common stuff
+    void init_common(){
+        LOG("DEBUG4") << MSG_FUNC_START;
+        this->cpu_no = this->ncpus++;          // Increment global cpu cnt
+        init_reghash();                        // Initialize registers' hash 
+        init_reg_attrs();                      // Initialize registers' attributes
+        gen_ppc_opc_func_hash(this);           // Initialize opcode function pointer table
+        m_instr_cache.set_size(512);           // LRU cache size = 512 instrs
+        m_ctxt_switch = 0;                     // Initialize flag to zero
+        LOG("DEBUG4") << MSG_FUNC_END;
+    }
     
     private: 
     // This function defines nested functions ( using struct encapsulation technique )
@@ -158,8 +162,6 @@ class cpu_ppc_booke : public cpu {
     // NOTE : It's the responsibility of this function to populate ppc_func_hash and
     //        it has to be called once in the constructor.
     friend void gen_ppc_opc_func_hash(cpu_ppc_booke *cpu);
-
-    uint64_t    of_emul_addr;
 
     int         mode;              /*  MODE_PPC or MODE_POWER  */
     int         bits;              /*  32 or 64  */
@@ -206,6 +208,10 @@ class cpu_ppc_booke : public cpu {
     struct x86_cpu_state host_state;
 #endif
 
+    // A Cache of recently called instrs.
+    lru_cache<uint64_t, instr_call>        m_instr_cache;     // Cache of recently used instrs
+    bool                                   m_ctxt_switch;     // Flag indicating that a ctxt switch happened
+
     // opcode to function pointer map
     typedef void (*ppc_opc_fun_ptr)(cpu_ppc_booke *, struct instr_call *);
     std::map<std::string, ppc_opc_fun_ptr>  ppc_func_hash;
@@ -236,17 +242,16 @@ size_t                         cpu_ppc_booke::ncpus = 0; /* Current number of po
 // --------------------------- Member function definitions -----------------------------------
 //
 // All virtual functions
-int cpu_ppc_booke::run_instr(instr_call &ic){
+void cpu_ppc_booke::run_instr(instr_call &ic){
     LOG("DEBUG4") << MSG_FUNC_START;
     ppc_func_hash[ic.opcode](this, &ic);
     LOG("DEBUG4") << MSG_FUNC_END;
-    return 0;
 }
 
 // Second form of run_instr
 // Seems like c++ doesn't have an very effective way of handling non POD objects
 //  with variadic arg funcs
-int cpu_ppc_booke::run_instr(std::string instr){
+void cpu_ppc_booke::run_instr(std::string instr){
     LOG("DEBUG4") << MSG_FUNC_START;
     instr_call call_this;
 
@@ -254,7 +259,6 @@ int cpu_ppc_booke::run_instr(std::string instr){
 
     ppc_func_hash[call_this.opcode](this, &call_this);
     LOG("DEBUG4") << MSG_FUNC_END;
-    return 0;
 }
 
 #define TO_RWX(r, w, x) (((r & 0x1) << 2) | ((w & 0x1) << 1) | (x & 0x1))
@@ -887,9 +891,11 @@ void cpu_ppc_booke::ppc_exception(int exception_nr, uint64_t subtype=0, uint64_t
  *
  * @brief : Read instruction at next NIP
  */
-uint32_t cpu_ppc_booke::get_instr(){
+instr_call cpu_ppc_booke::get_instr(){
     LOG("DEBUG4") << MSG_FUNC_START;
-    std::pair<uint64_t, uint8_t> res;
+
+    std::pair<uint64_t, uint8_t> res;           // pair of <ra, wimge>
+    instr_call call_this;
     uint8_t  perm = TO_RWX(1, 0, 1);            // rx = 0b11
     bool as = EBMASK(PPCREG(REG_MSR), MSR_IS);  // as = MSR[IS]
     bool pr = EBMASK(PPCREG(REG_MSR), MSR_PR);  // pr = MSR[pr]
@@ -907,8 +913,10 @@ uint32_t cpu_ppc_booke::get_instr(){
     LOG("DEBUG4") << std::hex << std::showbase << "instr Xlation : " << pc << " -> " << res.first << std::endl;
 
     LASSERT_THROW(m_mem_ptr != NULL, sim_exception_fatal("no memory module registered."), DEBUG4);
+    call_this = m_dis.disasm(m_mem_ptr->read32(res.first, (res.second & 0x1)), (res.second & 0x1));
+
     LOG("DEBUG4") << MSG_FUNC_END;
-    return m_mem_ptr->read32(res.first, (res.second & 0x1));
+    return call_this;
 }
 
 /*
@@ -1063,6 +1071,14 @@ void cpu_ppc_booke::init_reghash(){
     LOG("DEBUG4") << MSG_FUNC_END;
 }
 
+// Notify of context switches. LRU cache uses this parameter to flush it's
+// instruction cache when a context switch happens.
+void cpu_ppc_booke::notify_ctxt_switch(){
+    LOG("DEBUG4") << MSG_FUNC_START;
+    m_ctxt_switch = 1;
+    LOG("DEBUG4") << MSG_FUNC_END;
+}
+
 // Update CR0
 void cpu_ppc_booke::update_cr0(bool use_host, uint64_t value){
     LOG("DEBUG4") << MSG_FUNC_START;
@@ -1196,20 +1212,6 @@ unsigned cpu_ppc_booke::get_xer_ca(){
     LOG("DEBUG4") << MSG_FUNC_START;
     LOG("DEBUG4") << MSG_FUNC_END;
     return ((PPCREG(REG_XER) & XER_CA) ? 1:0);
-}
-
-// set cr
-void cpu_ppc_booke::set_cr(uint32_t value) throw() {
-    LOG("DEBUG4") << MSG_FUNC_START;
-    PPCREG(REG_CR) = static_cast<uint64_t>(value);
-    LOG("DEBUG4") << MSG_FUNC_END;
-}
-
-// Get cr
-uint64_t cpu_ppc_booke::get_cr() throw() {
-    LOG("DEBUG4") << MSG_FUNC_START;
-    LOG("DEBUG4") << MSG_FUNC_END;
-    return PPCREG(REG_CR);
 }
 
 // Get register value by name

@@ -272,11 +272,14 @@ instr_call ppc_dis_booke::disasm(uint32_t opcd, int endianness)
     try{
         call_this = m_dis_cache[insn];
     }catch(sim_exception& e){
-        if(e.err_code() != SIM_EXCEPT_ILLEGAL_OP){
-            throw(sim_exception_fatal("Fatal error. This should never happen"));
-        }
+        if(e.err_code() == SIM_EXCEPT_ILLEGAL_OP)
+            goto exit_0;
+        else
+            LTHROW(sim_exception_fatal("Something is seriously funcked up !!"), DEBUG4);
     }
+    return call_this;
 
+    exit_0:
     opcode = lookup_powerpc (insn);
 
     if (opcode == NULL && (m_dialect & PPC_OPCODE_ANY) != 0)
