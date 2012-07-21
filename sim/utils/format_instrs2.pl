@@ -68,27 +68,17 @@ my $ppc_func_name = "gen_ppc_opc_func_hash";
 # C macros defined here ( imp )
 #
 # Args
-my $ppc_ic_arg0 = "\"ic->arg[0].p\"";   # -DARG0
-my $ppc_ic_arg1 = "\"ic->arg[1].p\"";   # -DARG1
-my $ppc_ic_arg2 = "\"ic->arg[2].p\"";   # -DARG2
-my $ppc_ic_arg3 = "\"ic->arg[3].p\"";   # -DARG3
-my $ppc_ic_arg4 = "\"ic->arg[4].p\"";   # -DARG4
-my $ppc_ic_arg5 = "\"ic->arg[5].p\"";   # -DARG5
-
 my $cpu_ppc_umode = "\"uint32_t\"";   # -DUMODE
 my $cpu_ppc_smode = "\"int32_t\"";    # -DSMODE
 
 my $cpu_ppc_name  = "\"cpu\"";
 
 # create some of the macros for gcc command line
-my $ppc_macros_list = " -DARG0="   . $ppc_ic_arg0   . " -DARG1="   . $ppc_ic_arg1   .
-                      " -DARG2="   . $ppc_ic_arg2   . " -DARG3="   . $ppc_ic_arg3   .
-                      " -DARG4="   . $ppc_ic_arg4   . " -DARG5="   . $ppc_ic_arg5   .
-                      " -DUMODE="  . $cpu_ppc_umode . " -DSMODE="  . $cpu_ppc_smode .
+my $ppc_macros_list = " -DUMODE="  . $cpu_ppc_umode . " -DSMODE="  . $cpu_ppc_smode .
                       " -Dcpu="    . $cpu_ppc_name  ;
 
 # defines going directly to the file
-my $cpu_ppc_defines = [ "#define reg(x) (*((uint64_t *)(x)))" ];
+my $cpu_ppc_defines = [];
 
 
 #-----------------------------------------------------------------------------------------

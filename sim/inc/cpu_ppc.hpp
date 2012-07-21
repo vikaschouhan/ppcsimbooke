@@ -8,7 +8,6 @@
 #include "cpu.hpp"
 #include "cpu_ppc_regs.h"
 #include "cpu_host.h"
-#include "cpu_ppc_quirks.hpp"
 #include "memory.hpp"
 
 /* 64 bit MSRs were used in older powerPC designs */
@@ -94,10 +93,7 @@ class cpu_ppc_booke : public cpu {
     void write32(uint64_t addr, uint32_t value);
     uint64_t read64(uint64_t addr);
     void write64(uint64_t addr, uint64_t value); 
-    //
-    // Instruction read
-    //uint32_t read_instr(uint64_t addr);
-
+    
     // Get PC
     uint64_t get_pc(){
         return pc;
@@ -151,6 +147,7 @@ class cpu_ppc_booke : public cpu {
     private:
     void init_reghash();
     void ppc_exception(int exception_nr, uint64_t subtype, uint64_t ea=0xffffffffffffffffULL);
+    uint32_t get_instr();           // Automatically tries to read instr from next NIP(PC)
     
     private: 
     // This function defines nested functions ( using struct encapsulation technique )
@@ -213,17 +210,12 @@ class cpu_ppc_booke : public cpu {
     typedef void (*ppc_opc_fun_ptr)(cpu_ppc_booke *, struct instr_call *);
     std::map<std::string, ppc_opc_fun_ptr>  ppc_func_hash;
 
-    // Implementaion specific fixes
-    static cpu_ppc_booke_quirks  m_quirks;
-
 };
 
 // --------------------------- STATIC DATA ---------------------------------------------------
 
 // This is list of pointers to all alive cpu objects , so that we could refer them using it's class type only.
 size_t                         cpu_ppc_booke::ncpus = 0; /* Current number of powerpc cpus */
-// Cpu fixes for booke
-cpu_ppc_booke_quirks           cpu_ppc_booke::m_quirks;
 
 // --------------------------- Include external files ----------------------------------------
 
@@ -257,16 +249,8 @@ int cpu_ppc_booke::run_instr(instr_call &ic){
 int cpu_ppc_booke::run_instr(std::string instr){
     LOG("DEBUG4") << MSG_FUNC_START;
     instr_call call_this;
-    int i;
 
     call_this = m_dis.disasm(instr);
-    for(i=0; i<call_this.nargs; i++){
-        if (call_this.arg[i].t){
-            call_this.arg[i].p = reinterpret_cast<size_t>(&(m_ireghash[call_this.arg[i].p]->value));
-        }
-    }
-    // Apply the zero fix quirk
-    m_quirks.arg_fix_zero_quirk(call_this);
 
     ppc_func_hash[call_this.opcode](this, &call_this);
     LOG("DEBUG4") << MSG_FUNC_END;
@@ -274,7 +258,7 @@ int cpu_ppc_booke::run_instr(std::string instr){
 }
 
 #define TO_RWX(r, w, x) (((r & 0x1) << 2) | ((w & 0x1) << 1) | (x & 0x1))
-// Translate EA to RA
+// Translate EA to RA ( for data only )
 // NOTE: All exceptions ( hardware/software ) will be handled at run_instr() or run() level.
 std::pair<uint64_t, uint8_t> cpu_ppc_booke::xlate(uint64_t addr, bool wr){
     LOG("DEBUG4") << MSG_FUNC_START;
@@ -895,6 +879,36 @@ void cpu_ppc_booke::ppc_exception(int exception_nr, uint64_t subtype=0, uint64_t
             break;
     }
     LOG("DEBUG4") << MSG_FUNC_END;
+}
+
+/*
+ * @func  : get_instr()
+ * @args  : none
+ *
+ * @brief : Read instruction at next NIP
+ */
+uint32_t cpu_ppc_booke::get_instr(){
+    LOG("DEBUG4") << MSG_FUNC_START;
+    std::pair<uint64_t, uint8_t> res;
+    uint8_t  perm = TO_RWX(1, 0, 1);            // rx = 0b11
+    bool as = EBMASK(PPCREG(REG_MSR), MSR_IS);  // as = MSR[IS]
+    bool pr = EBMASK(PPCREG(REG_MSR), MSR_PR);  // pr = MSR[pr]
+
+    // Try hits with PID0, PID1 and PID2
+    res = m_l2tlb.xlate(pc, as, PPCREG(REG_PID0), perm, pr); if(res.first != static_cast<uint64_t>(-1)) goto exit_loop_0;
+    res = m_l2tlb.xlate(pc, as, PPCREG(REG_PID1), perm, pr); if(res.first != static_cast<uint64_t>(-1)) goto exit_loop_0; 
+    res = m_l2tlb.xlate(pc, as, PPCREG(REG_PID2), perm, pr); if(res.first != static_cast<uint64_t>(-1)) goto exit_loop_0;
+
+    // We encountered ITLB miss. Throw exceptions
+    std::cout << "ITLB miss" << std::endl;
+    LTHROW(sim_exception(SIM_EXCEPT_PPC, PPC_EXCEPTION_ITLB, PPC_EXCEPT_ITLB_MISS), DEBUG4);
+
+    exit_loop_0:
+    LOG("DEBUG4") << std::hex << std::showbase << "instr Xlation : " << pc << " -> " << res.first << std::endl;
+
+    LASSERT_THROW(m_mem_ptr != NULL, sim_exception_fatal("no memory module registered."), DEBUG4);
+    LOG("DEBUG4") << MSG_FUNC_END;
+    return m_mem_ptr->read32(res.first, (res.second & 0x1));
 }
 
 /*

@@ -54,11 +54,26 @@
 #define dummy_flags              cpu->host_state.dummy
 
 // In case of register operands, their pointers are instead passed in corresponding ARG parameter.
-#define REG0   reg(ARG0)
-#define REG1   reg(ARG1)
-#define REG2   reg(ARG2)
-#define REG3   reg(ARG3)
-#define REG4   reg(ARG4)
+#define ARG_BASE                 ic->arg
+
+#define reg(x) (*((uint64_t *)(x)))
+#define REG0_P                   (ARG_BASE[0].p)
+#define REG1_P                   (ARG_BASE[1].p)
+#define REG2_P                   (ARG_BASE[2].p)
+#define REG3_P                   (ARG_BASE[3].p)
+#define REG4_P                   (ARG_BASE[4].p)
+
+#define REG0                     ppcreg(REG0_P)
+#define REG1                     ppcreg(REG1_P)
+#define REG2                     ppcreg(REG2_P)
+#define REG3                     ppcreg(REG3_P)
+#define REG4                     ppcreg(REG4_P)
+
+#define ARG0                     (ARG_BASE[0].v)
+#define ARG1                     (ARG_BASE[1].v)
+#define ARG2                     (ARG_BASE[2].v)
+#define ARG3                     (ARG_BASE[3].v)
+#define ARG4                     (ARG_BASE[4].v)
 
 // target mode , ut -> unsigned target, st -> signed target
 // If target_bits == 32
