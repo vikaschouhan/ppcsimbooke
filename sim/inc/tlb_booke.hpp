@@ -107,7 +107,7 @@ template<int tlb4K_ns, int tlb4K_nw, int tlbCam_ne> class ppc_tlb_booke {
     void tlbwe(uint32_t mas0, uint32_t mas1, uint32_t mas2, uint32_t mas3, uint32_t mas7, uint32_t hid0);
     void tlbse(uint64_t ea, uint32_t &mas0, uint32_t &mas1, uint32_t &mas2, uint32_t &mas3, uint32_t &mas6, uint32_t &mas7, uint32_t hid0);
     void tlbive(uint64_t ea);
-    uint64_t xlate(uint64_t ea, bool as, uint8_t pid, uint8_t rwx, bool pr, uint8_t& wimge);
+    std::pair<uint64_t, uint8_t> xlate(uint64_t ea, bool as, uint8_t pid, uint8_t rwx, bool pr);
 
 };
 
@@ -557,11 +557,12 @@ TLB_T void PPC_TLB_BOOKE::tlbive(uint64_t ea){
 }
 
 // Translate effective address into real address using as bit, an 8 bit PID value and permission attributes
-TLB_T uint64_t PPC_TLB_BOOKE::xlate(uint64_t ea, bool as, uint8_t pid, uint8_t rwx, bool pr, uint8_t& wimge){
+TLB_T std::pair<uint64_t, uint8_t> PPC_TLB_BOOKE::xlate(uint64_t ea, bool as, uint8_t pid, uint8_t rwx, bool pr){
     LOG("DEBUG4") << MSG_FUNC_START;
 
     uint64_t epn = (ea >> 12);
     uint64_t offset;
+    uint8_t wimge;
     t_tlb_entry* entry = NULL;
 
     // Check validity of AS and PID
@@ -603,16 +604,16 @@ TLB_T uint64_t PPC_TLB_BOOKE::xlate(uint64_t ea, bool as, uint8_t pid, uint8_t r
     // Instead of throwing TLB miss exception from here itself we are returning a value of -1
     // The TLB miss exception will be thrown in the caller after it tries to get a hit with
     // three different PID registers ( viz. PID0, PID1 and PID2 ) and still fails.
-    return -1;
+    return std::pair<uint64_t, uint8_t>(-1, -1);
 
     exit_loop_1:
 
     // Get offset and wimge
     offset = ea & (TSIZE_TO_PSIZE(entry->tflags.tsize) - 1);
     wimge  = entry->wimge;
-    return ((entry->rpn << 12) + offset);
 
     LOG("DEBUG4") << MSG_FUNC_END;
+    return std::pair<uint64_t, uint8_t>(((entry->rpn << 12) + offset), wimge);
 }
 
 /* Initialize TLB like this
