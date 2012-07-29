@@ -762,9 +762,36 @@ uint8_t* memory::load_buffer(uint64_t addr, uint8_t *buff, size_t size){
 
 // Load an elf file
 void memory::load_elf(std::string filename){
-    //ELFIO::elfio elfreader;
-    ////LASSERT_THROW(elfreader.load(filename), sim_exception(SIM_EXCEPT_
-    //    std::cout << "Couldn't load " << filename << std::endl;
+    ELFIO::elfio elfreader;
+    LASSERT_THROW(elfreader.load(filename), sim_exception(SIM_EXCEPT_ENOFILE, "File couldn't be opened"), DEBUG4);
+   
+    const ELFIO::section    *psec   = NULL; 
+    ELFIO::Elf_Half          sec_num = elfreader.sections.size();
+    ELFIO::Elf64_Addr        secaddr;
+    ELFIO::Elf_Xword         secflags;
+    std::string              secname;
+    ELFIO::Elf_Half          secidx;
+    ELFIO::Elf_Word          sectype;
+    ELFIO::Elf_Xword         secsize;
+    char                     *data = NULL;
+
+    // Loading sections
+    for(int i=0; i<sec_num; i++){
+        psec     = elfreader.sections[i];
+        secaddr  = psec->get_address();
+        secflags = psec->get_flags();
+        secname  = psec->get_name();
+        secidx   = psec->get_index();
+        sectype  = psec->get_type();
+        secsize  = psec->get_size();
+
+        if((sectype == SHT_PROGBITS) && (secflags & SHF_ALLOC)){
+            data = const_cast<char*>(psec->get_data());
+            std::cout << "Loading section[" << secidx << "] " << secname << std::hex
+                      <<" size=" << secsize << " at 0x" << secaddr << std::endl;
+            write_from_buffer(secaddr, reinterpret_cast<uint8_t *>(data), secsize);
+        }
+    }
 }
 
 #endif    /*  _MEMORY_HPP_  */

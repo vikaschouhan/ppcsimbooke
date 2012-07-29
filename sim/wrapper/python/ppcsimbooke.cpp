@@ -304,6 +304,7 @@ BOOST_PYTHON_MODULE(ppcsim)
                 .def("write64",            &memory::write64, write64_overloads())
                 .def("write_from_file",    &memory::write_from_file)
                 .def("read_to_file",       &memory::read_to_file)
+                .def("load_elf",           &memory::load_elf)
                 ;
 
             // Memory targets namespace ( defines constants for memory targets )
