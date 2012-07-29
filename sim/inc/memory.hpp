@@ -26,6 +26,7 @@
 #ifndef    _MEMORY_HPP_
 #define    _MEMORY_HPP_
 
+#include <elfio/elfio.hpp>        // for elf loader
 #include "config.h"
 #include "utils.h"
 
@@ -171,6 +172,9 @@ class memory {
     // Load /store versions for buffers
     void store_buffer(uint64_t addr, uint8_t* buff, size_t size);
     uint8_t *load_buffer(uint64_t addr, uint8_t *buff, size_t size);
+
+    // Load an elf file
+    void load_elf(std::string flename);
     
 };
 
@@ -303,7 +307,7 @@ uint8_t* memory::paddr_to_hostpage(uint64_t paddr){
     }
 
     mem_tgt_iter iter_this = select_mem_tgt(paddr);
-    LASSERT_THROW(iter_this != mem_tgt.end(), sim_exception(SIM_EXCEPT_ILLEGAL_OP, "No valid target found for this address"), DEBUG4);
+    LASSERT_THROW(iter_this != mem_tgt.end(), sim_exception(SIM_EXCEPT_EFAULT, "No valid target found for this address"), DEBUG4);
 
     if(!iter_this->page_hash[pageno]){
         iter_this->page_hash[pageno] = new uint8_t[MIN_PGSZ];
@@ -522,7 +526,7 @@ uint8_t* memory::read_to_buffer(uint64_t addr, uint8_t *buff, size_t size){
 void memory::write_from_file(uint64_t addr, std::string file_name, size_t size){
     std::ifstream ih;
     ih.open(file_name.c_str(), std::istream::in | std::ifstream::binary);
-    LASSERT_THROW(ih.fail() == 0, sim_exception(SIM_EXCEPT_RESOURCE_UNAVAIL, "opening file failed."), DEBUG4);
+    LASSERT_THROW(ih.fail() == 0, sim_exception(SIM_EXCEPT_ENOFILE, "opening file failed."), DEBUG4);
    
     uint8_t *buff = new uint8_t[size];
     ih.read(reinterpret_cast<char*>(buff), size);
@@ -541,7 +545,7 @@ void memory::write_from_file(uint64_t addr, std::string file_name, size_t size){
 void memory::read_to_file(uint64_t addr, std::string file_name, size_t size){
     std::ofstream oh;
     oh.open(file_name.c_str(), std::ofstream::out | std::ofstream::binary | std::ofstream::trunc);
-    LASSERT_THROW(oh.fail() == 0, sim_exception(SIM_EXCEPT_RESOURCE_UNAVAIL, "opening file failed."), DEBUG4);
+    LASSERT_THROW(oh.fail() == 0, sim_exception(SIM_EXCEPT_ENOFILE, "opening file failed."), DEBUG4);
 
     uint8_t *buff = new uint8_t[size];
     read_to_buffer(addr, buff, size);
@@ -754,6 +758,13 @@ void memory::store_buffer(uint64_t addr, uint8_t* buff, size_t size){
 }
 uint8_t* memory::load_buffer(uint64_t addr, uint8_t *buff, size_t size){
     return read_to_buffer(addr, buff, size);
+}
+
+// Load an elf file
+void memory::load_elf(std::string filename){
+    //ELFIO::elfio elfreader;
+    ////LASSERT_THROW(elfreader.load(filename), sim_exception(SIM_EXCEPT_
+    //    std::cout << "Couldn't load " << filename << std::endl;
 }
 
 #endif    /*  _MEMORY_HPP_  */

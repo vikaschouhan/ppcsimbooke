@@ -43,7 +43,7 @@ template < typename K, typename V > class lru_cache
         if (it == _container.left.end()) { 
             // We don't have it: 
             // Throw an exception. It's the responsibility of user to manually call insert now
-            throw sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Illegal key");
+            throw sim_exception(SIM_EXCEPT_EINVAL, "Illegal key");
  
         } else { 
  

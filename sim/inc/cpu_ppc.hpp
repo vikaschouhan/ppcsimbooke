@@ -280,9 +280,9 @@ std::pair<uint64_t, uint8_t> cpu_ppc_booke::xlate(uint64_t addr, bool wr){
     // We encountered TLB miss. Throw exceptions
     std::cout << "DTLB miss" << std::endl;
     if(wr){
-        LTHROW(sim_exception(SIM_EXCEPT_PPC, PPC_EXCEPTION_DTLB, PPC_EXCEPT_DTLB_MISS_ST), DEBUG4);
+        LTHROW(sim_exception_ppc(PPC_EXCEPTION_DTLB, PPC_EXCEPT_DTLB_MISS_ST), DEBUG4);
     }else{
-        LTHROW(sim_exception(SIM_EXCEPT_PPC, PPC_EXCEPTION_DTLB, PPC_EXCEPT_DTLB_MISS_LD), DEBUG4);
+        LTHROW(sim_exception_ppc(PPC_EXCEPTION_DTLB, PPC_EXCEPT_DTLB_MISS_LD), DEBUG4);
     }
 
     exit_loop_0:
@@ -907,7 +907,7 @@ instr_call cpu_ppc_booke::get_instr(){
 
     // We encountered ITLB miss. Throw exceptions
     std::cout << "ITLB miss" << std::endl;
-    LTHROW(sim_exception(SIM_EXCEPT_PPC, PPC_EXCEPTION_ITLB, PPC_EXCEPT_ITLB_MISS), DEBUG4);
+    LTHROW(sim_exception_ppc(PPC_EXCEPTION_ITLB, PPC_EXCEPT_ITLB_MISS), DEBUG4);
 
     exit_loop_0:
     LOG("DEBUG4") << std::hex << std::showbase << "instr Xlation : " << pc << " -> " << res.first << std::endl;
@@ -1217,7 +1217,7 @@ unsigned cpu_ppc_booke::get_xer_ca(){
 // Get register value by name
 uint64_t cpu_ppc_booke::get_reg(std::string reg_name) throw(sim_exception) {
     LOG("DEBUG4") << MSG_FUNC_START;
-    if(m_reghash.find(reg_name) == m_reghash.end()) throw sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Illegal register name");
+    if(m_reghash.find(reg_name) == m_reghash.end()) throw sim_exception(SIM_EXCEPT_EINVAL, "Illegal register name");
     LOG("DEBUG4") << MSG_FUNC_END;
     return PPCREGN(reg_name);
 }

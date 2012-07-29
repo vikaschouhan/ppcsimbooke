@@ -7,19 +7,19 @@
 int main(){
     std::cout << "Testing sim_exception with error code only" << std::endl;
     try{
-        throw sim_exception(SIM_EXCEPT_ILLEGAL_OP);
+        throw sim_exception(SIM_EXCEPT_EINVAL);
     }catch (sim_exception &id){
         std::cout << id.what() << std::endl;
     }
     std::cout << "Testing sim_exception with error code as well as with custom message" << std::endl;
     try{
-        throw sim_exception(SIM_EXCEPT_ILLEGAL_OP, "I fucked up !!");
+        throw sim_exception(SIM_EXCEPT_EINVAL, "I fucked up !!");
     }catch (sim_exception &id){
         std::cout << id.what() << std::endl;
     }
     std::cout << "Testing sim_exception with unknown error code " << std::endl;
     try{
-        throw sim_exception(-2, "I fucked up !!");
+        throw sim_exception(-1, "I fucked up !!");
     }catch (sim_exception &id){
         std::cout << id.what() << std::endl;
     }

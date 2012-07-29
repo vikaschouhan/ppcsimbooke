@@ -7,96 +7,56 @@
 // This defines exception codes for machine exceptions
 #include "ppc_exception.h"
 
-// Error codes
-#define SIM_EXCEPT_ILLEGAL_OP          ( 0x1)
-#define SIM_EXCEPT_RESOURCE_UNAVAIL    ( 0x2)
-#define SIM_EXCEPT_PPC                 (0x20)
-#define SIM_EXCEPT_UNKNOWN             (0xff)
+// Exceptions due to errors ( taken from linux errno.h header )
+#define SIM_EXCEPT_EPERM          1    /* Operation not permitted */
+#define SIM_EXCEPT_ENOENT         2    /* No such file or directory */
+#define SIM_EXCEPT_EIO            5    /* I/O error */
+#define SIM_EXCEPT_ENXIO          6    /* No such device or address */
+#define SIM_EXCEPT_E2BIG          7    /* Argument list too long */
+#define SIM_EXCEPT_ENOEXEC        8    /* Exec format error */
+#define SIM_EXCEPT_ENOMEM        12    /* Out of memory */
+#define SIM_EXCEPT_EACCES        13    /* Permission denied */
+#define SIM_EXCEPT_EFAULT        14    /* Bad address */
+#define SIM_EXCEPT_EEXIST        17    /* File exists */
+#define SIM_EXCEPT_ENODEV        19    /* No such device */
+#define SIM_EXCEPT_ENOTDIR       20    /* Not a directory */
+#define SIM_EXCEPT_EISDIR        21    /* Is a directory */
+#define SIM_EXCEPT_EINVAL        22    /* Invalid argument */
+#define SIM_EXCEPT_ENOSPC        28    /* No space left on device */
+#define SIM_EXCEPT_EROFS         30    /* Read-only file system */
+
+#define SIM_EXCEPT_ENOFILE      254    /* File couldn't be opened */
+#define SIM_EXCEPT_EUNKWN       255    /* Unknown */
 
 // generic exception class for our sim module ( only non fatal exception )
-// PPC exceptions are also dealt by our simulator exception mechanism.
 // TODO: This is barebones right now.
 class sim_exception : public std::exception {
-    // Error code hash
-    struct _err_hash : std::map<int, std::string> {
-        _err_hash(){
-            // All error codes are hashed by code no. into a suitable error message
-            (*this)[SIM_EXCEPT_ILLEGAL_OP]       = "std::sim_exception : illegal operand";
-            (*this)[SIM_EXCEPT_UNKNOWN]          = "std::sim_exception : unknown exception";
-            (*this)[SIM_EXCEPT_RESOURCE_UNAVAIL] = "std::sim_exception : Resource unavailable";
-            (*this)[SIM_EXCEPT_PPC]              = "std::sim_exception : Powerpc exception";
-        }
-        ~_err_hash(){}
-    } m_errhash;
-    uint64_t m_errcode[4];  // maximum 4 error code heirarchies
-                            // in case of PPC exceptions, m_errcode[0] = SIM_EXCEPT_PPC
-                            //                            m_errcode[1] = PPC_EXCEPTION_xxx
-                            //                            m_errcode[2] = PPC_EXCEPT_xxx_yyy
+    uint8_t     m_errcode;  // 8 bit error code
     std::string m_message;  // Custom user message
 
     public:
     // Constructor
     sim_exception(uint64_t errcode, std::string message = ""){
-        if(m_errhash.find(errcode) != m_errhash.end())
-            m_errcode[0] = errcode;
-        else
-            m_errcode[0] = SIM_EXCEPT_UNKNOWN;
-
+        m_errcode    = errcode;
         m_message    = message;
-        m_errcode[1] = -1;
-        m_errcode[2] = -1;
-        m_errcode[3] = -1;
     }
-    sim_exception(uint64_t errcode, uint64_t code0){
-        if(m_errhash.find(errcode) != m_errhash.end())
-            m_errcode[0] = errcode;
-        else
-            m_errcode[0] = SIM_EXCEPT_UNKNOWN;
-
-        m_message     = "";
-        m_errcode[1]  = code0;
-        m_errcode[2]  = -1;
-        m_errcode[3]  = -1;
-    }
-    sim_exception(uint64_t errcode, uint64_t code0, uint64_t code1){
-        if(m_errhash.find(errcode) != m_errhash.end())
-            m_errcode[0] = errcode;
-        else
-            m_errcode[0] = SIM_EXCEPT_UNKNOWN;
-
-        m_message     = "";
-        m_errcode[1]  = code0;
-        m_errcode[2]  = code1;
-        m_errcode[3]  = -1;
-    }
-
     // Destructor
     ~sim_exception() throw(){
     }
 
     const uint64_t err_code(){
-        return m_errcode[0];
-    }
-
-    const uint64_t sec_err_code(int num){
-        return m_errcode[1+num];
+        return m_errcode;
     }
 
     // Virtual what for this class
     const char *what() throw(){
-        std::string final_message = m_errhash[m_errcode[0]] + ". " + m_message;
-        return final_message.c_str();
-    }
-
-    // Returns full description
-    std::string full_description() throw(){
-        return (m_errhash[m_errcode[0]] + ". " + m_message);
+        return m_message.c_str();
     }
 };
 
 // A fatal exception.
 class sim_exception_fatal : public std::exception {
-   std::string m_message; // Custom user message
+    std::string m_message; // Custom user message
 
     public:
     // Constructor
@@ -105,6 +65,40 @@ class sim_exception_fatal : public std::exception {
     }
     // Destructor
     ~sim_exception_fatal() throw(){
+    }
+    // Virtual what for this class
+    const char *what() throw(){
+        return m_message.c_str();
+    }
+};
+
+// A ppc exception
+// All powerPC hardware exceptions are dealt by this class.
+// m_errcode[0] -> primary exception number
+// m_errcode[1] -> secondary exception number 
+//                 It's a bitfield mask signifying the various causes, why 
+//                 m_errcode[0] was thrown.
+class sim_exception_ppc : public std::exception {
+    std::string m_message;     // Custom user message
+    uint64_t    m_errcode[2];  // 2 diff codes can be specified for each type
+
+    public:
+    // Constructor
+    sim_exception_ppc(uint64_t c0, uint64_t c1, std::string message = ""){
+        m_errcode[0] = c0;
+        m_errcode[1] = c1;
+        m_message = message;
+    }
+    // Destructor
+    ~sim_exception_ppc() throw(){
+    }
+
+    // Retrive Err codes
+    const uint64_t err_code0(){
+        return m_errcode[0];
+    }
+    const uint64_t err_code1(){
+        return m_errcode[1];
     }
     // Virtual what for this class
     const char *what() throw(){

@@ -272,7 +272,7 @@ instr_call ppc_dis_booke::disasm(uint32_t opcd, int endianness)
     try{
         call_this = m_dis_cache[insn];
     }catch(sim_exception& e){
-        if(e.err_code() == SIM_EXCEPT_ILLEGAL_OP)
+        if(e.err_code() == SIM_EXCEPT_EINVAL)
             goto exit_0;
         else
             LTHROW(sim_exception_fatal("Something is seriously funcked up !!"), DEBUG4);
@@ -428,7 +428,7 @@ instr_call ppc_dis_booke::disasm(std::string instr)
     const struct powerpc_opcode*  opcode  = NULL;
 
     token = find_tok(&tmp_str, ' ');    /* One space is first required between instr and it's operands */
-    assert_and_throw(!if_std_delims_present(token), sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Wrong instr" + std::string(token)));
+    assert_and_throw(!if_std_delims_present(token), sim_exception(SIM_EXCEPT_EINVAL, "Wrong instr" + std::string(token)));
 
     for(i=0; i<powerpc_num_opcodes; i++){
         if(!strcmp(token, powerpc_opcodes[i].name)){
@@ -440,7 +440,7 @@ instr_call ppc_dis_booke::disasm(std::string instr)
     /* Remove all spaces */
     prune_all_spaces(tmp_str);
 
-    assert_and_throw(opcode != NULL, sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Wrong opcode"));
+    assert_and_throw(opcode != NULL, sim_exception(SIM_EXCEPT_EINVAL, "Wrong opcode"));
 
     // Get opcode's name
     call_this.opcode = std::string(opcode->name);
@@ -456,14 +456,14 @@ instr_call ppc_dis_booke::disasm(std::string instr)
         if(tmp_str == NULL || *tmp_str == '\0'){
             printf("Wrong instr format. Correct instr format is \n");
             print_insn_fmt(opcode->name);
-            throw(sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Wrong instruction format"));
+            throw(sim_exception(SIM_EXCEPT_EINVAL, "Wrong instruction format"));
         }
 
         if (i != 0){
             if(*tmp_str != delim){
                 printf("Wrong instr format. Correct instr format is \n");
                 print_insn_fmt(opcode->name);
-                throw(sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Wrong instruction format"));
+                throw(sim_exception(SIM_EXCEPT_EINVAL, "Wrong instruction format"));
             }
             tmp_str ++;
         }
@@ -471,7 +471,7 @@ instr_call ppc_dis_booke::disasm(std::string instr)
         if(tmp_str == NULL || *tmp_str == '\0'){
             printf("Wrong instr format. Correct instr format is \n");
             print_insn_fmt(opcode->name);
-            throw(sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Wrong instruction format"));
+            throw(sim_exception(SIM_EXCEPT_EINVAL, "Wrong instruction format"));
         }
 
         delim = get_delim_char(opcode, i);
@@ -481,7 +481,7 @@ instr_call ppc_dis_booke::disasm(std::string instr)
         if(if_std_delims_present(token)){
             printf("Wrong instr format. Correct format is \n");
             print_insn_fmt(opcode->name);
-            throw(sim_exception(SIM_EXCEPT_ILLEGAL_OP, "Wrong instruction format"));
+            throw(sim_exception(SIM_EXCEPT_EINVAL, "Wrong instruction format"));
         }
         
         operand = (powerpc_operands + opcode->operands[i]);
