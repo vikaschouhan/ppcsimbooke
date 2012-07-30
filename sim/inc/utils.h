@@ -224,4 +224,9 @@ inline int rshift(uint64_t x){
 #define  EBMASK(reg, bmask)             (((reg)  & (bmask)) >> rshift(bmask))
 #define  IBMASK(val, bmask)             (((val) << rshift(bmask))  & (bmask))
 
+// Concatenating macros
+#define CAT2(x,y)           x##y
+#define CAT3(x,y,z)         x##y##z
+#define CAT(x,y)            CAT2(x,y)
+
 #endif

@@ -8,7 +8,7 @@
 // Machine class
 template <int ncpus, int nbits> class machine {
     public:
-    cpu_ppc_booke                 m_cpu[ncpus];
+    CPU_PPC                       m_cpu[ncpus];
     memory                        m_memory;   // one memory module
     const int                     m_ncpus;
 
@@ -19,12 +19,12 @@ template <int ncpus, int nbits> class machine {
         for(int i=0; i<ncpus; i++){
             ostr.clear();
             ostr << i;
-            m_cpu[i].init_cpu_ppc_booke(cpuid, "e500v2_" + ostr.str());
+            m_cpu[i].CAT(init_, CPU_PPC)(cpuid, "e500v2_" + ostr.str());
             m_cpu[i].register_mem(m_memory);
         }
     }
     // for boost::python
-    template<int cpu_no> cpu_ppc_booke& get_cpu(){
+    template<int cpu_no> CPU_PPC& get_cpu(){
         return m_cpu[cpu_no];
     }
 

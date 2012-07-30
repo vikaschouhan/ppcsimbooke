@@ -39,7 +39,9 @@
 
 #define  N_PPC_OPCODES  65
 
-class ppc_dis_booke{
+#define DIS_PPC  ppc_dis
+
+class DIS_PPC{
     public:
     typedef lru_cache<uint32_t, instr_call>     ppc_dis_cache;
     typedef lru_cache<std::string, instr_call>  ppc_dis_cache2;
@@ -76,7 +78,7 @@ class ppc_dis_booke{
     
     public:
     // constructor
-    ppc_dis_booke(){
+    DIS_PPC(){
         init_dialect();
         if(!m_opcd_indices_done){
             init_opcd_indices();
@@ -95,13 +97,13 @@ class ppc_dis_booke{
 };
 
 // Static members
-uint16_t ppc_dis_booke::m_ppc_opcd_indices[N_PPC_OPCODES];
-bool     ppc_dis_booke::m_opcd_indices_done = 0;
+uint16_t DIS_PPC::m_ppc_opcd_indices[N_PPC_OPCODES];
+bool     DIS_PPC::m_opcd_indices_done = 0;
 
 // Member functions.
 //
 // Initialize opcode indices for faster look up
-void ppc_dis_booke::init_opcd_indices(){
+void DIS_PPC::init_opcd_indices(){
     int i;
     unsigned short last;
 
@@ -121,12 +123,12 @@ void ppc_dis_booke::init_opcd_indices(){
 }
 
 // Initialize dialect
-void ppc_dis_booke::init_dialect(){
+void DIS_PPC::init_dialect(){
    m_dialect = ppc_parse_cpu (0, "e500");
 }
 
 // Return new dialect according to specified cpu name
-ppc_cpu_t ppc_dis_booke::ppc_parse_cpu (ppc_cpu_t ppc_cpu, const char *arg)
+ppc_cpu_t DIS_PPC::ppc_parse_cpu (ppc_cpu_t ppc_cpu, const char *arg)
 {
     /* Sticky bits.  */
     ppc_cpu_t retain_flags = ppc_cpu & (PPC_OPCODE_ALTIVEC | PPC_OPCODE_VSX
@@ -156,7 +158,7 @@ ppc_cpu_t ppc_dis_booke::ppc_parse_cpu (ppc_cpu_t ppc_cpu, const char *arg)
 }
 
 // Extract operand value from instruction
-long ppc_dis_booke::operand_value_powerpc (const struct powerpc_operand *operand, unsigned long insn)
+long DIS_PPC::operand_value_powerpc (const struct powerpc_operand *operand, unsigned long insn)
 {
     long value;
     int invalid;
@@ -185,7 +187,7 @@ long ppc_dis_booke::operand_value_powerpc (const struct powerpc_operand *operand
 /* Find a match for INSN in the opcode table, given machine DIALECT.
 A DIALECT of -1 is special, matching all machine opcode variations.  */
 
-const struct powerpc_opcode * ppc_dis_booke::lookup_powerpc (unsigned long insn)
+const struct powerpc_opcode * DIS_PPC::lookup_powerpc (unsigned long insn)
 {
     const struct powerpc_opcode *opcode;
     const struct powerpc_opcode *opcode_end;
@@ -231,7 +233,7 @@ const struct powerpc_opcode * ppc_dis_booke::lookup_powerpc (unsigned long insn)
     return NULL;
 }
 
-int ppc_dis_booke::if_std_delims_present(char *str)
+int DIS_PPC::if_std_delims_present(char *str)
 {
     char std_delims[] = " ,()";
     int i, j;
@@ -244,7 +246,7 @@ int ppc_dis_booke::if_std_delims_present(char *str)
 }  
 
 // Get number of operands from powerpc_opcode struct
-int ppc_dis_booke::get_num_operands(const struct powerpc_opcode *opcode){
+int DIS_PPC::get_num_operands(const struct powerpc_opcode *opcode){
     int num_oprs = 0;
     if(opcode == NULL)
         return -1;
@@ -253,7 +255,7 @@ int ppc_dis_booke::get_num_operands(const struct powerpc_opcode *opcode){
 } 
 
 // Disassemble a 32 bit opcode into a call frame
-instr_call ppc_dis_booke::disasm(uint32_t opcd, int endianness)
+instr_call DIS_PPC::disasm(uint32_t opcd, int endianness)
 {
     instr_call  call_this;
     unsigned long insn;
@@ -414,7 +416,7 @@ instr_call ppc_dis_booke::disasm(uint32_t opcd, int endianness)
 }
 
 // Disassemble a string representation of instruction
-instr_call ppc_dis_booke::disasm(std::string instr)
+instr_call DIS_PPC::disasm(std::string instr)
 {
     char *token = NULL;
     char *tmp_str = (char *)instr.c_str();
@@ -569,7 +571,7 @@ instr_call ppc_dis_booke::disasm(std::string instr)
 }
 
 // show instruction format
-void ppc_dis_booke::print_insn_fmt (const char *insn_name)
+void DIS_PPC::print_insn_fmt (const char *insn_name)
 {
     int i = 0;
     FILE *stream = stdout;
@@ -689,7 +691,7 @@ void ppc_dis_booke::print_insn_fmt (const char *insn_name)
 }
 
 // Helper function
-char ppc_dis_booke::get_delim_char(const struct powerpc_opcode *opc, int argno){
+char DIS_PPC::get_delim_char(const struct powerpc_opcode *opc, int argno){
     const struct powerpc_operand *curr_opr = (powerpc_operands + opc->operands[argno]);
     const struct powerpc_operand *prev_opr = NULL;
     const struct powerpc_operand *next_opr = (powerpc_operands + opc->operands[argno+1]);

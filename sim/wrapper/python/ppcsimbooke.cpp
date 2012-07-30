@@ -38,18 +38,18 @@
 
 // Wrapping some cpu functions
 
-// func ptrs for overloaded cpu_ppc_booke::run_instrs()
-void (cpu_ppc_booke::*run_instr_ptr_d0)(uint32_t) = &cpu_ppc_booke::run_instr;
-void (cpu_ppc_booke::*run_instr_ptr2_d0)(std::string) = &cpu_ppc_booke::run_instr;
+// func ptrs for overloaded CPU_PPC::run_instrs()
+void (CPU_PPC::*run_instr_ptr_d0)(uint32_t) = &CPU_PPC::run_instr;
+void (CPU_PPC::*run_instr_ptr2_d0)(std::string) = &CPU_PPC::run_instr;
 
 // Wrapping some ppc_dis functions
-instr_call (ppc_dis_booke::*disasm_ptr)(uint32_t, int) = &ppc_dis_booke::disasm;
-instr_call (ppc_dis_booke::*disasm_ptr2)(std::string)  = &ppc_dis_booke::disasm;
+instr_call (DIS_PPC::*disasm_ptr)(uint32_t, int) = &DIS_PPC::disasm;
+instr_call (DIS_PPC::*disasm_ptr2)(std::string)  = &DIS_PPC::disasm;
 
-// Overloads for cpu_ppc_booke::run()
+// Overloads for CPU_PPC::run()
 BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(run_overloads, run, 0, 1);
 
-// Overloads for cpu_ppc_booke::dump_state()
+// Overloads for CPU_PPC::dump_state()
 BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(dump_state_overloads, dump_state, 0, 3);
 
 // Overloads for memory::register_memory_target()
@@ -211,7 +211,7 @@ BOOST_PYTHON_MODULE(ppcsim)
                 ;
 
         // Disassembler class type
-        class_<ppc_dis_booke>("ppc_dis")
+        class_<DIS_PPC>("ppc_dis")
             .def("disasm", disasm_ptr, disasm_overloads())
             .def("disasm", disasm_ptr2) 
             ;
@@ -305,24 +305,24 @@ BOOST_PYTHON_MODULE(ppcsim)
         }
 
         // The derived cpu_ppc_book class ( Our main cpu class )
-        class_<cpu_ppc_booke> cpu_ppc_py("cpu_ppc", init<uint64_t, std::string>());
+        class_<CPU_PPC> cpu_ppc_py("cpu_ppc", init<uint64_t, std::string>());
         cpu_ppc_py.def("run_instr",   run_instr_ptr_d0)
             .def("run_instr",         run_instr_ptr2_d0)
-            .def("run",               &cpu_ppc_booke::run, run_overloads())
-            .def("get_reg",           &cpu_ppc_booke::get_reg)
-            .def("dump_state",        &cpu_ppc_booke::dump_state, dump_state_overloads())
-            .def("print_L2tlbs",      &cpu_ppc_booke::print_L2tlbs)
-            .def("init_reg_attrs",    &cpu_ppc_booke::init_reg_attrs)
-            .def("read8",             &cpu_ppc_booke::read8)
-            .def("write8",            &cpu_ppc_booke::write8)
-            .def("read16",            &cpu_ppc_booke::read16)
-            .def("write16",           &cpu_ppc_booke::write16)
-            .def("read32",            &cpu_ppc_booke::read32)
-            .def("write32",           &cpu_ppc_booke::write32)
-            .def("read64",            &cpu_ppc_booke::read64)
-            .def("write64",           &cpu_ppc_booke::write64)
-            .add_property("regs",     make_function(&cpu_ppc_booke::___get_regs, return_value_policy<reference_existing_object>()))
-            .add_property("PC",       &cpu_ppc_booke::get_pc)
+            .def("run",               &CPU_PPC::run, run_overloads())
+            .def("get_reg",           &CPU_PPC::get_reg)
+            .def("dump_state",        &CPU_PPC::dump_state, dump_state_overloads())
+            .def("print_L2tlbs",      &CPU_PPC::print_L2tlbs)
+            .def("init_reg_attrs",    &CPU_PPC::init_reg_attrs)
+            .def("read8",             &CPU_PPC::read8)
+            .def("write8",            &CPU_PPC::write8)
+            .def("read16",            &CPU_PPC::read16)
+            .def("write16",           &CPU_PPC::write16)
+            .def("read32",            &CPU_PPC::read32)
+            .def("write32",           &CPU_PPC::write32)
+            .def("read64",            &CPU_PPC::read64)
+            .def("write64",           &CPU_PPC::write64)
+            .add_property("regs",     make_function(&CPU_PPC::___get_regs, return_value_policy<reference_existing_object>()))
+            .add_property("PC",       &CPU_PPC::get_pc)
             ;
 
 

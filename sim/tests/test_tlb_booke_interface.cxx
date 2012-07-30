@@ -7,7 +7,7 @@
 int main(){
     LOG_TO_FILE("test_tlb_booke_interface.log");
 
-    typedef ppc_tlb_booke<128, 4, 16>  booke_tlb;
+    typedef TLB_PPC<128, 4, 16>  booke_tlb;
     booke_tlb tlbl2;
 
     // print alll tlb entries

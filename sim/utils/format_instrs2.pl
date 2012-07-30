@@ -100,8 +100,8 @@ foreach (@$cpu_ppc_defines) {
     print_f $fho, 0, $_, "\n";
 }
 # Start the function definition
-print_f $fho, 0, "void $ppc_func_name(cpu_ppc_booke *cpu){\n\n";
-#print_f $fho, 4, "typedef void (*ppc_opc_fun_ptr)(cpu_ppc_booke *, struct instr_call *);\n";
+print_f $fho, 0, "void $ppc_func_name(CPU_PPC *cpu){\n\n";
+#print_f $fho, 4, "typedef void (*ppc_opc_fun_ptr)(CPU_PPC *, struct instr_call *);\n";
 #print_f $fho, 4, "static std::map<std::string, ppc_opc_fun_ptr>  ppc_func_hash;\n"; 
 
 WHILE_00: while(<$fh>){
@@ -157,7 +157,7 @@ WHILE_00: while(<$fh>){
             $opc_func =~ s/\./_dot/g;   # substitute all .'s with dot
             print_f $fho, 4, "// $opc\n";
             print_f $fho, 4, "struct ___${opc_func}___ {\n";
-            print_f $fho, 8, "static void ${opc_func}___(cpu_ppc_booke *cpu, struct instr_call *ic)";
+            print_f $fho, 8, "static void ${opc_func}___(CPU_PPC *cpu, struct instr_call *ic)";
             print_f $fho, 8, @lines;
             print_f $fho, 4, "};\n";
             print_f $fho, 4, "cpu->ppc_func_hash[\"$opc\"] = ___${opc_func}___\:\:${opc_func}___;\n";

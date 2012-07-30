@@ -24,12 +24,17 @@
 #include "config.h"
 #include "utils.h"
 
+// Macros for easy accessibility
+#define TLB_T                      template<int x, int y, int z>
+#define TLB_PPC                    ppc_tlb
+#define TLB_PPC_T                  TLB_PPC<x, y, z>
+
 /* A booke tlb emulation */
 // Template parameters
 // tlb4K_ns -> number of sets in tlb4K
 // tlb4K_nw -> number of ways per set in tlb4K
 // tlbCam_ne -> number of entries in tlbCam
-template<int tlb4K_ns, int tlb4K_nw, int tlbCam_ne> class ppc_tlb_booke {
+template<int tlb4K_ns, int tlb4K_nw, int tlbCam_ne> class TLB_PPC {
 
     public:
     // Tlb entry
@@ -97,8 +102,8 @@ template<int tlb4K_ns, int tlb4K_nw, int tlbCam_ne> class ppc_tlb_booke {
     t_tlb_entry& get_entry2(size_t tlbsel, size_t setno, size_t wayno);
 
     public:
-    ppc_tlb_booke();
-    ~ppc_tlb_booke();
+    TLB_PPC();
+    ~TLB_PPC();
 
     void print_tlbs();
     void print_tlbs2();
@@ -115,13 +120,11 @@ template<int tlb4K_ns, int tlb4K_nw, int tlbCam_ne> class ppc_tlb_booke {
 #define CHK_VALID_PN(pn, tsize)  ((((pow4(tsize) * 0x400) - 1) & pn) == pn)
 #define TSIZE_TO_PSIZE(tsize)    (pow4(tsize) * 0x400)
 
-#define TLB_T                    template<int x, int y, int z>
-#define PPC_TLB_BOOKE            ppc_tlb_booke<x, y, z>
 
 // Member functions
 
 /* Initialize default values on per entry basis for all tlb arrays */
-TLB_T void PPC_TLB_BOOKE::init_ppc_tlb_defaults(void){
+TLB_T void TLB_PPC_T::init_ppc_tlb_defaults(void){
     LOG("DEBUG4") << MSG_FUNC_START;
 
     // tlb4K
@@ -166,7 +169,7 @@ TLB_T void PPC_TLB_BOOKE::init_ppc_tlb_defaults(void){
  *
  * @brief : print one tlb entry at a time.
  */ 
-TLB_T void PPC_TLB_BOOKE::print_tlb_entry(t_tlb_entry &entry, std::string fmtstr){
+TLB_T void TLB_PPC_T::print_tlb_entry(t_tlb_entry &entry, std::string fmtstr){
     LOG("DEBUG4") << MSG_FUNC_START;
 
     std::cout << fmtstr << "tid    -> " << std::hex << entry.tid << std::endl;
@@ -186,7 +189,7 @@ TLB_T void PPC_TLB_BOOKE::print_tlb_entry(t_tlb_entry &entry, std::string fmtstr
 }
 
 // Get tlb entry when tlbno, epn and esel are specified.
-TLB_T typename PPC_TLB_BOOKE::t_tlb_entry& PPC_TLB_BOOKE::get_entry(size_t tlbno, uint64_t epn, size_t esel){
+TLB_T typename TLB_PPC_T::t_tlb_entry& TLB_PPC_T::get_entry(size_t tlbno, uint64_t epn, size_t esel){
     LOG("DEBUG4") << MSG_FUNC_START;
 
     unsigned setno = 0;
@@ -216,7 +219,7 @@ TLB_T typename PPC_TLB_BOOKE::t_tlb_entry& PPC_TLB_BOOKE::get_entry(size_t tlbno
 }
 
 // Get tlb entry when tlbno, setno and wayno are specified.
-TLB_T typename PPC_TLB_BOOKE::t_tlb_entry& PPC_TLB_BOOKE::get_entry2(size_t tlbno, size_t setno, size_t wayno){
+TLB_T typename TLB_PPC_T::t_tlb_entry& TLB_PPC_T::get_entry2(size_t tlbno, size_t setno, size_t wayno){
     LOG("DEBUG4") << MSG_FUNC_START;
 
     /* Wrong tlbsel */
@@ -236,7 +239,7 @@ TLB_T typename PPC_TLB_BOOKE::t_tlb_entry& PPC_TLB_BOOKE::get_entry2(size_t tlbn
 }
 
 // Constructor
-TLB_T PPC_TLB_BOOKE::ppc_tlb_booke(){
+TLB_T TLB_PPC_T::TLB_PPC(){
     LOG("DEBUG4") << MSG_FUNC_START;
     /* Initialize default tlb parameters , based on passed information */
     init_ppc_tlb_defaults();
@@ -244,7 +247,7 @@ TLB_T PPC_TLB_BOOKE::ppc_tlb_booke(){
 }
 
 /* Destructor */
-TLB_T PPC_TLB_BOOKE::~ppc_tlb_booke(){
+TLB_T TLB_PPC_T::~TLB_PPC(){
     LOG("DEBUG4") << MSG_FUNC_START;
     LOG("DEBUG4") << MSG_FUNC_END;
 }
@@ -255,7 +258,7 @@ TLB_T PPC_TLB_BOOKE::~ppc_tlb_booke(){
  *
  * @brief : print all tlb entries in a nice form
  */
-TLB_T void PPC_TLB_BOOKE::print_tlbs(){
+TLB_T void TLB_PPC_T::print_tlbs(){
     LOG("DEBUG4") << MSG_FUNC_START;
 
 #define PRINT_TLB(tlb_type)                                                                            \
@@ -286,7 +289,7 @@ TLB_T void PPC_TLB_BOOKE::print_tlbs(){
  *
  * @brief : print all tlb entries in a nice form
  */
-TLB_T void PPC_TLB_BOOKE::print_tlbs2(){
+TLB_T void TLB_PPC_T::print_tlbs2(){
     LOG("DEBUG4") << MSG_FUNC_START;
 
 #define PRINT_TLB_ENT(set, way, epn, rpn, tid, ts, wimge, permis, ps, x01, u03, iprot)                                    \
@@ -330,7 +333,7 @@ TLB_T void PPC_TLB_BOOKE::print_tlbs2(){
  * @brief : Reads TLB entry matching the information passed in MAS registers
  *
  */
-TLB_T void PPC_TLB_BOOKE::tlbre(uint32_t &mas0, uint32_t &mas1, uint32_t &mas2, uint32_t &mas3, uint32_t &mas7, uint32_t hid0){
+TLB_T void TLB_PPC_T::tlbre(uint32_t &mas0, uint32_t &mas1, uint32_t &mas2, uint32_t &mas3, uint32_t &mas7, uint32_t hid0){
     LOG("DEBUG4") << MSG_FUNC_START;
 
     unsigned tlbsel = EBMASK(mas0,       MAS0_TLBSEL);
@@ -373,7 +376,7 @@ TLB_T void PPC_TLB_BOOKE::tlbre(uint32_t &mas0, uint32_t &mas1, uint32_t &mas2, 
  *         mas0, mas1, mas2, mas3, mas7 -> MAS registers.
  *         hid0 -> HID0 register
  */
-TLB_T void PPC_TLB_BOOKE::tlbwe(uint32_t mas0, uint32_t mas1, uint32_t mas2, uint32_t mas3, uint32_t mas7, uint32_t hid0){
+TLB_T void TLB_PPC_T::tlbwe(uint32_t mas0, uint32_t mas1, uint32_t mas2, uint32_t mas3, uint32_t mas7, uint32_t hid0){
     LOG("DEBUG4") << MSG_FUNC_START;
 
     unsigned tlbsel = EBMASK(mas0,    MAS0_TLBSEL);
@@ -420,7 +423,7 @@ TLB_T void PPC_TLB_BOOKE::tlbwe(uint32_t mas0, uint32_t mas1, uint32_t mas2, uin
  * @brief : This function searches for a tlb entry matching the passed effective address , TS = MAS6[SAS] and TID = MAS6[SPID0]
  *
  */
-TLB_T void PPC_TLB_BOOKE::tlbse(uint64_t ea, uint32_t &mas0, uint32_t &mas1, uint32_t &mas2, uint32_t &mas3, uint32_t &mas6, uint32_t &mas7, uint32_t hid0){
+TLB_T void TLB_PPC_T::tlbse(uint64_t ea, uint32_t &mas0, uint32_t &mas1, uint32_t &mas2, uint32_t &mas3, uint32_t &mas6, uint32_t &mas7, uint32_t hid0){
     LOG("DEBUG4") << MSG_FUNC_START;
 
     uint64_t epn  = (ea >> 12);
@@ -495,7 +498,7 @@ TLB_T void PPC_TLB_BOOKE::tlbse(uint64_t ea, uint32_t &mas0, uint32_t &mas1, uin
  *        An Invalidate Instruction is broadcase throughout the coherency domain of the current processor.
  *
  * */
-TLB_T void PPC_TLB_BOOKE::tlbive(uint64_t ea){
+TLB_T void TLB_PPC_T::tlbive(uint64_t ea){
     LOG("DEBUG4") << MSG_FUNC_START;
 
     uint64_t epn = (ea >> 12);
@@ -557,7 +560,7 @@ TLB_T void PPC_TLB_BOOKE::tlbive(uint64_t ea){
 }
 
 // Translate effective address into real address using as bit, an 8 bit PID value and permission attributes
-TLB_T std::pair<uint64_t, uint8_t> PPC_TLB_BOOKE::xlate(uint64_t ea, bool as, uint8_t pid, uint8_t rwx, bool pr){
+TLB_T std::pair<uint64_t, uint8_t> TLB_PPC_T::xlate(uint64_t ea, bool as, uint8_t pid, uint8_t rwx, bool pr){
     LOG("DEBUG4") << MSG_FUNC_START;
 
     uint64_t epn = (ea >> 12);
@@ -619,5 +622,5 @@ TLB_T std::pair<uint64_t, uint8_t> PPC_TLB_BOOKE::xlate(uint64_t ea, bool as, ui
 /* Initialize TLB like this
  * l2 tlb for e500v2
  * Eg:-
- * ppc_tlb_booke<128,4,16>  tlbl2;
+ * TLB_PPC_T<128,4,16>  tlbl2;
  */
