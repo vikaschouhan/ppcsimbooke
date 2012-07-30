@@ -64,12 +64,11 @@ class cpu_ppc_booke : public cpu {
     }
 
     // All virtual functions
-    void run_instr(instr_call &ic);
-    // Overloaded run
+    void run(size_t instr_cnt=0);
     void run_instr(std::string instr);
-    // Translate ( conver EA to PA )
-    // Returns a pair ( first arg is the address, second is the wimge attribute )
-    std::pair<uint64_t, uint8_t> xlate(uint64_t addr, bool wr=0);
+
+    // normal overloaded version of run_instr ( NOTE: it's not virtual )
+    void run_instr(uint32_t opcd);
 
     // All memory read/write functions ( these act on effective addresses and address
     // translation is done by the tlb module )
@@ -136,6 +135,10 @@ class cpu_ppc_booke : public cpu {
     // Get XER[SO]
     unsigned get_xer_so();
     unsigned get_xer_ca();
+
+    // Translate ( conver EA to PA )
+    // Returns a pair ( first arg is the address, second is the wimge attribute )
+    std::pair<uint64_t, uint8_t> xlate(uint64_t addr, bool wr=0);
 
     private:
     void init_reghash();
@@ -242,13 +245,43 @@ size_t                         cpu_ppc_booke::ncpus = 0; /* Current number of po
 // --------------------------- Member function definitions -----------------------------------
 //
 // All virtual functions
-void cpu_ppc_booke::run_instr(instr_call &ic){
+// TODO:  this is very new. May or may not work.
+//        NO ppc exception support at this time
+void cpu_ppc_booke::run(size_t instr_cnt){
     LOG("DEBUG4") << MSG_FUNC_START;
-    ppc_func_hash[ic.opcode](this, &ic);
+
+    size_t t=0;
+    instr_call call_this;
+    switch(instr_cnt){
+#define I                                                                                                               \
+        /* Get Instr call frame at next NIP */                                                                          \
+        call_this = get_instr();                                                                                        \
+        LOG("DEBUG4") << "INSTR : " << call_this.get_instr_str() << std::endl;                                          \
+        /* If there is a func pointer already registered, call it */                                                    \
+        if(call_this.fptr){ (reinterpret_cast<cpu_ppc_booke::ppc_opc_fun_ptr>(call_this.fptr))(this, &call_this); }     \
+                                                                                                                        \
+        LASSERT_THROW(ppc_func_hash.find(call_this.opcode) != ppc_func_hash.end(),                                      \
+                sim_exception(SIM_EXCEPT_EINVAL, "Invalid/Unimplemented opcode " + call_this.opcode), DEBUG4);          \
+        call_this.fptr = reinterpret_cast<void*>(ppc_func_hash[call_this.opcode]);                                      \
+        /* call handler function for this call frame */                                                                 \
+        ppc_func_hash[call_this.opcode](this, &call_this)
+
+        case 0:
+            for(;;){
+                I; 
+            }
+            break;
+        default:
+            for(t=0; t<instr_cnt; t++){
+                I;
+            }
+            break;
+    }
+#undef I
     LOG("DEBUG4") << MSG_FUNC_END;
 }
 
-// Second form of run_instr
+// virtual form of run_instr
 // Seems like c++ doesn't have an very effective way of handling non POD objects
 //  with variadic arg funcs
 void cpu_ppc_booke::run_instr(std::string instr){
@@ -257,6 +290,26 @@ void cpu_ppc_booke::run_instr(std::string instr){
 
     call_this = m_dis.disasm(instr);
 
+    if(call_this.fptr){ (reinterpret_cast<cpu_ppc_booke::ppc_opc_fun_ptr>(call_this.fptr))(this, &call_this); }
+    
+    LASSERT_THROW(ppc_func_hash.find(call_this.opcode) != ppc_func_hash.end(),
+            sim_exception(SIM_EXCEPT_EINVAL, "Invalid/Unimplemented opcode " + call_this.opcode), DEBUG4);
+    call_this.fptr = reinterpret_cast<void*>(ppc_func_hash[call_this.opcode]);
+    ppc_func_hash[call_this.opcode](this, &call_this);
+    LOG("DEBUG4") << MSG_FUNC_END;
+}
+
+// Overloaded form of run_instr ( specifically for CPU_PPC )
+void cpu_ppc_booke::run_instr(uint32_t opcd){
+    LOG("DEBUG4") << MSG_FUNC_START;
+    instr_call call_this;
+
+    call_this = m_dis.disasm(opcd);
+    if(call_this.fptr){ (reinterpret_cast<cpu_ppc_booke::ppc_opc_fun_ptr>(call_this.fptr))(this, &call_this); }
+
+    LASSERT_THROW(ppc_func_hash.find(call_this.opcode) != ppc_func_hash.end(),
+            sim_exception(SIM_EXCEPT_EINVAL, "Invalid/Unimplemented opcode " + call_this.opcode), DEBUG4);
+    call_this.fptr = reinterpret_cast<void*>(ppc_func_hash[call_this.opcode]);
     ppc_func_hash[call_this.opcode](this, &call_this);
     LOG("DEBUG4") << MSG_FUNC_END;
 }
@@ -290,7 +343,6 @@ std::pair<uint64_t, uint8_t> cpu_ppc_booke::xlate(uint64_t addr, bool wr){
     LOG("DEBUG4") << MSG_FUNC_END;
     return std::pair<uint64_t, uint8_t>(res.first, res.second);
 }
-
 
 // Memory I/O functions
 uint8_t cpu_ppc_booke::read8(uint64_t addr){
@@ -914,6 +966,7 @@ instr_call cpu_ppc_booke::get_instr(){
 
     LASSERT_THROW(m_mem_ptr != NULL, sim_exception_fatal("no memory module registered."), DEBUG4);
     call_this = m_dis.disasm(m_mem_ptr->read32(res.first, (res.second & 0x1)), (res.second & 0x1));
+    pc += 4;             // Increment PC if everything went well
 
     LOG("DEBUG4") << MSG_FUNC_END;
     return call_this;

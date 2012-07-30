@@ -29,7 +29,6 @@
 #include <boost/python/implicit.hpp>
 #include <boost/shared_ptr.hpp>
 
-
 #include "cpu_ppc.hpp"
 #include "memory.hpp"
 #include "machine.hpp"
@@ -38,30 +37,17 @@
 #define  SIM_REL  "current"
 
 // Wrapping some cpu functions
- 
-// func ptrs for overloaded cpu::run_instrs()
-void (cpu::*run_instr_ptr)(instr_call&) = &cpu::run_instr;
-void (cpu::*run_instr_ptr2)(std::string) = &cpu::run_instr;
 
 // func ptrs for overloaded cpu_ppc_booke::run_instrs()
-void (cpu_ppc_booke::*run_instr_ptr_d0)(instr_call&) = &cpu_ppc_booke::run_instr;
+void (cpu_ppc_booke::*run_instr_ptr_d0)(uint32_t) = &cpu_ppc_booke::run_instr;
 void (cpu_ppc_booke::*run_instr_ptr2_d0)(std::string) = &cpu_ppc_booke::run_instr;
 
 // Wrapping some ppc_dis functions
 instr_call (ppc_dis_booke::*disasm_ptr)(uint32_t, int) = &ppc_dis_booke::disasm;
 instr_call (ppc_dis_booke::*disasm_ptr2)(std::string)  = &ppc_dis_booke::disasm;
 
-struct cpu_wrap : public cpu, public boost::python::wrapper<cpu>
-{
-    void run_instr(instr_call &ic){
-        this->get_override("run_instr")(ic);
-    }
-    void run_instr(std::string instr){
-        this->get_override("run_instr")(instr);
-    }
-    cpu_wrap(uint64_t cpuid, std::string name, uint64_t pc) : cpu(cpuid, name, pc){
-    }
-};
+// Overloads for cpu_ppc_booke::run()
+BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(run_overloads, run, 0, 1);
 
 // Overloads for cpu_ppc_booke::dump_state()
 BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(dump_state_overloads, dump_state, 0, 3);
@@ -318,16 +304,11 @@ BOOST_PYTHON_MODULE(ppcsim)
             }
         }
 
-        // The abstract cpu class
-        class_<cpu_wrap, boost::noncopyable>("cpu", init<uint64_t, std::string, uint64_t>())
-            .def("run_instr", pure_virtual(run_instr_ptr))
-            .def("run_instr", pure_virtual(run_instr_ptr2))
-            ;
-
         // The derived cpu_ppc_book class ( Our main cpu class )
         class_<cpu_ppc_booke> cpu_ppc_py("cpu_ppc", init<uint64_t, std::string>());
         cpu_ppc_py.def("run_instr",   run_instr_ptr_d0)
             .def("run_instr",         run_instr_ptr2_d0)
+            .def("run",               &cpu_ppc_booke::run, run_overloads())
             .def("get_reg",           &cpu_ppc_booke::get_reg)
             .def("dump_state",        &cpu_ppc_booke::dump_state, dump_state_overloads())
             .def("print_L2tlbs",      &cpu_ppc_booke::print_L2tlbs)

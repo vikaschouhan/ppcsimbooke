@@ -38,8 +38,9 @@ class cpu {
     string            curr_instr;                    /*  current instruction being executed */
 
     public:
-    virtual void      run_instr(instr_call &ic) = 0;
-    virtual void      run_instr(std::string instr) = 0;
+    virtual void      run(size_t instr_cnt=0) = 0;         // instr_cnt=0, means run without any breaks,
+                                                           // instr_cnt=1, means run uptil instr_cnt instrs
+    virtual void      run_instr(std::string instr) = 0;    // run a specific instr
 
     public:
     /* Constructor */

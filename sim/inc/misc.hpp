@@ -24,6 +24,7 @@ struct instr_call {
         for(int i=0; i<N_IC_ARGS; i++){
             arg[i].v = arg[i].p = arg[i].t = 0;
         }
+        fptr = NULL;
     }
     // Dump state
     void dump_state(){
@@ -58,6 +59,21 @@ struct instr_call {
             printf(".long 0x%lx\n", (arg[0].v & 0xffffffff));
         else
             printf(lfmt.c_str(), opcode.c_str(), arg[0].v, arg[1].v, arg[2].v, arg[3].v, arg[4].v, arg[5].v);
+    }
+    // Get instruction representation in string form ( Used for DEBUG logs )
+    char* get_instr_str(){
+        static char instr_str[100];
+        std::string lfmt = fmt;
+        for(int i=nargs; i<N_IC_ARGS; i++){
+            lfmt += "%c";
+        }
+        fmt += "\n";
+        // We use printf for printing , since we have format of arguments in a string.
+        if(opcode == "")
+            sprintf(instr_str, ".long 0x%lx\n", (arg[0].v & 0xffffffff));
+        else
+            sprintf(instr_str, lfmt.c_str(), opcode.c_str(), arg[0].v, arg[1].v, arg[2].v, arg[3].v, arg[4].v, arg[5].v);
+        return instr_str;
     }
 
     // Get function for boost::python. We don't really need these in our c++ library
