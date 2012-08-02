@@ -43,8 +43,8 @@ void (CPU_PPC::*run_instr_ptr_d0)(uint32_t) = &CPU_PPC::run_instr;
 void (CPU_PPC::*run_instr_ptr2_d0)(std::string) = &CPU_PPC::run_instr;
 
 // Wrapping some ppc_dis functions
-instr_call (DIS_PPC::*disasm_ptr)(uint32_t, int) = &DIS_PPC::disasm;
-instr_call (DIS_PPC::*disasm_ptr2)(std::string)  = &DIS_PPC::disasm;
+instr_call (DIS_PPC::*disasm_ptr)(uint32_t, uint64_t, int)  = &DIS_PPC::disasm;
+instr_call (DIS_PPC::*disasm_ptr2)(std::string, uint64_t)   = &DIS_PPC::disasm;
 
 // Overloads for CPU_PPC::run()
 BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(run_overloads, run, 0, 1);
@@ -74,7 +74,9 @@ BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(read64_overloads, read64, 1, 2);
 BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(write64_overloads, write64, 2, 3);
 
 // Overloads for ppc_dis::disasm()
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(disasm_overloads, disasm, 1, 2);
+BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(disasm_overloads, disasm, 1, 3);
+// Overloads for ppc_dis::disasm() ( string version )
+BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(disasm2_overloads, disasm, 1, 2);
 
 // Dummy class to be used for adding extra classes in python proxies
 template <int x> class dummy{
@@ -212,8 +214,8 @@ BOOST_PYTHON_MODULE(ppcsim)
 
         // Disassembler class type
         class_<DIS_PPC>("ppc_dis")
-            .def("disasm", disasm_ptr, disasm_overloads())
-            .def("disasm", disasm_ptr2) 
+            .def("disasm", disasm_ptr,  disasm_overloads())
+            .def("disasm", disasm_ptr2, disasm2_overloads()) 
             ;
 
         // instr_call type ( We will probably never use this directly )

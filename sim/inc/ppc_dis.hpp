@@ -88,11 +88,12 @@ class DIS_PPC{
         m_dis_cache2.set_size(16);   // 16 entry cache
     }
 
+    // PC is required for instrs which use relative addressing mode
     // Disassemble a 32 bit opcode into a call frame
-    instr_call disasm(uint32_t opcd, int endianness = EMUL_BIG_ENDIAN);
+    instr_call disasm(uint32_t opcd, uint64_t pc = 0, int endianness = EMUL_BIG_ENDIAN);
     // Second form of disassemble. Takes a string, decodes it and creates an instruction call frame
     // if valid
-    instr_call disasm(std::string instr);
+    instr_call disasm(std::string instr, uint64_t pc = 0);
 
 };
 
@@ -255,7 +256,7 @@ int DIS_PPC::get_num_operands(const struct powerpc_opcode *opcode){
 } 
 
 // Disassemble a 32 bit opcode into a call frame
-instr_call DIS_PPC::disasm(uint32_t opcd, int endianness)
+instr_call DIS_PPC::disasm(uint32_t opcd, uint64_t pc, int endianness)
 {
     instr_call  call_this;
     unsigned long insn;
@@ -328,7 +329,6 @@ instr_call DIS_PPC::disasm(uint32_t opcd, int endianness)
             //}
 
             value = operand_value_powerpc (operand, insn);
-            call_this.arg[i].v = value;
 
             if (need_comma)
             {
@@ -340,34 +340,38 @@ instr_call DIS_PPC::disasm(uint32_t opcd, int endianness)
             if ((operand->flags & PPC_OPERAND_GPR) != 0 || ((operand->flags & PPC_OPERAND_GPR_0) != 0 && value != 0)){
                 call_this.fmt += "r%ld";
                 call_this.arg[i].p = (REG_GPR0 + value);
+                call_this.arg[i].v = value;
                 call_this.arg[i].t = 1;
             } else if ((operand->flags & PPC_OPERAND_FPR) != 0){
                 call_this.fmt += "f%ld";
                 call_this.arg[i].p = (REG_FPR0 + value);
+                call_this.arg[i].v = value;
                 call_this.arg[i].t = 1;
             } else if ((operand->flags & PPC_OPERAND_VR) != 0){
                 call_this.fmt += "v%ld";
-                // VRs are not supported at this time.
+                // FIXME: VRs are not supported at this time.
             } else if ((operand->flags & PPC_OPERAND_VSR) != 0){
                 call_this.fmt += "vs%ld";
-                // Booke cpus shouldn't come here
+                // FIXME : Booke cpus shouldn't come here
             } else if ((operand->flags & PPC_OPERAND_RELATIVE) != 0){
                 call_this.fmt += "0x%lx";
-                call_this.arg[i].p = value;
+                call_this.arg[i].p = (value + pc);
+                call_this.arg[i].v = (value + pc);
                 call_this.arg[i].t = 0;
             } else if ((operand->flags & PPC_OPERAND_ABSOLUTE) != 0){
                 call_this.fmt += "0x%lx";
                 call_this.arg[i].p = value;
+                call_this.arg[i].v = value;
                 call_this.arg[i].t = 0;
             } else if ((operand->flags & PPC_OPERAND_FSL) != 0){
                 call_this.fmt += "fsl%ld";
-                // Booke cpus shouln't come here
+                // FIXME: Booke cpus shouln't come here
             } else if ((operand->flags & PPC_OPERAND_FCR) != 0){
                 call_this.fmt += "fcr%ld";
-                // Booke cpus shouldn't come here
+                // FIXME : Booke cpus shouldn't come here
             } else if ((operand->flags & PPC_OPERAND_UDI) != 0){
                 call_this.fmt += "%ld";
-                // Booke cpus shouldn't come here
+                // FIXME : Booke cpus shouldn't come here
             } else if ((operand->flags & PPC_OPERAND_CR) != 0 && (m_dialect & PPC_OPCODE_PPC) != 0){
             
                 if (operand->bitm == 7)
@@ -375,11 +379,13 @@ instr_call DIS_PPC::disasm(uint32_t opcd, int endianness)
                 else
                     call_this.fmt += "cr[%ld]";
                 call_this.arg[i].p = value;
+                call_this.arg[i].v = value;
                 call_this.arg[i].t = 0;
             }
             else{
                 call_this.fmt += "0x%x";
                 call_this.arg[i].p = value;
+                call_this.arg[i].v = value;
                 call_this.arg[i].t = 0;
             }
 
@@ -415,8 +421,8 @@ instr_call DIS_PPC::disasm(uint32_t opcd, int endianness)
     return call_this;
 }
 
-// Disassemble a string representation of instruction
-instr_call DIS_PPC::disasm(std::string instr)
+// Disassemble a string representation of instruction ( something like asm + disasm )
+instr_call DIS_PPC::disasm(std::string instr, uint64_t pc)
 {
     char *token = NULL;
     char *tmp_str = (char *)instr.c_str();
@@ -424,7 +430,7 @@ instr_call DIS_PPC::disasm(std::string instr)
     instr_call call_this;
 
     int i=0;
-    long value = 0;
+    size_t value = 0;
     int noperands = 0;
     const struct powerpc_operand* operand = NULL;
     const struct powerpc_opcode*  opcode  = NULL;
@@ -494,38 +500,52 @@ instr_call DIS_PPC::disasm(std::string instr)
             sscanf(token, "r%ld", &value);
             call_this.fmt    += "r%ld";
             call_this.arg[i].p = (REG_GPR0 + value);
+            call_this.arg[i].v = value;
             call_this.arg[i].t = 1;
         }
         else if ((operand->flags & PPC_OPERAND_FPR) != 0){
             sscanf(token, "f%ld", &value);
             call_this.fmt    += "f%ld";
             call_this.arg[i].p = (REG_FPR0 + value);
+            call_this.arg[i].v = value;
             call_this.arg[i].t = 1;
         }
         else if ((operand->flags & PPC_OPERAND_VR) != 0){
             sscanf(token, "v%ld", &value);
             call_this.fmt    += "v%ld";
-            // VRs not supported at this time. targ should be specified when supported
+            // FIXME: VRs not supported at this time. targ should be specified when supported
         }
         else if ((operand->flags & PPC_OPERAND_VSR) != 0){
             sscanf(token, "vs%ld", &value);
             call_this.fmt    += "vs%ld";
-            // Booke cpus shouldn't come here
+            // FIXME: Booke cpus shouldn't come here
+        }
+        else if ((operand->flags & PPC_OPERAND_RELATIVE) != 0){
+	        sscanf(token, "0x%llx", reinterpret_cast<unsigned long long *>(&value));
+            call_this.arg[i].p = value - pc;
+            call_this.arg[i].v = value - pc;                       // Relative addressing mode
+            call_this.arg[i].t = 0;
+        }
+	    else if ((operand->flags & PPC_OPERAND_ABSOLUTE) != 0){
+	        sscanf(token, "0x%llx", reinterpret_cast<unsigned long long *>(&value));
+            call_this.arg[i].p = value;
+            call_this.arg[i].v = value;
+            call_this.arg[i].t = 0;
         }
         else if ((operand->flags & PPC_OPERAND_FSL) != 0){
             sscanf(token, "fsl%ld", &value);
             call_this.fmt    += "fsl%ld";
-            // booke cpus shouldn't come here
+            // FIXME: booke cpus shouldn't come here
         }
         else if ((operand->flags & PPC_OPERAND_FCR) != 0){
             sscanf(token, "fcr%ld", &value);
             call_this.fmt    += "fcr%ld";
-            // booke cpus shouldn't come here
+            // FIXME : booke cpus shouldn't come here
         }
         else if ((operand->flags & PPC_OPERAND_UDI) != 0){
             sscanf(token, "0x%lx", &value);
             call_this.fmt    += "0x%lx";
-            // booke cpus shouldn't come here
+            // FIXME : booke cpus shouldn't come here
         }
         else if ((operand->flags & PPC_OPERAND_CR) != 0)
         {
@@ -551,12 +571,14 @@ instr_call DIS_PPC::disasm(std::string instr)
                 call_this.fmt  += "cr[%ld]";
             }
             call_this.arg[i].p = value;
+            call_this.arg[i].v = value;
             call_this.arg[i].t = 0;
         }
         else{
             sscanf(token, "0x%lx", &value);
             call_this.fmt     += "0x%lx";
             call_this.arg[i].p = value;
+            call_this.arg[i].v = value;
             call_this.arg[i].t = 0;
         }
 
@@ -639,10 +661,10 @@ void DIS_PPC::print_insn_fmt (const char *insn_name)
             else if ((operand->flags & PPC_OPERAND_VSR) != 0)
                 fprintf(stream, "vsX(X=integer)");
             else if ((operand->flags & PPC_OPERAND_RELATIVE) != 0){
-                //(memaddr + value, info);
+                fprintf(stream, "hex_val");
             }
             else if ((operand->flags & PPC_OPERAND_ABSOLUTE) != 0){
-                //(*info->print_address_func) ((bfd_vma) value & 0xffffffff, info);
+                fprintf(stream, "hex_val");
             }
             else if ((operand->flags & PPC_OPERAND_FSL) != 0)
                 fprintf(stream, "fslX(X=integer)");
