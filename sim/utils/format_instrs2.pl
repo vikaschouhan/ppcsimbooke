@@ -61,6 +61,9 @@ my $ignore_this = 0;
 # This line
 my $line_this;
 
+my $cpu = 'pcpu';
+my $ic  = 'ic';
+
 #----------------------------------------------------------------------------------------
 # function'a name
 my $ppc_func_name = "gen_ppc_opc_func_hash";
@@ -71,18 +74,18 @@ my $ppc_func_name = "gen_ppc_opc_func_hash";
 my $cpu_ppc_umode = "\"uint32_t\"";   # -DUMODE
 my $cpu_ppc_smode = "\"int32_t\"";    # -DSMODE
 
-my $cpu_ppc_name  = "\"cpu\"";
+my $cpu_ppc_name  = "\"$cpu\"";
+my $ic_name       = "\"$ic\"";
 
 # create some of the macros for gcc command line
 my $ppc_macros_list = " -DUMODE="  . $cpu_ppc_umode . " -DSMODE="  . $cpu_ppc_smode .
-                      " -Dcpu="    . $cpu_ppc_name  ;
+                      " -DCPU="    . $cpu_ppc_name  . " -DIC="     . $ic_name       ;
 
 # defines going directly to the file
 my $cpu_ppc_defines = [];
 
 
 #-----------------------------------------------------------------------------------------
-
 
 # List of opcodes to be ignored.
 # Hairdcoded
@@ -100,7 +103,7 @@ foreach (@$cpu_ppc_defines) {
     print_f $fho, 0, $_, "\n";
 }
 # Start the function definition
-print_f $fho, 0, "void $ppc_func_name(CPU_PPC *cpu){\n\n";
+print_f $fho, 0, "void $ppc_func_name(CPU_PPC *$cpu){\n\n";
 #print_f $fho, 4, "typedef void (*ppc_opc_fun_ptr)(CPU_PPC *, struct instr_call *);\n";
 #print_f $fho, 4, "static std::map<std::string, ppc_opc_fun_ptr>  ppc_func_hash;\n"; 
 
@@ -157,10 +160,10 @@ WHILE_00: while(<$fh>){
             $opc_func =~ s/\./_dot/g;   # substitute all .'s with dot
             print_f $fho, 4, "// $opc\n";
             print_f $fho, 4, "struct ___${opc_func}___ {\n";
-            print_f $fho, 8, "static void ${opc_func}___(CPU_PPC *cpu, struct instr_call *ic)";
+            print_f $fho, 8, "static void ${opc_func}___(CPU_PPC *$cpu, struct instr_call *$ic)";
             print_f $fho, 8, @lines;
             print_f $fho, 4, "};\n";
-            print_f $fho, 4, "cpu->ppc_func_hash[\"$opc\"] = ___${opc_func}___\:\:${opc_func}___;\n";
+            print_f $fho, 4, "${cpu}->ppc_func_hash[\"$opc\"] = ___${opc_func}___\:\:${opc_func}___;\n";
             print_f $fho, 4, "\n";
         }
     }elsif (not /^\s*$/){       # skip over blank lines

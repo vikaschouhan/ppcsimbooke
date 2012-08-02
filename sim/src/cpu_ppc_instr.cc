@@ -27,6 +27,10 @@
  * ---------
  */
 
+//
+// NOTE: CPU and IC should come from the parsing utility
+//
+
 // Global defines for this template file
 //
 #undef  ppcreg
@@ -53,10 +57,10 @@
 #undef  host_flags  
 #undef  dummy_flags 
 
-#define ppcreg(regid)            (cpu->m_ireghash[regid]->value)
-#define ppcregattr(regid)        (cpu->m_ireghash[regid]->attr)
-#define ppcregn(reg_name)        (cpu->m_reghash[reg_name]->value)
-#define ppcregnattr(reg_name)    (cpu->m_reghash[reg_name]->attr)
+#define ppcreg(regid)            (CPU->m_ireghash[regid]->value)
+#define ppcregattr(regid)        (CPU->m_ireghash[regid]->attr)
+#define ppcregn(reg_name)        (CPU->m_reghash[reg_name]->value)
+#define ppcregnattr(reg_name)    (CPU->m_reghash[reg_name]->attr)
 
 #define spr(sprno)               ppcreg(REG_SPR0 + sprno) 
 #define sprn(spr_name)           regn(spr_name) 
@@ -65,20 +69,20 @@
 #define pmr(pmrno)               ppcreg(REG_PMR0 + pmrno) 
 #define gpr                      ppcreg(REG_MSR) 
 #define cr                       ppcreg(REG_CR)
-#define update_cr0               cpu->update_cr0
-#define update_crF               cpu->update_crF
-#define update_crf               cpu->update_crf
-#define update_xer               cpu->update_xer
-#define update_xerf              cpu->update_xerf
-#define get_xer_so               cpu->get_xer_so
-#define get_crf                  cpu->get_crf
-#define get_crF                  cpu->get_crF
-#define get_xerF                 cpu->get_xerF
-#define host_flags               cpu->host_state.flags
-#define dummy_flags              cpu->host_state.dummy
+#define update_cr0               CPU->update_cr0
+#define update_crF               CPU->update_crF
+#define update_crf               CPU->update_crf
+#define update_xer               CPU->update_xer
+#define update_xerf              CPU->update_xerf
+#define get_xer_so               CPU->get_xer_so
+#define get_crf                  CPU->get_crf
+#define get_crF                  CPU->get_crF
+#define get_xerF                 CPU->get_xerF
+#define host_flags               CPU->host_state.flags
+#define dummy_flags              CPU->host_state.dummy
 
 // In case of register operands, their pointers are instead passed in corresponding ARG parameter.
-#define ARG_BASE                 ic->arg
+#define ARG_BASE                 IC->arg
 
 #define REG0_P                   (ARG_BASE[0].p)
 #define REG1_P                   (ARG_BASE[1].p)
