@@ -42,9 +42,17 @@
 #define DIS_PPC  ppc_dis
 
 class DIS_PPC{
+    private:
+    struct _dis_info{
+        uint64_t  pc;        // program counter
+        bool      pcr;       // is this required
+        _dis_info(uint64_t _pc, bool _pcr): pc(_pc), pcr(_pcr) {}
+        _dis_info(): pc(0), pcr(0) {}
+    };
+
     public:
-    typedef lru_cache<uint32_t, instr_call>     ppc_dis_cache;
-    typedef lru_cache<std::string, instr_call>  ppc_dis_cache2;
+    typedef lru_cache<uint32_t, instr_call, _dis_info>     ppc_dis_cache;
+    typedef lru_cache<std::string, instr_call, _dis_info>  ppc_dis_cache2;
 
     private:
     ppc_cpu_t       m_dialect;
@@ -262,6 +270,8 @@ instr_call DIS_PPC::disasm(uint32_t opcd, uint64_t pc, int endianness)
     unsigned long insn;
     const struct powerpc_opcode *opcode;
     int i = 0;
+    bool rad = 0;        // flag for relative addressing mode
+    _dis_info  dinfo;    // extra disassembler info
 
     // We reverse endianness if LITTLE endian specified
     if (endianness == EMUL_LITTLE_ENDIAN)
@@ -274,13 +284,20 @@ instr_call DIS_PPC::disasm(uint32_t opcd, uint64_t pc, int endianness)
 
     try{
         call_this = m_dis_cache[insn];
+        dinfo     = m_dis_cache.info_at(insn);
     }catch(sim_exception& e){
         if(e.err_code() == SIM_EXCEPT_EINVAL)
             goto exit_0;
         else
             LTHROW(sim_exception_fatal("Something is seriously funcked up !!"), DEBUG4);
     }
-    return call_this;
+
+    // If pc required and current pc == cached pc, return the value
+    if(dinfo.pcr && ( dinfo.pc == pc))
+        return call_this;
+    // if pc not required, then also return
+    if(!dinfo.pcr)
+        return call_this;
 
     exit_0:
     opcode = lookup_powerpc (insn);
@@ -358,6 +375,7 @@ instr_call DIS_PPC::disasm(uint32_t opcd, uint64_t pc, int endianness)
                 call_this.arg[i].p = (value + pc);
                 call_this.arg[i].v = (value + pc);
                 call_this.arg[i].t = 0;
+                rad = 1;
             } else if ((operand->flags & PPC_OPERAND_ABSOLUTE) != 0){
                 call_this.fmt += "0x%lx";
                 call_this.arg[i].p = value;
@@ -416,7 +434,7 @@ instr_call DIS_PPC::disasm(uint32_t opcd, uint64_t pc, int endianness)
     }
 
     // Update cache
-    m_dis_cache.insert(insn, call_this);
+    m_dis_cache.insert(insn, call_this, _dis_info(pc, rad));
 
     return call_this;
 }
@@ -522,12 +540,14 @@ instr_call DIS_PPC::disasm(std::string instr, uint64_t pc)
         }
         else if ((operand->flags & PPC_OPERAND_RELATIVE) != 0){
 	        sscanf(token, "0x%llx", reinterpret_cast<unsigned long long *>(&value));
+            call_this.fmt += "0x%llx";
             call_this.arg[i].p = value - pc;
             call_this.arg[i].v = value - pc;                       // Relative addressing mode
             call_this.arg[i].t = 0;
         }
 	    else if ((operand->flags & PPC_OPERAND_ABSOLUTE) != 0){
 	        sscanf(token, "0x%llx", reinterpret_cast<unsigned long long *>(&value));
+            call_this.fmt += "0x%llx";
             call_this.arg[i].p = value;
             call_this.arg[i].v = value;
             call_this.arg[i].t = 0;
@@ -720,7 +740,10 @@ char DIS_PPC::get_delim_char(const struct powerpc_opcode *opc, int argno){
 
     /* Delimiter for first arg is always comma */
     if(argno == 0){
-        return ',';
+        if(opc->operands[argno + 1])
+            return ',';
+        else
+            return 0x20;
     }
     prev_opr = (powerpc_operands + opc->operands[argno - 1]);
 
