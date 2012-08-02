@@ -290,7 +290,7 @@ void CPU_PPC::run_instr(std::string instr){
     LOG("DEBUG4") << MSG_FUNC_START;
     instr_call call_this;
 
-    call_this = m_dis.disasm(instr);
+    call_this = m_dis.disasm(instr, pc);
 
     if(call_this.fptr){ (reinterpret_cast<CPU_PPC::ppc_opc_fun_ptr>(call_this.fptr))(this, &call_this); }
     
@@ -306,7 +306,7 @@ void CPU_PPC::run_instr(uint32_t opcd){
     LOG("DEBUG4") << MSG_FUNC_START;
     instr_call call_this;
 
-    call_this = m_dis.disasm(opcd);
+    call_this = m_dis.disasm(opcd, pc);
     if(call_this.fptr){ (reinterpret_cast<CPU_PPC::ppc_opc_fun_ptr>(call_this.fptr))(this, &call_this); }
 
     LASSERT_THROW(ppc_func_hash.find(call_this.opcode) != ppc_func_hash.end(),
@@ -967,7 +967,8 @@ instr_call CPU_PPC::get_instr(){
     LOG("DEBUG4") << std::hex << std::showbase << "instr Xlation : " << pc << " -> " << res.first << std::endl;
 
     LASSERT_THROW(m_mem_ptr != NULL, sim_exception_fatal("no memory module registered."), DEBUG4);
-    call_this = m_dis.disasm(m_mem_ptr->read32(res.first, (res.second & 0x1)), (res.second & 0x1));
+    // Disassemble the instr at curr pc
+    call_this = m_dis.disasm(m_mem_ptr->read32(res.first, (res.second & 0x1)), pc, (res.second & 0x1));
     pc += 4;             // Increment PC if everything went well
 
     LOG("DEBUG4") << MSG_FUNC_END;
