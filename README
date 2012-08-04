@@ -15,7 +15,10 @@ Dependencies :-
 2. ipython/python.       ( www.python.org )
 3. elfio C++ library     ( http://sourceforge.net/projects/elfio )       
 
-Several testcases are there in sim/tests directory, which exercise various functionalities for different modules. To compile, go to sim/tests and issue make.
+Several testcases are there in sim/tests/sim directory, which exercise various functionalities for different modules.
+To compile, go to sim/tests/sim and issue make.
+To compile the e500 kernel, go to sim/tests/kernel and issue "make PREFIX=xxx", where xxx is the cross-compiler prefix ( for eg. powerpc-unknown-linux etc ).
+  (See the Makefile for in detail steps. )
 To compile the python module, go to sim/wrapper/python and issue make.
 
 NOTE: This work is distributed under the terms of GNU GPL v2. Detailed license agreements are there in COPYING file.
