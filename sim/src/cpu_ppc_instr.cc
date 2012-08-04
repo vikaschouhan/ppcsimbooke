@@ -842,11 +842,11 @@ X(beqa)
 }
 X(beqctr)
 {
-    bcctr_code(12, BI2(ARG0), ARG1);
+    bcctr_code(12, BI2(ARG0), 0);
 }
 X(beqctrl)
 {
-    bcctr_code(12, BI2(ARG0), ARG1);
+    bcctr_code(12, BI2(ARG0), 0);
 }
 X(beql)
 {
@@ -858,11 +858,11 @@ X(beqla)
 }
 X(beqlr)
 {
-    bclr_code(12, BI2(ARG0), ARG1);
+    bclr_code(12, BI2(ARG0), 0);
 }
 X(beqlrl)
 {
-    bclrl_code(12, BI2(ARG0), ARG1);
+    bclrl_code(12, BI2(ARG0), 0);
 }
 X(bf)
 {
@@ -907,11 +907,11 @@ X(bgea)
 }
 X(bgectr)
 {
-    bcctr_code(4, BI3(ARG0), ARG1);
+    bcctr_code(4, BI3(ARG0), 0);
 }
 X(bgectrl)
 {
-    bcctrl_code(4, BI3(ARG0), ARG1);
+    bcctrl_code(4, BI3(ARG0), 0);
 }
 X(bgel)
 {
@@ -923,11 +923,11 @@ X(bgela)
 }
 X(bgelr)
 {
-    bclr_code(4, BI3(ARG0), ARG1);
+    bclr_code(4, BI3(ARG0), 0);
 }
 X(bgelrl)
 {
-    bclrl_code(4, BI3(ARG0), ARG1);
+    bclrl_code(4, BI3(ARG0), 0);
 }
 X(bgt)
 {
@@ -940,11 +940,11 @@ X(bgta)
 }
 X(bgtctr)
 {
-    bcctr_code(12, BI4(ARG0), ARG1);
+    bcctr_code(12, BI4(ARG0), 0);
 }
 X(bgtctrl)
 {
-    bcctrl_code(12, BI4(ARG0), ARG1);
+    bcctrl_code(12, BI4(ARG0), 0);
 }
 X(bgtl)
 {
@@ -956,11 +956,11 @@ X(bgtla)
 }
 X(bgtlr)
 {
-    bclr_code(12, BI4(ARG0), ARG1);
+    bclr_code(12, BI4(ARG0), 0);
 }
 X(bgtlrl)
 {
-    bclrl_code(12, BI4(ARG0), ARG1);
+    bclrl_code(12, BI4(ARG0), 0);
 }
 X(ble)
 {
@@ -972,11 +972,192 @@ X(blea)
 }
 X(blectr)
 {
-    bcctr_code(4, BI4(ARG0), ARG1);
+    bcctr_code(4, BI4(ARG0), 0);
 }
 X(blectrl)
 {
-    bcctrl_code(4, BI4(ARG0), ARG1);
+    bcctrl_code(4, BI4(ARG0), 0);
+}
+X(blel)
+{
+    bcl_code(4, BI4(ARG0), ARG1);
+}
+X(blela)
+{
+    bcl_code(4, BI4(ARG0), ARG1);
+}
+X(blelr)
+{
+    bclr_code(4, BI4(ARG0), 0);
+}
+X(blelrl)
+{
+    bclrl_code(4, BI4(ARG0), 0);
+}
+X(blr)
+{
+    bclr_code(20, 0, 0);
+}
+X(blrl)
+{
+    bclrl_code(20, 0, 0);
+}
+X(blt)
+{
+    bc_code(12, BI3(ARG0), ARG1);
+}
+X(blta)
+{
+    bc_code(12, BI3(ARG0), ARG1);
+}
+X(bltctr)
+{
+    bcctr_code(12, BI3(ARG0), 0);
+}
+X(bltctrl)
+{
+    bcctrl_code(12, BI3(ARG0), 0);
+}
+X(bltl)
+{
+    bcl_code(12, BI3(ARG0), ARG1);
+}
+X(bltla)
+{
+    bcl_code(12, BI3(ARG0), ARG1);
+}
+X(bltlr)
+{
+    bclr_code(12, BI3(ARG0), 0);
+}
+X(bltlrl)
+{
+    bclrl_code(12, BI3(ARG0), 0);
+}
+X(bne)
+{
+    bc_code(4, BI3(ARG0), ARG1);
+}
+X(bnea)
+{
+    bc_code(4, BI3(ARG0), ARG1);
+}
+X(bnectr)
+{
+    bcctr_code(4, BI3(ARG0), 0);
+}
+X(bnectrl)
+{
+    bcctrl_code(4, BI3(ARG0), 0);
+}
+X(bnel)
+{
+    bcl_code(4, BI3(ARG0), ARG1);
+}
+X(bnela)
+{
+    bcl_code(4, BI3(ARG0), ARG1);
+}
+X(bnelr)
+{
+    bclr_code(4, BI3(ARG0), 0);
+}
+X(bnelrl)
+{
+    bclrl_code(4, BI3(ARG0), 0);
+}
+X(bng)
+{
+    bc_code(4, BI4(ARG0), ARG1);
+}
+X(bnga)
+{
+    bc_code(4, BI4(ARG0), ARG1);
+}
+X(bngctr)
+{
+    bcctr_code(4, BI4(ARG0), 0);
+}
+X(bngctrl)
+{
+    bcctrl_code(4, BI4(ARG0), 0);
+}
+X(bngl)
+{
+    bcl_code(4, BI4(ARG0), ARG1);
+}
+X(bngla)
+{
+    bcl_code(4, BI4(ARG0), ARG1);
+}
+X(bnglr)
+{
+    bclr_code(4, BI4(ARG0), 0);
+}
+X(bnglrl)
+{
+    bclrl_code(4, BI4(ARG0), 0);
+}
+X(bnl)
+{
+    bc_code(4, BI3(ARG0), ARG1);
+}
+X(bnla)
+{
+    bc_code(4, BI3(ARG0), ARG1);
+}
+X(bnlctr)
+{
+    bcctr_code(4, BI3(ARG0), 0);
+}
+X(bnlctrl)
+{
+    bcctrl_code(4, BI3(ARG0), 0);
+}
+X(bnll)
+{
+    bcl_code(4, BI3(ARG0), ARG1);
+}
+X(bnlla)
+{
+    bcl_code(4, BI3(ARG0), ARG1);
+}
+X(bnllr)
+{
+    bclr_code(4, BI3(ARG0), 0);
+}
+X(bnllrl)
+{
+    bclrl_code(4, BI3(ARG0), 0);
+}
+X(bns)
+{
+#define BI5(crS)  4*crS+3
+    bc_code(4, BI5(ARG0), ARG1);
+}
+X(bnsa)
+{
+    bc_code(4, BI5(ARG0), ARG1);
+}
+X(bnsctr)
+{
+    bcctr_code(4, BI5(ARG0), 0);
+}
+X(bnsctrl)
+{
+    bcctrl_code(4, BI5(ARG0), 0);
+}
+X(bnsl)
+{
+    bcl_code(4, BI5(ARG0), ARG1);
+}
+X(bnsla)
+{
+    bcl_code(4, BI5(ARG0), ARG1);
+}
+X(bnslr)
+{
+    bclr_code(4, BI5(ARG0), 0);
 }
 
 
