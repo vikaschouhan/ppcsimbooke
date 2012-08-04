@@ -57,10 +57,18 @@
 #undef  host_flags  
 #undef  dummy_flags 
 
+//#define Rshift(bmask)            ({int res=0; while(!(bmask & 0x1)){ res++; bmask>>=1; } res;})
+//#ifndef EBMASK
+//#define EBMASK(reg, bmask)       (((reg)  & (bmask)) >> Rshift(bmask))
+//#endif
+
 #define ppcreg(regid)            (CPU->m_ireghash[regid]->value)
 #define ppcregattr(regid)        (CPU->m_ireghash[regid]->attr)
 #define ppcregn(reg_name)        (CPU->m_reghash[reg_name]->value)
 #define ppcregnattr(reg_name)    (CPU->m_reghash[reg_name]->attr)
+
+// MSR_CM
+#define CM                       ((ppcreg(REG_MSR) & MSR_CM) ? 1 : 0)
 
 #define spr(sprno)               ppcreg(REG_SPR0 + sprno) 
 #define sprn(spr_name)           regn(spr_name) 
@@ -69,6 +77,9 @@
 #define pmr(pmrno)               ppcreg(REG_PMR0 + pmrno) 
 #define gpr                      ppcreg(REG_MSR) 
 #define cr                       ppcreg(REG_CR)
+#define lr                       ppcreg(REG_LR)
+#define ctr                      ppcreg(REG_CTR)
+#define pc                       CPU->pc
 #define update_cr0               CPU->update_cr0
 #define update_crF               CPU->update_crF
 #define update_crf               CPU->update_crf
@@ -569,6 +580,405 @@ X(andis.)
     REG0 = REG1 & (((uint16_t)ARG2) << 16);
     update_cr0(0, ut(REG0));
 }
+
+// BTB instrs
+X(bbelr)
+{
+    // Not implemented
+}
+X(bblels)
+{
+    // Not implemented
+}
+
+// branch unconditional
+X(b)
+{
+#define b_code(tgtaddr)   pc = tgtaddr
+    b_code(ARG0);
+}
+X(ba)
+{
+    b_code(ARG0);
+}
+X(bl)
+{
+    b_code(ARG0);
+    lr = (pc + 4);
+}
+X(bla)
+{
+    b_code(ARG0);
+    lr = (pc + 4);
+}
+
+// branch conditional
+X(bc)
+{
+#define  BO3(BO)    ((BO >> 1) & 0x1)
+#define  BO2(BO)    ((BO >> 2) & 0x1)
+#define  BO1(BO)    ((BO >> 3) & 0x1)
+#define  BO0(BO)    ((BO >> 4) & 0x1)
+
+#define bc_code(BO, BI, tgtaddr)                                                     \
+    if(!BO2(BO)) ctr = ctr - 1;                                                      \
+    int ctr_ok  = BO2(BO) | ((((CM) ? ctr: (ctr & 0xffffffff)) != 0) ^ BO3(BO));     \
+    int cond_ok = BO0(BO) | (get_crf(BI) == BO1(BO));                                \
+    if(ctr_ok & cond_ok) pc = tgtaddr;
+
+    bc_code(ARG0, ARG1, ARG2);
+}
+X(bca)
+{
+    bc_code(ARG0, ARG1, ARG2)
+}
+X(bcl)
+{
+#define bcl_code(BO, BI, tgtaddr)                   \
+    bc_code(BO, BI, tgtaddr);                       \
+    lr = (pc + 4);
+
+    bcl_code(ARG0, ARG1, ARG2);
+}
+X(bcla)
+{
+    bcl_code(ARG0, ARG1, ARG2);
+}
+
+// branch conditional to LR
+X(bclr)
+{
+#define bclr_code(BO, BI, BH)                                                       \
+    if(!BO2(BO)) ctr = ctr - 1;                                                     \
+    int ctr_ok = BO2(BO) | ((((CM) ? ctr: (ctr & 0xffffffff)) != 0) ^ BO3(BO));     \
+    int cond_ok = BO0(BO) | (get_crf(BI) == BO1(BO));                               \
+    if(ctr_ok & cond_ok) pc = lr & ~0xff;
+
+    bclr_code(ARG0, ARG1, ARG2);
+}
+X(bclrl)
+{
+#define bclrl_code(BO, BI, BH)                       \
+    bclr_code(BO, BI, BH);                           \
+    lr = (pc + 4);
+
+    bclrl_code(ARG0, ARG1, ARG2);
+}
+
+// branch conditional to CTR
+X(bcctr)
+{
+#define bcctr_code(BO, BI, BH)                                                       \
+    if(BO0(BO) | (get_crf(BI) == BO1(BO))) pc = ctr & ~0xff;
+    
+    bcctr_code(ARG0, ARG1, ARG2);
+}
+X(bcctrl)
+{
+#define bcctrl_code(BO, BI, BH)                \
+    bcctr_code(BO, BI, BH);                    \
+    lr = (pc + 4);
+
+    bcctrl_code(ARG0, ARG1, ARG2);
+}
+
+// extended branch mnemonics
+X(bctr)
+{
+    bcctr_code(20, 0, 0);
+}
+X(bctrl)
+{
+    bcctrl_code(20, 0, 0);
+}
+X(bdnz)
+{
+    bc_code(16, 0, ARG0);
+}
+X(bdnza)
+{
+    bc_code(16, 0, ARG0);
+}
+X(bdnzf)
+{
+    bc_code(0, ARG0, ARG1);
+}
+X(bdnzfa)
+{
+    bc_code(0, ARG0, ARG1);
+}
+X(bdnzfl)
+{
+    bcl_code(0, ARG0, ARG1);
+}
+X(bdnzfla)
+{
+    bcl_code(0, ARG0, ARG1);
+}
+X(bdnzflr)
+{
+    bclr_code(0, ARG0, 0);
+}
+X(bdnzflrl)
+{
+    bclrl_code(0, ARG0, 0);
+}
+X(bdnzl)
+{
+    bcl_code(16, 0, ARG0);
+}
+X(bdnzla)
+{
+    bcl_code(16, 0, ARG0);
+}
+X(bdnzlr)
+{
+    bclr_code(16, ARG0, 0);
+}
+X(bdnzlrl)
+{
+    bclrl_code(16, 0, 0);
+}
+X(bdnzt)
+{
+    bc_code(8, ARG0, ARG1);
+}
+X(bdnzta)
+{
+    bc_code(8, ARG0, ARG1);
+}
+X(bdnztl)
+{
+    bcl_code(8, ARG0, ARG1);
+}
+X(bdnztla)
+{
+    bcl_code(8, ARG0, ARG1);
+}
+X(bdnztlr)
+{
+    bclr_code(8, ARG0, 0);
+}
+X(bdnztlrl)
+{
+    bclrl_code(8, ARG0, 0);
+}
+X(bdz)
+{
+    bc_code(18, 0, ARG0);
+}
+X(bdza)
+{
+    bc_code(18, 0, ARG0);
+}
+X(bdzf)
+{
+    bc_code(2, ARG0, ARG1);
+}
+X(bdzfa)
+{
+    bc_code(2, ARG0, ARG1);
+}
+X(bdzfl)
+{
+    bcl_code(2, ARG0, ARG1);
+}
+X(bdzfla)
+{
+    bcl_code(2, ARG0, ARG1);
+}
+X(bdzflr)
+{
+    bclr_code(2, ARG0, 0);
+}
+X(bdzflrl)
+{
+    bclrl_code(2, ARG0, 0);
+}
+X(bdzl)
+{
+    bcl_code(18, ARG0, ARG1);
+}
+X(bdzla)
+{
+    bcl_code(18, ARG0, ARG1);
+}
+X(bdzlr)
+{
+    bclr_code(18, 0, 0);
+}
+X(bdzlrl)
+{
+    bclrl_code(18, 0, 0);
+}
+X(bdzt)
+{
+    bc_code(10, ARG0, ARG1);
+}
+X(bdzta)
+{
+    bc_code(10, ARG0, ARG1);
+}
+X(bdztl)
+{
+    bcl_code(10, ARG0, ARG1);
+}
+X(bdztla)
+{
+    bcl_code(10, ARG0, ARG1);
+}
+X(bdztlrl)
+{
+    bclrl_code(10, ARG0, 0);
+}
+X(beq)
+{
+#define BI2(crS)   4*crS+2
+    bc_code(12, BI2(ARG0), ARG1);
+}
+X(beqa)
+{
+    bc_code(12, BI2(ARG0), ARG1);
+}
+X(beqctr)
+{
+    bcctr_code(12, BI2(ARG0), ARG1);
+}
+X(beqctrl)
+{
+    bcctr_code(12, BI2(ARG0), ARG1);
+}
+X(beql)
+{
+    bcl_code(12, BI2(ARG0), ARG1);
+}
+X(beqla)
+{
+    bcl_code(12, BI2(ARG0), ARG1);
+}
+X(beqlr)
+{
+    bclr_code(12, BI2(ARG0), ARG1);
+}
+X(beqlrl)
+{
+    bclrl_code(12, BI2(ARG0), ARG1);
+}
+X(bf)
+{
+    bc_code(4, ARG0, ARG1);
+}
+X(bfa)
+{
+    bc_code(4, ARG0, ARG1);
+}
+X(bfctr)
+{
+    bcctr_code(4, ARG0, 0);
+}
+X(bfctrl)
+{
+    bcctrl_code(4, ARG0, 0);
+}
+X(bfl)
+{
+    bcl_code(4, ARG0, ARG1);
+}
+X(bfla)
+{
+    bcl_code(4, ARG0, ARG1);
+}
+X(bflr)
+{
+    bclr_code(4, ARG0, 0);
+}
+X(bflrl)
+{
+    bclrl_code(4, ARG0, 0);
+}
+X(bge)
+{
+#define BI3(crS)  4*crS+0
+    bc_code(4, BI3(ARG0), ARG1); 
+}
+X(bgea)
+{
+    bc_code(4, BI3(ARG0), ARG1);
+}
+X(bgectr)
+{
+    bcctr_code(4, BI3(ARG0), ARG1);
+}
+X(bgectrl)
+{
+    bcctrl_code(4, BI3(ARG0), ARG1);
+}
+X(bgel)
+{
+    bcl_code(4, BI3(ARG0), ARG1);
+}
+X(bgela)
+{
+    bcl_code(4, BI3(ARG0), ARG1);
+}
+X(bgelr)
+{
+    bclr_code(4, BI3(ARG0), ARG1);
+}
+X(bgelrl)
+{
+    bclrl_code(4, BI3(ARG0), ARG1);
+}
+X(bgt)
+{
+#define BI4(crS)  4*crS+1
+    bc_code(12, BI4(ARG0), ARG1);
+}
+X(bgta)
+{
+    bc_code(12, BI4(ARG0), ARG1);
+}
+X(bgtctr)
+{
+    bcctr_code(12, BI4(ARG0), ARG1);
+}
+X(bgtctrl)
+{
+    bcctrl_code(12, BI4(ARG0), ARG1);
+}
+X(bgtl)
+{
+    bcl_code(12, BI4(ARG0), ARG1);
+}
+X(bgtla)
+{
+    bcl_code(12, BI4(ARG0), ARG1);
+}
+X(bgtlr)
+{
+    bclr_code(12, BI4(ARG0), ARG1);
+}
+X(bgtlrl)
+{
+    bclrl_code(12, BI4(ARG0), ARG1);
+}
+X(ble)
+{
+    bc_code(4, BI4(ARG0), ARG1);
+}
+X(blea)
+{
+    bc_code(4, BI4(ARG0), ARG1);
+}
+X(blectr)
+{
+    bcctr_code(4, BI4(ARG0), ARG1);
+}
+X(blectrl)
+{
+    bcctrl_code(4, BI4(ARG0), ARG1);
+}
+
 
 /* cmp variants */
 // cmp crD, L, rA, rB 
