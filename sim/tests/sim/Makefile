@@ -11,11 +11,14 @@ USRFLAGS :=
 
 SUFFIXES += .d
 
+# Two level up
+SRCROOT  := ../..
+
 # header files' and libraries' paths
-CXXINCLUDES := ../inc
-CINCLUDES   := ../inc
-CXXLIBS     := ../lib
-CLIBS       := ../lib
+CXXINCLUDES := $(SRCROOT)/inc
+CINCLUDES   := $(SRCROOT)/inc
+CXXLIBS     := $(SRCROOT)/lib
+CLIBS       := $(SRCROOT)/lib
 
 # All project files
 SOURCES := $(shell ls *.cxx)
@@ -33,7 +36,7 @@ HOST_ARCH := $(shell uname -m)
 EXTFLAGS += -DHOST_ARCH=$(HOST_ARCH)
 
 # Generate the ppc_instrs as part of build process at the very beginning
-EXEC_PPC_INSTR_RES := $(shell ../utils/format_instrs2.pl --ifile ../src/cpu_ppc_instr.cc --ofile cpu_ppc_instr.h)
+EXEC_PPC_INSTR_RES := $(shell $(SRCROOT)/utils/format_instrs2.pl --ifile $(SRCROOT)/src/cpu_ppc_instr.cc --ofile cpu_ppc_instr.h)
 
 all: $(EXES)
 
