@@ -1159,7 +1159,144 @@ X(bnslr)
 {
     bclr_code(4, BI5(ARG0), 0);
 }
+X(bnslrl)
+{
+    bclrl_code(4, BI5(ARG0), 0);
+}
+X(bnu)
+{
+    bc_code(4, BI5(ARG0), ARG1);
+}
+X(bnua)
+{
+    bc_code(4, BI5(ARG0), ARG1);
+}
+X(bnuctr)
+{
+    bcctr_code(4, BI5(ARG0), 0);
+}
+X(bnuctrl)
+{
+    bcctrl_code(4, BI5(ARG0), 0);
+}
+X(bnul)
+{
+    bcl_code(4, BI5(ARG0), ARG1);
+}
+X(bnula)
+{
+    bcl_code(4, BI5(ARG0), ARG1);
+}
+X(bnulr)
+{
+    bclr_code(4, BI5(ARG0), 0);
+}
+X(bnulrl)
+{
+    bclrl_code(4, BI5(ARG0), 0);
+}
+X(bso)
+{
+    bc_code(12, BI5(ARG0), ARG1);
+}
+X(bsoa)
+{
+    bc_code(12, BI5(ARG0), ARG1);
+}
+X(bsoctr)
+{
+    bcctr_code(12, BI5(ARG0), 0);
+}
+X(bsoctrl)
+{
+    bcctrl_code(12, BI5(ARG0), 0);
+}
+X(bsol)
+{
+    bcl_code(12, BI5(ARG0), ARG1);
+}
+X(bsola)
+{
+    bcl_code(12, BI5(ARG0), ARG1);
+}
+X(bsolr)
+{
+    bclr_code(12, BI5(ARG0), 0);
+}
+X(bsolrl)
+{
+    bclrl_code(12, BI5(ARG0), 0);
+}
+X(bt)
+{
+    bc_code(12, ARG0, ARG1);
+}
+X(bta)
+{
+    bc_code(12, ARG0, ARG1);
+}
+X(btctr)
+{
+    bcctr_code(12, ARG0, 0);
+}
+X(btctrl)
+{
+    bcctrl_code(12, ARG0, 0);
+}
+X(btl)
+{
+    bcl_code(12, ARG0, ARG1);
+}
+X(btla)
+{
+    bcl_code(12, ARG0, ARG1);
+}
+X(btlr)
+{
+    bclr_code(12, ARG0, 0);
+}
+X(btlrl)
+{
+    bclrl_code(12, ARG0, 0);
+}
+X(bun)
+{
+    bc_code(12, BI5(ARG0), ARG1);
+}
+X(buna)
+{
+    bc_code(12, BI5(ARG0), ARG1);
+}
+X(bunctr)
+{
+    bcctr_code(12, BI5(ARG0), 0);
+}
+X(bunctrl)
+{
+    bcctrl_code(12, BI5(ARG0), 0);
+}
+X(bunl)
+{
+    bcl_code(12, BI5(ARG0), ARG1);
+}
+X(bunla)
+{
+    bcl_code(12, BI5(ARG0), ARG1);
+}
+X(bunlr)
+{
+    bclr_code(12, BI5(ARG0), 0);
+}
+X(bunlrl)
+{
+    bclrl_code(12, BI5(ARG0), 0);
+}
 
+// SPE :- Later on
+X(brinc)
+{
+    // Not implemented right now
+}
 
 /* cmp variants */
 // cmp crD, L, rA, rB 
@@ -1359,6 +1496,11 @@ X(crclr)
     crxor_code(ARG0, ARG0, ARG0);
 }
 
+X(isync)
+{
+    // Do nothing
+}
+
 // Barrier
 X(mbar)
 {
@@ -1425,16 +1567,88 @@ X(mfpmr)
     X(mf##regname){                           \
         rD = ppcregn(#regname);               \
     }
-#define MNEC_MTR(regname, rS)                 \
+#define MNEC_MTR(rS, regname)                 \
     X(mt##regname){                           \
         ppcregn(#regname) = rS;               \
     }
 
-MNEC_MFR(REG0, xer)
-MNEC_MFR(REG0, ctr)
+// FIXME: This doesn't work at this time, since our formatting utility
+//        ( the perl script which parses this file and generates the header file )
+//        isn't able to distinguish two instr descriptions on single line.
+//
+//        We will try to remove the need for the external utility at some point
+//        in future, but until then we are helpless.
+//#define MNEC_MR(rA, regname)                  \
+//    X(mf##regname){                           \
+//        rA = ppcregn(#regname);               \
+//    }                                         \
+//    X(mt##regname){                           \
+//        ppcregn(#regname) = rA;               \
+//    }
 
-MNEC_MTR(xer, REG0)
-MNEC_MTR(ctr, REG0)
+// mfspr extended mnemonics
+MNEC_MFR(REG0, xer     )
+MNEC_MFR(REG0, ctr     )
+MNEC_MFR(REG0, pvr     )
+MNEC_MFR(REG0, pid     )
+MNEC_MFR(REG0, pid0    )
+MNEC_MFR(REG0, pid1    )
+MNEC_MFR(REG0, pid2    )
+MNEC_MFR(REG0, dec     )
+MNEC_MFR(REG0, lr      )
+MNEC_MFR(REG0, esr     )
+MNEC_MFR(REG0, mcsr    )
+MNEC_MFR(REG0, ivpr    )
+MNEC_MFR(REG0, dear    )
+MNEC_MFR(REG0, srr0    )
+MNEC_MFR(REG0, srr1    )
+MNEC_MFR(REG0, csrr0   )
+MNEC_MFR(REG0, csrr1   )
+MNEC_MFR(REG0, mcsrr0  )
+MNEC_MFR(REG0, mcsrr1  )
+MNEC_MFR(REG0, dbcr0   )
+MNEC_MFR(REG0, dbcr1   )
+MNEC_MFR(REG0, dbcr2   )
+MNEC_MFR(REG0, iac1    )
+MNEC_MFR(REG0, iac2    )
+MNEC_MFR(REG0, dac1    )
+MNEC_MFR(REG0, dac2    )
+MNEC_MFR(REG0, dbsr    )
+MNEC_MFR(REG0, pmc3    )
+MNEC_MFR(REG0, tsr     )
+MNEC_MFR(REG0, bucsr   )
+
+MNEC_MTR(REG0, xer     )
+MNEC_MTR(REG0, ctr     )
+MNEC_MTR(REG0, pvr     )
+MNEC_MTR(REG0, pid     )
+MNEC_MTR(REG0, pid0    )
+MNEC_MTR(REG0, pid1    )
+MNEC_MTR(REG0, pid2    )
+MNEC_MTR(REG0, dec     )
+MNEC_MTR(REG0, lr      )
+MNEC_MTR(REG0, esr     )
+MNEC_MTR(REG0, mcsr    )
+MNEC_MTR(REG0, ivpr    )
+MNEC_MTR(REG0, dear    )
+MNEC_MTR(REG0, srr0    )
+MNEC_MTR(REG0, srr1    )
+MNEC_MTR(REG0, csrr0   )
+MNEC_MTR(REG0, csrr1   )
+MNEC_MTR(REG0, mcsrr0  )
+MNEC_MTR(REG0, mcsrr1  )
+MNEC_MTR(REG0, dbcr0   )
+MNEC_MTR(REG0, dbcr1   )
+MNEC_MTR(REG0, dbcr2   )
+MNEC_MTR(REG0, iac1    )
+MNEC_MTR(REG0, iac2    )
+MNEC_MTR(REG0, dac1    )
+MNEC_MTR(REG0, dac2    )
+MNEC_MTR(REG0, dbsr    )
+MNEC_MTR(REG0, pmc3    )
+MNEC_MTR(REG0, tsr     )
+MNEC_MTR(REG0, bucsr   )
+
 
 X(mfspr)
 {
@@ -1474,6 +1688,10 @@ X(mr)
 X(msync)
 {
     // Do nothing
+}
+X(sync)
+{
+    // Do nothing ( same as msync )
 }
 
 // Add all mul* instrs here
