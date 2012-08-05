@@ -587,13 +587,13 @@ TLB_T std::pair<uint64_t, uint8_t> TLB_PPC_T::xlate(uint64_t ea, bool as, uint8_
                 }else{                                                                                                \
                     if(rwx & 0x1){                                                                                    \
                         std::cout << "Got ISI exception" <<std::endl;                                                 \
-                        throw sim_exception_ppc(PPC_EXCEPTION_ISI, PPC_EXCEPT_ISI_ACS);                               \
+                        throw sim_exception_ppc(PPC_EXCEPTION_ISI, PPC_EXCEPT_ISI_ACS, "ISI exception.");             \
                     }else if(rwx & 0x2){                                                                              \
                         std::cout << "Got DSI write exception" << std::endl;                                          \
-                        throw sim_exception_ppc(PPC_EXCEPTION_DSI, PPC_EXCEPT_DSI_ACS_W);                             \
+                        throw sim_exception_ppc(PPC_EXCEPTION_DSI, PPC_EXCEPT_DSI_ACS_W, "DSI write exception.");     \
                     }else if(rwx & 0x4){                                                                              \
                         std::cout << "Got DSI read exception" << std::endl;                                           \
-                        throw sim_exception_ppc(PPC_EXCEPTION_DSI, PPC_EXCEPT_DSI_ACS_R);                             \
+                        throw sim_exception_ppc(PPC_EXCEPTION_DSI, PPC_EXCEPT_DSI_ACS_R, "DSI read exception.");      \
                     }                                                                                                 \
                 }                                                                                                     \
             }                                                                                                         \

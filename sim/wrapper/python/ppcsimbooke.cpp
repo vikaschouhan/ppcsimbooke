@@ -27,7 +27,7 @@
 #include <boost/python/module.hpp>
 #include <boost/python/def.hpp>
 #include <boost/python/implicit.hpp>
-#include <boost/shared_ptr.hpp>
+#include <boost/python/exception_translator.hpp>
 
 #include "cpu_ppc.hpp"
 #include "memory.hpp"
@@ -90,6 +90,16 @@ template <uint64_t x> struct new_const{
 };
 template<uint64_t x> const uint64_t new_const<x>::val = x;
 
+// Exception translation mechanism
+void translate_sim_ex(const sim_exception& e){
+    PyErr_SetString(PyExc_RuntimeError, e.desc());
+}
+void translate_sim_ex_fatal(const sim_exception_fatal& e){
+    PyErr_SetString(PyExc_RuntimeError, e.desc());
+}
+void translate_sim_ex_ppc(const sim_exception_ppc& e){
+    PyErr_SetString(PyExc_RuntimeError, e.desc());
+}
 
 // Add attributes for GPRs
 #define ADD_GPR(reg_num, reg_alias) \
@@ -201,6 +211,11 @@ BOOST_PYTHON_MODULE(ppcsim)
 
     // Wrap log_to_file()
     def("log_to_file", log_to_file);
+
+    // Register exception convertors
+    register_exception_translator<sim_exception>(&translate_sim_ex);
+    register_exception_translator<sim_exception_fatal>(&translate_sim_ex_fatal);
+    register_exception_translator<sim_exception_ppc>(&translate_sim_ex_ppc);
 
     // Types namespace ( defines all class types being used in our module, one way of other )
     {

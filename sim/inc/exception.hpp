@@ -28,6 +28,9 @@
 #define SIM_EXCEPT_ENOFILE      254    /* File couldn't be opened */
 #define SIM_EXCEPT_EUNKWN       255    /* Unknown */
 
+// A global message object used as a temporary placeholder
+static std::string glb_msg0;
+
 // generic exception class for our sim module ( only non fatal exception )
 // TODO: This is barebones right now.
 class sim_exception : public std::exception {
@@ -36,7 +39,7 @@ class sim_exception : public std::exception {
 
     public:
     // Constructor
-    sim_exception(uint64_t errcode, std::string message = ""){
+    sim_exception(uint64_t errcode, std::string message = "runtime exception"){
         m_errcode    = errcode;
         m_message    = message;
     }
@@ -47,10 +50,13 @@ class sim_exception : public std::exception {
     const uint64_t err_code(){
         return m_errcode;
     }
-
+    const char* desc() const{
+        glb_msg0 = m_message;
+        return glb_msg0.c_str();
+    }
     // Virtual what for this class
-    const char *what() throw(){
-        return m_message.c_str();
+    const char *what() const throw(){
+        return "runtime simulation exception.";
     }
 };
 
@@ -60,15 +66,19 @@ class sim_exception_fatal : public std::exception {
 
     public:
     // Constructor
-    sim_exception_fatal(std::string message = ""){
+    sim_exception_fatal(std::string message = "Fatal error"){
         m_message = message;
     }
     // Destructor
     ~sim_exception_fatal() throw(){
     }
+    const char* desc() const{
+        glb_msg0 = m_message;
+        return glb_msg0.c_str();
+    }
     // Virtual what for this class
-    const char *what() throw(){
-        return m_message.c_str();
+    const char *what() const throw(){
+        return "fatal simulation exception.";
     }
 };
 
@@ -84,7 +94,7 @@ class sim_exception_ppc : public std::exception {
 
     public:
     // Constructor
-    sim_exception_ppc(uint64_t c0, uint64_t c1, std::string message = ""){
+    sim_exception_ppc(uint64_t c0, uint64_t c1, std::string message = "PPC exception"){
         m_errcode[0] = c0;
         m_errcode[1] = c1;
         m_message = message;
@@ -100,9 +110,13 @@ class sim_exception_ppc : public std::exception {
     const uint64_t err_code1(){
         return m_errcode[1];
     }
+    const char *desc() const{
+        glb_msg0 = m_message;
+        return glb_msg0.c_str();
+    } 
     // Virtual what for this class
-    const char *what() throw(){
-        return m_message.c_str();
+    const char *what() const throw(){
+        return "ppc exception.";
     }
 };
 

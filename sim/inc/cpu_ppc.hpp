@@ -335,9 +335,9 @@ std::pair<uint64_t, uint8_t> CPU_PPC::xlate(uint64_t addr, bool wr){
     // We encountered TLB miss. Throw exceptions
     std::cout << "DTLB miss" << std::endl;
     if(wr){
-        LTHROW(sim_exception_ppc(PPC_EXCEPTION_DTLB, PPC_EXCEPT_DTLB_MISS_ST), DEBUG4);
+        LTHROW(sim_exception_ppc(PPC_EXCEPTION_DTLB, PPC_EXCEPT_DTLB_MISS_ST, "DTLB miss on store."), DEBUG4);
     }else{
-        LTHROW(sim_exception_ppc(PPC_EXCEPTION_DTLB, PPC_EXCEPT_DTLB_MISS_LD), DEBUG4);
+        LTHROW(sim_exception_ppc(PPC_EXCEPTION_DTLB, PPC_EXCEPT_DTLB_MISS_LD, "DTLB miss on load."), DEBUG4);
     }
 
     exit_loop_0:
@@ -961,7 +961,7 @@ instr_call CPU_PPC::get_instr(){
 
     // We encountered ITLB miss. Throw exceptions
     std::cout << "ITLB miss" << std::endl;
-    LTHROW(sim_exception_ppc(PPC_EXCEPTION_ITLB, PPC_EXCEPT_ITLB_MISS), DEBUG4);
+    LTHROW(sim_exception_ppc(PPC_EXCEPTION_ITLB, PPC_EXCEPT_ITLB_MISS, "ITLB miss."), DEBUG4);
 
     exit_loop_0:
     LOG("DEBUG4") << std::hex << std::showbase << "instr Xlation : " << pc << " -> " << res.first << std::endl;
