@@ -89,10 +89,6 @@ class CPU_PPC : public cpu {
     uint64_t read64(uint64_t addr);
     void write64(uint64_t addr, uint64_t value); 
     
-    // Get PC
-    uint64_t get_pc(){
-        return pc;
-    }
     // Get Register by name
     uint64_t get_reg(std::string name) throw(sim_exception);
     // Dump CPU state
@@ -266,12 +262,24 @@ void CPU_PPC::run(size_t instr_cnt){
                 sim_exception(SIM_EXCEPT_EINVAL, "Invalid/Unimplemented opcode " + call_this.opcode), DEBUG4);          \
         call_this.fptr = reinterpret_cast<void*>(ppc_func_hash[call_this.opcode]);                                      \
         /* call handler function for this call frame */                                                                 \
-        ppc_func_hash[call_this.opcode](this, &call_this)
+        ppc_func_hash[call_this.opcode](this, &call_this);                                                              \
+        ninstrs++
 
         case 0:
             for(;;){
-                I; 
+                // Execute 32 instrs without looping again
+                // Loop unrolling above 32 instrs, makes compilation slow like crazy
+                // ( it already takes too much ), so I am sticking with a low count here.
+                I; I; I; I; I; I; I; I;         I; I; I; I; I; I; I; I;
+                I; I; I; I; I; I; I; I;         I; I; I; I; I; I; I; I;
+
+                // Periodically check for any python error signals ( only for boost python )
+                if(py_signal_callback::callback != NULL)
+                    if(py_signal_callback::callback())
+                        goto loop_exit_0;
             }
+            loop_exit_0:
+            ;
             break;
         default:
             for(t=0; t<instr_cnt; t++){
@@ -1213,9 +1221,9 @@ void CPU_PPC::update_xer(bool use_host, uint64_t value){
         if(host_state.flags & X86_FLAGS_CF){ c = 2; }
         if(host_state.flags & X86_FLAGS_OF){
             c |= 4;
-            if(curr_instr != "mtspr"){   /* If current instruction is not "mtspr", set SO bit also */
-                c |= 8;
-            }
+            //if(curr_instr != "mtspr"){   /* If current instruction is not "mtspr", set SO bit also */
+            //    c |= 8;
+            //}
         }
     }
     /* Set XER */

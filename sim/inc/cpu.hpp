@@ -17,10 +17,6 @@ class cpu {
 
     string            name;                          /* Cpu specific name */
     string            path;                          /*  Full "path" to the CPU, e.g. "machine[0].cpu[0]":  */
-    uint64_t          ninstrs;                       /*  Nr of instructions executed, etc.:  */
-    uint64_t          ninstrs_show;
-    uint64_t          ninstrs_flush;
-    uint64_t          ninstrs_since_gettimeofday;
     struct timeval    starttime;
     uint8_t           byte_order;
     uint8_t           is_32bit;                      /*  0 for emulated 64-bit CPUs, 1 for 32-bit.  */
@@ -34,8 +30,8 @@ class cpu {
     protected:
     uint64_t          pc;                            /*  The program counter. (For 32-bit modes, not all bits are used.)  */
     uint8_t           bits;                          /*  32 -> 32 bits, 64 -> 64 bits */
+    size_t            ninstrs;                       /*  Nr of instructions executed, etc.:  */
     bool              emul_full;                     /*  1 if full emulation, 0 if partial */
-    string            curr_instr;                    /*  current instruction being executed */
 
     public:
     virtual void      run(size_t instr_cnt=0) = 0;         // instr_cnt=0, means run without any breaks,
@@ -66,6 +62,7 @@ class cpu {
         this->cpu_id     = cpuid;
         this->cpu_no = this->ncpus++;
         this->pc = pc;
+        this->ninstrs = 0;
         /* we are keeing this as don't care for time being.
          * will be changed in future
          */
@@ -74,9 +71,17 @@ class cpu {
         this->running    = 0; 
     }
 
+    // Get number of instrs
+    size_t get_ninstrs(){
+        return ninstrs;
+    }
+    uint64_t get_pc(){
+        return pc;
+    }
 
     public:
     void cpu_show_cycles(int forced){ }
+    
 
 };
 

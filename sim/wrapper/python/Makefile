@@ -14,7 +14,10 @@ CXXFLAGS        := -I../../inc -I`python-config --includes` -I/usr/include/boost
 CXXFLAGS        += -L/usr/lib64 -lboost_python
 
 # enable this for <cstdint>
-CXXFLAGS   += -std=c++0x -g -O -Wall -DCONFIG_BOOKE -DCONFIG_E500 -DCORE_TYPE=e500v2 -DCONFIG_FSL_EMB_PERFMON -O2 -fpic -shared
+# -DCONFIG_BOOST_PYTHON is for any boost python specific code.
+# -DCONFIG_E500, -DCONFIG_BOOKE and -DCONFIG_FSL_EMB_PERFMON is required for linux ppc header files
+# -DCORE_TYPE=e500v2 is required for some e500 'version' specific code ( tlb type selection for eg. )
+CXXFLAGS   += -std=c++0x -O -Wall -DCONFIG_BOOST_PYTHON -DCONFIG_BOOKE -DCONFIG_E500 -DCORE_TYPE=e500v2 -DCONFIG_FSL_EMB_PERFMON -O2 -fpic -shared
 
 HOST_ARCH := $(shell uname -m)
 CXXFLAGS += -DHOST_ARCH=$(HOST_ARCH)

@@ -101,6 +101,16 @@ void translate_sim_ex_ppc(const sim_exception_ppc& e){
     PyErr_SetString(PyExc_RuntimeError, e.desc());
 }
 
+// python signal checker
+int py_sig_callback(){
+    PyErr_CheckSignals();
+    if(PyErr_Occurred()){
+        std::cerr << "Signal recieved." << std::endl;
+        return 1;
+    }
+    return 0;
+}
+
 // Add attributes for GPRs
 #define ADD_GPR(reg_num, reg_alias) \
     ppc_regs_py.add_property(reg_alias, make_function(&ppc_regs::get_gpr<reg_num>, return_value_policy<reference_existing_object>()))
@@ -211,6 +221,9 @@ BOOST_PYTHON_MODULE(ppcsim)
 
     // Wrap log_to_file()
     def("log_to_file", log_to_file);
+
+    // Install the python signal checker
+    py_signal_callback::callback = py_sig_callback;
 
     // Register exception convertors
     register_exception_translator<sim_exception>(&translate_sim_ex);
@@ -339,7 +352,8 @@ BOOST_PYTHON_MODULE(ppcsim)
             .def("read64",            &CPU_PPC::read64)
             .def("write64",           &CPU_PPC::write64)
             .add_property("regs",     make_function(&CPU_PPC::___get_regs, return_value_policy<reference_existing_object>()))
-            .add_property("PC",       &CPU_PPC::get_pc)
+            .def_readonly("PC",       &CPU_PPC::get_pc)
+            .def_readonly("ninstrs",  &CPU_PPC::get_ninstrs)
             ;
 
 

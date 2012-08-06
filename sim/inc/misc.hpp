@@ -136,4 +136,11 @@ struct ppc_regs {
     }
 };
 
+// python signal callback to respond to any python errors( we can attach a callback with signature int xxx() {} )
+struct py_signal_callback {
+    typedef int (*callback_ptr)();   // Return type is "int" to return any status indicator
+    static callback_ptr callback;
+};
+py_signal_callback::callback_ptr py_signal_callback::callback = NULL;
+
 #endif
