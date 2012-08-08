@@ -34,8 +34,8 @@ class cpu {
     bool              emul_full;                     /*  1 if full emulation, 0 if partial */
 
     public:
-    virtual void      run(size_t instr_cnt=0) = 0;         // instr_cnt=0, means run without any breaks,
-                                                           // instr_cnt=1, means run uptil instr_cnt instrs
+    virtual void      run() = 0;                           // run
+    virtual void      step(size_t instr_cnt=1) = 0;        // step
     virtual void      run_instr(std::string instr) = 0;    // run a specific instr
 
     public:

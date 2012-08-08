@@ -46,8 +46,8 @@ void (CPU_PPC::*run_instr_ptr2_d0)(std::string) = &CPU_PPC::run_instr;
 instr_call (DIS_PPC::*disasm_ptr)(uint32_t, uint64_t, int)  = &DIS_PPC::disasm;
 instr_call (DIS_PPC::*disasm_ptr2)(std::string, uint64_t)   = &DIS_PPC::disasm;
 
-// Overloads for CPU_PPC::run()
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(run_overloads, run, 0, 1);
+// Overloads for CPU_PPC::step()
+BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(step_overloads, step, 0, 1);
 
 // Overloads for CPU_PPC::dump_state()
 BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(dump_state_overloads, dump_state, 0, 3);
@@ -338,7 +338,8 @@ BOOST_PYTHON_MODULE(ppcsim)
         class_<CPU_PPC> cpu_ppc_py("cpu_ppc", init<uint64_t, std::string>());
         cpu_ppc_py.def("run_instr",   run_instr_ptr_d0)
             .def("run_instr",         run_instr_ptr2_d0)
-            .def("run",               &CPU_PPC::run, run_overloads())
+            .def("run",               &CPU_PPC::run)
+            .def("step",              &CPU_PPC::step, step_overloads())
             .def("get_reg",           &CPU_PPC::get_reg)
             .def("dump_state",        &CPU_PPC::dump_state, dump_state_overloads())
             .def("print_L2tlbs",      &CPU_PPC::print_L2tlbs)

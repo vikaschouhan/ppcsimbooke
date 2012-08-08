@@ -66,8 +66,9 @@ class CPU_PPC : public cpu {
     }
 
     // All virtual functions
-    void run(size_t instr_cnt=0);
+    void run();
     void run_instr(std::string instr);
+    void step(size_t instr_cnt=1);      // by default step by 1 ic cnt
 
     // normal overloaded version of run_instr ( NOTE: it's not virtual )
     void run_instr(uint32_t opcd);
@@ -245,12 +246,10 @@ size_t                         CPU_PPC::ncpus = 0; /* Current number of powerpc 
 // All virtual functions
 // TODO:  this is very new. May or may not work.
 //        NO ppc exception support at this time
-void CPU_PPC::run(size_t instr_cnt){
+void CPU_PPC::run(){
     LOG("DEBUG4") << MSG_FUNC_START;
 
-    size_t t=0;
     instr_call call_this;
-    switch(instr_cnt){
 #define I                                                                                                               \
         /* Get Instr call frame at next NIP */                                                                          \
         call_this = get_instr();                                                                                        \
@@ -265,27 +264,49 @@ void CPU_PPC::run(size_t instr_cnt){
         ppc_func_hash[call_this.opcode](this, &call_this);                                                              \
         ninstrs++
 
-        case 0:
-            for(;;){
-                // Execute 32 instrs without looping again
-                // Loop unrolling above 32 instrs, makes compilation slow like crazy
-                // ( it already takes too much ), so I am sticking with a low count here.
-                I; I; I; I; I; I; I; I;         I; I; I; I; I; I; I; I;
-                I; I; I; I; I; I; I; I;         I; I; I; I; I; I; I; I;
+    for(;;){
+        // Execute 32 instrs without looping again
+        // Loop unrolling above 32 instrs, makes compilation slow like crazy
+        // ( it already takes too much ), so I am sticking with a low count here.
+        I; I; I; I; I; I; I; I;         I; I; I; I; I; I; I; I;
+        I; I; I; I; I; I; I; I;         I; I; I; I; I; I; I; I;
 
-                // Periodically check for any python error signals ( only for boost python )
-                if(py_signal_callback::callback != NULL)
-                    if(py_signal_callback::callback())
-                        goto loop_exit_0;
-            }
-            loop_exit_0:
-            ;
-            break;
-        default:
-            for(t=0; t<instr_cnt; t++){
-                I;
-            }
-            break;
+        // Periodically check for any python error signals ( only for boost python )
+        if(py_signal_callback::callback != NULL)
+            if(py_signal_callback::callback())
+                goto loop_exit_0;
+    }
+    loop_exit_0:
+    ;
+#undef I
+    LOG("DEBUG4") << MSG_FUNC_END;
+}
+
+// step operation
+void CPU_PPC::step(size_t instr_cnt){
+    LOG("DEBUG4") << MSG_FUNC_START;
+
+    size_t t=0;
+    instr_call call_this;
+
+    if(!instr_cnt) return;
+#define I                                                                                                               \
+        /* Get Instr call frame at next NIP */                                                                          \
+        call_this = get_instr();                                                                                        \
+        std::cout << std::hex << "pc : 0x" << (pc-4) << " <" << call_this.get_instr_str() << ">" << std::endl;          \
+        LOG("DEBUG4") << "INSTR : " << call_this.get_instr_str() << std::endl;                                          \
+        /* If there is a func pointer already registered, call it */                                                    \
+        if(call_this.fptr){ (reinterpret_cast<CPU_PPC::ppc_opc_fun_ptr>(call_this.fptr))(this, &call_this); }           \
+                                                                                                                        \
+        LASSERT_THROW(ppc_func_hash.find(call_this.opcode) != ppc_func_hash.end(),                                      \
+                sim_exception(SIM_EXCEPT_EINVAL, "Invalid/Unimplemented opcode " + call_this.opcode), DEBUG4);          \
+        call_this.fptr = reinterpret_cast<void*>(ppc_func_hash[call_this.opcode]);                                      \
+        /* call handler function for this call frame */                                                                 \
+        ppc_func_hash[call_this.opcode](this, &call_this);                                                              \
+        ninstrs++
+
+    for(t=0; t<instr_cnt; t++){
+        I;
     }
 #undef I
     LOG("DEBUG4") << MSG_FUNC_END;
