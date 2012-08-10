@@ -100,6 +100,9 @@ void translate_sim_ex_fatal(const sim_exception_fatal& e){
 void translate_sim_ex_ppc(const sim_exception_ppc& e){
     PyErr_SetString(PyExc_RuntimeError, e.desc());
 }
+void translate_sim_ex_ppc_halt(const sim_exception_ppc_halt& e){
+   PyErr_SetString(PyExc_RuntimeError, e.desc());
+}
 
 // python signal checker
 int py_sig_callback(){
@@ -229,6 +232,7 @@ BOOST_PYTHON_MODULE(ppcsim)
     register_exception_translator<sim_exception>(&translate_sim_ex);
     register_exception_translator<sim_exception_fatal>(&translate_sim_ex_fatal);
     register_exception_translator<sim_exception_ppc>(&translate_sim_ex_ppc);
+    register_exception_translator<sim_exception_ppc_halt>(&translate_sim_ex_ppc_halt);
 
     // Types namespace ( defines all class types being used in our module, one way of other )
     {

@@ -143,6 +143,12 @@ class CPU_PPC : public cpu {
     void init_reghash();
     void ppc_exception(int exception_nr, uint64_t subtype, uint64_t ea=0xffffffffffffffffULL);
     instr_call get_instr();           // Automatically tries to read instr from next NIP(PC)
+#define DBG_EVENT_IAC      0x00000001UL
+#define DBG_EVENT_DAC_LD   0x00000002UL
+#define DBG_EVENT_DAC_ST   0x00000004UL
+    // Throws debug events
+    // ea is used only in case of DAC events
+    void check_for_dbg_events(int flags, uint64_t ea=0);   // check for debug events
     // Init common stuff
     void init_common(){
         LOG("DEBUG4") << MSG_FUNC_START;
@@ -189,8 +195,10 @@ class CPU_PPC : public cpu {
     // Pointers to generic registers/stuff hashed by name and numerical identifiers
     std::map<std::string, ppc_reg64*>      m_reghash;
     std::map<int, ppc_reg64*>              m_ireghash;
-#define PPCREG(reg_id)          (m_ireghash[reg_id]->value)
-#define PPCREGN(reg_name)       (m_reghash[reg_name]->value)
+#define PPCREG(reg_id)                 (m_ireghash[reg_id]->value)
+#define PPCREGN(reg_name)              (m_reghash[reg_name]->value)
+#define PPCREGMASK(reg_id, mask)       EBMASK(PPCREG(reg_id),    mask)
+#define PPCREGNMASK(reg_name, mask)    EBMASK(PPCREGN(reg_name), mask)
 
     // Disassembler module
     DIS_PPC                                m_dis;
@@ -254,6 +262,7 @@ void CPU_PPC::run(){
         /* Get Instr call frame at next NIP */                                                                          \
         call_this = get_instr();                                                                                        \
         LOG("DEBUG4") << "INSTR : " << call_this.get_instr_str() << std::endl;                                          \
+        check_for_dbg_events(DBG_EVENT_IAC);                                                                            \
         /* If there is a func pointer already registered, call it */                                                    \
         if(call_this.fptr){ (reinterpret_cast<CPU_PPC::ppc_opc_fun_ptr>(call_this.fptr))(this, &call_this); }           \
                                                                                                                         \
@@ -295,6 +304,7 @@ void CPU_PPC::step(size_t instr_cnt){
         call_this = get_instr();                                                                                        \
         std::cout << std::hex << "pc : 0x" << (pc-4) << " <" << call_this.get_instr_str() << ">" << std::endl;          \
         LOG("DEBUG4") << "INSTR : " << call_this.get_instr_str() << std::endl;                                          \
+        check_for_dbg_events(DBG_EVENT_IAC);                                                                            \
         /* If there is a func pointer already registered, call it */                                                    \
         if(call_this.fptr){ (reinterpret_cast<CPU_PPC::ppc_opc_fun_ptr>(call_this.fptr))(this, &call_this); }           \
                                                                                                                         \
@@ -1002,6 +1012,82 @@ instr_call CPU_PPC::get_instr(){
 
     LOG("DEBUG4") << MSG_FUNC_END;
     return call_this;
+}
+
+/*
+ * @func  : check_for_dbg_events
+ * @args  : flags ( bit mask of various events ), ea ( used only for DAC events )
+ *
+ * @brief : flags signal for various debug events
+ */
+void CPU_PPC::check_for_dbg_events(int flags, uint64_t ea){
+    bool event_occurred = 0;
+    uint64_t event_type = 0;
+    uint64_t event_addr = 0;
+
+    // Check for IAC event
+    if(flags & DBG_EVENT_IAC){
+        event_occurred= 0;
+        // DBCR1[IAC12M] is not implemented right now
+        if(PPCREGMASK(REG_DBCR0, DBCR0_IAC1)
+           &&
+           (PPCREG(REG_IAC1) == pc)
+           &&
+           (
+            ((PPCREGMASK(REG_DBCR1, DBCR1_IAC1US) == 2) && !PPCREGMASK(REG_MSR, MSR_PR))
+            ||
+            ((PPCREGMASK(REG_DBCR1, DBCR1_IAC1US) == 3) && PPCREGMASK(REG_MSR, MSR_PR))
+            ||
+            ((PPCREGMASK(REG_DBCR1, DBCR1_IAC1US) != 2) && (PPCREGMASK(REG_DBCR1, DBCR1_IAC1US) != 3))
+           )
+           &&
+           (
+            ((PPCREGMASK(REG_DBCR1, DBCR1_IAC1ER) == 2) && !PPCREGMASK(REG_MSR, MSR_IS))
+            ||
+            ((PPCREGMASK(REG_DBCR1, DBCR1_IAC1ER) == 3) && PPCREGMASK(REG_MSR, MSR_IS))
+            ||
+            ((PPCREGMASK(REG_DBCR1, DBCR1_IAC1ER) != 2) && (PPCREGMASK(REG_DBCR1, DBCR1_IAC1ER) != 3))
+           )
+          ){
+            event_occurred = 1;
+            event_type     = PPC_EXCEPT_DBG_IAC1;
+            event_addr     = pc;
+        }
+        // DBSR[IAC12M] isn't implemented right now
+        if(PPCREGMASK(REG_DBCR0, DBCR0_IAC2)
+           &&
+           (PPCREG(REG_IAC2) == pc)
+           &&
+           (
+            ((PPCREGMASK(REG_DBCR1, DBCR1_IAC2US) == 2) && !PPCREGMASK(REG_MSR, MSR_PR))
+            ||
+            ((PPCREGMASK(REG_DBCR1, DBCR1_IAC2US) == 3) && PPCREGMASK(REG_MSR, MSR_PR))
+            ||
+            ((PPCREGMASK(REG_DBCR1, DBCR1_IAC2US) != 2) && (PPCREGMASK(REG_DBCR1, DBCR1_IAC2US) != 3))
+           )
+           &&
+           (
+            ((PPCREGMASK(REG_DBCR1, DBCR1_IAC2ER) == 2) && !PPCREGMASK(REG_MSR, MSR_IS))
+            ||
+            ((PPCREGMASK(REG_DBCR1, DBCR1_IAC2ER) == 3) && PPCREGMASK(REG_MSR, MSR_IS))
+            ||
+            ((PPCREGMASK(REG_DBCR1, DBCR1_IAC2ER) != 2) && (PPCREGMASK(REG_DBCR1, DBCR1_IAC2ER) != 3))
+           )
+          ){
+            event_occurred = 1;
+            event_type     = PPC_EXCEPT_DBG_IAC2;
+            event_addr     = pc;
+        }
+    }
+
+    // final steps
+    ppc_exception(PPC_EXCEPTION_DBG, event_type, event_addr);
+    if(PPCREGMASK(REG_DBCR0, DBCR0_EDM)){
+        // FIXME: Fix this ( if applicable )
+        //PPCREG(REG_EDBSR0) |= EDBSR0_XXX;
+        // Do some additional steps
+        LTHROW(sim_exception_ppc_halt("Cpu halted due to debug exception."), DEBUG4);
+    }
 }
 
 /*

@@ -120,4 +120,29 @@ class sim_exception_ppc : public std::exception {
     }
 };
 
+// A special exception which halt the processor.
+// This is separated out to distinguish it from normal ppc exception ( sim_exception_ppc )
+// which might be required to be caught
+class sim_exception_ppc_halt : public std::exception {
+    std::string m_message;     // Custom user message
+
+    public:
+    // Constructor
+    sim_exception_ppc_halt(std::string message = "Machine halted."){
+        m_message = message;
+    }
+    // Destructor
+    ~sim_exception_ppc_halt() throw(){
+    }
+
+    const char *desc() const{
+        glb_msg0 = m_message;
+        return glb_msg0.c_str();
+    } 
+    // Virtual what for this class
+    const char *what() const throw(){
+        return "ppc halt exception.";
+    }
+};
+
 #endif
