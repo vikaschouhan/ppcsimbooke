@@ -263,6 +263,8 @@ void CPU_PPC::run(){
         call_this = get_instr();                                                                                        \
         LOG("DEBUG4") << "INSTR : " << call_this.get_instr_str() << std::endl;                                          \
         check_for_dbg_events(DBG_EVENT_IAC);                                                                            \
+                                                                                                                        \
+        pc += 4; /* Increment pc just before executing instr */                                                         \
         /* If there is a func pointer already registered, call it */                                                    \
         if(call_this.fptr){ (reinterpret_cast<CPU_PPC::ppc_opc_fun_ptr>(call_this.fptr))(this, &call_this); }           \
                                                                                                                         \
@@ -302,9 +304,11 @@ void CPU_PPC::step(size_t instr_cnt){
 #define I                                                                                                               \
         /* Get Instr call frame at next NIP */                                                                          \
         call_this = get_instr();                                                                                        \
-        std::cout << std::hex << "pc : 0x" << (pc-4) << " <" << call_this.get_instr_str() << ">" << std::endl;          \
+        std::cout << std::hex << "pc : 0x" << pc << " [ " << call_this.get_instr_str() << " ]" << std::endl;            \
         LOG("DEBUG4") << "INSTR : " << call_this.get_instr_str() << std::endl;                                          \
         check_for_dbg_events(DBG_EVENT_IAC);                                                                            \
+                                                                                                                        \
+        pc += 4; /* Increment pc just before executing the instr */                                                     \
         /* If there is a func pointer already registered, call it */                                                    \
         if(call_this.fptr){ (reinterpret_cast<CPU_PPC::ppc_opc_fun_ptr>(call_this.fptr))(this, &call_this); }           \
                                                                                                                         \
@@ -1008,7 +1012,9 @@ instr_call CPU_PPC::get_instr(){
     LASSERT_THROW(m_mem_ptr != NULL, sim_exception_fatal("no memory module registered."), DEBUG4);
     // Disassemble the instr at curr pc
     call_this = m_dis.disasm(m_mem_ptr->read32(res.first, (res.second & 0x1)), pc, (res.second & 0x1));
-    pc += 4;             // Increment PC if everything went well
+
+    // Next instr ptr
+    nip = (pc + 4);
 
     LOG("DEBUG4") << MSG_FUNC_END;
     return call_this;
@@ -1081,12 +1087,14 @@ void CPU_PPC::check_for_dbg_events(int flags, uint64_t ea){
     }
 
     // final steps
-    ppc_exception(PPC_EXCEPTION_DBG, event_type, event_addr);
-    if(PPCREGMASK(REG_DBCR0, DBCR0_EDM)){
-        // FIXME: Fix this ( if applicable )
-        //PPCREG(REG_EDBSR0) |= EDBSR0_XXX;
-        // Do some additional steps
-        LTHROW(sim_exception_ppc_halt("Cpu halted due to debug exception."), DEBUG4);
+    if(event_occurred){
+        ppc_exception(PPC_EXCEPTION_DBG, event_type, event_addr);
+        if(PPCREGMASK(REG_DBCR0, DBCR0_EDM)){
+            // FIXME: Fix this ( if applicable )
+            //PPCREG(REG_EDBSR0) |= EDBSR0_XXX;
+            // Do some additional steps
+            LTHROW(sim_exception_ppc_halt("Cpu halted due to debug exception."), DEBUG4);
+        }
     }
 }
 

@@ -29,6 +29,7 @@ class cpu {
 
     protected:
     uint64_t          pc;                            /*  The program counter. (For 32-bit modes, not all bits are used.)  */
+    uint64_t          nip;                           /*  Next Instruction pointer */ 
     uint8_t           bits;                          /*  32 -> 32 bits, 64 -> 64 bits */
     size_t            ninstrs;                       /*  Nr of instructions executed, etc.:  */
     bool              emul_full;                     /*  1 if full emulation, 0 if partial */
