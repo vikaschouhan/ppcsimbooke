@@ -5,22 +5,22 @@
 #include <iostream>
 
 int main(){
-    std::cout << "Testing sim_exception with error code only" << std::endl;
+    std::cout << "Testing sim_except with error code only" << std::endl;
     try{
-        throw sim_exception(SIM_EXCEPT_EINVAL);
-    }catch (sim_exception &id){
+        throw sim_except(SIM_EXCEPT_EINVAL);
+    }catch (sim_except &id){
         std::cout << id.what() << std::endl;
     }
-    std::cout << "Testing sim_exception with error code as well as with custom message" << std::endl;
+    std::cout << "Testing sim_except with error code as well as with custom message" << std::endl;
     try{
-        throw sim_exception(SIM_EXCEPT_EINVAL, "I fucked up !!");
-    }catch (sim_exception &id){
+        throw sim_except(SIM_EXCEPT_EINVAL, "I fucked up !!");
+    }catch (sim_except &id){
         std::cout << id.what() << std::endl;
     }
-    std::cout << "Testing sim_exception with unknown error code " << std::endl;
+    std::cout << "Testing sim_except with unknown error code " << std::endl;
     try{
-        throw sim_exception(-1, "I fucked up !!");
-    }catch (sim_exception &id){
+        throw sim_except(-1, "I fucked up !!");
+    }catch (sim_except &id){
         std::cout << id.what() << std::endl;
     }
     return 0;

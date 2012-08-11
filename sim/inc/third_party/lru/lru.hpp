@@ -35,7 +35,7 @@ template < typename K, typename V, typename I = int > class lru_cache
     // the maximum number of records to be stored. 
     lru_cache(size_t c) : _capacity(c) 
     { 
-        assert_and_throw(_capacity != 0, sim_exception_fatal("lru capcity shouldn't be zero")); 
+        assert_and_throw(_capacity != 0, sim_except_fatal("lru capcity shouldn't be zero")); 
     }
 
     // @func  : operator[] 
@@ -49,7 +49,7 @@ template < typename K, typename V, typename I = int > class lru_cache
         if (it == _container.left.end()) { 
             // We don't have it: 
             // Throw an exception. It's the responsibility of user to manually call insert now
-            throw sim_exception(SIM_EXCEPT_EINVAL, "Illegal key");
+            throw sim_except(SIM_EXCEPT_EINVAL, "Illegal key");
  
         } else { 
  
@@ -72,7 +72,7 @@ template < typename K, typename V, typename I = int > class lru_cache
         if (it == _container.left.end()) { 
             // We don't have it: 
             // Throw an exception. It's the responsibility of user to manually call insert now
-            throw sim_exception(SIM_EXCEPT_EINVAL, "Illegal key");
+            throw sim_except(SIM_EXCEPT_EINVAL, "Illegal key");
  
         }
         // Return the retrieved value 
@@ -83,7 +83,7 @@ template < typename K, typename V, typename I = int > class lru_cache
     // @brief : insert new key-value pair into the cache
     void insert(const key_type& k, const value_type& v, const info_type i = info_type()) { 
     
-        assert_and_throw(_container.size() <= _capacity, sim_exception_fatal("lru cache size shouldn't grow beyond it's capacity"));
+        assert_and_throw(_container.size() <= _capacity, sim_except_fatal("lru cache size shouldn't grow beyond it's capacity"));
 
         // If necessary, make space 
         if (_container.size() == _capacity) { 

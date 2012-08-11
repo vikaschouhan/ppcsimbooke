@@ -33,18 +33,18 @@ static std::string glb_msg0;
 
 // generic exception class for our sim module ( only non fatal exception )
 // TODO: This is barebones right now.
-class sim_exception : public std::exception {
+class sim_except : public std::exception {
     uint8_t     m_errcode;  // 8 bit error code
     std::string m_message;  // Custom user message
 
     public:
     // Constructor
-    sim_exception(uint64_t errcode, std::string message = "runtime exception"){
+    sim_except(uint64_t errcode, std::string message = "runtime exception"){
         m_errcode    = errcode;
         m_message    = message;
     }
     // Destructor
-    ~sim_exception() throw(){
+    ~sim_except() throw(){
     }
 
     const uint64_t err_code(){
@@ -61,16 +61,16 @@ class sim_exception : public std::exception {
 };
 
 // A fatal exception.
-class sim_exception_fatal : public std::exception {
+class sim_except_fatal : public std::exception {
     std::string m_message; // Custom user message
 
     public:
     // Constructor
-    sim_exception_fatal(std::string message = "Fatal error"){
+    sim_except_fatal(std::string message = "Fatal error"){
         m_message = message;
     }
     // Destructor
-    ~sim_exception_fatal() throw(){
+    ~sim_except_fatal() throw(){
     }
     const char* desc() const{
         glb_msg0 = m_message;
@@ -88,26 +88,26 @@ class sim_exception_fatal : public std::exception {
 // m_errcode[1] -> secondary exception number 
 //                 It's a bitfield mask signifying the various causes, why 
 //                 m_errcode[0] was thrown.
-class sim_exception_ppc : public std::exception {
+class sim_except_ppc : public std::exception {
     std::string m_message;     // Custom user message
     uint64_t    m_errcode[2];  // 2 diff codes can be specified for each type
     uint64_t    m_addr;        // Possible offending address
 
     public:
     // Constructor
-    sim_exception_ppc(uint64_t c0, uint64_t c1, std::string message = "PPC exception", uint64_t a=0){
+    sim_except_ppc(uint64_t c0, uint64_t c1, std::string message = "PPC exception", uint64_t a=0){
         m_errcode[0] = c0;
         m_errcode[1] = c1;
         m_message    = message;
         m_addr       = a;
     }
-    sim_exception_ppc(uint64_t c0, uint64_t c1, uint64_t a=0){
+    sim_except_ppc(uint64_t c0, uint64_t c1, uint64_t a=0){
         m_errcode[0] = c0;
         m_errcode[1] = c1;
         m_addr       = a;
     }
     // Destructor
-    ~sim_exception_ppc() throw(){
+    ~sim_except_ppc() throw(){
     }
 
     // Retrive Err codes
@@ -131,18 +131,18 @@ class sim_exception_ppc : public std::exception {
 };
 
 // A special exception which halt the processor.
-// This is separated out to distinguish it from normal ppc exception ( sim_exception_ppc )
+// This is separated out to distinguish it from normal ppc exception ( sim_except_ppc )
 // which might be required to be caught
-class sim_exception_ppc_halt : public std::exception {
+class sim_except_ppc_halt : public std::exception {
     std::string m_message;     // Custom user message
 
     public:
     // Constructor
-    sim_exception_ppc_halt(std::string message = "Machine halted."){
+    sim_except_ppc_halt(std::string message = "Machine halted."){
         m_message = message;
     }
     // Destructor
-    ~sim_exception_ppc_halt() throw(){
+    ~sim_except_ppc_halt() throw(){
     }
 
     const char *desc() const{

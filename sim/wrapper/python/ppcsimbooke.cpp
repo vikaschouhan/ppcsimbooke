@@ -91,16 +91,16 @@ template <uint64_t x> struct new_const{
 template<uint64_t x> const uint64_t new_const<x>::val = x;
 
 // Exception translation mechanism
-void translate_sim_ex(const sim_exception& e){
+void translate_sim_ex(const sim_except& e){
     PyErr_SetString(PyExc_RuntimeError, e.desc());
 }
-void translate_sim_ex_fatal(const sim_exception_fatal& e){
+void translate_sim_ex_fatal(const sim_except_fatal& e){
     PyErr_SetString(PyExc_RuntimeError, e.desc());
 }
-void translate_sim_ex_ppc(const sim_exception_ppc& e){
+void translate_sim_ex_ppc(const sim_except_ppc& e){
     PyErr_SetString(PyExc_RuntimeError, e.desc());
 }
-void translate_sim_ex_ppc_halt(const sim_exception_ppc_halt& e){
+void translate_sim_ex_ppc_halt(const sim_except_ppc_halt& e){
    PyErr_SetString(PyExc_RuntimeError, e.desc());
 }
 
@@ -229,10 +229,10 @@ BOOST_PYTHON_MODULE(ppcsim)
     py_signal_callback::callback = py_sig_callback;
 
     // Register exception convertors
-    register_exception_translator<sim_exception>(&translate_sim_ex);
-    register_exception_translator<sim_exception_fatal>(&translate_sim_ex_fatal);
-    register_exception_translator<sim_exception_ppc>(&translate_sim_ex_ppc);
-    register_exception_translator<sim_exception_ppc_halt>(&translate_sim_ex_ppc_halt);
+    register_exception_translator<sim_except>(&translate_sim_ex);
+    register_exception_translator<sim_except_fatal>(&translate_sim_ex_fatal);
+    register_exception_translator<sim_except_ppc>(&translate_sim_ex_ppc);
+    register_exception_translator<sim_except_ppc_halt>(&translate_sim_ex_ppc_halt);
 
     // Types namespace ( defines all class types being used in our module, one way of other )
     {

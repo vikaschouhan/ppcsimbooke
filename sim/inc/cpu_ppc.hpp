@@ -91,7 +91,7 @@ class CPU_PPC : public cpu {
     void write64(uint64_t addr, uint64_t value); 
     
     // Get Register by name
-    uint64_t get_reg(std::string name) throw(sim_exception);
+    uint64_t get_reg(std::string name) throw(sim_except);
     // Dump CPU state
     void dump_state(int columns=0, std::ostream &ostr=std::cout, int dump_all_sprs=0);
     // print L2 tlbs
@@ -269,7 +269,7 @@ void CPU_PPC::run(){
         if(call_this.fptr){ (reinterpret_cast<CPU_PPC::ppc_opc_fun_ptr>(call_this.fptr))(this, &call_this); }           \
                                                                                                                         \
         LASSERT_THROW(ppc_func_hash.find(call_this.opcode) != ppc_func_hash.end(),                                      \
-                sim_exception(SIM_EXCEPT_EINVAL, "Invalid/Unimplemented opcode " + call_this.opcode), DEBUG4);          \
+                sim_except(SIM_EXCEPT_EINVAL, "Invalid/Unimplemented opcode " + call_this.opcode), DEBUG4);          \
         call_this.fptr = reinterpret_cast<void*>(ppc_func_hash[call_this.opcode]);                                      \
         /* call handler function for this call frame */                                                                 \
         ppc_func_hash[call_this.opcode](this, &call_this);                                                              \
@@ -284,7 +284,7 @@ void CPU_PPC::run(){
             I; I; I; I; I; I; I; I;         I; I; I; I; I; I; I; I;
             I; I; I; I; I; I; I; I;         I; I; I; I; I; I; I; I;
         }
-        catch(sim_exception_ppc& e){
+        catch(sim_except_ppc& e){
             ppc_exception(e.err_code0(), e.err_code1(), e.addr());
         }
 
@@ -319,7 +319,7 @@ void CPU_PPC::step(size_t instr_cnt){
         if(call_this.fptr){ (reinterpret_cast<CPU_PPC::ppc_opc_fun_ptr>(call_this.fptr))(this, &call_this); }           \
                                                                                                                         \
         LASSERT_THROW(ppc_func_hash.find(call_this.opcode) != ppc_func_hash.end(),                                      \
-                sim_exception(SIM_EXCEPT_EINVAL, "Invalid/Unimplemented opcode " + call_this.opcode), DEBUG4);          \
+                sim_except(SIM_EXCEPT_EINVAL, "Invalid/Unimplemented opcode " + call_this.opcode), DEBUG4);          \
         call_this.fptr = reinterpret_cast<void*>(ppc_func_hash[call_this.opcode]);                                      \
         /* call handler function for this call frame */                                                                 \
         ppc_func_hash[call_this.opcode](this, &call_this);                                                              \
@@ -329,8 +329,8 @@ void CPU_PPC::step(size_t instr_cnt){
         try{
             I;
         }
-        catch(sim_exception_ppc& e){
-            sim_exception_ppc(e.err_code0(), e.err_code1(), e.addr());
+        catch(sim_except_ppc& e){
+            sim_except_ppc(e.err_code0(), e.err_code1(), e.addr());
         }
     }
 #undef I
@@ -349,7 +349,7 @@ void CPU_PPC::run_instr(std::string instr){
     if(call_this.fptr){ (reinterpret_cast<CPU_PPC::ppc_opc_fun_ptr>(call_this.fptr))(this, &call_this); }
     
     LASSERT_THROW(ppc_func_hash.find(call_this.opcode) != ppc_func_hash.end(),
-            sim_exception(SIM_EXCEPT_EINVAL, "Invalid/Unimplemented opcode " + call_this.opcode), DEBUG4);
+            sim_except(SIM_EXCEPT_EINVAL, "Invalid/Unimplemented opcode " + call_this.opcode), DEBUG4);
     call_this.fptr = reinterpret_cast<void*>(ppc_func_hash[call_this.opcode]);
     ppc_func_hash[call_this.opcode](this, &call_this);
     LOG("DEBUG4") << MSG_FUNC_END;
@@ -364,7 +364,7 @@ void CPU_PPC::run_instr(uint32_t opcd){
     if(call_this.fptr){ (reinterpret_cast<CPU_PPC::ppc_opc_fun_ptr>(call_this.fptr))(this, &call_this); }
 
     LASSERT_THROW(ppc_func_hash.find(call_this.opcode) != ppc_func_hash.end(),
-            sim_exception(SIM_EXCEPT_EINVAL, "Invalid/Unimplemented opcode " + call_this.opcode), DEBUG4);
+            sim_except(SIM_EXCEPT_EINVAL, "Invalid/Unimplemented opcode " + call_this.opcode), DEBUG4);
     call_this.fptr = reinterpret_cast<void*>(ppc_func_hash[call_this.opcode]);
     ppc_func_hash[call_this.opcode](this, &call_this);
     LOG("DEBUG4") << MSG_FUNC_END;
@@ -389,9 +389,9 @@ std::pair<uint64_t, uint8_t> CPU_PPC::xlate(uint64_t addr, bool wr){
     // We encountered TLB miss. Throw exceptions
     std::cout << "DTLB miss" << std::endl;
     if(wr){
-        LTHROW(sim_exception_ppc(PPC_EXCEPTION_DTLB, PPC_EXCEPT_DTLB_MISS_ST, "DTLB miss on store."), DEBUG4);
+        LTHROW(sim_except_ppc(PPC_EXCEPTION_DTLB, PPC_EXCEPT_DTLB_MISS_ST, "DTLB miss on store."), DEBUG4);
     }else{
-        LTHROW(sim_exception_ppc(PPC_EXCEPTION_DTLB, PPC_EXCEPT_DTLB_MISS_LD, "DTLB miss on load."), DEBUG4);
+        LTHROW(sim_except_ppc(PPC_EXCEPTION_DTLB, PPC_EXCEPT_DTLB_MISS_LD, "DTLB miss on load."), DEBUG4);
     }
 
     exit_loop_0:
@@ -405,7 +405,7 @@ uint8_t CPU_PPC::read8(uint64_t addr){
     LOG("DEBUG4") << MSG_FUNC_START;
     std::pair<uint64_t, uint8_t> res = xlate(addr, 0);
  
-    LASSERT_THROW(m_mem_ptr != NULL, sim_exception_fatal("no memory module registered."), DEBUG4);
+    LASSERT_THROW(m_mem_ptr != NULL, sim_except_fatal("no memory module registered."), DEBUG4);
     LOG("DEBUG4") << MSG_FUNC_END;
     return m_mem_ptr->read8(res.first, (res.second & 0x1));
 }
@@ -414,7 +414,7 @@ void CPU_PPC::write8(uint64_t addr, uint8_t value){
     LOG("DEBUG4") << MSG_FUNC_START;
     std::pair<uint64_t, uint8_t> res = xlate(addr, 1);
 
-    LASSERT_THROW(m_mem_ptr != NULL, sim_exception_fatal("no memory module registered."), DEBUG4);
+    LASSERT_THROW(m_mem_ptr != NULL, sim_except_fatal("no memory module registered."), DEBUG4);
     m_mem_ptr->write8(res.first, value, (res.second & 0x1));
     LOG("DEBUG4") << MSG_FUNC_END;
 }
@@ -423,7 +423,7 @@ uint16_t CPU_PPC::read16(uint64_t addr){
     LOG("DEBUG4") << MSG_FUNC_START;
     std::pair<uint64_t, uint8_t> res = xlate(addr, 0);
 
-    LASSERT_THROW(m_mem_ptr != NULL, sim_exception_fatal("no memory module registered."), DEBUG4);
+    LASSERT_THROW(m_mem_ptr != NULL, sim_except_fatal("no memory module registered."), DEBUG4);
     LOG("DEBUG4") << MSG_FUNC_END;
     return m_mem_ptr->read16(res.first, (res.second & 0x1));
 }
@@ -433,7 +433,7 @@ void CPU_PPC::write16(uint64_t addr, uint16_t value){
     LOG("DEBUG4") << MSG_FUNC_START;
     std::pair<uint64_t, uint8_t> res = xlate(addr, 1);
 
-    LASSERT_THROW(m_mem_ptr != NULL, sim_exception_fatal("no memory module registered."), DEBUG4);
+    LASSERT_THROW(m_mem_ptr != NULL, sim_except_fatal("no memory module registered."), DEBUG4);
     m_mem_ptr->write16(res.first, value, (res.second & 0x1));
     LOG("DEBUG4") << MSG_FUNC_END;
 }
@@ -442,7 +442,7 @@ uint32_t CPU_PPC::read32(uint64_t addr){
     LOG("DEBUG4") << MSG_FUNC_START;
     std::pair<uint64_t, uint8_t> res = xlate(addr, 0);
 
-    LASSERT_THROW(m_mem_ptr != NULL, sim_exception_fatal("no memory module registered."), DEBUG4);
+    LASSERT_THROW(m_mem_ptr != NULL, sim_except_fatal("no memory module registered."), DEBUG4);
     LOG("DEBUG4") << MSG_FUNC_END;
     return m_mem_ptr->read32(res.first, (res.second & 0x1));
 }
@@ -451,7 +451,7 @@ void CPU_PPC::write32(uint64_t addr, uint32_t value){
     LOG("DEBUG4") << MSG_FUNC_START;
     std::pair<uint64_t, uint8_t> res = xlate(addr, 1);
 
-    LASSERT_THROW(m_mem_ptr != NULL, sim_exception_fatal("no memory module registered."), DEBUG4);
+    LASSERT_THROW(m_mem_ptr != NULL, sim_except_fatal("no memory module registered."), DEBUG4);
     m_mem_ptr->write32(res.first, value, (res.second & 0x1));
     LOG("DEBUG4") << MSG_FUNC_END;
 }
@@ -460,7 +460,7 @@ uint64_t CPU_PPC::read64(uint64_t addr){
     LOG("DEBUG4") << MSG_FUNC_START;
     std::pair<uint64_t, uint8_t> res = xlate(addr, 0);
 
-    LASSERT_THROW(m_mem_ptr != NULL, sim_exception_fatal("no memory module registered."), DEBUG4);
+    LASSERT_THROW(m_mem_ptr != NULL, sim_except_fatal("no memory module registered."), DEBUG4);
     LOG("DEBUG4") << MSG_FUNC_END;
     return m_mem_ptr->read64(res.first, (res.second & 0x1));
 }
@@ -469,7 +469,7 @@ void CPU_PPC::write64(uint64_t addr, uint64_t value){
     LOG("DEBUG4") << MSG_FUNC_START;
     std::pair<uint64_t, uint8_t> res = xlate(addr, 1);
 
-    LASSERT_THROW(m_mem_ptr != NULL, sim_exception_fatal("no memory module registered."), DEBUG4);
+    LASSERT_THROW(m_mem_ptr != NULL, sim_except_fatal("no memory module registered."), DEBUG4);
     m_mem_ptr->write64(res.first, value, (res.second & 0x1));
     LOG("DEBUG4") << MSG_FUNC_END;
 }
@@ -1015,12 +1015,12 @@ instr_call CPU_PPC::get_instr(){
 
     // We encountered ITLB miss. Throw exceptions
     std::cout << "ITLB miss" << std::endl;
-    LTHROW(sim_exception_ppc(PPC_EXCEPTION_ITLB, PPC_EXCEPT_ITLB_MISS, "ITLB miss."), DEBUG4);
+    LTHROW(sim_except_ppc(PPC_EXCEPTION_ITLB, PPC_EXCEPT_ITLB_MISS, "ITLB miss."), DEBUG4);
 
     exit_loop_0:
     LOG("DEBUG4") << std::hex << std::showbase << "instr Xlation : " << pc << " -> " << res.first << std::endl;
 
-    LASSERT_THROW(m_mem_ptr != NULL, sim_exception_fatal("no memory module registered."), DEBUG4);
+    LASSERT_THROW(m_mem_ptr != NULL, sim_except_fatal("no memory module registered."), DEBUG4);
     // Disassemble the instr at curr pc
     call_this = m_dis.disasm(m_mem_ptr->read32(res.first, (res.second & 0x1)), pc, (res.second & 0x1));
 
@@ -1104,7 +1104,7 @@ void CPU_PPC::check_for_dbg_events(int flags, uint64_t ea){
             // FIXME: Fix this ( if applicable )
             //PPCREG(REG_EDBSR0) |= EDBSR0_XXX;
             // Do some additional steps
-            LTHROW(sim_exception_ppc_halt("Cpu halted due to debug exception."), DEBUG4);
+            LTHROW(sim_except_ppc_halt("Cpu halted due to debug exception."), DEBUG4);
         }
     }
 }
@@ -1405,9 +1405,9 @@ unsigned CPU_PPC::get_xer_ca(){
 }
 
 // Get register value by name
-uint64_t CPU_PPC::get_reg(std::string reg_name) throw(sim_exception) {
+uint64_t CPU_PPC::get_reg(std::string reg_name) throw(sim_except) {
     LOG("DEBUG4") << MSG_FUNC_START;
-    if(m_reghash.find(reg_name) == m_reghash.end()) throw sim_exception(SIM_EXCEPT_EINVAL, "Illegal register name");
+    if(m_reghash.find(reg_name) == m_reghash.end()) throw sim_except(SIM_EXCEPT_EINVAL, "Illegal register name");
     LOG("DEBUG4") << MSG_FUNC_END;
     return PPCREGN(reg_name);
 }

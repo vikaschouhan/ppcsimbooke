@@ -196,7 +196,7 @@ TLB_T typename TLB_PPC_T::t_tlb_entry& TLB_PPC_T::get_entry(size_t tlbno, uint64
     unsigned wayno = 0;
 
     /* Wrong tlbsel */
-    LASSERT_THROW(tlbno == 0 || tlbno == 1, sim_exception(SIM_EXCEPT_EINVAL, "invalid tlbsel ( MAS0 )"), DEBUG4);
+    LASSERT_THROW(tlbno == 0 || tlbno == 1, sim_except(SIM_EXCEPT_EINVAL, "invalid tlbsel ( MAS0 )"), DEBUG4);
    
     // For fully associative arrays,  esel selects the set_no and epn is not used
     // but for n way set-associative, esel selects way_no and EPN[45-51] selects the desired set_no
@@ -206,12 +206,12 @@ TLB_T typename TLB_PPC_T::t_tlb_entry& TLB_PPC_T::get_entry(size_t tlbno, uint64
     wayno = esel;
 
     if(tlbno == 0){
-        LASSERT_THROW(setno < tlb4K.n_sets, sim_exception(SIM_EXCEPT_EINVAL, "Wrong set no ( MAS2 )"), DEBUG4);
-        LASSERT_THROW(wayno < tlb4K.tlb_set[setno].n_ways, sim_exception(SIM_EXCEPT_EINVAL, "Wrong way no ( MAS0 )"), DEBUG4);
+        LASSERT_THROW(setno < tlb4K.n_sets, sim_except(SIM_EXCEPT_EINVAL, "Wrong set no ( MAS2 )"), DEBUG4);
+        LASSERT_THROW(wayno < tlb4K.tlb_set[setno].n_ways, sim_except(SIM_EXCEPT_EINVAL, "Wrong way no ( MAS0 )"), DEBUG4);
         return tlb4K.tlb_set[setno].tlb_way[wayno];
     }else{
-        LASSERT_THROW(setno < tlbCam.n_sets, sim_exception(SIM_EXCEPT_EINVAL, "Wrong set no ( MAS2 )"), DEBUG4);
-        LASSERT_THROW(wayno < tlbCam.tlb_set[setno].n_ways, sim_exception(SIM_EXCEPT_EINVAL, "Wrong way no ( MAS0 )"), DEBUG4);
+        LASSERT_THROW(setno < tlbCam.n_sets, sim_except(SIM_EXCEPT_EINVAL, "Wrong set no ( MAS2 )"), DEBUG4);
+        LASSERT_THROW(wayno < tlbCam.tlb_set[setno].n_ways, sim_except(SIM_EXCEPT_EINVAL, "Wrong way no ( MAS0 )"), DEBUG4);
         return tlbCam.tlb_set[setno].tlb_way[wayno];
     }
 
@@ -223,15 +223,15 @@ TLB_T typename TLB_PPC_T::t_tlb_entry& TLB_PPC_T::get_entry2(size_t tlbno, size_
     LOG("DEBUG4") << MSG_FUNC_START;
 
     /* Wrong tlbsel */
-    LASSERT_THROW(tlbno == 0 || tlbno == 1, sim_exception(SIM_EXCEPT_EINVAL, "invalid tlbsel ( MAS0 )"), DEBUG4);
+    LASSERT_THROW(tlbno == 0 || tlbno == 1, sim_except(SIM_EXCEPT_EINVAL, "invalid tlbsel ( MAS0 )"), DEBUG4);
    
     if(tlbno == 0){
-        LASSERT_THROW(setno < tlb4K.n_sets, sim_exception(SIM_EXCEPT_EINVAL, "Wrong set no ( MAS2 )"), DEBUG4);
-        LASSERT_THROW(wayno < tlb4K.tlb_set[setno].n_ways, sim_exception(SIM_EXCEPT_EINVAL, "Wrong way no ( MAS0 )"), DEBUG4);
+        LASSERT_THROW(setno < tlb4K.n_sets, sim_except(SIM_EXCEPT_EINVAL, "Wrong set no ( MAS2 )"), DEBUG4);
+        LASSERT_THROW(wayno < tlb4K.tlb_set[setno].n_ways, sim_except(SIM_EXCEPT_EINVAL, "Wrong way no ( MAS0 )"), DEBUG4);
         return tlb4K.tlb_set[setno].tlb_way[wayno];
     }else{
-        LASSERT_THROW(setno < tlbCam.n_sets, sim_exception(SIM_EXCEPT_EINVAL, "Wrong set no ( MAS2 )"), DEBUG4);
-        LASSERT_THROW(wayno < tlbCam.tlb_set[setno].n_ways, sim_exception(SIM_EXCEPT_EINVAL, "Wrong way no ( MAS0 )"), DEBUG4);
+        LASSERT_THROW(setno < tlbCam.n_sets, sim_except(SIM_EXCEPT_EINVAL, "Wrong set no ( MAS2 )"), DEBUG4);
+        LASSERT_THROW(wayno < tlbCam.tlb_set[setno].n_ways, sim_except(SIM_EXCEPT_EINVAL, "Wrong way no ( MAS0 )"), DEBUG4);
         return tlbCam.tlb_set[setno].tlb_way[wayno];
     }
 
@@ -343,8 +343,8 @@ TLB_T void TLB_PPC_T::tlbre(uint32_t &mas0, uint32_t &mas1, uint32_t &mas2, uint
     unsigned tsize  = EBMASK(mas1,       MAS1_TSIZE);
 
     // check validity of page numbers
-    LASSERT_THROW(CHK_VALID_PN(epn, tsize), sim_exception(SIM_EXCEPT_EINVAL, "Illegal MAS2[EPN] or MAS1[TSIZE]."), DEBUG4);
-    LASSERT_THROW(CHK_VALID_PN(rpn, tsize), sim_exception(SIM_EXCEPT_EINVAL, "Illegal MAS3[RPN] or MAS1[TSIZE]."), DEBUG4); 
+    LASSERT_THROW(CHK_VALID_PN(epn, tsize), sim_except(SIM_EXCEPT_EINVAL, "Illegal MAS2[EPN] or MAS1[TSIZE]."), DEBUG4);
+    LASSERT_THROW(CHK_VALID_PN(rpn, tsize), sim_except(SIM_EXCEPT_EINVAL, "Illegal MAS3[RPN] or MAS1[TSIZE]."), DEBUG4); 
 
     t_tlb_entry &entry = get_entry(tlbsel, epn, esel);
 
@@ -386,8 +386,8 @@ TLB_T void TLB_PPC_T::tlbwe(uint32_t mas0, uint32_t mas1, uint32_t mas2, uint32_
     unsigned tsize  = EBMASK(mas1,    MAS1_TSIZE);
 
     // check validity of page numbers
-    LASSERT_THROW(CHK_VALID_PN(epn, tsize), sim_exception(SIM_EXCEPT_EINVAL, "Illegal MAS2[EPN] or MAS1[TSIZE]."), DEBUG4);
-    LASSERT_THROW(CHK_VALID_PN(rpn, tsize), sim_exception(SIM_EXCEPT_EINVAL, "Illegal MAS3[RPN] or MAS1[TSIZE]."), DEBUG4);
+    LASSERT_THROW(CHK_VALID_PN(epn, tsize), sim_except(SIM_EXCEPT_EINVAL, "Illegal MAS2[EPN] or MAS1[TSIZE]."), DEBUG4);
+    LASSERT_THROW(CHK_VALID_PN(rpn, tsize), sim_except(SIM_EXCEPT_EINVAL, "Illegal MAS3[RPN] or MAS1[TSIZE]."), DEBUG4);
 
     t_tlb_entry &entry = get_entry(tlbsel, epn, esel);
 
@@ -569,9 +569,9 @@ TLB_T std::pair<uint64_t, uint8_t> TLB_PPC_T::xlate(uint64_t ea, bool as, uint8_
     t_tlb_entry* entry = NULL;
 
     // Check validity of AS and PID
-    LASSERT_THROW((as & 0x1)   == as,  sim_exception(SIM_EXCEPT_EINVAL, "Illegal AS"), DEBUG4);
-    LASSERT_THROW((pid & 0xff) == pid, sim_exception(SIM_EXCEPT_EINVAL, "Illegal PID"), DEBUG4);
-    LASSERT_THROW((rwx & 0x7)  == rwx, sim_exception(SIM_EXCEPT_EINVAL, "Illegal permis rwx"), DEBUG4);
+    LASSERT_THROW((as & 0x1)   == as,  sim_except(SIM_EXCEPT_EINVAL, "Illegal AS"), DEBUG4);
+    LASSERT_THROW((pid & 0xff) == pid, sim_except(SIM_EXCEPT_EINVAL, "Illegal PID"), DEBUG4);
+    LASSERT_THROW((rwx & 0x7)  == rwx, sim_except(SIM_EXCEPT_EINVAL, "Illegal permis rwx"), DEBUG4);
 
     uint16_t perm = (rwx << (pr*3));
 
@@ -587,13 +587,13 @@ TLB_T std::pair<uint64_t, uint8_t> TLB_PPC_T::xlate(uint64_t ea, bool as, uint8_
                 }else{                                                                                                \
                     if(rwx & 0x1){                                                                                    \
                         std::cout << "Got ISI exception" <<std::endl;                                                 \
-                        throw sim_exception_ppc(PPC_EXCEPTION_ISI, PPC_EXCEPT_ISI_ACS, "ISI exception.");             \
+                        throw sim_except_ppc(PPC_EXCEPTION_ISI, PPC_EXCEPT_ISI_ACS, "ISI exception.");                \
                     }else if(rwx & 0x2){                                                                              \
                         std::cout << "Got DSI write exception" << std::endl;                                          \
-                        throw sim_exception_ppc(PPC_EXCEPTION_DSI, PPC_EXCEPT_DSI_ACS_W, "DSI write exception.");     \
+                        throw sim_except_ppc(PPC_EXCEPTION_DSI, PPC_EXCEPT_DSI_ACS_W, "DSI write exception.");        \
                     }else if(rwx & 0x4){                                                                              \
                         std::cout << "Got DSI read exception" << std::endl;                                           \
-                        throw sim_exception_ppc(PPC_EXCEPTION_DSI, PPC_EXCEPT_DSI_ACS_R, "DSI read exception.");      \
+                        throw sim_except_ppc(PPC_EXCEPTION_DSI, PPC_EXCEPT_DSI_ACS_R, "DSI read exception.");         \
                     }                                                                                                 \
                 }                                                                                                     \
             }                                                                                                         \

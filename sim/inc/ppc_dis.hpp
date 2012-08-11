@@ -285,11 +285,11 @@ instr_call DIS_PPC::disasm(uint32_t opcd, uint64_t pc, int endianness)
     try{
         call_this = m_dis_cache[insn];
         dinfo     = m_dis_cache.info_at(insn);
-    }catch(sim_exception& e){
+    }catch(sim_except& e){
         if(e.err_code() == SIM_EXCEPT_EINVAL)
             goto exit_0;
         else
-            LTHROW(sim_exception_fatal("Something is seriously funcked up !!"), DEBUG4);
+            LTHROW(sim_except_fatal("Something is seriously funcked up !!"), DEBUG4);
     }
 
     // If pc required and current pc == cached pc, return the value
@@ -427,7 +427,7 @@ instr_call DIS_PPC::disasm(uint32_t opcd, uint64_t pc, int endianness)
 
     }else{
         // Throw an Illegal Program exception.
-        LTHROW(sim_exception_ppc(PPC_EXCEPTION_PRG, PPC_EXCEPT_PRG_ILG, "Illegal Program Exception."), DEBUG4);
+        LTHROW(sim_except_ppc(PPC_EXCEPTION_PRG, PPC_EXCEPT_PRG_ILG, "Illegal Program Exception."), DEBUG4);
     }
 
     // Update cache
@@ -451,7 +451,7 @@ instr_call DIS_PPC::disasm(std::string instr, uint64_t pc)
     const struct powerpc_opcode*  opcode  = NULL;
 
     token = find_tok(&tmp_str, ' ');    /* One space is first required between instr and it's operands */
-    assert_and_throw(!if_std_delims_present(token), sim_exception(SIM_EXCEPT_EINVAL, "Wrong instr" + std::string(token)));
+    assert_and_throw(!if_std_delims_present(token), sim_except(SIM_EXCEPT_EINVAL, "Wrong instr" + std::string(token)));
 
     for(i=0; i<powerpc_num_opcodes; i++){
         if(!strcmp(token, powerpc_opcodes[i].name)){
@@ -464,7 +464,7 @@ instr_call DIS_PPC::disasm(std::string instr, uint64_t pc)
     prune_all_spaces(tmp_str);
 
     /* Throw normal sim exception ( since this function is not meant for the simulation itself ). */
-    assert_and_throw(opcode != NULL, sim_exception(SIM_EXCEPT_EINVAL, "Wrong opcode"));
+    assert_and_throw(opcode != NULL, sim_except(SIM_EXCEPT_EINVAL, "Wrong opcode"));
 
     // Get opcode's name
     call_this.opcode = std::string(opcode->name);
@@ -480,14 +480,14 @@ instr_call DIS_PPC::disasm(std::string instr, uint64_t pc)
         if(tmp_str == NULL || *tmp_str == '\0'){
             printf("Wrong instr format. Correct instr format is \n");
             print_insn_fmt(opcode->name);
-            throw(sim_exception(SIM_EXCEPT_EINVAL, "Wrong instruction format"));
+            throw(sim_except(SIM_EXCEPT_EINVAL, "Wrong instruction format"));
         }
 
         if (i != 0){
             if(*tmp_str != delim){
                 printf("Wrong instr format. Correct instr format is \n");
                 print_insn_fmt(opcode->name);
-                throw(sim_exception(SIM_EXCEPT_EINVAL, "Wrong instruction format"));
+                throw(sim_except(SIM_EXCEPT_EINVAL, "Wrong instruction format"));
             }
             tmp_str ++;
         }
@@ -495,7 +495,7 @@ instr_call DIS_PPC::disasm(std::string instr, uint64_t pc)
         if(tmp_str == NULL || *tmp_str == '\0'){
             printf("Wrong instr format. Correct instr format is \n");
             print_insn_fmt(opcode->name);
-            throw(sim_exception(SIM_EXCEPT_EINVAL, "Wrong instruction format"));
+            throw(sim_except(SIM_EXCEPT_EINVAL, "Wrong instruction format"));
         }
 
         delim = get_delim_char(opcode, i);
@@ -505,7 +505,7 @@ instr_call DIS_PPC::disasm(std::string instr, uint64_t pc)
         if(if_std_delims_present(token)){
             printf("Wrong instr format. Correct format is \n");
             print_insn_fmt(opcode->name);
-            throw(sim_exception(SIM_EXCEPT_EINVAL, "Wrong instruction format"));
+            throw(sim_except(SIM_EXCEPT_EINVAL, "Wrong instruction format"));
         }
         
         operand = (powerpc_operands + opcode->operands[i]);
