@@ -276,11 +276,17 @@ void CPU_PPC::run(){
         ninstrs++
 
     for(;;){
-        // Execute 32 instrs without looping again
-        // Loop unrolling above 32 instrs, makes compilation slow like crazy
-        // ( it already takes too much ), so I am sticking with a low count here.
-        I; I; I; I; I; I; I; I;         I; I; I; I; I; I; I; I;
-        I; I; I; I; I; I; I; I;         I; I; I; I; I; I; I; I;
+        // Observe each instruction for possible exceptions
+        try {
+            // Execute 32 instrs without looping again
+            // Loop unrolling above 32 instrs, makes compilation slow like crazy
+            // ( it already takes too much ), so I am sticking with a low count here.
+            I; I; I; I; I; I; I; I;         I; I; I; I; I; I; I; I;
+            I; I; I; I; I; I; I; I;         I; I; I; I; I; I; I; I;
+        }
+        catch(sim_exception_ppc& e){
+            ppc_exception(e.err_code0(), e.err_code1(), e.addr());
+        }
 
         // Periodically check for any python error signals ( only for boost python )
         if(py_signal_callback::callback != NULL)
@@ -320,7 +326,12 @@ void CPU_PPC::step(size_t instr_cnt){
         ninstrs++
 
     for(t=0; t<instr_cnt; t++){
-        I;
+        try{
+            I;
+        }
+        catch(sim_exception_ppc& e){
+            sim_exception_ppc(e.err_code0(), e.err_code1(), e.addr());
+        }
     }
 #undef I
     LOG("DEBUG4") << MSG_FUNC_END;

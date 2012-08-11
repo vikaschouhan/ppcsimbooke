@@ -426,11 +426,8 @@ instr_call DIS_PPC::disasm(uint32_t opcd, uint64_t pc, int endianness)
         }
 
     }else{
-        /* We could not find a match. Return with NULL opcode */
-        call_this.opcode    = "";
-        call_this.arg[0].v  = insn;
-        call_this.arg[0].p  = insn;
-        call_this.arg[0].t  = 0;
+        // Throw an Illegal Program exception.
+        LTHROW(sim_exception_ppc(PPC_EXCEPTION_PRG, PPC_EXCEPT_PRG_ILG, "Illegal Program Exception."), DEBUG4);
     }
 
     // Update cache
@@ -466,6 +463,7 @@ instr_call DIS_PPC::disasm(std::string instr, uint64_t pc)
     /* Remove all spaces */
     prune_all_spaces(tmp_str);
 
+    /* Throw normal sim exception ( since this function is not meant for the simulation itself ). */
     assert_and_throw(opcode != NULL, sim_exception(SIM_EXCEPT_EINVAL, "Wrong opcode"));
 
     // Get opcode's name

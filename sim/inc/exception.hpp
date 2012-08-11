@@ -91,13 +91,20 @@ class sim_exception_fatal : public std::exception {
 class sim_exception_ppc : public std::exception {
     std::string m_message;     // Custom user message
     uint64_t    m_errcode[2];  // 2 diff codes can be specified for each type
+    uint64_t    m_addr;        // Possible offending address
 
     public:
     // Constructor
-    sim_exception_ppc(uint64_t c0, uint64_t c1, std::string message = "PPC exception"){
+    sim_exception_ppc(uint64_t c0, uint64_t c1, std::string message = "PPC exception", uint64_t a=0){
         m_errcode[0] = c0;
         m_errcode[1] = c1;
-        m_message = message;
+        m_message    = message;
+        m_addr       = a;
+    }
+    sim_exception_ppc(uint64_t c0, uint64_t c1, uint64_t a=0){
+        m_errcode[0] = c0;
+        m_errcode[1] = c1;
+        m_addr       = a;
     }
     // Destructor
     ~sim_exception_ppc() throw(){
@@ -109,6 +116,9 @@ class sim_exception_ppc : public std::exception {
     }
     const uint64_t err_code1(){
         return m_errcode[1];
+    }
+    const uint64_t addr(){
+        return m_addr;
     }
     const char *desc() const{
         glb_msg0 = m_message;
