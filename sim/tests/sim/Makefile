@@ -72,6 +72,9 @@ test_log_class: test_log_class.o
 test_lru_class: test_lru_class.o
 	$(CXX) -o $@ $^
 
+test_bm_class: test_bm_class.o
+	$(CXX) -o $@ $^
+
 clean:
 	rm -rf *.o $(DEPS) $(EXES) *.txt *.log cpu_ppc_instr.h
 

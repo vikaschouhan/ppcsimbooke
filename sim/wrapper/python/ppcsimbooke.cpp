@@ -338,6 +338,17 @@ BOOST_PYTHON_MODULE(ppcsim)
             }
         }
 
+        // The breakpoint manager class
+        class_<BM> bm_py("bm");
+            bm_py.def("enable",            &BM::enable_breakpoints)
+            .def("disable",                &BM::disable_breakpoints)
+            .def("add",                    &BM::add_breakpoint)
+            .def("delete",                 &BM::delete_breakpoint)
+            .def("delete_by_num",          &BM::delete_breakpoint_num)
+            .def("delete_all",             &BM::delete_all)
+            .def("list_all",               &BM::list_breakpoints)
+            ;
+
         // The derived cpu_ppc_book class ( Our main cpu class )
         class_<CPU_PPC> cpu_ppc_py("cpu_ppc", init<uint64_t, std::string>());
         cpu_ppc_py.def("run_instr",   run_instr_ptr_d0)
@@ -359,6 +370,7 @@ BOOST_PYTHON_MODULE(ppcsim)
             .add_property("regs",     make_function(&CPU_PPC::___get_regs, return_value_policy<reference_existing_object>()))
             .def_readonly("PC",       &CPU_PPC::get_pc)
             .def_readonly("ninstrs",  &CPU_PPC::get_ninstrs)
+            .def_readonly("bm",       &CPU_PPC::m_bm)
             ;
 
 
@@ -369,8 +381,9 @@ BOOST_PYTHON_MODULE(ppcsim)
     class_<machine_2cpus_36pl> machine_py("machine");
     machine_py.def_readonly("ncpus", &machine_2cpus_36pl::m_ncpus)
         .def_readwrite("memory",     &machine_2cpus_36pl::m_memory)
-        .add_property("cpu0", make_function(&machine_2cpus_36pl::get_cpu<0>, return_value_policy<reference_existing_object>()))
-        .add_property("cpu1", make_function(&machine_2cpus_36pl::get_cpu<1>, return_value_policy<reference_existing_object>()))
+        .add_property("cpu0",        make_function(&machine_2cpus_36pl::get_cpu<0>, return_value_policy<reference_existing_object>()))
+        .add_property("cpu1",        make_function(&machine_2cpus_36pl::get_cpu<1>, return_value_policy<reference_existing_object>()))
+        .def("load_elf",             &machine_2cpus_36pl::load_elf)
         ;
   
     // Custom message after loading this module 

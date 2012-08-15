@@ -25,8 +25,11 @@
 #define SIM_EXCEPT_ENOSPC        28    /* No space left on device */
 #define SIM_EXCEPT_EROFS         30    /* Read-only file system */
 
-#define SIM_EXCEPT_ENOFILE      254    /* File couldn't be opened */
-#define SIM_EXCEPT_EUNKWN       255    /* Unknown */
+#define SIM_EXCEPT_ENOFILE       50    /* File couldn't be opened */
+#define SIM_EXCEPT_EUNKWN        51    /* Unknown */
+
+// Exceptions due to some other factors
+#define SIM_EXCEPT_SBKPT        100    // Software breakpoint
 
 // A global message object used as a temporary placeholder
 static std::string glb_msg0;

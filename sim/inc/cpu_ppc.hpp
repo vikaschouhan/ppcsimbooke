@@ -2,13 +2,14 @@
 #define    _CPU_PPC_HPP_
 
 #include "config.h"
-#include "tlb_booke.hpp"
-#include "ppc_exception.h"
-#include "ppc_dis.hpp"
-#include "cpu.hpp"
-#include "cpu_ppc_regs.h"
-#include "cpu_host.h"
-#include "memory.hpp"
+#include "tlb_booke.hpp"             // BookE MMU
+#include "ppc_exception.h"           // Exception tables
+#include "ppc_dis.hpp"               // Disassembler module
+#include "cpu.hpp"                   // Parent CPU class
+#include "cpu_ppc_regs.h"            // PPC register table
+#include "cpu_host.h"                // Some host definitions
+#include "memory.hpp"                // Memory module
+#include "bm.hpp"                    // Software Breakpoint manager
 
 /* 64 bit MSRs were used in older powerPC designs */
 /* All BookE cores have 32 bit MSRs only */
@@ -149,6 +150,8 @@ class CPU_PPC : public cpu {
     // Throws debug events
     // ea is used only in case of DAC events
     void check_for_dbg_events(int flags, uint64_t ea=0);   // check for debug events
+    // run curr instr
+    inline void run_curr_instr();
     // Init common stuff
     void init_common(){
         LOG("DEBUG4") << MSG_FUNC_START;
@@ -160,6 +163,10 @@ class CPU_PPC : public cpu {
         m_ctxt_switch = 0;                     // Initialize flag to zero
         LOG("DEBUG4") << MSG_FUNC_END;
     }
+
+    public:
+    // Breakpoint manager
+    BM                                     m_bm;
     
     private: 
     // This function defines nested functions ( using struct encapsulation technique )
@@ -210,6 +217,7 @@ class CPU_PPC : public cpu {
 #endif
     // memory module
     memory                                 *m_mem_ptr;
+    
 
     /* Host specific stuff */
 #if HOST_ARCH == x86_64
@@ -224,14 +232,13 @@ class CPU_PPC : public cpu {
 
     // opcode to function pointer map
     typedef void (*ppc_opc_fun_ptr)(CPU_PPC *, struct instr_call *);
-    std::map<std::string, ppc_opc_fun_ptr>  ppc_func_hash;
+    std::map<std::string, ppc_opc_fun_ptr> ppc_func_hash;
 
 };
 
 // --------------------------- STATIC DATA ---------------------------------------------------
 
-// This is list of pointers to all alive cpu objects , so that we could refer them using it's class type only.
-size_t                         CPU_PPC::ncpus = 0; /* Current number of powerpc cpus */
+size_t                         CPU_PPC::ncpus = 0;        // Current number of powerpc cpus
 
 // --------------------------- Include external files ----------------------------------------
 
@@ -257,23 +264,18 @@ size_t                         CPU_PPC::ncpus = 0; /* Current number of powerpc 
 void CPU_PPC::run(){
     LOG("DEBUG4") << MSG_FUNC_START;
 
-    instr_call call_this;
-#define I                                                                                                               \
-        /* Get Instr call frame at next NIP */                                                                          \
-        call_this = get_instr();                                                                                        \
-        LOG("DEBUG4") << "INSTR : " << call_this.get_instr_str() << std::endl;                                          \
-        check_for_dbg_events(DBG_EVENT_IAC);                                                                            \
-                                                                                                                        \
-        pc += 4; /* Increment pc just before executing instr */                                                         \
-        /* If there is a func pointer already registered, call it */                                                    \
-        if(call_this.fptr){ (reinterpret_cast<CPU_PPC::ppc_opc_fun_ptr>(call_this.fptr))(this, &call_this); }           \
-                                                                                                                        \
-        LASSERT_THROW(ppc_func_hash.find(call_this.opcode) != ppc_func_hash.end(),                                      \
-                sim_except(SIM_EXCEPT_EINVAL, "Invalid/Unimplemented opcode " + call_this.opcode), DEBUG4);          \
-        call_this.fptr = reinterpret_cast<void*>(ppc_func_hash[call_this.opcode]);                                      \
-        /* call handler function for this call frame */                                                                 \
-        ppc_func_hash[call_this.opcode](this, &call_this);                                                              \
-        ninstrs++
+    std::pair<uint64_t, bool> last_bkpt = m_bm.last_breakpoint();
+
+    // run this instruction if this was last breakpointed
+    if(last_bkpt.first == pc and last_bkpt.second == true){
+        m_bm.disable_breakpoints();
+        run_curr_instr();
+        m_bm.clear_last_breakpoint();
+        m_bm.enable_breakpoints();
+    }
+
+#define I  run_curr_instr() 
+        
 
     for(;;){
         // Observe each instruction for possible exceptions
@@ -304,26 +306,9 @@ void CPU_PPC::step(size_t instr_cnt){
     LOG("DEBUG4") << MSG_FUNC_START;
 
     size_t t=0;
-    instr_call call_this;
-
     if(!instr_cnt) return;
-#define I                                                                                                               \
-        /* Get Instr call frame at next NIP */                                                                          \
-        call_this = get_instr();                                                                                        \
-        std::cout << std::hex << "pc : 0x" << pc << " [ " << call_this.get_instr_str() << " ]" << std::endl;            \
-        LOG("DEBUG4") << "INSTR : " << call_this.get_instr_str() << std::endl;                                          \
-        check_for_dbg_events(DBG_EVENT_IAC);                                                                            \
-                                                                                                                        \
-        pc += 4; /* Increment pc just before executing the instr */                                                     \
-        /* If there is a func pointer already registered, call it */                                                    \
-        if(call_this.fptr){ (reinterpret_cast<CPU_PPC::ppc_opc_fun_ptr>(call_this.fptr))(this, &call_this); }           \
-                                                                                                                        \
-        LASSERT_THROW(ppc_func_hash.find(call_this.opcode) != ppc_func_hash.end(),                                      \
-                sim_except(SIM_EXCEPT_EINVAL, "Invalid/Unimplemented opcode " + call_this.opcode), DEBUG4);          \
-        call_this.fptr = reinterpret_cast<void*>(ppc_func_hash[call_this.opcode]);                                      \
-        /* call handler function for this call frame */                                                                 \
-        ppc_func_hash[call_this.opcode](this, &call_this);                                                              \
-        ninstrs++
+
+#define I     run_curr_instr()
 
     for(t=0; t<instr_cnt; t++){
         try{
@@ -1107,6 +1092,39 @@ void CPU_PPC::check_for_dbg_events(int flags, uint64_t ea){
             LTHROW(sim_except_ppc_halt("Cpu halted due to debug exception."), DEBUG4);
         }
     }
+}
+
+/*
+ * @func : run current instr
+ */
+inline void CPU_PPC::run_curr_instr(){
+    LOG("DEBUG4") << MSG_FUNC_START;
+
+    /* Get Instr call frame at next NIP */
+    instr_call call_this = get_instr();
+    LOG("DEBUG4") << "INSTR : " << call_this.get_instr_str() << std::endl;
+
+    if(m_bm.check_pc(pc)){
+        // Throw a software breakpoint exception
+        LTHROW(sim_except(SIM_EXCEPT_SBKPT, "Software breakpoint"), DEBUG4);
+    }
+
+    // Check for any debug events for IAC
+    // FIXME : This may not work at this time
+    check_for_dbg_events(DBG_EVENT_IAC);
+ 
+    pc += 4; /* Increment pc just before executing instr */
+    /* If there is a func pointer already registered, call it */
+    if(call_this.fptr){ (reinterpret_cast<CPU_PPC::ppc_opc_fun_ptr>(call_this.fptr))(this, &call_this); }
+ 
+    LASSERT_THROW(ppc_func_hash.find(call_this.opcode) != ppc_func_hash.end(),
+            sim_except(SIM_EXCEPT_EINVAL, "Invalid/Unimplemented opcode " + call_this.opcode), DEBUG4);
+    call_this.fptr = reinterpret_cast<void*>(ppc_func_hash[call_this.opcode]);
+    /* call handler function for this call frame */ 
+    ppc_func_hash[call_this.opcode](this, &call_this);
+    ninstrs++;
+
+    LOG("DEBUG4") << MSG_FUNC_END;
 }
 
 /*

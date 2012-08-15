@@ -19,6 +19,7 @@
 #include <ctime>
 #include <cstring>
 #include <sstream>
+#include <utility>
 
 // Define register masks/fields
 #include "third_party/ppc/reg.h"
