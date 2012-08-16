@@ -5,12 +5,13 @@ CC     := cc
 CXX    := c++
 AS     := as
 LD     := ld
-FMT_PL := format_instrs2.pl
+
+SRCROOT := ../..
 
 SUFFIXES += .d
 
 # header files' and libraries' paths
-CXXFLAGS        := -I../../inc -I`python-config --includes` -I/usr/include/boost -I.
+CXXFLAGS        := -I$(SRCROOT)/inc -I`python-config --includes` -I/usr/include/boost -I.
 CXXFLAGS        += -L/usr/lib64 -lboost_python
 
 # enable this for <cstdint>
@@ -23,7 +24,8 @@ HOST_ARCH := $(shell uname -m)
 CXXFLAGS += -DHOST_ARCH=$(HOST_ARCH)
 
 # Generate the ppc_instrs as part of build process at the very beginning
-EXEC_PPC_INSTR_RES := $(shell ../../utils/$(FMT_PL) --ifile ../../src/cpu_ppc_instr.cc --ofile cpu_ppc_instr.h)
+EXEC_PPC_INSTR_RES := $(shell g++ -I/usr/include/boost -lboost_program_options -o format_instrs $(SRCROOT)/utils/format_instrs.cpp ; \
+                       ./format_instrs --ifile $(SRCROOT)/src/cpu_ppc_instr.cc --ofile cpu_ppc_instr.inc)
 
 # Generate the ppc_instrs as part of build process at the very beginning
 all: ppcsim
@@ -32,7 +34,7 @@ ppcsim: ppcsimbooke.cpp
 	$(CXX) $(CXXFLAGS) -Wl,-soname,"$@.so"  -fpic -o $@.so $^
 
 clean:
-	rm -rf *.so *.h *.log
+	rm -rf *.so *.h *.log *.inc *.tcc format_instrs
 
 distclean: clean
 	echo "Done"

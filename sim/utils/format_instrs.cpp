@@ -81,6 +81,11 @@ int main(int argc, char** argv){
 
     // Get temporary file name
     ofilename_tmp = ifilename;
+    // Remove directory names
+    if(ofilename_tmp.find_last_of('/') != std::string::npos){
+        ofilename_tmp = ofilename_tmp.substr(ofilename_tmp.find_last_of('/') + 1);
+    }
+
     // Check if input filename end with some extension
     if(ofilename_tmp.find_last_of('.') != std::string::npos){
         ofilename_tmp.replace(ofilename_tmp.find_last_of('.'), (ofilename_tmp.size() - ofilename_tmp.find_last_of('.')), ".tcc"); 
@@ -96,7 +101,6 @@ int main(int argc, char** argv){
     std::ofstream  ostr;
     size_t         len;
     char           *buff, *curr_ptr, *prev_ptr;
-    size_t         indx = 0;
     size_t         curr_len = 0;
     size_t         paren_stack_len = 0;
     char           left_paren = '(';
@@ -186,7 +190,7 @@ int main(int argc, char** argv){
             ostr << "    struct " << opcode_n << " {" << std::endl;
             ostr << "        static void " << opcode_fun << "(cpu_ppc *pcpu, instr_call *ic)" << std::endl;
             ostr << pseudocode << std::endl;
-            ostr << "    }" << std::endl;
+            ostr << "    };" << std::endl;
             ostr << "    pcpu->ppc_func_hash[\"" << opcode << "\"] = " << opcode_n << "::" << opcode_fun << ";" << std::endl;
             ostr << std::endl;
         }else{

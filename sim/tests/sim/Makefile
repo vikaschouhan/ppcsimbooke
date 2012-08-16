@@ -27,7 +27,7 @@ EXES    := $(patsubst %.cxx, %, $(SOURCES))
 
 # Include current directory for dynamically generated headers
 CFLAGS   := -I${CINCLUDES} -I.
-CXXFLAGS := -I${CXXINCLUDES} -I.
+CXXFLAGS := -I${CXXINCLUDES} -I. -I/usr/include/boost
 # enable this for <cstdint>
 EXTFLAGS := -std=c++0x -O -Wall -DCONFIG_BOOKE -DCONFIG_E500 -DCORE_TYPE=e500v2 -DCONFIG_FSL_EMB_PERFMON -O2 $(USRFLAGS)
 
@@ -35,8 +35,9 @@ HOST_ARCH := $(shell uname -m)
 
 EXTFLAGS += -DHOST_ARCH=$(HOST_ARCH)
 
-# Generate the ppc_instrs as part of build process at the very beginning
-EXEC_PPC_INSTR_RES := $(shell $(SRCROOT)/utils/format_instrs2.pl --ifile $(SRCROOT)/src/cpu_ppc_instr.cc --ofile cpu_ppc_instr.h)
+# Buid formatting utility ( only once )
+EXEC_PPC_INSTR_RES := $(shell g++ $(CXXFLAGS) $(EXTFLAGS) -lboost_program_options -o format_instrs $(SRCROOT)/utils/format_instrs.cpp ; \
+                       ./format_instrs --ifile $(SRCROOT)/src/cpu_ppc_instr.cc --ofile cpu_ppc_instr.inc)
 
 all: $(EXES)
 
@@ -76,7 +77,7 @@ test_bm_class: test_bm_class.o
 	$(CXX) -o $@ $^
 
 clean:
-	rm -rf *.o $(DEPS) $(EXES) *.txt *.log cpu_ppc_instr.h
+	rm -rf *.o $(DEPS) $(EXES) *.txt *.log cpu_ppc_instr.inc format_instrs *.tcc
 
 distclean: clean
 	echo "Done"
