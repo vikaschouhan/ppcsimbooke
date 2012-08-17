@@ -47,6 +47,12 @@ uint64_t get_opcode_hash(std::string opcname){
             return (powerpc_opcodes[indx].opcode << 32 | indx);
         }
     }
+    // Throw a warning on undefined opcodes
+    // NOTE : If an opcode was not found in the opcode table,
+    //        this merely means that the extended opcode was not there.
+    //        In that case, the disassembler module will automatically take care
+    //        not to generate extended opcodes.
+    std::cerr << "Warning !!! Undefined opcode " << opcname << std::endl;
     return 0x0;
 }
 

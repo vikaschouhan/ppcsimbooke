@@ -40,11 +40,11 @@
 
 #undef  spr
 #undef  sprn
-#undef  xer
-#undef  msr
+#undef  XER 
+#undef  MSR
 #undef  pmr
 #undef  gpr
-#undef  cr
+#undef  CR 
 #undef  update_cr0
 #undef  update_crF  
 #undef  update_crf  
@@ -72,14 +72,14 @@
 
 #define spr(sprno)               ppcreg(REG_SPR0 + sprno) 
 #define sprn(spr_name)           regn(spr_name) 
-#define xer                      spr(SPRN_XER) 
-#define msr                      ppcreg(REG_MSR) 
+#define XER                      spr(SPRN_XER) 
+#define MSR                      ppcreg(REG_MSR) 
 #define pmr(pmrno)               ppcreg(REG_PMR0 + pmrno) 
 #define gpr                      ppcreg(REG_MSR) 
-#define cr                       ppcreg(REG_CR)
-#define lr                       ppcreg(REG_LR)
-#define ctr                      ppcreg(REG_CTR)
-#define pc                       CPU->pc
+#define CR                       ppcreg(REG_CR)
+#define LR                       ppcreg(REG_LR)
+#define CTR                      ppcreg(REG_CTR)
+#define PC                       CPU->pc
 #define update_cr0               CPU->update_cr0
 #define update_crF               CPU->update_crF
 #define update_crf               CPU->update_crf
@@ -373,24 +373,24 @@ X(addco.)
 /* Add extended : rA + rB + CA */
 X(adde)
 {
-    UMODE tmp = REG2 + reg_bf(xer, XER_CA);
+    UMODE tmp = REG2 + reg_bf(XER, XER_CA);
     add_code(REG0, REG1, tmp);
 }
 X(adde.)
 {
-    UMODE tmp = REG2 + reg_bf(xer, XER_CA);
+    UMODE tmp = REG2 + reg_bf(XER, XER_CA);
     add_code(REG0, REG1, tmp);
     update_cr0(1);
 }
 X(addeo)
 {
-    UMODE tmp = REG2 + reg_bf(xer, XER_CA);
+    UMODE tmp = REG2 + reg_bf(XER, XER_CA);
     add_code(REG0, REG1, tmp);
     update_xer(1);
 }
 X(addeo.)
 {
-    UMODE tmp = REG2 + reg_bf(xer, XER_CA);
+    UMODE tmp = REG2 + reg_bf(XER, XER_CA);
     add_code(REG0, REG1, tmp);
     update_xer(1);
     update_cr0(1);
@@ -495,24 +495,24 @@ X(subis)
  *  */
 X(addme)
 {
-    SMODE tmp = reg_bf(xer, XER_CA) - 1;
+    SMODE tmp = reg_bf(XER, XER_CA) - 1;
     add_code(REG0, REG1, tmp);
 }
 X(addme.)
 {
-    SMODE tmp = reg_bf(xer, XER_CA) - 1;
+    SMODE tmp = reg_bf(XER, XER_CA) - 1;
     add_code(REG0, REG1, tmp);
     update_cr0(1);
 }
 X(addmeo)
 {
-    SMODE tmp = reg_bf(xer, XER_CA) - 1;
+    SMODE tmp = reg_bf(XER, XER_CA) - 1;
     add_code(REG0, REG1, tmp);
     update_xer(1);
 }
 X(addmeo.)
 {
-    SMODE tmp = reg_bf(xer, XER_CA) - 1;
+    SMODE tmp = reg_bf(XER, XER_CA) - 1;
     add_code(REG0, REG1, tmp);
     update_xer(1);
     update_cr0(1);
@@ -523,24 +523,24 @@ X(addmeo.)
  */
 X(addze)
 {
-    UMODE tmp = reg_bf(xer, XER_CA);
+    UMODE tmp = reg_bf(XER, XER_CA);
     add_code(REG0, REG1, tmp);
 }
 X(addze.)
 {
-    UMODE tmp = reg_bf(xer, XER_CA);
+    UMODE tmp = reg_bf(XER, XER_CA);
     add_code(REG0, REG1, tmp);
     update_cr0(1);
 }
 X(addzeo)
 {
-    UMODE tmp = reg_bf(xer, XER_CA);
+    UMODE tmp = reg_bf(XER, XER_CA);
     add_code(REG0, REG1, tmp);
     update_xer(1);
 }
 X(addzeo.)
 {
-    UMODE tmp = reg_bf(xer, XER_CA);
+    UMODE tmp = reg_bf(XER, XER_CA);
     add_code(REG0, REG1, tmp);
     update_xer(1);
     update_cr0(1);
@@ -594,7 +594,7 @@ X(bblels)
 // branch unconditional
 X(b)
 {
-#define b_code(tgtaddr)   pc = tgtaddr
+#define b_code(tgtaddr)   PC = tgtaddr
     b_code(ARG0);
 }
 X(ba)
@@ -604,12 +604,12 @@ X(ba)
 X(bl)
 {
     b_code(ARG0);
-    lr = (pc + 4);
+    LR = (PC + 4);
 }
 X(bla)
 {
     b_code(ARG0);
-    lr = (pc + 4);
+    LR = (PC + 4);
 }
 
 // branch conditional
@@ -621,10 +621,10 @@ X(bc)
 #define  BO0(BO)    ((BO >> 4) & 0x1)
 
 #define bc_code(BO, BI, tgtaddr)                                                     \
-    if(!BO2(BO)) ctr = ctr - 1;                                                      \
-    int ctr_ok  = BO2(BO) | ((((CM) ? ctr: (ctr & 0xffffffff)) != 0) ^ BO3(BO));     \
+    if(!BO2(BO)) CTR = CTR - 1;                                                      \
+    int ctr_ok  = BO2(BO) | ((((CM) ? CTR: (CTR & 0xffffffff)) != 0) ^ BO3(BO));     \
     int cond_ok = BO0(BO) | (get_crf(BI) == BO1(BO));                                \
-    if(ctr_ok & cond_ok) pc = tgtaddr;
+    if(ctr_ok & cond_ok) PC = tgtaddr;
 
     bc_code(ARG0, ARG1, ARG2);
 }
@@ -636,7 +636,7 @@ X(bcl)
 {
 #define bcl_code(BO, BI, tgtaddr)                   \
     bc_code(BO, BI, tgtaddr);                       \
-    lr = (pc + 4);
+    LR = (PC + 4);
 
     bcl_code(ARG0, ARG1, ARG2);
 }
@@ -649,10 +649,10 @@ X(bcla)
 X(bclr)
 {
 #define bclr_code(BO, BI, BH)                                                       \
-    if(!BO2(BO)) ctr = ctr - 1;                                                     \
-    int ctr_ok = BO2(BO) | ((((CM) ? ctr: (ctr & 0xffffffff)) != 0) ^ BO3(BO));     \
+    if(!BO2(BO)) CTR = CTR - 1;                                                     \
+    int ctr_ok = BO2(BO) | ((((CM) ? CTR: (CTR & 0xffffffff)) != 0) ^ BO3(BO));     \
     int cond_ok = BO0(BO) | (get_crf(BI) == BO1(BO));                               \
-    if(ctr_ok & cond_ok) pc = lr & ~0xff;
+    if(ctr_ok & cond_ok) PC = LR & ~0xff;
 
     bclr_code(ARG0, ARG1, ARG2);
 }
@@ -660,7 +660,7 @@ X(bclrl)
 {
 #define bclrl_code(BO, BI, BH)                       \
     bclr_code(BO, BI, BH);                           \
-    lr = (pc + 4);
+    LR = (PC + 4);
 
     bclrl_code(ARG0, ARG1, ARG2);
 }
@@ -669,7 +669,7 @@ X(bclrl)
 X(bcctr)
 {
 #define bcctr_code(BO, BI, BH)                                                       \
-    if(BO0(BO) | (get_crf(BI) == BO1(BO))) pc = ctr & ~0xff;
+    if(BO0(BO) | (get_crf(BI) == BO1(BO))) PC = CTR & ~0xff;
     
     bcctr_code(ARG0, ARG1, ARG2);
 }
@@ -677,7 +677,7 @@ X(bcctrl)
 {
 #define bcctrl_code(BO, BI, BH)                \
     bcctr_code(BO, BI, BH);                    \
-    lr = (pc + 4);
+    LR = (PC + 4);
 
     bcctrl_code(ARG0, ARG1, ARG2);
 }
@@ -1524,7 +1524,7 @@ X(mcrxr)
 X(mfcr)
 {
 #define mfcr_code(rD)                               \
-    rD = (cr & (uint64_t)0xffffffff);
+    rD = (CR & (uint64_t)0xffffffff);
 
     mfcr_code(ARG0);
 }
@@ -1537,7 +1537,7 @@ X(mtcrf)
         mask |= (tmp & 0x80)?(0xf << (7 - i)*4):0;  \
         tmp <<= 1;                                  \
     }                                               \
-    cr = ((rS & mask) | (cr & ~mask));
+    CR = ((rS & mask) | (CR & ~mask));
 
     mtcrf_code(ARG0, REG1);
 }
@@ -1546,132 +1546,50 @@ X(mtcr)
     mtcrf_code(0xff, REG0);
 }
 
-//  Move to/from MSR
-X(mfmsr)
-{
-#define mfmsr_code(rD)                         \
-    rD = msr;
 
-    mfmsr_code(REG0);
-}
-X(mfpmr)
-{
-#define mfpmr_code(rD, PMRN)                  \
-    rD = pmr(PMRN);
-
-    mfpmr_code(REG0, ARG1);
-}
-
-// Move to/from SPRs referred to by spr name in mnemonic
-#define MNEC_MFR(rD, regname)                 \
+// Move to/from SPR/PMR ( by name )
+#define MNEC_MR(regname)                      \
     X(mf##regname){                           \
-        rD = ppcregn(#regname);               \
-    }
-#define MNEC_MTR(rS, regname)                 \
+        REG0 = ppcregn(#regname);             \
+    }                                         \
     X(mt##regname){                           \
-        ppcregn(#regname) = rS;               \
+        ppcregn(#regname) = REG0;             \
     }
 
-// FIXME: This doesn't work at this time, since our formatting utility
-//        ( the perl script which parses this file and generates the header file )
-//        isn't able to distinguish two instr descriptions on single line.
-//
-//        We will try to remove the need for the external utility at some point
-//        in future, but until then we are helpless.
-//#define MNEC_MR(rA, regname)                  \
-//    X(mf##regname){                           \
-//        rA = ppcregn(#regname);               \
-//    }                                         \
-//    X(mt##regname){                           \
-//        ppcregn(#regname) = rA;               \
-//    }
+// Move to/from MSR and FPSCR
+MNEC_MR( msr     )    MNEC_MR( fpscr   )
 
-// mfspr extended mnemonics
-MNEC_MFR(REG0, xer     )
-MNEC_MFR(REG0, ctr     )
-MNEC_MFR(REG0, pvr     )
-MNEC_MFR(REG0, pid     )
-MNEC_MFR(REG0, pid0    )
-MNEC_MFR(REG0, pid1    )
-MNEC_MFR(REG0, pid2    )
-MNEC_MFR(REG0, dec     )
-MNEC_MFR(REG0, lr      )
-MNEC_MFR(REG0, esr     )
-MNEC_MFR(REG0, mcsr    )
-MNEC_MFR(REG0, ivpr    )
-MNEC_MFR(REG0, dear    )
-MNEC_MFR(REG0, srr0    )
-MNEC_MFR(REG0, srr1    )
-MNEC_MFR(REG0, csrr0   )
-MNEC_MFR(REG0, csrr1   )
-MNEC_MFR(REG0, mcsrr0  )
-MNEC_MFR(REG0, mcsrr1  )
-MNEC_MFR(REG0, dbcr0   )
-MNEC_MFR(REG0, dbcr1   )
-MNEC_MFR(REG0, dbcr2   )
-MNEC_MFR(REG0, iac1    )
-MNEC_MFR(REG0, iac2    )
-MNEC_MFR(REG0, dac1    )
-MNEC_MFR(REG0, dac2    )
-MNEC_MFR(REG0, dbsr    )
-MNEC_MFR(REG0, pmc3    )
-MNEC_MFR(REG0, tsr     )
-MNEC_MFR(REG0, bucsr   )
-
-MNEC_MTR(REG0, xer     )
-MNEC_MTR(REG0, ctr     )
-MNEC_MTR(REG0, pvr     )
-MNEC_MTR(REG0, pid     )
-MNEC_MTR(REG0, pid0    )
-MNEC_MTR(REG0, pid1    )
-MNEC_MTR(REG0, pid2    )
-MNEC_MTR(REG0, dec     )
-MNEC_MTR(REG0, lr      )
-MNEC_MTR(REG0, esr     )
-MNEC_MTR(REG0, mcsr    )
-MNEC_MTR(REG0, ivpr    )
-MNEC_MTR(REG0, dear    )
-MNEC_MTR(REG0, srr0    )
-MNEC_MTR(REG0, srr1    )
-MNEC_MTR(REG0, csrr0   )
-MNEC_MTR(REG0, csrr1   )
-MNEC_MTR(REG0, mcsrr0  )
-MNEC_MTR(REG0, mcsrr1  )
-MNEC_MTR(REG0, dbcr0   )
-MNEC_MTR(REG0, dbcr1   )
-MNEC_MTR(REG0, dbcr2   )
-MNEC_MTR(REG0, iac1    )
-MNEC_MTR(REG0, iac2    )
-MNEC_MTR(REG0, dac1    )
-MNEC_MTR(REG0, dac2    )
-MNEC_MTR(REG0, dbsr    )
-MNEC_MTR(REG0, pmc3    )
-MNEC_MTR(REG0, tsr     )
-MNEC_MTR(REG0, bucsr   )
+// SPRS 
+MNEC_MR( atbl    )    MNEC_MR( atbu    )    MNEC_MR( csrr0   )
+MNEC_MR( csrr1   )    MNEC_MR( ctr     )    MNEC_MR( dac1    )    MNEC_MR( dac2    )    MNEC_MR( dbcr0   )    MNEC_MR( dbcr1    )
+MNEC_MR( dbcr2   )    MNEC_MR( dbsr    )    MNEC_MR( dear    )    MNEC_MR( dec     )    MNEC_MR( decar   )    MNEC_MR( esr      )
+MNEC_MR( iac1    )    MNEC_MR( iac2    )    MNEC_MR( ivor0   )    MNEC_MR( ivor1   )    MNEC_MR( ivor2   )    MNEC_MR( ivor3    )
+MNEC_MR( ivor4   )    MNEC_MR( ivor5   )    MNEC_MR( ivor6   )    MNEC_MR( ivor8   )    MNEC_MR( ivor10  )    MNEC_MR( ivor11   )
+MNEC_MR( ivor12  )    MNEC_MR( ivor13  )    MNEC_MR( ivor14  )    MNEC_MR( ivor15  )    MNEC_MR( ivpr    )    MNEC_MR( lr       )  
+MNEC_MR( pid     )    MNEC_MR( pir     )    MNEC_MR( pvr     )    MNEC_MR( sprg0   )    MNEC_MR( sprg1   )    MNEC_MR( sprg2    )
+MNEC_MR( sprg3   )    MNEC_MR( sprg4   )    MNEC_MR( sprg5   )    MNEC_MR( sprg6   )    MNEC_MR( sprg7   )    MNEC_MR( srr0     )
+MNEC_MR( srr1    )    MNEC_MR( tbrl    )    MNEC_MR( tbwl    )    MNEC_MR( tbru    )    MNEC_MR( tbwu    )    MNEC_MR( tcr      ) 
+MNEC_MR( tsr     )    MNEC_MR( usprg0  )    MNEC_MR( xer     )    MNEC_MR( bbear   )    MNEC_MR( bbtar   )    MNEC_MR( bucsr    )
+MNEC_MR( hid0    )    MNEC_MR( hid1    )    MNEC_MR( ivor32  )    MNEC_MR( ivor33  )    MNEC_MR( ivor34  )    MNEC_MR( ivor35   )
+MNEC_MR( l1cfg0  )    MNEC_MR( l1cfg1  )    MNEC_MR( l1csr0  )    MNEC_MR( l1csr1  )    MNEC_MR( mcar    )    MNEC_MR( mcsr     )
+MNEC_MR( mcsrr0  )    MNEC_MR( mcsrr1  )    MNEC_MR( mmucfg  )    MNEC_MR( mmucsr0 )    MNEC_MR( pid0    )    MNEC_MR( pid1     )
+MNEC_MR( pid2    )    MNEC_MR( spefscr )    MNEC_MR( svr     )    MNEC_MR( tlb0cfg )    MNEC_MR( tlb1cfg )            
+       
+// PMRS 
+MNEC_MR( pmc0    )    MNEC_MR( pmc1    )    MNEC_MR( pmc2    )    MNEC_MR( pmc3    )    MNEC_MR( pmlca0  )    MNEC_MR( pmlca1   )
+MNEC_MR( pmlca2  )    MNEC_MR( pmlca3  )    MNEC_MR( pmlcb0  )    MNEC_MR( pmlcb1  )    MNEC_MR( pmlcb2  )    MNEC_MR( pmlcb3   )
+MNEC_MR( pmgc0   )    MNEC_MR( upmc0   )    MNEC_MR( upmc1   )    MNEC_MR( upmc2   )    MNEC_MR( upmc3   )    MNEC_MR( upmlca0  )
+MNEC_MR( upmlca1 )    MNEC_MR( upmlca2 )    MNEC_MR( upmlca3 )    MNEC_MR( upmlcb0 )    MNEC_MR( upmlcb1 )    MNEC_MR( upmlcb2  )
+MNEC_MR( upmlcb3 )    MNEC_MR( upmgc0  )
 
 
+// Move to/from SPR
 X(mfspr)
 {
 #define mfspr_code(rD, SPRN)                   \
     rD = spr(SPRN);
 
     mfspr_code(REG0, ARG1);
-}
-// Move to MSR
-X(mtmsr)
-{
-#define mtmsr_code(rS)                        \
-    msr = rS;
-
-    mtmsr_code(REG0);
-}
-// Move to PMR
-X(mtpmr)
-{
-#define mtpmr_code(PMRN, rS)                  \
-    pmr(PMRN) = rS;
-
-    mtpmr_code(ARG0, REG1);
 }
 X(mtspr)
 {
@@ -1680,6 +1598,23 @@ X(mtspr)
 
     mtspr_code(ARG0, REG1);
 }
+
+// Move to/from PMR
+X(mtpmr)
+{
+#define mtpmr_code(PMRN, rS)                  \
+    pmr(PMRN) = rS;
+
+    mtpmr_code(ARG0, REG1);
+}
+X(mfpmr)
+{
+#define mfpmr_code(rD, PMRN)                  \
+    rD = pmr(PMRN);
+
+    mfpmr_code(ARG0, REG1);
+}
+
 
 // Move register
 X(mr)
@@ -1946,16 +1881,16 @@ X(srwi)
 X(wrtee)
 {
 #define wrtee_code(rS)            \
-    msr &= ~(1L << 15);           \
-    msr |= rS & (1L << 15);
+    MSR &= ~(1L << 15);           \
+    MSR |= rS & (1L << 15);
 
     wrtee_code(REG0);
 }
 X(wrteei)
 {
 #define wrteei_code(E)            \
-    msr &= ~(1 << 15);            \
-    msr |= ((E & 0x1) << 15);
+    MSR &= ~(1 << 15);            \
+    MSR |= ((E & 0x1) << 15);
 
     wrteei_code(ARG0);
 }
