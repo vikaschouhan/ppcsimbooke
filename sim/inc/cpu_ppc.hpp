@@ -232,7 +232,7 @@ class CPU_PPC : public cpu {
 
     // opcode to function pointer map
     typedef void (*ppc_opc_fun_ptr)(CPU_PPC *, struct instr_call *);
-    std::map<std::string, ppc_opc_fun_ptr> ppc_func_hash;
+    std::map<uint64_t, ppc_opc_fun_ptr>    ppc_func_hash;
 
 };
 
@@ -328,10 +328,10 @@ void CPU_PPC::run_instr(std::string instr){
 
     if(call_this.fptr){ (reinterpret_cast<CPU_PPC::ppc_opc_fun_ptr>(call_this.fptr))(this, &call_this); }
     
-    LASSERT_THROW(ppc_func_hash.find(call_this.opcode) != ppc_func_hash.end(),
-            sim_except(SIM_EXCEPT_EINVAL, "Invalid/Unimplemented opcode " + call_this.opcode), DEBUG4);
-    call_this.fptr = reinterpret_cast<void*>(ppc_func_hash[call_this.opcode]);
-    ppc_func_hash[call_this.opcode](this, &call_this);
+    LASSERT_THROW(ppc_func_hash.find(call_this.opc) != ppc_func_hash.end(),
+            sim_except(SIM_EXCEPT_EINVAL, "Invalid/Unimplemented opcode " + call_this.opcname), DEBUG4);
+    call_this.fptr = reinterpret_cast<void*>(ppc_func_hash[call_this.opc]);
+    ppc_func_hash[call_this.opc](this, &call_this);
     LOG("DEBUG4") << MSG_FUNC_END;
 }
 
@@ -343,10 +343,10 @@ void CPU_PPC::run_instr(uint32_t opcd){
     call_this = m_dis.disasm(opcd, pc);
     if(call_this.fptr){ (reinterpret_cast<CPU_PPC::ppc_opc_fun_ptr>(call_this.fptr))(this, &call_this); }
 
-    LASSERT_THROW(ppc_func_hash.find(call_this.opcode) != ppc_func_hash.end(),
-            sim_except(SIM_EXCEPT_EINVAL, "Invalid/Unimplemented opcode " + call_this.opcode), DEBUG4);
-    call_this.fptr = reinterpret_cast<void*>(ppc_func_hash[call_this.opcode]);
-    ppc_func_hash[call_this.opcode](this, &call_this);
+    LASSERT_THROW(ppc_func_hash.find(call_this.opc) != ppc_func_hash.end(),
+            sim_except(SIM_EXCEPT_EINVAL, "Invalid/Unimplemented opcode " + call_this.opcname), DEBUG4);
+    call_this.fptr = reinterpret_cast<void*>(ppc_func_hash[call_this.opc]);
+    ppc_func_hash[call_this.opc](this, &call_this);
     LOG("DEBUG4") << MSG_FUNC_END;
 }
 
@@ -1112,11 +1112,11 @@ inline void CPU_PPC::run_curr_instr(){
     /* If there is a func pointer already registered, call it */
     if(call_this.fptr){ (reinterpret_cast<CPU_PPC::ppc_opc_fun_ptr>(call_this.fptr))(this, &call_this); }
  
-    LASSERT_THROW(ppc_func_hash.find(call_this.opcode) != ppc_func_hash.end(),
-            sim_except(SIM_EXCEPT_EINVAL, "Invalid/Unimplemented opcode " + call_this.opcode), DEBUG4);
-    call_this.fptr = reinterpret_cast<void*>(ppc_func_hash[call_this.opcode]);
+    LASSERT_THROW(ppc_func_hash.find(call_this.opc) != ppc_func_hash.end(),
+            sim_except(SIM_EXCEPT_EINVAL, "Invalid/Unimplemented opcode " + call_this.opcname), DEBUG4);
+    call_this.fptr = reinterpret_cast<void*>(ppc_func_hash[call_this.opc]);
     /* call handler function for this call frame */ 
-    ppc_func_hash[call_this.opcode](this, &call_this);
+    ppc_func_hash[call_this.opc](this, &call_this);
     ninstrs++;
 
     LOG("DEBUG4") << MSG_FUNC_END;

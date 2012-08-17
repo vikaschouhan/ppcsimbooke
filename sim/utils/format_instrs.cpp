@@ -35,6 +35,20 @@
 #include <program_options.hpp>          // Requires boost
 #include <algorithm/string.hpp>
 #include <unistd.h>                    // for running shell commands
+#include <cstring>                     // for strcmp
+#include "third_party/ppcdis/ppcdis.h"
+
+// Get a 64 bit unique value from the lookup table using the opcode's name
+// this 64 bit value = ( 32 bit opcode value ) << 32 | opcode index number in lookup table
+uint64_t get_opcode_hash(std::string opcname){
+
+    for (int indx = 0; indx < powerpc_num_opcodes; indx++){
+        if(!strcmp(opcname.c_str(), powerpc_opcodes[indx].name)){
+            return (powerpc_opcodes[indx].opcode << 32 | indx);
+        }
+    }
+    return 0x0;
+}
 
 int main(int argc, char** argv){
 
@@ -111,6 +125,7 @@ int main(int argc, char** argv){
     std::string    fmt_code = "        ";
 
     std::string    opcode;
+    std::string    opcode_org;
     std::string    opcode_n;
     std::string    opcode_fun;
     std::string    pseudocode;
@@ -178,6 +193,7 @@ int main(int argc, char** argv){
 
             // Replace dot by something more fancy
             opcode_n = opcode;
+            opcode_org = opcode;
             boost::algorithm::replace_all(opcode_n, ".", "_dot");
             opcode = opcode_n;
             opcode_fun = opcode_n + "___";
@@ -191,7 +207,8 @@ int main(int argc, char** argv){
             ostr << "        static void " << opcode_fun << "(cpu_ppc *pcpu, instr_call *ic)" << std::endl;
             ostr << pseudocode << std::endl;
             ostr << "    };" << std::endl;
-            ostr << "    pcpu->ppc_func_hash[\"" << opcode << "\"] = " << opcode_n << "::" << opcode_fun << ";" << std::endl;
+            ostr << "    pcpu->ppc_func_hash[" << std::hex << std::showbase
+                 << get_opcode_hash(opcode_org) << "] = " << opcode_n << "::" << opcode_fun << ";" << std::endl;
             ostr << std::endl;
         }else{
             // Skip comments and blank lines

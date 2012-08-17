@@ -11,16 +11,18 @@ struct instr_call {
         size_t  p;         // Indirect Pointer to the m_ireghash entry
         bool    t;         // Argument type ( 1=register, 0=value )
     };
-    std::string   opcode;               // Opcode
+    std::string   opcname;              // Opcode name
     std::string   fmt;                  // Display format
+    uint64_t      opc;                  // opcode ( First 32 bit is opcode and next 32 bit is the entry no in opcode table )
     int           nargs;                // Number of arguments
     instr_arg     arg[N_IC_ARGS];       // Argument array
     void          *fptr;                // Function pointer
 
     instr_call(){
-        opcode = "";
-        fmt    = "";
-        nargs  = 0;
+        opcname = "";
+        fmt     = "";
+        opc     = 0;
+        nargs   = 0;
         for(int i=0; i<N_IC_ARGS; i++){
             arg[i].v = arg[i].p = arg[i].t = 0;
         }
@@ -28,7 +30,8 @@ struct instr_call {
     }
     // Dump state
     void dump_state(){
-        std::cout << "opcode : " << opcode << std::endl;
+        std::cout << "name   : " << opcname << std::endl;
+        std::cout << "opcode : " << std::hex << std::showbase << opc << std::endl;
         std::cout << "args   : ";
         for(int i=0; i<nargs; i++){
             std::cout << std::hex << std::showbase << arg[i].v << " ";
@@ -55,10 +58,10 @@ struct instr_call {
         }
         fmt += "\n";
         // We use printf for printing , since we have format of arguments in a string.
-        if(opcode == "")
+        if(opcname == "")
             printf(".long 0x%lx\n", (arg[0].v & 0xffffffff));
         else
-            printf(lfmt.c_str(), opcode.c_str(), arg[0].v, arg[1].v, arg[2].v, arg[3].v, arg[4].v, arg[5].v);
+            printf(lfmt.c_str(), opcname.c_str(), arg[0].v, arg[1].v, arg[2].v, arg[3].v, arg[4].v, arg[5].v);
     }
     // Get instruction representation in string form ( Used for DEBUG logs )
     char* get_instr_str(){
@@ -69,10 +72,10 @@ struct instr_call {
         }
         fmt += "\n";
         // We use printf for printing , since we have format of arguments in a string.
-        if(opcode == "")
+        if(opcname == "")
             sprintf(instr_str, ".long 0x%lx\n", (arg[0].v & 0xffffffff));
         else
-            sprintf(instr_str, lfmt.c_str(), opcode.c_str(), arg[0].v, arg[1].v, arg[2].v, arg[3].v, arg[4].v, arg[5].v);
+            sprintf(instr_str, lfmt.c_str(), opcname.c_str(), arg[0].v, arg[1].v, arg[2].v, arg[3].v, arg[4].v, arg[5].v);
         return instr_str;
     }
 

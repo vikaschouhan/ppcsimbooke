@@ -73,7 +73,7 @@ class DIS_PPC{
 
     /* Find a match for INSN in the opcode table, given machine DIALECT.
     A DIALECT of -1 is special, matching all machine opcode variations.  */
-    const struct powerpc_opcode * lookup_powerpc (unsigned long insn);
+    std::pair<const struct powerpc_opcode*, uint32_t> lookup_powerpc (unsigned long insn);
 
     // Helper function : check if standard delimiters are present
     int if_std_delims_present(char *str);
@@ -195,19 +195,20 @@ long DIS_PPC::operand_value_powerpc (const struct powerpc_operand *operand, unsi
 
 /* Find a match for INSN in the opcode table, given machine DIALECT.
 A DIALECT of -1 is special, matching all machine opcode variations.  */
-
-const struct powerpc_opcode * DIS_PPC::lookup_powerpc (unsigned long insn)
+// Return the opcode entry and also the index number
+std::pair<const struct powerpc_opcode*, uint32_t> DIS_PPC::lookup_powerpc (unsigned long insn)
 {
     const struct powerpc_opcode *opcode;
     const struct powerpc_opcode *opcode_end;
     unsigned long op;
+    uint32_t indx = 0;
 
     /* Get the major opcode of the instruction.  */
     op = PPC_OP (insn);
 
     /* Find the first match in the opcode table for this major opcode.  */
     opcode_end = powerpc_opcodes + m_ppc_opcd_indices[op + 1];
-    for (opcode = powerpc_opcodes + m_ppc_opcd_indices[op]; opcode < opcode_end; ++opcode)
+    for (opcode = powerpc_opcodes + m_ppc_opcd_indices[op], indx=0; opcode < opcode_end; ++opcode, ++indx)
     {
         const unsigned char *opindex;
         const struct powerpc_operand *operand;
@@ -236,10 +237,10 @@ const struct powerpc_opcode * DIS_PPC::lookup_powerpc (unsigned long insn)
         if (invalid)
             continue;
 
-        return opcode;
+        return std::make_pair(opcode, m_ppc_opcd_indices[op] + indx);
     }
 
-    return NULL;
+    return std::make_pair(reinterpret_cast<const struct powerpc_opcode*>(NULL), 0);
 }
 
 int DIS_PPC::if_std_delims_present(char *str)
@@ -272,6 +273,7 @@ instr_call DIS_PPC::disasm(uint32_t opcd, uint64_t pc, int endianness)
     int i = 0;
     bool rad = 0;        // flag for relative addressing mode
     _dis_info  dinfo;    // extra disassembler info
+    std::pair<const struct powerpc_opcode*, uint32_t> opc_pair;
 
     // We reverse endianness if LITTLE endian specified
     if (endianness == EMUL_LITTLE_ENDIAN)
@@ -300,12 +302,14 @@ instr_call DIS_PPC::disasm(uint32_t opcd, uint64_t pc, int endianness)
         return call_this;
 
     exit_0:
-    opcode = lookup_powerpc (insn);
+    opc_pair = lookup_powerpc (insn);
+    opcode   = opc_pair.first;
 
     if (opcode == NULL && (m_dialect & PPC_OPCODE_ANY) != 0)
     {
         m_dialect = -1;
-        opcode = lookup_powerpc (insn);
+        opc_pair = lookup_powerpc (insn);
+        opcode   = opc_pair.first;
     }
 
     if (opcode != NULL)
@@ -317,7 +321,8 @@ instr_call DIS_PPC::disasm(uint32_t opcd, uint64_t pc, int endianness)
 
         /* If we are here, it means correct opcode was found in the table */
         /* Store opcode name in passed disassemble_info */
-        call_this.opcode = std::string(opcode->name);
+        call_this.opcname = std::string(opcode->name);
+        call_this.opc     = (opcode->opcode << 32 | opc_pair.second);
 
         if (opcode->operands[0] != 0)
             call_this.fmt = "%-7s ";
@@ -443,6 +448,7 @@ instr_call DIS_PPC::disasm(std::string instr, uint64_t pc)
     char *tmp_str = (char *)instr.c_str();
     char delim = ',';
     instr_call call_this;
+    uint32_t indx = 0;
 
     int i=0;
     size_t value = 0;
@@ -453,7 +459,8 @@ instr_call DIS_PPC::disasm(std::string instr, uint64_t pc)
     token = find_tok(&tmp_str, ' ');    /* One space is first required between instr and it's operands */
     assert_and_throw(!if_std_delims_present(token), sim_except(SIM_EXCEPT_EINVAL, "Wrong instr" + std::string(token)));
 
-    for(i=0; i<powerpc_num_opcodes; i++){
+    // Try to get the opcode entry
+    for(i=0, indx=0; i<powerpc_num_opcodes; i++, indx++){
         if(!strcmp(token, powerpc_opcodes[i].name)){
             opcode = (powerpc_opcodes + i);
             break;
@@ -467,7 +474,9 @@ instr_call DIS_PPC::disasm(std::string instr, uint64_t pc)
     assert_and_throw(opcode != NULL, sim_except(SIM_EXCEPT_EINVAL, "Wrong opcode"));
 
     // Get opcode's name
-    call_this.opcode = std::string(opcode->name);
+    call_this.opcname = std::string(opcode->name);
+    call_this.opc     = (opcode->opcode << 32 | indx);
+
     if (opcode->operands[0] != 0)
         call_this.fmt = "%-7s ";
     else

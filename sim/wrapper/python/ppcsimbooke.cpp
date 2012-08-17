@@ -254,10 +254,11 @@ BOOST_PYTHON_MODULE(ppcsim)
         {
             class_<instr_call> instr_call_py("instr_call");
             scope instr_call_scope = instr_call_py;
-            instr_call_py.def_readwrite("opcode", &instr_call::opcode)
-                .def_readwrite("nargs",  &instr_call::nargs)
-                .def("dump_state",       &instr_call::dump_state)
-                .def("print_instr",      &instr_call::print_instr)
+            instr_call_py.def_readwrite("opcode",   &instr_call::opc)
+                .def_readwrite("opcode_name",       &instr_call::opcname)
+                .def_readwrite("nargs",             &instr_call::nargs)
+                .def("dump_state",                  &instr_call::dump_state)
+                .def("print_instr",                 &instr_call::print_instr)
                 ;
 
             // instr_arg type
