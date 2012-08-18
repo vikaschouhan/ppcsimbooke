@@ -62,10 +62,9 @@
 //#define EBMASK(reg, bmask)       (((reg)  & (bmask)) >> Rshift(bmask))
 //#endif
 
-#define ppcreg(regid)            (CPU->m_ireghash[regid]->value)
-#define ppcregattr(regid)        (CPU->m_ireghash[regid]->attr)
-#define ppcregn(reg_name)        (CPU->m_reghash[reg_name]->value)
-#define ppcregnattr(reg_name)    (CPU->m_reghash[reg_name]->attr)
+// Alias to CPU functions
+#define ppcreg(regid)            (CPU->reg(regid))
+#define ppcregn(reg_name)        (CPU->regn(reg_name))
 
 // MSR_CM
 #define CM                       ((ppcreg(REG_MSR) & MSR_CM) ? 1 : 0)
@@ -1564,7 +1563,8 @@ MNEC_MR( atbl    )    MNEC_MR( atbu    )    MNEC_MR( csrr0   )
 MNEC_MR( csrr1   )    MNEC_MR( ctr     )    MNEC_MR( dac1    )    MNEC_MR( dac2    )    MNEC_MR( dbcr0   )    MNEC_MR( dbcr1    )
 MNEC_MR( dbcr2   )    MNEC_MR( dbsr    )    MNEC_MR( dear    )    MNEC_MR( dec     )    MNEC_MR( decar   )    MNEC_MR( esr      )
 MNEC_MR( iac1    )    MNEC_MR( iac2    )    MNEC_MR( ivor0   )    MNEC_MR( ivor1   )    MNEC_MR( ivor2   )    MNEC_MR( ivor3    )
-MNEC_MR( ivor4   )    MNEC_MR( ivor5   )    MNEC_MR( ivor6   )    MNEC_MR( ivor8   )    MNEC_MR( ivor10  )    MNEC_MR( ivor11   )
+MNEC_MR( ivor4   )    MNEC_MR( ivor5   )    MNEC_MR( ivor6   )    MNEC_MR( ivor7   )    MNEC_MR( ivor8   )    MNEC_MR( ivor9    )
+MNEC_MR( ivor10  )    MNEC_MR( ivor11  )
 MNEC_MR( ivor12  )    MNEC_MR( ivor13  )    MNEC_MR( ivor14  )    MNEC_MR( ivor15  )    MNEC_MR( ivpr    )    MNEC_MR( lr       )  
 MNEC_MR( pid     )    MNEC_MR( pir     )    MNEC_MR( pvr     )    MNEC_MR( sprg0   )    MNEC_MR( sprg1   )    MNEC_MR( sprg2    )
 MNEC_MR( sprg3   )    MNEC_MR( sprg4   )    MNEC_MR( sprg5   )    MNEC_MR( sprg6   )    MNEC_MR( sprg7   )    MNEC_MR( srr0     )
@@ -1921,4 +1921,11 @@ X(xoris)
     rA = rS ^ (((uint16_t)UIMM) << 16);
 
     xoris_code(REG0, REG1, REG2);
+}
+
+// ------------------------------ SPE -----------------------------------------------
+
+X(evxor)
+{
+    REG0 = REG1 ^ REG2;
 }

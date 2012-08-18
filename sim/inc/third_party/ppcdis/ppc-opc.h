@@ -2,7 +2,7 @@
 # 1 "<built-in>"
 # 1 "<command-line>"
 # 1 "template/ppc-opc.hxx"
-# 50 "template/ppc-opc.hxx"
+# 62 "template/ppc-opc.hxx"
 static unsigned long insert_bat (unsigned long, long, ppc_cpu_t, const char **);
 static long extract_bat (unsigned long, ppc_cpu_t, int *);
 static unsigned long insert_bba (unsigned long, long, ppc_cpu_t, const char **);
@@ -53,7 +53,7 @@ static unsigned long insert_xc6 (unsigned long, long, ppc_cpu_t, const char **);
 static long extract_xc6 (unsigned long, ppc_cpu_t, int *);
 static unsigned long insert_dm (unsigned long, long, ppc_cpu_t, const char **);
 static long extract_dm (unsigned long, ppc_cpu_t, int *);
-# 112 "template/ppc-opc.hxx"
+# 124 "template/ppc-opc.hxx"
 static const struct powerpc_operand powerpc_operands[] =
 {
 
@@ -638,7 +638,7 @@ static const struct powerpc_operand powerpc_operands[] =
 
 static const unsigned int num_powerpc_operands = (sizeof (powerpc_operands)
         / sizeof (powerpc_operands[0]));
-# 705 "template/ppc-opc.hxx"
+# 717 "template/ppc-opc.hxx"
 static unsigned long
 insert_bat (unsigned long insn,
      long value ATTRIBUTE_UNUSED,
@@ -682,7 +682,7 @@ extract_bba (unsigned long insn,
     *invalid = 1;
   return 0;
 }
-# 768 "template/ppc-opc.hxx"
+# 780 "template/ppc-opc.hxx"
 static unsigned long
 insert_bdm (unsigned long insn,
      long value,
@@ -772,7 +772,7 @@ extract_bdp (unsigned long insn,
 static inline int
 valid_bo_pre_v2 (long value)
 {
-# 869 "template/ppc-opc.hxx"
+# 881 "template/ppc-opc.hxx"
   if ((value & 0x14) == 0)
     return 1;
   else if ((value & 0x14) == 0x4)
@@ -786,7 +786,7 @@ valid_bo_pre_v2 (long value)
 static inline int
 valid_bo_post_v2 (long value)
 {
-# 894 "template/ppc-opc.hxx"
+# 906 "template/ppc-opc.hxx"
   if ((value & 0x14) == 0)
     return (value & 0x1) == 0;
   else if ((value & 0x14) == 0x14)
@@ -1318,7 +1318,7 @@ extract_sprg (unsigned long insn,
     *invalid = 1;
   return val & 7;
 }
-# 1436 "template/ppc-opc.hxx"
+# 1448 "template/ppc-opc.hxx"
 static unsigned long
 insert_tbr (unsigned long insn,
      long value,
@@ -1468,7 +1468,7 @@ extract_dm (unsigned long insn,
     *invalid = 1;
   return (value) ? 1 : 0;
 }
-# 2096 "template/ppc-opc.hxx"
+# 2108 "template/ppc-opc.hxx"
 static const struct powerpc_opcode powerpc_opcodes[] = {
 {"attn", (((((unsigned long)(0)) & 0x3f) << 26) | ((((unsigned long)(256)) & 0x3ff) << 1)), ((((((unsigned long)((0x3f))) & 0x3f) << 26) | ((((unsigned long)((0x3ff))) & 0x3ff) << 1)) | ((1) & 1)), PPC_OPCODE_POWER4|PPC_OPCODE_A2, PPC_OPCODE_476, {0}},
 {"tdlgti", (((((unsigned long)(2)) & 0x3f) << 26) | ((((unsigned long)((0x1))) & 0x1f) << 21)), (((((unsigned long)(0x3f)) & 0x3f) << 26) | (0x1f << 21)), PPC_OPCODE_64 | PPC_OPCODE_64_BRIDGE, 0, {0 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 2 + 1 + 1 + 1 + 1, 0 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 2 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1}},
@@ -3494,13 +3494,9 @@ static const struct powerpc_opcode powerpc_opcodes[] = {
 {"mfbbear", ((((((unsigned long)((31))) & 0x3f) << 26) | ((((unsigned long)((339))) & 0x3ff) << 1)) | ((((unsigned long)(513)) & 0x1f) << 16) | ((((unsigned long)(513)) & 0x3e0) << 6)), (((((((unsigned long)((0x3f))) & 0x3f) << 26) | ((((unsigned long)((0x3ff))) & 0x3ff) << 1)) | ((1) & 1)) | (0x3ff << 11)), PPC_OPCODE_BRLOCK, 0, {0 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 2 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1}},
 {"mfbbtar", ((((((unsigned long)((31))) & 0x3f) << 26) | ((((unsigned long)((339))) & 0x3ff) << 1)) | ((((unsigned long)(514)) & 0x1f) << 16) | ((((unsigned long)(514)) & 0x3e0) << 6)), (((((((unsigned long)((0x3f))) & 0x3f) << 26) | ((((unsigned long)((0x3ff))) & 0x3ff) << 1)) | ((1) & 1)) | (0x3ff << 11)), PPC_OPCODE_BRLOCK, 0, {0 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 2 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1}},
 {"mfivor32", ((((((unsigned long)((31))) & 0x3f) << 26) | ((((unsigned long)((339))) & 0x3ff) << 1)) | ((((unsigned long)(528)) & 0x1f) << 16) | ((((unsigned long)(528)) & 0x3e0) << 6)), (((((((unsigned long)((0x3f))) & 0x3f) << 26) | ((((unsigned long)((0x3ff))) & 0x3ff) << 1)) | ((1) & 1)) | (0x3ff << 11)), PPC_OPCODE_SPE, 0, {0 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 2 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1}},
-{"mfibatu", ((((((unsigned long)((31))) & 0x3f) << 26) | ((((unsigned long)((339))) & 0x3ff) << 1)) | ((((unsigned long)(528)) & 0x1f) << 16) | ((((unsigned long)(528)) & 0x3e0) << 6)), ((((((((unsigned long)((0x3f))) & 0x3f) << 26) | ((((unsigned long)((0x3ff))) & 0x3ff) << 1)) | ((1) & 1)) | (0x3ff << 11)) &~ (0x3 << 17)), PPC_OPCODE_PPC, PPC_OPCODE_TITAN, {0 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 2 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1, 0 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 2 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1}},
 {"mfivor33", ((((((unsigned long)((31))) & 0x3f) << 26) | ((((unsigned long)((339))) & 0x3ff) << 1)) | ((((unsigned long)(529)) & 0x1f) << 16) | ((((unsigned long)(529)) & 0x3e0) << 6)), (((((((unsigned long)((0x3f))) & 0x3f) << 26) | ((((unsigned long)((0x3ff))) & 0x3ff) << 1)) | ((1) & 1)) | (0x3ff << 11)), PPC_OPCODE_SPE, 0, {0 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 2 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1}},
-{"mfibatl", ((((((unsigned long)((31))) & 0x3f) << 26) | ((((unsigned long)((339))) & 0x3ff) << 1)) | ((((unsigned long)(529)) & 0x1f) << 16) | ((((unsigned long)(529)) & 0x3e0) << 6)), ((((((((unsigned long)((0x3f))) & 0x3f) << 26) | ((((unsigned long)((0x3ff))) & 0x3ff) << 1)) | ((1) & 1)) | (0x3ff << 11)) &~ (0x3 << 17)), PPC_OPCODE_PPC, PPC_OPCODE_TITAN, {0 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 2 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1, 0 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 2 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1}},
 {"mfivor34", ((((((unsigned long)((31))) & 0x3f) << 26) | ((((unsigned long)((339))) & 0x3ff) << 1)) | ((((unsigned long)(530)) & 0x1f) << 16) | ((((unsigned long)(530)) & 0x3e0) << 6)), (((((((unsigned long)((0x3f))) & 0x3f) << 26) | ((((unsigned long)((0x3ff))) & 0x3ff) << 1)) | ((1) & 1)) | (0x3ff << 11)), PPC_OPCODE_SPE, 0, {0 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 2 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1}},
 {"mfivor35", ((((((unsigned long)((31))) & 0x3f) << 26) | ((((unsigned long)((339))) & 0x3ff) << 1)) | ((((unsigned long)(531)) & 0x1f) << 16) | ((((unsigned long)(531)) & 0x3e0) << 6)), (((((((unsigned long)((0x3f))) & 0x3f) << 26) | ((((unsigned long)((0x3ff))) & 0x3ff) << 1)) | ((1) & 1)) | (0x3ff << 11)), PPC_OPCODE_PMR, 0, {0 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 2 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1}},
-{"mfdbatu", ((((((unsigned long)((31))) & 0x3f) << 26) | ((((unsigned long)((339))) & 0x3ff) << 1)) | ((((unsigned long)(536)) & 0x1f) << 16) | ((((unsigned long)(536)) & 0x3e0) << 6)), ((((((((unsigned long)((0x3f))) & 0x3f) << 26) | ((((unsigned long)((0x3ff))) & 0x3ff) << 1)) | ((1) & 1)) | (0x3ff << 11)) &~ (0x3 << 17)), PPC_OPCODE_PPC, PPC_OPCODE_TITAN, {0 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 2 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1, 0 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 2 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1}},
-{"mfdbatl", ((((((unsigned long)((31))) & 0x3f) << 26) | ((((unsigned long)((339))) & 0x3ff) << 1)) | ((((unsigned long)(537)) & 0x1f) << 16) | ((((unsigned long)(537)) & 0x3e0) << 6)), ((((((((unsigned long)((0x3f))) & 0x3f) << 26) | ((((unsigned long)((0x3ff))) & 0x3ff) << 1)) | ((1) & 1)) | (0x3ff << 11)) &~ (0x3 << 17)), PPC_OPCODE_PPC, PPC_OPCODE_TITAN, {0 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 2 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1, 0 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 2 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1}},
 {"mfic_cst", ((((((unsigned long)((31))) & 0x3f) << 26) | ((((unsigned long)((339))) & 0x3ff) << 1)) | ((((unsigned long)(560)) & 0x1f) << 16) | ((((unsigned long)(560)) & 0x3e0) << 6)), (((((((unsigned long)((0x3f))) & 0x3f) << 26) | ((((unsigned long)((0x3ff))) & 0x3ff) << 1)) | ((1) & 1)) | (0x3ff << 11)), PPC_OPCODE_PPC, 0, {0 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 2 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1}},
 {"mfic_adr", ((((((unsigned long)((31))) & 0x3f) << 26) | ((((unsigned long)((339))) & 0x3ff) << 1)) | ((((unsigned long)(561)) & 0x1f) << 16) | ((((unsigned long)(561)) & 0x3e0) << 6)), (((((((unsigned long)((0x3f))) & 0x3f) << 26) | ((((unsigned long)((0x3ff))) & 0x3ff) << 1)) | ((1) & 1)) | (0x3ff << 11)), PPC_OPCODE_PPC, 0, {0 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 2 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1}},
 {"mfic_dat", ((((((unsigned long)((31))) & 0x3f) << 26) | ((((unsigned long)((339))) & 0x3ff) << 1)) | ((((unsigned long)(562)) & 0x1f) << 16) | ((((unsigned long)(562)) & 0x3e0) << 6)), (((((((unsigned long)((0x3f))) & 0x3f) << 26) | ((((unsigned long)((0x3ff))) & 0x3ff) << 1)) | ((1) & 1)) | (0x3ff << 11)), PPC_OPCODE_PPC, 0, {0 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 2 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1}},
@@ -3821,13 +3817,9 @@ static const struct powerpc_opcode powerpc_opcodes[] = {
 {"mtbbear", ((((((unsigned long)((31))) & 0x3f) << 26) | ((((unsigned long)((467))) & 0x3ff) << 1)) | ((((unsigned long)(513)) & 0x1f) << 16) | ((((unsigned long)(513)) & 0x3e0) << 6)), (((((((unsigned long)((0x3f))) & 0x3f) << 26) | ((((unsigned long)((0x3ff))) & 0x3ff) << 1)) | ((1) & 1)) | (0x3ff << 11)), PPC_OPCODE_BRLOCK, 0, {0 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 2 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1}},
 {"mtbbtar", ((((((unsigned long)((31))) & 0x3f) << 26) | ((((unsigned long)((467))) & 0x3ff) << 1)) | ((((unsigned long)(514)) & 0x1f) << 16) | ((((unsigned long)(514)) & 0x3e0) << 6)), (((((((unsigned long)((0x3f))) & 0x3f) << 26) | ((((unsigned long)((0x3ff))) & 0x3ff) << 1)) | ((1) & 1)) | (0x3ff << 11)), PPC_OPCODE_BRLOCK, 0, {0 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 2 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1}},
 {"mtivor32", ((((((unsigned long)((31))) & 0x3f) << 26) | ((((unsigned long)((467))) & 0x3ff) << 1)) | ((((unsigned long)(528)) & 0x1f) << 16) | ((((unsigned long)(528)) & 0x3e0) << 6)), (((((((unsigned long)((0x3f))) & 0x3f) << 26) | ((((unsigned long)((0x3ff))) & 0x3ff) << 1)) | ((1) & 1)) | (0x3ff << 11)), PPC_OPCODE_SPE, 0, {0 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 2 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1}},
-{"mtibatu", ((((((unsigned long)((31))) & 0x3f) << 26) | ((((unsigned long)((467))) & 0x3ff) << 1)) | ((((unsigned long)(528)) & 0x1f) << 16) | ((((unsigned long)(528)) & 0x3e0) << 6)), ((((((((unsigned long)((0x3f))) & 0x3f) << 26) | ((((unsigned long)((0x3ff))) & 0x3ff) << 1)) | ((1) & 1)) | (0x3ff << 11)) &~ (0x3 << 17)), PPC_OPCODE_PPC, PPC_OPCODE_TITAN, {0 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 2 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1, 0 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 2 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1}},
 {"mtivor33", ((((((unsigned long)((31))) & 0x3f) << 26) | ((((unsigned long)((467))) & 0x3ff) << 1)) | ((((unsigned long)(529)) & 0x1f) << 16) | ((((unsigned long)(529)) & 0x3e0) << 6)), (((((((unsigned long)((0x3f))) & 0x3f) << 26) | ((((unsigned long)((0x3ff))) & 0x3ff) << 1)) | ((1) & 1)) | (0x3ff << 11)), PPC_OPCODE_SPE, 0, {0 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 2 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1}},
-{"mtibatl", ((((((unsigned long)((31))) & 0x3f) << 26) | ((((unsigned long)((467))) & 0x3ff) << 1)) | ((((unsigned long)(529)) & 0x1f) << 16) | ((((unsigned long)(529)) & 0x3e0) << 6)), ((((((((unsigned long)((0x3f))) & 0x3f) << 26) | ((((unsigned long)((0x3ff))) & 0x3ff) << 1)) | ((1) & 1)) | (0x3ff << 11)) &~ (0x3 << 17)), PPC_OPCODE_PPC, PPC_OPCODE_TITAN, {0 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 2 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1, 0 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 2 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1}},
 {"mtivor34", ((((((unsigned long)((31))) & 0x3f) << 26) | ((((unsigned long)((467))) & 0x3ff) << 1)) | ((((unsigned long)(530)) & 0x1f) << 16) | ((((unsigned long)(530)) & 0x3e0) << 6)), (((((((unsigned long)((0x3f))) & 0x3f) << 26) | ((((unsigned long)((0x3ff))) & 0x3ff) << 1)) | ((1) & 1)) | (0x3ff << 11)), PPC_OPCODE_SPE, 0, {0 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 2 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1}},
 {"mtivor35", ((((((unsigned long)((31))) & 0x3f) << 26) | ((((unsigned long)((467))) & 0x3ff) << 1)) | ((((unsigned long)(531)) & 0x1f) << 16) | ((((unsigned long)(531)) & 0x3e0) << 6)), (((((((unsigned long)((0x3f))) & 0x3f) << 26) | ((((unsigned long)((0x3ff))) & 0x3ff) << 1)) | ((1) & 1)) | (0x3ff << 11)), PPC_OPCODE_PMR, 0, {0 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 2 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1}},
-{"mtdbatu", ((((((unsigned long)((31))) & 0x3f) << 26) | ((((unsigned long)((467))) & 0x3ff) << 1)) | ((((unsigned long)(536)) & 0x1f) << 16) | ((((unsigned long)(536)) & 0x3e0) << 6)), ((((((((unsigned long)((0x3f))) & 0x3f) << 26) | ((((unsigned long)((0x3ff))) & 0x3ff) << 1)) | ((1) & 1)) | (0x3ff << 11)) &~ (0x3 << 17)), PPC_OPCODE_PPC, PPC_OPCODE_TITAN, {0 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 2 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1, 0 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 2 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1}},
-{"mtdbatl", ((((((unsigned long)((31))) & 0x3f) << 26) | ((((unsigned long)((467))) & 0x3ff) << 1)) | ((((unsigned long)(537)) & 0x1f) << 16) | ((((unsigned long)(537)) & 0x3e0) << 6)), ((((((((unsigned long)((0x3f))) & 0x3f) << 26) | ((((unsigned long)((0x3ff))) & 0x3ff) << 1)) | ((1) & 1)) | (0x3ff << 11)) &~ (0x3 << 17)), PPC_OPCODE_PPC, PPC_OPCODE_TITAN, {0 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 2 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1, 0 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 2 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1}},
 {"mtmcsrr0", ((((((unsigned long)((31))) & 0x3f) << 26) | ((((unsigned long)((467))) & 0x3ff) << 1)) | ((((unsigned long)(570)) & 0x1f) << 16) | ((((unsigned long)(570)) & 0x3e0) << 6)), (((((((unsigned long)((0x3f))) & 0x3f) << 26) | ((((unsigned long)((0x3ff))) & 0x3ff) << 1)) | ((1) & 1)) | (0x3ff << 11)), PPC_OPCODE_RFMCI, 0, {0 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 2 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1}},
 {"mtmcsrr1", ((((((unsigned long)((31))) & 0x3f) << 26) | ((((unsigned long)((467))) & 0x3ff) << 1)) | ((((unsigned long)(571)) & 0x1f) << 16) | ((((unsigned long)(571)) & 0x3e0) << 6)), (((((((unsigned long)((0x3f))) & 0x3f) << 26) | ((((unsigned long)((0x3ff))) & 0x3ff) << 1)) | ((1) & 1)) | (0x3ff << 11)), PPC_OPCODE_RFMCI, 0, {0 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 2 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1}},
 {"mtmcsr", ((((((unsigned long)((31))) & 0x3f) << 26) | ((((unsigned long)((467))) & 0x3ff) << 1)) | ((((unsigned long)(572)) & 0x1f) << 16) | ((((unsigned long)(572)) & 0x3e0) << 6)), (((((((unsigned long)((0x3f))) & 0x3f) << 26) | ((((unsigned long)((0x3ff))) & 0x3ff) << 1)) | ((1) & 1)) | (0x3ff << 11)), PPC_OPCODE_RFMCI, 0, {0 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 2 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1}},
@@ -4920,7 +4912,7 @@ static const struct powerpc_opcode powerpc_opcodes[] = {
 
 static const int powerpc_num_opcodes =
   sizeof (powerpc_opcodes) / sizeof (powerpc_opcodes[0]);
-# 5560 "template/ppc-opc.hxx"
+# 5564 "template/ppc-opc.hxx"
 static const struct powerpc_macro powerpc_macros[] = {
 {"extldi", 4, PPC_OPCODE_64 | PPC_OPCODE_64_BRIDGE, "rldicr %0,%1,%3,(%2)-1"},
 {"extldi.", 4, PPC_OPCODE_64 | PPC_OPCODE_64_BRIDGE, "rldicr. %0,%1,%3,(%2)-1"},

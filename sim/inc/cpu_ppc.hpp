@@ -11,6 +11,14 @@
 #include "memory.hpp"                // Memory module
 #include "bm.hpp"                    // Software Breakpoint manager
 
+// powerPC register attribute flags
+// if attr=0, this means the register is illegal
+#define REG_ACS_READ    0x00000001UL       // Register has read access
+#define REG_ACS_WRITE   0x00000002UL       // Register has write access
+#define REG_CLEAR_W1C   0x00000010UL       // Register can be cleared by writing 1 to the bits
+#define REG_REQ_SYNC    0x00000020UL       // Register write requires synchronization
+#define REG_PRIV        0x00000100UL       // Register is priviledged
+
 /* 64 bit MSRs were used in older powerPC designs */
 /* All BookE cores have 32 bit MSRs only */
 
@@ -140,6 +148,24 @@ class CPU_PPC : public cpu {
     // Returns a pair ( first arg is the address, second is the wimge attribute )
     std::pair<uint64_t, uint8_t> xlate(uint64_t addr, bool wr=0);
 
+    // Accessing registers using reghash interface ( for use with ppc code translation unit )
+    // Permissions will also be checked here itself
+    // TODO : Check Permissions
+    inline uint64_t& reg(int regid){
+        LASSERT_THROW(m_ireghash.find(regid) != m_ireghash.end(),
+               sim_except(SIM_EXCEPT_EINVAL, "Invalid register id " + boost::lexical_cast<std::string>(regid)), DEBUG4);
+        return m_ireghash[regid]->value;
+    }
+    inline uint64_t& regn(std::string regname){
+        LASSERT_THROW(m_reghash.find(regname) != m_reghash.end(),
+               sim_except(SIM_EXCEPT_EINVAL, "Invalid register name " + regname), DEBUG4);
+        // Do several checks
+        if(!m_reghash[regname]->attr){
+            std::cout << "Warning !! Invalid register " << regname << std::endl;
+        }
+        return m_reghash[regname]->value;
+    }
+
     private:
     void init_reghash();
     void ppc_exception(int exception_nr, uint64_t subtype, uint64_t ea=0xffffffffffffffffULL);
@@ -185,15 +211,8 @@ class CPU_PPC : public cpu {
     int         dec_intr_pending;  /* Decrementer interrupt pending  */
     uint64_t    zero;              /*  A zero register  */
 
-#define REG_ACS_READ    0x00000001UL       // Register has read access
-#define REG_ACS_WRITE   0x00000002UL       // Register has write access
-#define REG_CLEAR_W1C   0x00000010UL       // Register can be cleared by writing 1 to the bits
-#define REG_REQ_SYNC    0x00000020UL       // Register write requires synchronization
-#define REG_PRIV        0x00000100UL       // Register is priviledged
-#define REG_ILLEGAL     0xffffffffUL       // Register is illegal
-
+    // powerPC register file
     ppc_regs    regs;                      // PPC register file
-
 
     // Book keeping
     uint8_t                               cpu_no;            /* Numerical cpu no */
@@ -461,8 +480,9 @@ void CPU_PPC::init_reg_attrs(){
     // If 0 -> it's accessible from both User and supervisor mode
 #define PPCREGATTR(regtype, regno)  (regs.regtype[regno].attr)
     int i;
+    // All SPRs illegal by default
     for(i=0; i<PPC_NSPRS; i++){
-        PPCREGATTR(spr, i) = REG_ILLEGAL;
+        PPCREGATTR(spr, i) = 0;
     }
 
     // Set permissions for individual sprs
@@ -490,7 +510,13 @@ void CPU_PPC::init_reg_attrs(){
     PPCREGATTR(spr, SPRN_IVOR4    )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV;
     PPCREGATTR(spr, SPRN_IVOR5    )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV;
     PPCREGATTR(spr, SPRN_IVOR6    )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV;
+#if CORE_TYPE != e500v2
+    PPCREGATTR(spr, SPRN_IVOR7    )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV;
+#endif
     PPCREGATTR(spr, SPRN_IVOR8    )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV;
+#if CORE_TYPE != e500v2
+    PPCREGATTR(spr, SPRN_IVOR9    )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV;
+#endif
     PPCREGATTR(spr, SPRN_IVOR10   )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV;
     PPCREGATTR(spr, SPRN_IVOR11   )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV;
     PPCREGATTR(spr, SPRN_IVOR12   )    = REG_ACS_READ  | REG_ACS_WRITE  | REG_PRIV;
@@ -1159,7 +1185,9 @@ void CPU_PPC::init_reghash(){
     m_reghash["ivor4"]      = &(regs.spr[SPRN_IVOR4]);       m_ireghash[REG_IVOR4]       = m_reghash["ivor4"];
     m_reghash["ivor5"]      = &(regs.spr[SPRN_IVOR5]);       m_ireghash[REG_IVOR5]       = m_reghash["ivor5"];
     m_reghash["ivor6"]      = &(regs.spr[SPRN_IVOR6]);       m_ireghash[REG_IVOR6]       = m_reghash["ivor6"];
+    m_reghash["ivor7"]      = &(regs.spr[SPRN_IVOR7]);       m_ireghash[REG_IVOR7]       = m_reghash["ivor7"];
     m_reghash["ivor8"]      = &(regs.spr[SPRN_IVOR8]);       m_ireghash[REG_IVOR8]       = m_reghash["ivor8"];
+    m_reghash["ivor9"]      = &(regs.spr[SPRN_IVOR9]);       m_ireghash[REG_IVOR9]       = m_reghash["ivor9"];
     m_reghash["ivor10"]     = &(regs.spr[SPRN_IVOR10]);      m_ireghash[REG_IVOR10]      = m_reghash["ivor10"];
     m_reghash["ivor11"]     = &(regs.spr[SPRN_IVOR11]);      m_ireghash[REG_IVOR11]      = m_reghash["ivor11"];
     m_reghash["ivor12"]     = &(regs.spr[SPRN_IVOR12]);      m_ireghash[REG_IVOR12]      = m_reghash["ivor12"];

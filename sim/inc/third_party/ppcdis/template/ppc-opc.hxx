@@ -30,6 +30,18 @@
 //         #define _PPC_OPC_H
 //     type statements, now we have converted the C file to header file
 //  4. This file now only acts as a template file. Actual header file gets generate later on.
+//  5. FIXME :
+//     Removed 8 instrs :-
+//         mtibatu   mfibatu
+//         mtibatl   mfibatl
+//         mtdbatu   mfdbatu
+//         mtdbatl   mfdbatl
+//
+//     There seems to be some bug in the original GNU binutils ppc-opc.c file due to which
+//     mtibat* opcodes are selected for IVORs > 32. The issue is that of proper ordering.
+//     Since we didn't need these opcodes, we removed them entirely, although the problem
+//     could have been solved just by moving the entries corresponding to these instrs a
+//     few rows lower.
 
 #ifndef _PPC_OPC_H
 #define _PPC_OPC_H
@@ -4118,13 +4130,9 @@ static const struct powerpc_opcode powerpc_opcodes[] = {
 {"mfbbear",	XSPR(31,339,513), XSPR_MASK, PPCBRLK,	PPCNONE,	{RT}},
 {"mfbbtar",	XSPR(31,339,514), XSPR_MASK, PPCBRLK,	PPCNONE,	{RT}},
 {"mfivor32",	XSPR(31,339,528), XSPR_MASK, PPCSPE,	PPCNONE,	{RT}},
-{"mfibatu",	XSPR(31,339,528), XSPRBAT_MASK, PPC,	TITAN,  	{RT, SPRBAT}},
 {"mfivor33",	XSPR(31,339,529), XSPR_MASK, PPCSPE,	PPCNONE,	{RT}},
-{"mfibatl",	XSPR(31,339,529), XSPRBAT_MASK, PPC,	TITAN,  	{RT, SPRBAT}},
 {"mfivor34",	XSPR(31,339,530), XSPR_MASK, PPCSPE,	PPCNONE,	{RT}},
 {"mfivor35",	XSPR(31,339,531), XSPR_MASK, PPCPMR,	PPCNONE,	{RT}},
-{"mfdbatu",	XSPR(31,339,536), XSPRBAT_MASK, PPC,	TITAN,  	{RT, SPRBAT}},
-{"mfdbatl",	XSPR(31,339,537), XSPRBAT_MASK, PPC,	TITAN,  	{RT, SPRBAT}},
 {"mfic_cst",	XSPR(31,339,560), XSPR_MASK, PPC860,	PPCNONE,	{RT}},
 {"mfic_adr",	XSPR(31,339,561), XSPR_MASK, PPC860,	PPCNONE,	{RT}},
 {"mfic_dat",	XSPR(31,339,562), XSPR_MASK, PPC860,	PPCNONE,	{RT}},
@@ -4445,13 +4453,9 @@ static const struct powerpc_opcode powerpc_opcodes[] = {
 {"mtbbear",	XSPR(31,467,513), XSPR_MASK, PPCBRLK,	PPCNONE,	{RS}},
 {"mtbbtar",	XSPR(31,467,514), XSPR_MASK, PPCBRLK,	PPCNONE,	{RS}},
 {"mtivor32",	XSPR(31,467,528), XSPR_MASK, PPCSPE,	PPCNONE,	{RS}},
-{"mtibatu",	XSPR(31,467,528), XSPRBAT_MASK, PPC,	TITAN,  	{SPRBAT, RS}},
 {"mtivor33",	XSPR(31,467,529), XSPR_MASK, PPCSPE,	PPCNONE,	{RS}},
-{"mtibatl",	XSPR(31,467,529), XSPRBAT_MASK, PPC,	TITAN,  	{SPRBAT, RS}},
 {"mtivor34",	XSPR(31,467,530), XSPR_MASK, PPCSPE,	PPCNONE,	{RS}},
 {"mtivor35",	XSPR(31,467,531), XSPR_MASK, PPCPMR,	PPCNONE,	{RS}},
-{"mtdbatu",	XSPR(31,467,536), XSPRBAT_MASK, PPC,	TITAN,  	{SPRBAT, RS}},
-{"mtdbatl",	XSPR(31,467,537), XSPRBAT_MASK, PPC,	TITAN,  	{SPRBAT, RS}},
 {"mtmcsrr0",	XSPR(31,467,570), XSPR_MASK, PPCRFMCI,	PPCNONE,	{RS}},
 {"mtmcsrr1",	XSPR(31,467,571), XSPR_MASK, PPCRFMCI,	PPCNONE,	{RS}},
 {"mtmcsr",	XSPR(31,467,572), XSPR_MASK, PPCRFMCI,	PPCNONE,	{RS}},
