@@ -308,7 +308,7 @@
 /* invalid:  To catch bugs. */
 X(invalid)
 {
-    cerr << "PPC: invalid(): INTERNAL ERROR\n";
+    std::cerr << "PPC: invalid(): INTERNAL ERROR\n";
     exit(1);
 }
 

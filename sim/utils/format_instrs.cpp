@@ -213,7 +213,7 @@ int main(int argc, char** argv){
             ostr << "        static void " << opcode_fun << "(cpu_ppc *pcpu, instr_call *ic)" << std::endl;
             ostr << pseudocode << std::endl;
             ostr << "    };" << std::endl;
-            ostr << "    pcpu->ppc_func_hash[" << std::hex << std::showbase
+            ostr << "    pcpu->m_ppc_func_hash[" << std::hex << std::showbase
                  << get_opcode_hash(opcode_org) << "] = " << opcode_n << "::" << opcode_fun << ";" << std::endl;
             ostr << std::endl;
         }else{
