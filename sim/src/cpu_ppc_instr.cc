@@ -91,6 +91,18 @@
 #define host_flags               CPU->host_state.flags
 #define dummy_flags              CPU->host_state.dummy
 
+// load/store macros
+//
+#define load8(addr)              CPU->read8(addr)
+#define load16(addr)             CPU->read16(addr)
+#define load32(addr)             CPU->read32(addr)
+#define load64(addr)             CPU->read64(addr)
+
+#define store8(addr, value)      CPU->write8(addr, value)
+#define store16(addr, value)     CPU->write16(addr, value)
+#define store32(addr, value)     CPU->write32(addr, value)
+#define store64(addr, value)     CPU->write64(addr, value)
+
 // In case of register operands, their pointers are instead passed in corresponding ARG parameter.
 #define ARG_BASE                 IC->arg
 
@@ -1921,6 +1933,45 @@ X(xoris)
     rA = rS ^ (((uint16_t)UIMM) << 16);
 
     xoris_code(REG0, REG1, REG2);
+}
+
+// ------------------------------ load/store ---------------------------------------
+// lwz rD,D(rA)
+X(lwz)
+{
+    UMODE tmp = 0;
+    REG0 = 0;
+    UMODE ea;
+    if(ARG2){ tmp = REG2; }
+    ea = tmp + int16_t(ARG1);
+    REG0 = load32(ea);
+}
+// lwzx rD,rA,rB
+X(lwzx)
+{
+    UMODE tmp = 0;
+    REG0 = 0;
+    UMODE ea;
+    if(ARG1){ tmp = REG1; }
+    ea = tmp + REG2;
+    REG0 = load32(ea);
+}
+//  lwzu rD,D(rA)
+X(lwzu)
+{
+    REG0 = 0;
+    UMODE ea;
+    ea = REG2 + int16_t(ARG1);
+    REG0 = load32(ea);
+    REG2 = ea;
+}
+X(lwzux)
+{
+    REG0 = 0;
+    UMODE ea;
+    ea = REG1 + REG2;
+    REG0 = load32(ea);
+    REG1 = ea;
 }
 
 // ------------------------------ SPE -----------------------------------------------
