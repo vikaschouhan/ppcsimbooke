@@ -78,7 +78,7 @@
 #define CR                       ppcreg(REG_CR)
 #define LR                       ppcreg(REG_LR)
 #define CTR                      ppcreg(REG_CTR)
-#define PC                       CPU->pc
+#define PC                       CPU->m_pc
 #define update_cr0               CPU->update_cr0
 #define update_crF               CPU->update_crF
 #define update_crf               CPU->update_crf

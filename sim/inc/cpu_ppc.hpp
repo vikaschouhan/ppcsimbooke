@@ -19,6 +19,11 @@
 #define REG_CLEAR_W1C       0x00000010UL                         // Register can be cleared by writing 1 to the bits
 #define REG_REQ_SYNC        0x00000020UL                         // Register write requires synchronization
 
+// Debug events
+#define DBG_EVENT_IAC       0x00000001UL
+#define DBG_EVENT_DAC_LD    0x00000002UL
+#define DBG_EVENT_DAC_ST    0x00000004UL
+
 /* 64 bit MSRs were used in older powerPC designs */
 /* All BookE cores have 32 bit MSRs only */
 
@@ -32,31 +37,17 @@
 class CPU_PPC {
 
     public:
-
-    /* 
-     * @func : constructor for this cpu
-     * @args : cpuid and name
-     *
-     * @notes : Default program counter at beginning ( reset vector ) is 0xfffffffc
-     *
-     * @brief : inittializes a new cpu instance
-     */
     // Default constructor
     CPU_PPC(){
         LOG("DEBUG4") << MSG_FUNC_START;
         init_common();
         LOG("DEBUG4") << MSG_FUNC_END;
     }
-
-    CPU_PPC(uint64_t cpuid, std::string name): m_cpu_name(name), pc(0xfffffffc), m_cpu_id(cpuid){
+    CPU_PPC(uint64_t cpuid, std::string name): m_cpu_name(name), m_pc(0xfffffffc), m_cpu_id(cpuid){
         LOG("DEBUG4") << MSG_FUNC_START;
         init_common(); 
         LOG("DEBUG4") << MSG_FUNC_END;
     }
-
-    /*
-     * @func : destructor
-     */
     ~CPU_PPC(){
         LOG("DEBUG4") << MSG_FUNC_START;
         sm_ncpus--;
@@ -67,27 +58,17 @@ class CPU_PPC {
     void CAT(init_, CPU_PPC)(uint64_t cpuid, std::string name){
         m_cpu_id   = cpuid;
         m_cpu_name = name;
-        pc         = 0xfffffffc;
+        m_pc       = 0xfffffffc;
     }
     
-    // Register memory
-    void register_mem(memory &mem){
-        if(m_mem_ptr == NULL)
-            m_mem_ptr = &mem;
-    }
-
-    // Get number of instrs
-    size_t get_ninstrs();
-    uint64_t get_pc();
-
-    // All virtual functions
-    void run();
-    void run_instr(std::string instr);
-    void step(size_t instr_cnt=1);      // by default step by 1 ic cnt
-
-    // normal overloaded version of run_instr ( NOTE: it's not virtual )
-    void run_instr(uint32_t opcd);
-
+    void       register_mem(memory &mem);             // Register memory
+    size_t     get_ninstrs();                         // Get number of instrs
+    uint64_t   get_pc();                              // Get pc
+    void       run();
+    void       run_instr(std::string instr);
+    void       run_instr(uint32_t opcd);
+    void       step(size_t instr_cnt=1);      // by default step by 1 ic cnt
+    
     // All memory read/write functions ( these act on effective addresses and address
     // translation is done by the tlb module )
     // These only act on data pages
@@ -96,105 +77,52 @@ class CPU_PPC {
     // to the instruction physical page ).
     // NOTE : store to an instruction page always goes through DTLB. ITLB is only used for
     // instruction fetches.
-    uint8_t read8(uint64_t addr);
-    void write8(uint64_t addr, uint8_t value);
-    uint16_t read16(uint64_t addr);
-    void write16(uint64_t addr, uint16_t value);
-    uint32_t read32(uint64_t addr);
-    void write32(uint64_t addr, uint32_t value);
-    uint64_t read64(uint64_t addr);
-    void write64(uint64_t addr, uint64_t value); 
-    
-    // Get Register by name
-    uint64_t get_reg(std::string name) throw(sim_except);
-    // Dump CPU state
-    void dump_state(int columns=0, std::ostream &ostr=std::cout, int dump_all_sprs=0);
-    // print L2 tlbs
-    void print_L2tlbs();
+    uint8_t    read8(uint64_t addr);
+    void       write8(uint64_t addr, uint8_t value);
+    uint16_t   read16(uint64_t addr);
+    void       write16(uint64_t addr, uint16_t value);
+    uint32_t   read32(uint64_t addr);
+    void       write32(uint64_t addr, uint32_t value);
+    uint64_t   read64(uint64_t addr);
+    void       write64(uint64_t addr, uint64_t value); 
 
-    // Initialize register attributes
-    void init_reg_attrs();
-    //
+    uint64_t   get_reg(std::string name) throw(sim_except);    // Get register by name
+    void       dump_state(int columns=0, std::ostream &ostr=std::cout, int dump_all_sprs=0);   // Dump Cpu state
+    void       print_L2tlbs();                                 // Print L2 tlbs
+    void       init_reg_attrs();                               // Initialize register attributes
+
     // for boost::python
     ppc_regs& ___get_regs(){
         return m_cpu_regs;
     }
-    bool operator==(CPU_PPC const &x) const {
-        return m_cpu_no == x.m_cpu_no;
-    }
-    bool operator!=(CPU_PPC const &x) const {
-        return m_cpu_no != x.m_cpu_no;
-    }
 
     protected:
-    // notify of context switches ( called by context syncronizing instructions
-    // such as rfi, sc etc. )
-    void notify_ctxt_switch();
-    // Update CR0
-    void update_cr0(bool use_host, uint64_t value=0);
-    // Updates CR[bf] with val i.e CR[bf] <- (val & 0xf)
-    void update_crF(unsigned bf, uint64_t val);
-    // Get crF  ( F -> [0:7] )
-    unsigned get_crF(unsigned bf);
-    // Update CR by exact field value [0:31]
-    void update_crf(unsigned field, unsigned value);
-    // Get CR bit at exact field
-    unsigned get_crf(unsigned field);
-    // Update XER
-    void update_xer(bool use_host, uint64_t value=0);
-    void update_xerF(unsigned bf, unsigned val);
-    void update_xerf(unsigned field, unsigned value);
-    unsigned get_xerF(unsigned bf);
-    unsigned get_xerf(unsigned field);
-    // Get XER[SO]
-    unsigned get_xer_so();
-    unsigned get_xer_ca();
-
-    // Translate ( conver EA to PA )
-    // Returns a pair ( first arg is the address, second is the wimge attribute )
-    std::pair<uint64_t, uint8_t> xlate(uint64_t addr, bool wr=0);
+    void       notify_ctxt_switch();   // notify of context switches ( called by context syncronizing instructions  such as rfi, sc etc. )
+    void       update_cr0(bool use_host, uint64_t value=0);      // Update CR0
+    void       update_crF(unsigned bf, uint64_t val);            // Updates CR[bf] with val i.e CR[bf] <- (val & 0xf)
+    unsigned   get_crF(unsigned bf);                             // Get crF  ( F -> [0:7] )
+    void       update_crf(unsigned field, unsigned value);       // Update CR by exact field value [0:31]
+    unsigned   get_crf(unsigned field);                          // Get CR bit at exact field
+    void       update_xer(bool use_host, uint64_t value=0);      // Update XER
+    void       update_xerF(unsigned bf, unsigned val);
+    void       update_xerf(unsigned field, unsigned value);
+    unsigned   get_xerF(unsigned bf);
+    unsigned   get_xerf(unsigned field);
+    unsigned   get_xer_so();                                     // Get XER[SO]
+    unsigned   get_xer_ca();
+    std::pair<uint64_t, uint8_t>  xlate(uint64_t addr, bool wr=0);  // Translate EA to RA ( return a pair of <xlated addr, wimge> )
 
     // Accessing registers using reghash interface ( for use with ppc code translation unit )
-    // Permissions will also be checked here itself
-    // TODO : Check Permissions
-    inline uint64_t& reg(int regid){
-        LASSERT_THROW(m_ireghash.find(regid) != m_ireghash.end(),
-               sim_except(SIM_EXCEPT_EINVAL, "Invalid register id " + boost::lexical_cast<std::string>(regid)), DEBUG4);
-        return m_ireghash[regid]->value;
-    }
-    inline uint64_t& regn(std::string regname){
-        LASSERT_THROW(m_reghash.find(regname) != m_reghash.end(),
-               sim_except(SIM_EXCEPT_EINVAL, "Invalid register name " + regname), DEBUG4);
-        // Do several checks
-        if(!m_reghash[regname]->attr){
-            std::cout << "Warning !! Invalid register " << regname << std::endl;
-        }
-        return m_reghash[regname]->value;
-    }
+    inline uint64_t&      reg(int regid);
+    inline uint64_t&      regn(std::string regname);
 
     private:
-    void init_reghash();
-    void ppc_exception(int exception_nr, uint64_t subtype, uint64_t ea=0xffffffffffffffffULL);
-    instr_call get_instr();           // Automatically tries to read instr from next NIP(PC)
-#define DBG_EVENT_IAC      0x00000001UL
-#define DBG_EVENT_DAC_LD   0x00000002UL
-#define DBG_EVENT_DAC_ST   0x00000004UL
-    // Throws debug events
-    // ea is used only in case of DAC events
-    void check_for_dbg_events(int flags, uint64_t ea=0);   // check for debug events
-    // run curr instr
-    inline void run_curr_instr();
-    // Init common stuff
-    inline void init_common(){
-        LOG("DEBUG4") << MSG_FUNC_START;
-        m_cpu_no = sm_ncpus++;                 // Increment global cpu cnt
-        init_reghash();                        // Initialize registers' hash 
-        init_reg_attrs();                      // Initialize registers' attributes
-        gen_ppc_opc_func_hash(this);           // Initialize opcode function pointer table
-        m_instr_cache.set_size(512);           // LRU cache size = 512 instrs
-        m_ctxt_switch = 0;                     // Initialize flag to zero
-        LOG("DEBUG4") << MSG_FUNC_END;
-    }
+    void                  init_reghash();
+    void                  ppc_exception(int exception_nr, uint64_t subtype, uint64_t ea=0xffffffffffffffffULL);
+    instr_call            get_instr();                           // Automatically tries to read instr from next NIP(PC)
+    void                  check_for_dbg_events(int flags, uint64_t ea=0);   // check for debug events
+    inline void           run_curr_instr();                                 // run current instr
+    inline void           init_common();
 
     public:
     // Breakpoint manager
@@ -212,20 +140,28 @@ class CPU_PPC {
 
     std::string                            m_cpu_name;
     int                                    m_cpu_mode;
-    int                                    m_cpu_bits;             // 32 or 64
+    int                                    m_cpu_bits;            // 32 or 64
     struct timeval                         m_cpu_start_time;
-    bool                                   m_cpu_running;
+    bool                                   m_cpu_running;         // If CPU is in run mode
+
+    // cache attributes
+    int                                    m_cache_line_size;     // Cache line size 
+
+    // Reservation
+    uint64_t                               m_resv_addr;           // This is always a physical address
+    bool                                   m_resv_set;            // Flag for setting resv
 
     // powerPC register file
-    ppc_regs                               m_cpu_regs;                      // PPC register file
-    uint64_t                               pc;
-    uint64_t                               nip;
+    ppc_regs                               m_cpu_regs;            // PPC register file
+    uint64_t                               m_pc;                  // PC  -> program counter
+    uint64_t                               m_nip;                 // NIP -> next instruction pointer
+#define PC m_pc
 
     // Book keeping
-    uint64_t                               m_cpu_id;
-    uint8_t                                m_cpu_no;            /* Numerical cpu no */
-    static size_t                          sm_ncpus;
-    size_t                                 m_ninstrs;
+    uint64_t                               m_cpu_id;              // A unique cpu id
+    uint8_t                                m_cpu_no;              // Cpu no
+    static size_t                          sm_ncpus;              // Total cpus
+    size_t                                 m_ninstrs;             // Number of instrs
 
     // Pointers to generic registers/stuff hashed by name and numerical identifiers
     std::map<std::string, ppc_reg64*>      m_reghash;
@@ -281,12 +217,17 @@ size_t                         CPU_PPC::sm_ncpus = 0;        // Current number o
 //
 // --------------------------- Member function definitions -----------------------------------
 //
+void CPU_PPC::register_mem(memory &mem){
+    if(m_mem_ptr == NULL)
+        m_mem_ptr = &mem;
+}
+
 size_t CPU_PPC::get_ninstrs(){
     return m_ninstrs;
 }
 
 uint64_t CPU_PPC::get_pc(){
-    return pc;
+    return m_pc;
 }
 //
 // All virtual functions
@@ -298,7 +239,7 @@ void CPU_PPC::run(){
     std::pair<uint64_t, bool> last_bkpt = m_bm.last_breakpoint();
 
     // run this instruction if this was last breakpointed
-    if(last_bkpt.first == pc and last_bkpt.second == true){
+    if(last_bkpt.first == m_pc and last_bkpt.second == true){
         m_bm.disable_breakpoints();
         run_curr_instr();
         m_bm.clear_last_breakpoint();
@@ -360,7 +301,7 @@ void CPU_PPC::run_instr(std::string instr){
     LOG("DEBUG4") << MSG_FUNC_START;
     instr_call call_this;
 
-    call_this = m_dis.disasm(instr, pc);
+    call_this = m_dis.disasm(instr, m_pc);
 
     if(call_this.fptr){ (reinterpret_cast<CPU_PPC::ppc_opc_fun_ptr>(call_this.fptr))(this, &call_this); }
     
@@ -376,7 +317,7 @@ void CPU_PPC::run_instr(uint32_t opcd){
     LOG("DEBUG4") << MSG_FUNC_START;
     instr_call call_this;
 
-    call_this = m_dis.disasm(opcd, pc);
+    call_this = m_dis.disasm(opcd, m_pc);
     if(call_this.fptr){ (reinterpret_cast<CPU_PPC::ppc_opc_fun_ptr>(call_this.fptr))(this, &call_this); }
 
     LASSERT_THROW(m_ppc_func_hash.find(call_this.opc) != m_ppc_func_hash.end(),
@@ -414,6 +355,25 @@ std::pair<uint64_t, uint8_t> CPU_PPC::xlate(uint64_t addr, bool wr){
     LOG("DEBUG4") << std::hex << std::showbase << "Xlation : " << addr << " -> " << res.first << std::endl;
     LOG("DEBUG4") << MSG_FUNC_END;
     return std::pair<uint64_t, uint8_t>(res.first, res.second);
+}
+
+// Get register alias using regid
+// TODO : Check Permissions
+inline uint64_t& CPU_PPC::reg(int regid){
+    LASSERT_THROW(m_ireghash.find(regid) != m_ireghash.end(),
+           sim_except(SIM_EXCEPT_EINVAL, "Invalid register id " + boost::lexical_cast<std::string>(regid)), DEBUG4);
+    return m_ireghash[regid]->value;
+}
+
+// Get register alias using reg name
+inline uint64_t& CPU_PPC::regn(std::string regname){
+    LASSERT_THROW(m_reghash.find(regname) != m_reghash.end(),
+           sim_except(SIM_EXCEPT_EINVAL, "Invalid register name " + regname), DEBUG4);
+    // Do several checks
+    if(!m_reghash[regname]->attr){
+        std::cout << "Warning !! Invalid register " << regname << std::endl;
+    }
+    return m_reghash[regname]->value;
 }
 
 // Memory I/O functions
@@ -638,13 +598,13 @@ void CPU_PPC::ppc_exception(int exception_nr, uint64_t subtype=0, uint64_t ea)
         case  PPC_EXCEPTION_CR:
             if((PPCREG(REG_MSR) & MSR_CE) == 0){ RETURNVOID(DEBUG4); }
 
-            PPCREG(REG_CSRR0) = pc;
+            PPCREG(REG_CSRR0) = m_pc;
             PPCREG(REG_CSRR1) = PPCREG(REG_MSR);
            
             // Clear default MSR bits. Also clear CE bit 
             CLR_DEFAULT_MSR_BITS();
             PPCREG(REG_MSR) &= ~MSR_CE;
-            pc = GET_PC_FROM_IVOR_NUM(0);
+            m_pc = GET_PC_FROM_IVOR_NUM(0);
             break;
         case  PPC_EXCEPTION_MC:
             if((PPCREG(REG_MSR) & MSR_ME) == 0){
@@ -652,7 +612,7 @@ void CPU_PPC::ppc_exception(int exception_nr, uint64_t subtype=0, uint64_t ea)
                 exit(1);
             }
             
-            PPCREG(REG_MCSRR0) = pc;
+            PPCREG(REG_MCSRR0) = m_pc;
             PPCREG(REG_MCSRR1) = PPCREG(REG_MSR);
             PPCREG(REG_MCAR)   = ea;
 
@@ -698,10 +658,10 @@ void CPU_PPC::ppc_exception(int exception_nr, uint64_t subtype=0, uint64_t ea)
             // Clear default MSR bits.
             CLR_DEFAULT_MSR_BITS();
             PPCREG(REG_MSR) &= ~MSR_ME;
-            pc = GET_PC_FROM_IVOR_NUM(1);
+            m_pc = GET_PC_FROM_IVOR_NUM(1);
             break;
         case  PPC_EXCEPTION_DSI:
-            PPCREG(REG_SRR0) = pc;
+            PPCREG(REG_SRR0) = m_pc;
             PPCREG(REG_SRR1) = PPCREG(REG_MSR);
             PPCREG(REG_DEAR) = ea;
             PPCREG(REG_ESR) = 0;   // Clear ESR first
@@ -719,10 +679,10 @@ void CPU_PPC::ppc_exception(int exception_nr, uint64_t subtype=0, uint64_t ea)
             }
 
             CLR_DEFAULT_MSR_BITS();
-            pc = GET_PC_FROM_IVOR_NUM(2); 
+            m_pc = GET_PC_FROM_IVOR_NUM(2); 
             break;
         case  PPC_EXCEPTION_ISI:
-            PPCREG(REG_SRR0) = pc;
+            PPCREG(REG_SRR0) = m_pc;
             PPCREG(REG_SRR1) = PPCREG(REG_MSR);
             PPCREG(REG_ESR) = 0;
 
@@ -736,18 +696,18 @@ void CPU_PPC::ppc_exception(int exception_nr, uint64_t subtype=0, uint64_t ea)
             }
 
             CLR_DEFAULT_MSR_BITS();
-            pc = GET_PC_FROM_IVOR_NUM(3);
+            m_pc = GET_PC_FROM_IVOR_NUM(3);
             break;
         case  PPC_EXCEPTION_EI:
             if((PPCREG(REG_MSR) & MSR_EE) == 0){ RETURNVOID(DEBUG4); }
-            PPCREG(REG_SRR0) = pc;
+            PPCREG(REG_SRR0) = m_pc;
             PPCREG(REG_SRR1) = PPCREG(REG_MSR);
 
             CLR_DEFAULT_MSR_BITS();  // MSR[EE] is also cleared by this.
-            pc = GET_PC_FROM_IVOR_NUM(4);
+            m_pc = GET_PC_FROM_IVOR_NUM(4);
             break;
         case  PPC_EXCEPTION_ALIGN:
-            PPCREG(REG_SRR0) = pc;
+            PPCREG(REG_SRR0) = m_pc;
             PPCREG(REG_SRR1) = PPCREG(REG_MSR);
             PPCREG(REG_DEAR) = ea;
             PPCREG(REG_ESR)  = 0;
@@ -762,10 +722,10 @@ void CPU_PPC::ppc_exception(int exception_nr, uint64_t subtype=0, uint64_t ea)
             }
 
             CLR_DEFAULT_MSR_BITS();
-            pc = GET_PC_FROM_IVOR_NUM(5);
+            m_pc = GET_PC_FROM_IVOR_NUM(5);
             break;
         case  PPC_EXCEPTION_PRG:
-            PPCREG(REG_SRR0) = pc;
+            PPCREG(REG_SRR0) = m_pc;
             PPCREG(REG_SRR1) = PPCREG(REG_MSR);
             PPCREG(REG_ESR)  = 0;
 
@@ -782,17 +742,17 @@ void CPU_PPC::ppc_exception(int exception_nr, uint64_t subtype=0, uint64_t ea)
             }
       
             CLR_DEFAULT_MSR_BITS();
-            pc = GET_PC_FROM_IVOR_NUM(6);
+            m_pc = GET_PC_FROM_IVOR_NUM(6);
             break;
         case  PPC_EXCEPTION_FPU:
             // Is FPU there in e500v2 ??
             break;
         case  PPC_EXCEPTION_SC:
-            PPCREG(REG_SRR0) = pc;
+            PPCREG(REG_SRR0) = m_pc;
             PPCREG(REG_SRR1) = PPCREG(REG_MSR);
 
             CLR_DEFAULT_MSR_BITS();
-            pc = GET_PC_FROM_IVOR_NUM(8);
+            m_pc = GET_PC_FROM_IVOR_NUM(8);
             break;
         case  PPC_EXCEPTION_DEC:
             // A decrementer intr. occurs when no higher priority exception exists ,
@@ -803,12 +763,12 @@ void CPU_PPC::ppc_exception(int exception_nr, uint64_t subtype=0, uint64_t ea)
             }else{
                 RETURNVOID(DEBUG4);
             }
-            PPCREG(REG_SRR0) = pc;
+            PPCREG(REG_SRR0) = m_pc;
             PPCREG(REG_SRR1) = PPCREG(REG_MSR);
 
             CLR_DEFAULT_MSR_BITS();
             PPCREG(REG_TSR) |= TSR_DIS; // Why the hell, am I doing it ?? TSR[DIS] is already set. Isn't it ?
-            pc = GET_PC_FROM_IVOR_NUM(10);
+            m_pc = GET_PC_FROM_IVOR_NUM(10);
             break;
         case  PPC_EXCEPTION_FIT:
             // A fixed interval timer interrupt occurs when no higher priority exception exists,
@@ -818,12 +778,12 @@ void CPU_PPC::ppc_exception(int exception_nr, uint64_t subtype=0, uint64_t ea)
             }else{
                 RETURNVOID(DEBUG4);
             }
-            PPCREG(REG_SRR0) = pc;
+            PPCREG(REG_SRR0) = m_pc;
             PPCREG(REG_SRR1) = PPCREG(REG_MSR);
 
             CLR_DEFAULT_MSR_BITS();
             PPCREG(REG_TSR) |= TSR_FIS;
-            pc = GET_PC_FROM_IVOR_NUM(11);
+            m_pc = GET_PC_FROM_IVOR_NUM(11);
             break;
         case  PPC_EXCEPTION_WTD:
             // A watchdog timer interrupt occurs when no higher priority exception exists,
@@ -833,16 +793,16 @@ void CPU_PPC::ppc_exception(int exception_nr, uint64_t subtype=0, uint64_t ea)
             }else{
                 RETURNVOID(DEBUG4);
             }
-            PPCREG(REG_CSRR0) = pc;
+            PPCREG(REG_CSRR0) = m_pc;
             PPCREG(REG_CSRR1) = PPCREG(REG_MSR);
 
             CLR_DEFAULT_MSR_BITS();
             PPCREG(REG_MSR) &= ~MSR_CE;               // Clear CE bit, since WDT is critical type
             PPCREG(REG_TSR) |= TSR_WIS;
-            pc = GET_PC_FROM_IVOR_NUM(12);
+            m_pc = GET_PC_FROM_IVOR_NUM(12);
             break;
         case  PPC_EXCEPTION_DTLB:
-            PPCREG(REG_SRR0) = pc;
+            PPCREG(REG_SRR0) = m_pc;
             PPCREG(REG_SRR1) = PPCREG(REG_MSR);
             PPCREG(REG_DEAR) = ea;
             PPCREG(REG_ESR)  = 0;
@@ -857,17 +817,17 @@ void CPU_PPC::ppc_exception(int exception_nr, uint64_t subtype=0, uint64_t ea)
             // Load Default MAS* values in MAS registers
 
             CLR_DEFAULT_MSR_BITS();
-            pc = GET_PC_FROM_IVOR_NUM(13);
+            m_pc = GET_PC_FROM_IVOR_NUM(13);
             break;
         case  PPC_EXCEPTION_ITLB:
-            PPCREG(REG_SRR0) = pc;
+            PPCREG(REG_SRR0) = m_pc;
             PPCREG(REG_SRR1) = PPCREG(REG_MSR);
 
             // TODO:
             // Load Default MAS* values in MAS registers
 
             CLR_DEFAULT_MSR_BITS();
-            pc = GET_PC_FROM_IVOR_NUM(14);
+            m_pc = GET_PC_FROM_IVOR_NUM(14);
             break;
         case  PPC_EXCEPTION_DBG:
             // First check if DBCR0[IDM] is set then check if MSR[DE] is set
@@ -892,43 +852,43 @@ void CPU_PPC::ppc_exception(int exception_nr, uint64_t subtype=0, uint64_t ea)
 
             if(subtype != 0ULL){
                 if((subtype & PPC_EXCEPT_DBG_TRAP) == PPC_EXCEPT_DBG_TRAP){
-                    *srr0 = pc;
+                    *srr0 = m_pc;
                     PPCREG(REG_DBSR) |= DBSR_TIE;
                 }
                 if((subtype & PPC_EXCEPT_DBG_IAC1) == PPC_EXCEPT_DBG_IAC1){
-                    *srr0 = pc;
+                    *srr0 = m_pc;
                     PPCREG(REG_DBSR) |= DBSR_IAC1;
                 }
                 if((subtype & PPC_EXCEPT_DBG_IAC2) == PPC_EXCEPT_DBG_IAC2){
-                    *srr0 = pc;
+                    *srr0 = m_pc;
                     PPCREG(REG_DBSR) |= DBSR_IAC2;
                 }
                 if((subtype & PPC_EXCEPT_DBG_DAC1R) == PPC_EXCEPT_DBG_DAC1R){
-                    *srr0 = pc;
+                    *srr0 = m_pc;
                     PPCREG(REG_DBSR) |= DBSR_DAC1R;
                 }
                 if((subtype & PPC_EXCEPT_DBG_DAC1W) == PPC_EXCEPT_DBG_DAC1W){
-                    *srr0 = pc;
+                    *srr0 = m_pc;
                     PPCREG(REG_DBSR) |= DBSR_DAC1W;
                 }
                 if((subtype & PPC_EXCEPT_DBG_DAC2R) == PPC_EXCEPT_DBG_DAC2R){
-                    *srr0 = pc;
+                    *srr0 = m_pc;
                     PPCREG(REG_DBSR) |= DBSR_DAC2R;
                 }
                 if((subtype & PPC_EXCEPT_DBG_DAC2W) == PPC_EXCEPT_DBG_DAC2W){
-                    *srr0 = pc;
+                    *srr0 = m_pc;
                     PPCREG(REG_DBSR) |= DBSR_DAC2W;
                 }
                 if((subtype & PPC_EXCEPT_DBG_ICMP) == PPC_EXCEPT_DBG_ICMP){
-                    *srr0 = pc + 4;
+                    *srr0 = m_pc + 4;
                     PPCREG(REG_DBSR) |= DBSR_IC;
                 }
                 if((subtype & PPC_EXCEPT_DBG_BRT) == PPC_EXCEPT_DBG_BRT){
-                    *srr0 = pc;
+                    *srr0 = m_pc;
                     PPCREG(REG_DBSR) |= DBSR_BT;
                 }
                 if((subtype & PPC_EXCEPT_DBG_RET) == PPC_EXCEPT_DBG_RET){
-                    *srr0 = pc + 4;
+                    *srr0 = m_pc + 4;
                     PPCREG(REG_DBSR) |= DBSR_RET;
                 }
                 if((subtype & PPC_EXCEPT_DBG_IRPT) == PPC_EXCEPT_DBG_IRPT){
@@ -936,7 +896,7 @@ void CPU_PPC::ppc_exception(int exception_nr, uint64_t subtype=0, uint64_t ea)
                     PPCREG(REG_DBSR) |= DBSR_IRPT;
                 }
                 if((subtype & PPC_EXCEPT_DBG_UDE) == PPC_EXCEPT_DBG_UDE){
-                    *srr0 = pc + 4;
+                    *srr0 = m_pc + 4;
                     PPCREG(REG_DBSR) |= DBSR_UDE;
                 }
             }
@@ -945,16 +905,16 @@ void CPU_PPC::ppc_exception(int exception_nr, uint64_t subtype=0, uint64_t ea)
 
             CLR_DEFAULT_MSR_BITS();
             PPCREG(REG_MSR) &= ~MSR_DE;               // Clear DE bit
-            pc = GET_PC_FROM_IVOR_NUM(15);
+            m_pc = GET_PC_FROM_IVOR_NUM(15);
             break;
         case  PPC_EXCEPTION_SPE_UA:
-            PPCREG(REG_SRR0) = pc;
+            PPCREG(REG_SRR0) = m_pc;
             PPCREG(REG_SRR1) = PPCREG(REG_MSR);
 
             PPCREG(REG_ESR)  = ESR_SPV;              // Set ESR[SPE]
 
             CLR_DEFAULT_MSR_BITS();
-            pc = GET_PC_FROM_IVOR_NUM(32);
+            m_pc = GET_PC_FROM_IVOR_NUM(32);
             break;
         case  PPC_EXCEPTION_EM_FP_D:
             // Check conditions
@@ -977,13 +937,13 @@ void CPU_PPC::ppc_exception(int exception_nr, uint64_t subtype=0, uint64_t ea)
             RETURNVOID(DEBUG4);
 
             skip_0:
-            PPCREG(REG_SRR0) = pc;
+            PPCREG(REG_SRR0) = m_pc;
             PPCREG(REG_SRR1) = PPCREG(REG_MSR);
 
             PPCREG(REG_ESR)  = ESR_SPV;  // Set ESR[SPE]
 
             CLR_DEFAULT_MSR_BITS();
-            pc = GET_PC_FROM_IVOR_NUM(33);
+            m_pc = GET_PC_FROM_IVOR_NUM(33);
             break;
         case  PPC_EXCEPTION_EM_FP_R:
             // Check conditions
@@ -1000,13 +960,13 @@ void CPU_PPC::ppc_exception(int exception_nr, uint64_t subtype=0, uint64_t ea)
             RETURNVOID(DEBUG4);
 
             skip_1:
-            PPCREG(REG_SRR0) = pc;
+            PPCREG(REG_SRR0) = m_pc;
             PPCREG(REG_SRR1) = PPCREG(REG_MSR);
 
             PPCREG(REG_ESR) = ESR_SPV;   // Set ESR[SPE]
 
             CLR_DEFAULT_MSR_BITS();
-            pc = GET_PC_FROM_IVOR_NUM(34);
+            m_pc = GET_PC_FROM_IVOR_NUM(34);
             break;
         case  PPC_EXCEPTION_PMM:
             // TODO: perf mon intr not supported for time being.
@@ -1039,23 +999,23 @@ instr_call CPU_PPC::get_instr(){
     bool pr = EBMASK(PPCREG(REG_MSR), MSR_PR);  // pr = MSR[pr]
 
     // Try hits with PID0, PID1 and PID2
-    res = m_l2tlb.xlate(pc, as, PPCREG(REG_PID0), perm, pr); if(res.first != static_cast<uint64_t>(-1)) goto exit_loop_0;
-    res = m_l2tlb.xlate(pc, as, PPCREG(REG_PID1), perm, pr); if(res.first != static_cast<uint64_t>(-1)) goto exit_loop_0; 
-    res = m_l2tlb.xlate(pc, as, PPCREG(REG_PID2), perm, pr); if(res.first != static_cast<uint64_t>(-1)) goto exit_loop_0;
+    res = m_l2tlb.xlate(m_pc, as, PPCREG(REG_PID0), perm, pr); if(res.first != static_cast<uint64_t>(-1)) goto exit_loop_0;
+    res = m_l2tlb.xlate(m_pc, as, PPCREG(REG_PID1), perm, pr); if(res.first != static_cast<uint64_t>(-1)) goto exit_loop_0; 
+    res = m_l2tlb.xlate(m_pc, as, PPCREG(REG_PID2), perm, pr); if(res.first != static_cast<uint64_t>(-1)) goto exit_loop_0;
 
     // We encountered ITLB miss. Throw exceptions
     std::cout << "ITLB miss" << std::endl;
     LTHROW(sim_except_ppc(PPC_EXCEPTION_ITLB, PPC_EXCEPT_ITLB_MISS, "ITLB miss."), DEBUG4);
 
     exit_loop_0:
-    LOG("DEBUG4") << std::hex << std::showbase << "instr Xlation : " << pc << " -> " << res.first << std::endl;
+    LOG("DEBUG4") << std::hex << std::showbase << "instr Xlation : " << m_pc << " -> " << res.first << std::endl;
 
     LASSERT_THROW(m_mem_ptr != NULL, sim_except_fatal("no memory module registered."), DEBUG4);
     // Disassemble the instr at curr pc
-    call_this = m_dis.disasm(m_mem_ptr->read32(res.first, (res.second & 0x1)), pc, (res.second & 0x1));
+    call_this = m_dis.disasm(m_mem_ptr->read32(res.first, (res.second & 0x1)), m_pc, (res.second & 0x1));
 
     // Next instr ptr
-    nip = (pc + 4);
+    m_nip = (m_pc + 4);
 
     LOG("DEBUG4") << MSG_FUNC_END;
     return call_this;
@@ -1078,7 +1038,7 @@ void CPU_PPC::check_for_dbg_events(int flags, uint64_t ea){
         // DBCR1[IAC12M] is not implemented right now
         if(PPCREGMASK(REG_DBCR0, DBCR0_IAC1)
            &&
-           (PPCREG(REG_IAC1) == pc)
+           (PPCREG(REG_IAC1) == m_pc)
            &&
            (
             ((PPCREGMASK(REG_DBCR1, DBCR1_IAC1US) == 2) && !PPCREGMASK(REG_MSR, MSR_PR))
@@ -1098,12 +1058,12 @@ void CPU_PPC::check_for_dbg_events(int flags, uint64_t ea){
           ){
             event_occurred = 1;
             event_type     = PPC_EXCEPT_DBG_IAC1;
-            event_addr     = pc;
+            event_addr     = m_pc;
         }
         // DBSR[IAC12M] isn't implemented right now
         if(PPCREGMASK(REG_DBCR0, DBCR0_IAC2)
            &&
-           (PPCREG(REG_IAC2) == pc)
+           (PPCREG(REG_IAC2) == m_pc)
            &&
            (
             ((PPCREGMASK(REG_DBCR1, DBCR1_IAC2US) == 2) && !PPCREGMASK(REG_MSR, MSR_PR))
@@ -1123,7 +1083,7 @@ void CPU_PPC::check_for_dbg_events(int flags, uint64_t ea){
           ){
             event_occurred = 1;
             event_type     = PPC_EXCEPT_DBG_IAC2;
-            event_addr     = pc;
+            event_addr     = m_pc;
         }
     }
 
@@ -1149,7 +1109,7 @@ inline void CPU_PPC::run_curr_instr(){
     instr_call call_this = get_instr();
     LOG("DEBUG4") << "INSTR : " << call_this.get_instr_str() << std::endl;
 
-    if(m_bm.check_pc(pc)){
+    if(m_bm.check_pc(m_pc)){
         // Throw a software breakpoint exception
         LTHROW(sim_except(SIM_EXCEPT_SBKPT, "Software breakpoint"), DEBUG4);
     }
@@ -1158,7 +1118,7 @@ inline void CPU_PPC::run_curr_instr(){
     // FIXME : This may not work at this time
     check_for_dbg_events(DBG_EVENT_IAC);
  
-    pc += 4; /* Increment pc just before executing instr */
+    m_pc += 4; /* Increment pc just before executing instr */
     /* If there is a func pointer already registered, call it */
     if(call_this.fptr){ (reinterpret_cast<CPU_PPC::ppc_opc_fun_ptr>(call_this.fptr))(this, &call_this); }
  
@@ -1169,6 +1129,18 @@ inline void CPU_PPC::run_curr_instr(){
     m_ppc_func_hash[call_this.opc](this, &call_this);
     m_ninstrs++;
 
+    LOG("DEBUG4") << MSG_FUNC_END;
+}
+
+// Initialize all common parameters
+inline void CPU_PPC::init_common(){
+    LOG("DEBUG4") << MSG_FUNC_START;
+    m_cpu_no = sm_ncpus++;                 // Increment global cpu cnt
+    init_reghash();                        // Initialize registers' hash 
+    init_reg_attrs();                      // Initialize registers' attributes
+    gen_ppc_opc_func_hash(this);           // Initialize opcode function pointer table
+    m_instr_cache.set_size(512);           // LRU cache size = 512 instrs
+    m_ctxt_switch = 0;                     // Initialize flag to zero
     LOG("DEBUG4") << MSG_FUNC_END;
 }
 
@@ -1491,7 +1463,7 @@ void CPU_PPC::dump_state(int columns, std::ostream &ostr, int dump_all_sprs){
     ostr << "cpu no = " << (int)m_cpu_no << std::endl;
     ostr << "msr = " << std::hex << std::showbase << PPCREG(REG_MSR) << std::endl;
     ostr << "cr  = " << std::hex << std::showbase << PPCREG(REG_CR) << std::endl;
-    ostr << "iar = " << std::hex << std::showbase << pc << std::endl;
+    ostr << "iar = " << std::hex << std::showbase << m_pc << std::endl;
     ostr << std::endl;
 
     // dump gprs
