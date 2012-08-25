@@ -49,6 +49,7 @@
 //     25 Aug, 2012
 //     Removed all mfspr/mtspr extended mnemonics.
 //     Removed all branch extended mnemonics.
+//     Removed all trap(primary opcode 2 and 3) extended mnemonics.
 
 #ifndef _PPC_OPC_H
 #define _PPC_OPC_H
@@ -2114,50 +2115,8 @@ extract_dm (unsigned long insn,
 
 static const struct powerpc_opcode powerpc_opcodes[] = {
 {"attn",	X(0,256),	X_MASK,   POWER4|PPCA2,	PPC476,		{0}},
-{"tdlgti",	OPTO(2,TOLGT),	OPTO_MASK,   PPC64,	PPCNONE,	{RA, SI}},
-{"tdllti",	OPTO(2,TOLLT),	OPTO_MASK,   PPC64,	PPCNONE,	{RA, SI}},
-{"tdeqi",	OPTO(2,TOEQ),	OPTO_MASK,   PPC64,	PPCNONE,	{RA, SI}},
-{"tdlgei",	OPTO(2,TOLGE),	OPTO_MASK,   PPC64,	PPCNONE,	{RA, SI}},
-{"tdlnli",	OPTO(2,TOLNL),	OPTO_MASK,   PPC64,	PPCNONE,	{RA, SI}},
-{"tdllei",	OPTO(2,TOLLE),	OPTO_MASK,   PPC64,	PPCNONE,	{RA, SI}},
-{"tdlngi",	OPTO(2,TOLNG),	OPTO_MASK,   PPC64,	PPCNONE,	{RA, SI}},
-{"tdgti",	OPTO(2,TOGT),	OPTO_MASK,   PPC64,	PPCNONE,	{RA, SI}},
-{"tdgei",	OPTO(2,TOGE),	OPTO_MASK,   PPC64,	PPCNONE,	{RA, SI}},
-{"tdnli",	OPTO(2,TONL),	OPTO_MASK,   PPC64,	PPCNONE,	{RA, SI}},
-{"tdlti",	OPTO(2,TOLT),	OPTO_MASK,   PPC64,	PPCNONE,	{RA, SI}},
-{"tdlei",	OPTO(2,TOLE),	OPTO_MASK,   PPC64,	PPCNONE,	{RA, SI}},
-{"tdngi",	OPTO(2,TONG),	OPTO_MASK,   PPC64,	PPCNONE,	{RA, SI}},
-{"tdnei",	OPTO(2,TONE),	OPTO_MASK,   PPC64,	PPCNONE,	{RA, SI}},
 {"tdi",		OP(2),		OP_MASK,     PPC64,	PPCNONE,	{TO, RA, SI}},
 
-{"twlgti",	OPTO(3,TOLGT),	OPTO_MASK,   PPCCOM,	PPCNONE,	{RA, SI}},
-{"tlgti",	OPTO(3,TOLGT),	OPTO_MASK,   PWRCOM,	PPCNONE,	{RA, SI}},
-{"twllti",	OPTO(3,TOLLT),	OPTO_MASK,   PPCCOM,	PPCNONE,	{RA, SI}},
-{"tllti",	OPTO(3,TOLLT),	OPTO_MASK,   PWRCOM,	PPCNONE,	{RA, SI}},
-{"tweqi",	OPTO(3,TOEQ),	OPTO_MASK,   PPCCOM,	PPCNONE,	{RA, SI}},
-{"teqi",	OPTO(3,TOEQ),	OPTO_MASK,   PWRCOM,	PPCNONE,	{RA, SI}},
-{"twlgei",	OPTO(3,TOLGE),	OPTO_MASK,   PPCCOM,	PPCNONE,	{RA, SI}},
-{"tlgei",	OPTO(3,TOLGE),	OPTO_MASK,   PWRCOM,	PPCNONE,	{RA, SI}},
-{"twlnli",	OPTO(3,TOLNL),	OPTO_MASK,   PPCCOM,	PPCNONE,	{RA, SI}},
-{"tlnli",	OPTO(3,TOLNL),	OPTO_MASK,   PWRCOM,	PPCNONE,	{RA, SI}},
-{"twllei",	OPTO(3,TOLLE),	OPTO_MASK,   PPCCOM,	PPCNONE,	{RA, SI}},
-{"tllei",	OPTO(3,TOLLE),	OPTO_MASK,   PWRCOM,	PPCNONE,	{RA, SI}},
-{"twlngi",	OPTO(3,TOLNG),	OPTO_MASK,   PPCCOM,	PPCNONE,	{RA, SI}},
-{"tlngi",	OPTO(3,TOLNG),	OPTO_MASK,   PWRCOM,	PPCNONE,	{RA, SI}},
-{"twgti",	OPTO(3,TOGT),	OPTO_MASK,   PPCCOM,	PPCNONE,	{RA, SI}},
-{"tgti",	OPTO(3,TOGT),	OPTO_MASK,   PWRCOM,	PPCNONE,	{RA, SI}},
-{"twgei",	OPTO(3,TOGE),	OPTO_MASK,   PPCCOM,	PPCNONE,	{RA, SI}},
-{"tgei",	OPTO(3,TOGE),	OPTO_MASK,   PWRCOM,	PPCNONE,	{RA, SI}},
-{"twnli",	OPTO(3,TONL),	OPTO_MASK,   PPCCOM,	PPCNONE,	{RA, SI}},
-{"tnli",	OPTO(3,TONL),	OPTO_MASK,   PWRCOM,	PPCNONE,	{RA, SI}},
-{"twlti",	OPTO(3,TOLT),	OPTO_MASK,   PPCCOM,	PPCNONE,	{RA, SI}},
-{"tlti",	OPTO(3,TOLT),	OPTO_MASK,   PWRCOM,	PPCNONE,	{RA, SI}},
-{"twlei",	OPTO(3,TOLE),	OPTO_MASK,   PPCCOM,	PPCNONE,	{RA, SI}},
-{"tlei",	OPTO(3,TOLE),	OPTO_MASK,   PWRCOM,	PPCNONE,	{RA, SI}},
-{"twngi",	OPTO(3,TONG),	OPTO_MASK,   PPCCOM,	PPCNONE,	{RA, SI}},
-{"tngi",	OPTO(3,TONG),	OPTO_MASK,   PWRCOM,	PPCNONE,	{RA, SI}},
-{"twnei",	OPTO(3,TONE),	OPTO_MASK,   PPCCOM,	PPCNONE,	{RA, SI}},
-{"tnei",	OPTO(3,TONE),	OPTO_MASK,   PWRCOM,	PPCNONE,	{RA, SI}},
 {"twi",		OP(3),		OP_MASK,     PPCCOM,	PPCNONE,	{TO, RA, SI}},
 {"ti",		OP(3),		OP_MASK,     PWRCOM,	PPCNONE,	{TO, RA, SI}},
 
@@ -4572,62 +4531,5 @@ static const struct powerpc_opcode powerpc_opcodes[] = {
 
 static const int powerpc_num_opcodes =
   sizeof (powerpc_opcodes) / sizeof (powerpc_opcodes[0]);
-
-/* The macro table.  This is only used by the assembler.  */
-
-/* The expressions of the form (-x ! 31) & (x | 31) have the value 0
-   when x=0; 32-x when x is between 1 and 31; are negative if x is
-   negative; and are 32 or more otherwise.  This is what you want
-   when, for instance, you are emulating a right shift by a
-   rotate-left-and-mask, because the underlying instructions support
-   shifts of size 0 but not shifts of size 32.  By comparison, when
-   extracting x bits from some word you want to use just 32-x, because
-   the underlying instructions don't support extracting 0 bits but do
-   support extracting the whole word (32 bits in this case).  */
-
-static const struct powerpc_macro powerpc_macros[] = {
-{"extldi",   4,	PPC64,	"rldicr %0,%1,%3,(%2)-1"},
-{"extldi.",  4,	PPC64,	"rldicr. %0,%1,%3,(%2)-1"},
-{"extrdi",   4,	PPC64,	"rldicl %0,%1,((%2)+(%3))&((%2)+(%3)<>64),64-(%2)"},
-{"extrdi.",  4,	PPC64,	"rldicl. %0,%1,((%2)+(%3))&((%2)+(%3)<>64),64-(%2)"},
-{"insrdi",   4,	PPC64,	"rldimi %0,%1,64-((%2)+(%3)),%3"},
-{"insrdi.",  4,	PPC64,	"rldimi. %0,%1,64-((%2)+(%3)),%3"},
-{"rotrdi",   3,	PPC64,	"rldicl %0,%1,(-(%2)!63)&((%2)|63),0"},
-{"rotrdi.",  3,	PPC64,	"rldicl. %0,%1,(-(%2)!63)&((%2)|63),0"},
-{"sldi",     3,	PPC64,	"rldicr %0,%1,%2,63-(%2)"},
-{"sldi.",    3,	PPC64,	"rldicr. %0,%1,%2,63-(%2)"},
-{"srdi",     3,	PPC64,	"rldicl %0,%1,(-(%2)!63)&((%2)|63),%2"},
-{"srdi.",    3,	PPC64,	"rldicl. %0,%1,(-(%2)!63)&((%2)|63),%2"},
-{"clrrdi",   3,	PPC64,	"rldicr %0,%1,0,63-(%2)"},
-{"clrrdi.",  3,	PPC64,	"rldicr. %0,%1,0,63-(%2)"},
-{"clrlsldi", 4,	PPC64,	"rldic %0,%1,%3,(%2)-(%3)"},
-{"clrlsldi.",4, PPC64,	"rldic. %0,%1,%3,(%2)-(%3)"},
-
-{"extlwi",   4,	PPCCOM,	"rlwinm %0,%1,%3,0,(%2)-1"},
-{"extlwi.",  4,	PPCCOM,	"rlwinm. %0,%1,%3,0,(%2)-1"},
-{"extrwi",   4,	PPCCOM,	"rlwinm %0,%1,((%2)+(%3))&((%2)+(%3)<>32),32-(%2),31"},
-{"extrwi.",  4,	PPCCOM,	"rlwinm. %0,%1,((%2)+(%3))&((%2)+(%3)<>32),32-(%2),31"},
-{"inslwi",   4,	PPCCOM,	"rlwimi %0,%1,(-(%3)!31)&((%3)|31),%3,(%2)+(%3)-1"},
-{"inslwi.",  4,	PPCCOM,	"rlwimi. %0,%1,(-(%3)!31)&((%3)|31),%3,(%2)+(%3)-1"},
-{"insrwi",   4,	PPCCOM,	"rlwimi %0,%1,32-((%2)+(%3)),%3,(%2)+(%3)-1"},
-{"insrwi.",  4,	PPCCOM,	"rlwimi. %0,%1,32-((%2)+(%3)),%3,(%2)+(%3)-1"},
-{"rotrwi",   3,	PPCCOM,	"rlwinm %0,%1,(-(%2)!31)&((%2)|31),0,31"},
-{"rotrwi.",  3,	PPCCOM,	"rlwinm. %0,%1,(-(%2)!31)&((%2)|31),0,31"},
-{"slwi",     3,	PPCCOM,	"rlwinm %0,%1,%2,0,31-(%2)"},
-{"sli",      3,	PWRCOM,	"rlinm %0,%1,%2,0,31-(%2)"},
-{"slwi.",    3,	PPCCOM,	"rlwinm. %0,%1,%2,0,31-(%2)"},
-{"sli.",     3,	PWRCOM,	"rlinm. %0,%1,%2,0,31-(%2)"},
-{"srwi",     3,	PPCCOM,	"rlwinm %0,%1,(-(%2)!31)&((%2)|31),%2,31"},
-{"sri",      3,	PWRCOM,	"rlinm %0,%1,(-(%2)!31)&((%2)|31),%2,31"},
-{"srwi.",    3,	PPCCOM,	"rlwinm. %0,%1,(-(%2)!31)&((%2)|31),%2,31"},
-{"sri.",     3,	PWRCOM,	"rlinm. %0,%1,(-(%2)!31)&((%2)|31),%2,31"},
-{"clrrwi",   3,	PPCCOM,	"rlwinm %0,%1,0,0,31-(%2)"},
-{"clrrwi.",  3,	PPCCOM,	"rlwinm. %0,%1,0,0,31-(%2)"},
-{"clrlslwi", 4,	PPCCOM,	"rlwinm %0,%1,%3,(%2)-(%3),31-(%3)"},
-{"clrlslwi.",4, PPCCOM,	"rlwinm. %0,%1,%3,(%2)-(%3),31-(%3)"},
-};
-
-static const int powerpc_num_macros =
-  sizeof (powerpc_macros) / sizeof (powerpc_macros[0]);
 
 #endif
