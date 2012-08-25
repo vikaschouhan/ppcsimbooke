@@ -317,13 +317,6 @@
 
 #endif
 
-/* invalid:  To catch bugs. */
-X(invalid)
-{
-    std::cerr << "PPC: invalid(): INTERNAL ERROR\n";
-    exit(1);
-}
-
 /*----------------------------------------------------------------------------------------------------*/
 
 /*
@@ -437,10 +430,6 @@ X(subi)
     SMODE tmp = (int16_t)ARG2;
     if(ARG1){ subw(REG0, REG1, tmp, host_flags); }
     else    { REG0 = -(int16_t)ARG2;            }
-}
-X(li_0)
-{
-    REG0 = 0;
 }
 /*  addic:  Add immediate, Carry.
  *
@@ -1169,10 +1158,6 @@ X(rotlwi)
 {
     rlwinm_code(REG0, REG1, ARG2, 0, 31);
 }
-X(rotrwi)
-{
-    rlwinm_code(REG0, REG1, (32-ARG2), 0, 31);
-}
 
 // System call
 X(sc)
@@ -1193,11 +1178,6 @@ X(slw.)
 {
     slw_code(REG0, REG1, REG2);
     update_cr0(0, ut(REG0));
-}
-// slwi rA, rS, n; ( n < 32 )
-X(slwi)
-{
-    rlwinm_code(REG0, REG1, ARG2, 0, (31-ARG2));
 }
 X(sraw)
 {
@@ -1244,11 +1224,6 @@ X(srw.)
 {
     srw_code(REG0, REG1, REG2);
     update_cr0(0, ut(REG0));
-}
-// srwi rA, rS, n; ( n < 32 )
-X(srwi)
-{
-    rlwinm_code(REG0, REG1, (32-ARG2), ARG2, 31);
 }
 
 // wrtee variants
