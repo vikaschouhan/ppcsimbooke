@@ -20,6 +20,7 @@
  *
  *  Pseudocodes are written in accordance with Power ISA 2.06 provided by power.org and
  *  PowerPC e500 core ref. manual provided by Freescale.
+ *
  */
 
 /* ---------
@@ -33,17 +34,15 @@
 
 // Global defines for this template file
 //
-#undef  ppcreg
-#undef  ppcregattr
-#undef  ppcregn
-#undef  ppcregnattr
+#undef  PPCREG
+#undef  PPCREGATTR
+#undef  PPCREGN
+#undef  PPCREGNATTR
 
-#undef  spr
-#undef  sprn
+#undef  SPR
 #undef  XER 
 #undef  MSR
-#undef  pmr
-#undef  gpr
+#undef  PMR 
 #undef  CR 
 #undef  update_cr0
 #undef  update_crF  
@@ -63,21 +62,19 @@
 //#endif
 
 // Alias to CPU functions
-#define ppcreg(regid)            (CPU->reg(regid))
-#define ppcregn(reg_name)        (CPU->regn(reg_name))
+#define PPCREG(regid)            (CPU->reg(regid))
+#define PPCREGN(reg_name)        (CPU->regn(reg_name))
 
 // MSR_CM
-#define CM                       ((ppcreg(REG_MSR) & MSR_CM) ? 1 : 0)
+#define CM                       ((PPCREG(REG_MSR) & MSR_CM) ? 1 : 0)
 
-#define spr(sprno)               ppcreg(REG_SPR0 + sprno) 
-#define sprn(spr_name)           regn(spr_name) 
-#define XER                      spr(SPRN_XER) 
-#define MSR                      ppcreg(REG_MSR) 
-#define pmr(pmrno)               ppcreg(REG_PMR0 + pmrno) 
-#define gpr                      ppcreg(REG_MSR) 
-#define CR                       ppcreg(REG_CR)
-#define LR                       ppcreg(REG_LR)
-#define CTR                      ppcreg(REG_CTR)
+#define SPR(sprno)               PPCREG(REG_SPR0 + sprno) 
+#define XER                      SPR(SPRN_XER) 
+#define MSR                      PPCREG(REG_MSR) 
+#define PMR(pmrno)               PPCREG(REG_PMR0 + pmrno) 
+#define CR                       PPCREG(REG_CR)
+#define LR                       PPCREG(REG_LR)
+#define CTR                      PPCREG(REG_CTR)
 #define PC                       CPU->m_pc
 #define update_cr0               CPU->update_cr0
 #define update_crF               CPU->update_crF
@@ -93,15 +90,15 @@
 
 // load/store macros
 //
-#define load8(addr)              CPU->read8(addr)
-#define load16(addr)             CPU->read16(addr)
-#define load32(addr)             CPU->read32(addr)
-#define load64(addr)             CPU->read64(addr)
+#define LOAD8(addr)              CPU->read8(addr)
+#define LOAD16(addr)             CPU->read16(addr)
+#define LOAD32(addr)             CPU->read32(addr)
+#define LOAD64(addr)             CPU->read64(addr)
 
-#define store8(addr, value)      CPU->write8(addr, value)
-#define store16(addr, value)     CPU->write16(addr, value)
-#define store32(addr, value)     CPU->write32(addr, value)
-#define store64(addr, value)     CPU->write64(addr, value)
+#define STORE8(addr, value)      CPU->write8(addr, value)
+#define STORE16(addr, value)     CPU->write16(addr, value)
+#define STORE32(addr, value)     CPU->write32(addr, value)
+#define STORE64(addr, value)     CPU->write64(addr, value)
 
 // In case of register operands, their pointers are instead passed in corresponding ARG parameter.
 #define ARG_BASE                 IC->arg
@@ -112,11 +109,11 @@
 #define REG3_P                   (ARG_BASE[3].p)
 #define REG4_P                   (ARG_BASE[4].p)
 
-#define REG0                     ppcreg(REG0_P)
-#define REG1                     ppcreg(REG1_P)
-#define REG2                     ppcreg(REG2_P)
-#define REG3                     ppcreg(REG3_P)
-#define REG4                     ppcreg(REG4_P)
+#define REG0                     PPCREG(REG0_P)
+#define REG1                     PPCREG(REG1_P)
+#define REG2                     PPCREG(REG2_P)
+#define REG3                     PPCREG(REG3_P)
+#define REG4                     PPCREG(REG4_P)
 
 #define ARG0                     (ARG_BASE[0].v)
 #define ARG1                     (ARG_BASE[1].v)
@@ -124,7 +121,7 @@
 #define ARG3                     (ARG_BASE[3].v)
 #define ARG4                     (ARG_BASE[4].v)
 
-// target mode , ut -> unsigned target, st -> signed target
+// target mode , UT -> unsigned target, st -> signed target
 // If target_bits == 32
 //     UMODE -> uint32_t
 //     SMODE -> int32_t
@@ -132,10 +129,10 @@
 //     UMODE -> uint64_t
 //     SMODE -> int64_t
 // endif    
-#define ut(arg)   ((UMODE)(arg))
-#define st(arg)   ((SMODE)(arg))
+#define UT(arg)   ((UMODE)(arg))
+#define ST(arg)   ((SMODE)(arg))
 
-#define reg_bf(reg, mask)   ((reg & mask) ? 1:0)
+#define REG_BF(reg, mask)   ((reg & mask) ? 1:0)
 
 #if 0
 #ifndef CHECK_FOR_FPU_EXCEPTION
@@ -377,24 +374,24 @@ X(addco.)
 /* Add extended : rA + rB + CA */
 X(adde)
 {
-    UMODE tmp = REG2 + reg_bf(XER, XER_CA);
+    UMODE tmp = REG2 + REG_BF(XER, XER_CA);
     add_code(REG0, REG1, tmp);
 }
 X(adde.)
 {
-    UMODE tmp = REG2 + reg_bf(XER, XER_CA);
+    UMODE tmp = REG2 + REG_BF(XER, XER_CA);
     add_code(REG0, REG1, tmp);
     update_cr0(1);
 }
 X(addeo)
 {
-    UMODE tmp = REG2 + reg_bf(XER, XER_CA);
+    UMODE tmp = REG2 + REG_BF(XER, XER_CA);
     add_code(REG0, REG1, tmp);
     update_xer(1);
 }
 X(addeo.)
 {
-    UMODE tmp = REG2 + reg_bf(XER, XER_CA);
+    UMODE tmp = REG2 + REG_BF(XER, XER_CA);
     add_code(REG0, REG1, tmp);
     update_xer(1);
     update_cr0(1);
@@ -495,24 +492,24 @@ X(subis)
  *  */
 X(addme)
 {
-    SMODE tmp = reg_bf(XER, XER_CA) - 1;
+    SMODE tmp = REG_BF(XER, XER_CA) - 1;
     add_code(REG0, REG1, tmp);
 }
 X(addme.)
 {
-    SMODE tmp = reg_bf(XER, XER_CA) - 1;
+    SMODE tmp = REG_BF(XER, XER_CA) - 1;
     add_code(REG0, REG1, tmp);
     update_cr0(1);
 }
 X(addmeo)
 {
-    SMODE tmp = reg_bf(XER, XER_CA) - 1;
+    SMODE tmp = REG_BF(XER, XER_CA) - 1;
     add_code(REG0, REG1, tmp);
     update_xer(1);
 }
 X(addmeo.)
 {
-    SMODE tmp = reg_bf(XER, XER_CA) - 1;
+    SMODE tmp = REG_BF(XER, XER_CA) - 1;
     add_code(REG0, REG1, tmp);
     update_xer(1);
     update_cr0(1);
@@ -523,24 +520,24 @@ X(addmeo.)
  */
 X(addze)
 {
-    UMODE tmp = reg_bf(XER, XER_CA);
+    UMODE tmp = REG_BF(XER, XER_CA);
     add_code(REG0, REG1, tmp);
 }
 X(addze.)
 {
-    UMODE tmp = reg_bf(XER, XER_CA);
+    UMODE tmp = REG_BF(XER, XER_CA);
     add_code(REG0, REG1, tmp);
     update_cr0(1);
 }
 X(addzeo)
 {
-    UMODE tmp = reg_bf(XER, XER_CA);
+    UMODE tmp = REG_BF(XER, XER_CA);
     add_code(REG0, REG1, tmp);
     update_xer(1);
 }
 X(addzeo.)
 {
-    UMODE tmp = reg_bf(XER, XER_CA);
+    UMODE tmp = REG_BF(XER, XER_CA);
     add_code(REG0, REG1, tmp);
     update_xer(1);
     update_cr0(1);
@@ -555,7 +552,7 @@ X(and)
 X(and.)
 {
     REG0 = REG1 & REG2;
-    update_cr0(0, ut(REG0));
+    update_cr0(0, UT(REG0));
 }
 X(andc)
 {
@@ -565,7 +562,7 @@ X(andc)
 X(andc.)
 {
     REG0 = REG1 & (~REG2);
-    update_cr0(0, ut(REG0));
+    update_cr0(0, UT(REG0));
 }
 /* andi_dot:  AND immediate, update CR.
  * rA <- rS + 16(0) || UIMM
@@ -573,12 +570,12 @@ X(andc.)
 X(andi.)
 {
     REG0 = REG1 & (uint16_t)ARG2;
-    update_cr0(0, ut(REG0));
+    update_cr0(0, UT(REG0));
 }
 X(andis.)
 {
     REG0 = REG1 & (((uint16_t)ARG2) << 16);
-    update_cr0(0, ut(REG0));
+    update_cr0(0, UT(REG0));
 }
 
 // BTB instrs
@@ -950,14 +947,14 @@ X(mtmsr)
 X(mfspr)
 {
 #define mfspr_code(rD, SPRN)                   \
-    rD = spr(SPRN);
+    rD = SPR(SPRN);
 
     mfspr_code(REG0, ARG1);
 }
 X(mtspr)
 {
 #define mtspr_code(SPRN, rS)                  \
-    spr(SPRN) = rS;
+    SPR(SPRN) = rS;
 
     mtspr_code(ARG0, REG1);
 }
@@ -966,14 +963,14 @@ X(mtspr)
 X(mtpmr)
 {
 #define mtpmr_code(PMRN, rS)                  \
-    pmr(PMRN) = rS;
+    PMR(PMRN) = rS;
 
     mtpmr_code(ARG0, REG1);
 }
 X(mfpmr)
 {
 #define mfpmr_code(rD, PMRN)                  \
-    rD = pmr(PMRN);
+    rD = PMR(PMRN);
 
     mfpmr_code(ARG0, REG1);
 }
@@ -1007,7 +1004,7 @@ X(nand)
 X(nand.)
 {
     nand_code(REG0, REG1, REG2);
-    update_cr0(0, ut(REG0));
+    update_cr0(0, UT(REG0));
 }
 X(neg)
 {
@@ -1042,7 +1039,7 @@ X(nor)
 X(nor.)
 {
     nor_code(REG0, REG1, REG2);
-    update_cr0(0, ut(REG0));
+    update_cr0(0, UT(REG0));
 }
 X(or)
 {
@@ -1054,7 +1051,7 @@ X(or)
 X(or.)
 {
     or_code(REG0, REG1, REG2);
-    update_cr0(0, ut(REG0));
+    update_cr0(0, UT(REG0));
 }
 X(orc)
 {
@@ -1066,7 +1063,7 @@ X(orc)
 X(orc.)
 {
     orc_code(REG0, REG1, REG2);
-    update_cr0(0, ut(REG0));
+    update_cr0(0, UT(REG0));
 }
 X(ori)
 {
@@ -1118,7 +1115,7 @@ X(rlwimi)
 X(rlwimi.)
 {
     rlwimi_code(REG0, REG1, ARG2, ARG3, ARG4);
-    update_cr0(0, ut(REG0));
+    update_cr0(0, UT(REG0));
 }
 X(rlwinm)
 {
@@ -1133,7 +1130,7 @@ X(rlwinm)
 X(rlwinm.)
 {
     rlwinm_code(REG0, REG1, ARG2, ARG3, ARG4);
-    update_cr0(0, ut(REG0));
+    update_cr0(0, UT(REG0));
 }
 X(rlwnm)
 {
@@ -1148,7 +1145,7 @@ X(rlwnm)
 X(rlwnm.)
 {
     rlwnm_code(REG0, REG1, REG2, ARG3, ARG4);
-    update_cr0(0, ut(REG0));
+    update_cr0(0, UT(REG0));
 }
 X(rotlw)
 {
@@ -1177,7 +1174,7 @@ X(slw)
 X(slw.)
 {
     slw_code(REG0, REG1, REG2);
-    update_cr0(0, ut(REG0));
+    update_cr0(0, UT(REG0));
 }
 X(sraw)
 {
@@ -1193,7 +1190,7 @@ X(sraw)
 X(sraw.)
 {
     sraw_code(REG0, REG1, REG2);
-    update_cr0(0, ut(REG0));
+    update_cr0(0, UT(REG0));
 }
 X(srawi)
 {
@@ -1209,7 +1206,7 @@ X(srawi)
 X(srawi.)
 {
     srawi_code(REG0, REG1, ARG2);
-    update_cr0(0, ut(REG0));
+    update_cr0(0, UT(REG0));
 }
 X(srw)
 {
@@ -1223,7 +1220,7 @@ X(srw)
 X(srw.)
 {
     srw_code(REG0, REG1, REG2);
-    update_cr0(0, ut(REG0));
+    update_cr0(0, UT(REG0));
 }
 
 // wrtee variants
@@ -1255,7 +1252,7 @@ X(xor)
 X(xor.)
 {
     xor_code(REG0, REG1, REG2);
-    update_cr0(0, ut(REG0));
+    update_cr0(0, UT(REG0));
 }
 X(xori)
 {
@@ -1281,7 +1278,7 @@ X(lwz)
     UMODE ea;
     if(ARG2){ tmp = REG2; }
     ea = tmp + int16_t(ARG1);
-    REG0 = load32(ea);
+    REG0 = LOAD32(ea);
 }
 // lwzx rD,rA,rB
 X(lwzx)
@@ -1291,7 +1288,7 @@ X(lwzx)
     UMODE ea;
     if(ARG1){ tmp = REG1; }
     ea = tmp + REG2;
-    REG0 = load32(ea);
+    REG0 = LOAD32(ea);
 }
 //  lwzu rD,D(rA)
 X(lwzu)
@@ -1299,7 +1296,7 @@ X(lwzu)
     REG0 = 0;
     UMODE ea;
     ea = REG2 + int16_t(ARG1);
-    REG0 = load32(ea);
+    REG0 = LOAD32(ea);
     REG2 = ea;
 }
 X(lwzux)
@@ -1307,7 +1304,7 @@ X(lwzux)
     REG0 = 0;
     UMODE ea;
     ea = REG1 + REG2;
-    REG0 = load32(ea);
+    REG0 = LOAD32(ea);
     REG1 = ea;
 }
 
