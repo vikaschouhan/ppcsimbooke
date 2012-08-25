@@ -100,6 +100,10 @@
 #define STORE32(addr, value)     CPU->write32(addr, value)
 #define STORE64(addr, value)     CPU->write64(addr, value)
 
+// TLB macros
+#define TLBWE()                  CPU->m_l2tlb.tlbwe(PPCREG(REG_MAS0), \
+                                     PPCREG(REG_MAS1), PPCREG(REG_MAS2), PPCREG(REG_MAS3), PPCREG(REG_MAS7), PPCREG(REG_HID0))
+
 // In case of register operands, their pointers are instead passed in corresponding ARG parameter.
 #define ARG_BASE                 IC->arg
 
@@ -1306,6 +1310,12 @@ X(lwzux)
     ea = REG1 + REG2;
     REG0 = LOAD32(ea);
     REG1 = ea;
+}
+
+// ------------------------------ TLB ----------------------------------------------
+X(tlbwe)
+{
+    TLBWE();
 }
 
 // ------------------------------ SPE -----------------------------------------------

@@ -17,7 +17,6 @@ int main(){
     cpu0.run_instr("add r0, r0, r0");
     //ptr->run_instr("add", "r0", "r0", "r0");
     cpu0.run_instr("mtmsr r0, 0x0");
-    cpu0.run_instr("mtctr r0");
     cpu0.run_instr("cmpi 0x0, 0x0, r0, 0x68a");
     cpu0.dump_state(4);
     cpu0.get_reg("r0");

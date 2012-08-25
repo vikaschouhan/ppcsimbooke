@@ -70,10 +70,10 @@ struct instr_call {
         for(int i=nargs; i<N_IC_ARGS; i++){
             lfmt += "%c";
         }
-        fmt += "\n";
+        fmt += " ";
         // We use printf for printing , since we have format of arguments in a string.
         if(opcname == "")
-            sprintf(instr_str, ".long 0x%lx\n", (arg[0].v & 0xffffffff));
+            sprintf(instr_str, ".long 0x%lx ", (arg[0].v & 0xffffffff));
         else
             sprintf(instr_str, lfmt.c_str(), opcname.c_str(), arg[0].v, arg[1].v, arg[2].v, arg[3].v, arg[4].v, arg[5].v);
         return instr_str;

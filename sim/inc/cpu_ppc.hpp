@@ -140,6 +140,9 @@ class CPU_PPC {
 
     std::string                            m_cpu_name;
     int                                    m_cpu_mode;
+#define CPU_MODE_RUNNING            (0x1)
+#define CPU_MODE_STEPPING           (0x2)
+#define CPU_MODE_HALTED             (0x3)
     int                                    m_cpu_bits;            // 32 or 64
     struct timeval                         m_cpu_start_time;
     bool                                   m_cpu_running;         // If CPU is in run mode
@@ -237,6 +240,7 @@ void CPU_PPC::run(){
     LOG("DEBUG4") << MSG_FUNC_START;
 
     std::pair<uint64_t, bool> last_bkpt = m_bm.last_breakpoint();
+    m_cpu_mode = CPU_MODE_RUNNING;
 
     // run this instruction if this was last breakpointed
     if(last_bkpt.first == m_pc and last_bkpt.second == true){
@@ -279,6 +283,18 @@ void CPU_PPC::step(size_t instr_cnt){
 
     size_t t=0;
     if(!instr_cnt) return;
+
+    std::pair<uint64_t, bool> last_bkpt = m_bm.last_breakpoint();
+    m_cpu_mode = CPU_MODE_STEPPING;
+
+    // run this instruction if this was last breakpointed
+    if(last_bkpt.first == m_pc and last_bkpt.second == true){
+        m_bm.disable_breakpoints();
+        run_curr_instr();
+        instr_cnt--;                  // decrement instr count
+        m_bm.clear_last_breakpoint();
+        m_bm.enable_breakpoints();
+    }
 
 #define I     run_curr_instr()
 
@@ -1114,6 +1130,11 @@ inline void CPU_PPC::run_curr_instr(){
         LTHROW(sim_except(SIM_EXCEPT_SBKPT, "Software breakpoint"), DEBUG4);
     }
 
+    // Do this while stepping
+    if(m_cpu_mode == CPU_MODE_STEPPING){
+        std::cout << std::hex << "PC:" <<  m_pc << " [ " << call_this.get_instr_str() << " ]" << std::endl;
+    }
+
     // Check for any debug events for IAC
     // FIXME : This may not work at this time
     check_for_dbg_events(DBG_EVENT_IAC);
@@ -1141,6 +1162,7 @@ inline void CPU_PPC::init_common(){
     gen_ppc_opc_func_hash(this);           // Initialize opcode function pointer table
     m_instr_cache.set_size(512);           // LRU cache size = 512 instrs
     m_ctxt_switch = 0;                     // Initialize flag to zero
+    m_cpu_mode = CPU_MODE_HALTED;
     LOG("DEBUG4") << MSG_FUNC_END;
 }
 
