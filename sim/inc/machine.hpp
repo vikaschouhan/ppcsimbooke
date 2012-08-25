@@ -36,6 +36,21 @@ template <int ncpus, int nbits> struct machine {
         LOG("DEBUG4") << MSG_FUNC_END;
     }
 
+    // Common run ( invokes run of invoked CPUs using multiple threads )
+    void run(unsigned mask=0){
+        if(mask == 0){
+            m_cpu[0].run();
+            return;
+        }
+        // FIXME: Use a multithreaded approach here.
+        //for(size_t i=0; i<sizeof(mask); i++){
+        //    if((mask >> i) & 0x1){
+        //        m_cpu[0].run();
+        //    }
+        //}
+        return;
+    }
+
     // for boost::python
     template<int cpu_no> CPU_PPC& get_cpu(){
         return m_cpu[cpu_no];

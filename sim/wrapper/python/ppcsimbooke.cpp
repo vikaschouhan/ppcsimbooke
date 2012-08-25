@@ -78,6 +78,9 @@ BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(disasm_overloads, disasm, 1, 3);
 // Overloads for ppc_dis::disasm() ( string version )
 BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(disasm2_overloads, disasm, 1, 2);
 
+// Overloads for machine::run()
+BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(mc_run_overloads, run, 0, 1);
+
 // Dummy class to be used for adding extra classes in python proxies
 template <int x> class dummy{
     private:
@@ -385,6 +388,7 @@ BOOST_PYTHON_MODULE(ppcsim)
         .add_property("cpu0",        make_function(&machine_2cpus_36pl::get_cpu<0>, return_value_policy<reference_existing_object>()))
         .add_property("cpu1",        make_function(&machine_2cpus_36pl::get_cpu<1>, return_value_policy<reference_existing_object>()))
         .def("load_elf",             &machine_2cpus_36pl::load_elf)
+        .def("run",                  &machine_2cpus_36pl::run, mc_run_overloads())
         ;
   
     // Custom message after loading this module 

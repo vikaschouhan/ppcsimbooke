@@ -1557,43 +1557,15 @@ X(mtcr)
     mtcrf_code(0xff, REG0);
 }
 
-
-// Move to/from SPR/PMR ( by name )
-#define MNEC_MR(regname)                      \
-    X(mf##regname){                           \
-        REG0 = ppcregn(#regname);             \
-    }                                         \
-    X(mt##regname){                           \
-        ppcregn(#regname) = REG0;             \
-    }
-
-// Move to/from MSR and FPSCR
-MNEC_MR( msr     )    MNEC_MR( fpscr   )
-
-// SPRS 
-MNEC_MR( atbl    )    MNEC_MR( atbu    )    MNEC_MR( csrr0   )
-MNEC_MR( csrr1   )    MNEC_MR( ctr     )    MNEC_MR( dac1    )    MNEC_MR( dac2    )    MNEC_MR( dbcr0   )    MNEC_MR( dbcr1    )
-MNEC_MR( dbcr2   )    MNEC_MR( dbsr    )    MNEC_MR( dear    )    MNEC_MR( dec     )    MNEC_MR( decar   )    MNEC_MR( esr      )
-MNEC_MR( iac1    )    MNEC_MR( iac2    )    MNEC_MR( ivor0   )    MNEC_MR( ivor1   )    MNEC_MR( ivor2   )    MNEC_MR( ivor3    )
-MNEC_MR( ivor4   )    MNEC_MR( ivor5   )    MNEC_MR( ivor6   )    MNEC_MR( ivor7   )    MNEC_MR( ivor8   )    MNEC_MR( ivor9    )
-MNEC_MR( ivor10  )    MNEC_MR( ivor11  )
-MNEC_MR( ivor12  )    MNEC_MR( ivor13  )    MNEC_MR( ivor14  )    MNEC_MR( ivor15  )    MNEC_MR( ivpr    )    MNEC_MR( lr       )  
-MNEC_MR( pid     )    MNEC_MR( pir     )    MNEC_MR( pvr     )    MNEC_MR( sprg0   )    MNEC_MR( sprg1   )    MNEC_MR( sprg2    )
-MNEC_MR( sprg3   )    MNEC_MR( sprg4   )    MNEC_MR( sprg5   )    MNEC_MR( sprg6   )    MNEC_MR( sprg7   )    MNEC_MR( srr0     )
-MNEC_MR( srr1    )    MNEC_MR( tbrl    )    MNEC_MR( tbwl    )    MNEC_MR( tbru    )    MNEC_MR( tbwu    )    MNEC_MR( tcr      ) 
-MNEC_MR( tsr     )    MNEC_MR( usprg0  )    MNEC_MR( xer     )    MNEC_MR( bbear   )    MNEC_MR( bbtar   )    MNEC_MR( bucsr    )
-MNEC_MR( hid0    )    MNEC_MR( hid1    )    MNEC_MR( ivor32  )    MNEC_MR( ivor33  )    MNEC_MR( ivor34  )    MNEC_MR( ivor35   )
-MNEC_MR( l1cfg0  )    MNEC_MR( l1cfg1  )    MNEC_MR( l1csr0  )    MNEC_MR( l1csr1  )    MNEC_MR( mcar    )    MNEC_MR( mcsr     )
-MNEC_MR( mcsrr0  )    MNEC_MR( mcsrr1  )    MNEC_MR( mmucfg  )    MNEC_MR( mmucsr0 )    MNEC_MR( pid0    )    MNEC_MR( pid1     )
-MNEC_MR( pid2    )    MNEC_MR( spefscr )    MNEC_MR( svr     )    MNEC_MR( tlb0cfg )    MNEC_MR( tlb1cfg )            
-       
-// PMRS 
-MNEC_MR( pmc0    )    MNEC_MR( pmc1    )    MNEC_MR( pmc2    )    MNEC_MR( pmc3    )    MNEC_MR( pmlca0  )    MNEC_MR( pmlca1   )
-MNEC_MR( pmlca2  )    MNEC_MR( pmlca3  )    MNEC_MR( pmlcb0  )    MNEC_MR( pmlcb1  )    MNEC_MR( pmlcb2  )    MNEC_MR( pmlcb3   )
-MNEC_MR( pmgc0   )    MNEC_MR( upmc0   )    MNEC_MR( upmc1   )    MNEC_MR( upmc2   )    MNEC_MR( upmc3   )    MNEC_MR( upmlca0  )
-MNEC_MR( upmlca1 )    MNEC_MR( upmlca2 )    MNEC_MR( upmlca3 )    MNEC_MR( upmlcb0 )    MNEC_MR( upmlcb1 )    MNEC_MR( upmlcb2  )
-MNEC_MR( upmlcb3 )    MNEC_MR( upmgc0  )
-
+// Move to/from MSR
+X(mfmsr)
+{
+    REG0 = MSR;
+}
+X(mtmsr)
+{
+    MSR = REG0;
+}
 
 // Move to/from SPR
 X(mfspr)
