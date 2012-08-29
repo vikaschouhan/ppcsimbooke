@@ -76,6 +76,7 @@
 #define LR                       PPCREG(REG_LR)
 #define CTR                      PPCREG(REG_CTR)
 #define PC                       CPU->m_pc
+#define NIP                      CPU->m_nip
 #define update_cr0               CPU->update_cr0
 #define update_crF               CPU->update_crF
 #define update_crf               CPU->update_crf
@@ -582,6 +583,7 @@ X(andis.)
     update_cr0(0, UT(REG0));
 }
 
+// ------------------------------- BPU ---------------------------------------------
 // BTB instrs
 X(bbelr)
 {
@@ -592,10 +594,13 @@ X(bblels)
     // Not implemented
 }
 
+// --------------------------------- branch -----------------------------------------
 // branch unconditional
 X(b)
 {
-#define b_code(tgtaddr)   PC = tgtaddr
+#define b_code(tgtaddr)      \
+    NIP = tgtaddr
+
     b_code(ARG0);
 }
 X(ba)
@@ -625,7 +630,7 @@ X(bc)
     if(!BO2(BO)) CTR = CTR - 1;                                                      \
     int ctr_ok  = BO2(BO) | ((((CM) ? CTR: (CTR & 0xffffffff)) != 0) ^ BO3(BO));     \
     int cond_ok = BO0(BO) | (get_crf(BI) == BO1(BO));                                \
-    if(ctr_ok & cond_ok) PC = tgtaddr;
+    if(ctr_ok & cond_ok) NIP = tgtaddr;
 
     bc_code(ARG0, ARG1, ARG2);
 }
@@ -653,7 +658,7 @@ X(bclr)
     if(!BO2(BO)) CTR = CTR - 1;                                                     \
     int ctr_ok = BO2(BO) | ((((CM) ? CTR: (CTR & 0xffffffff)) != 0) ^ BO3(BO));     \
     int cond_ok = BO0(BO) | (get_crf(BI) == BO1(BO));                               \
-    if(ctr_ok & cond_ok) PC = LR & ~0xff;
+    if(ctr_ok & cond_ok) NIP = LR & ~0x3;
 
     bclr_code(ARG0, ARG1, ARG2);
 }
@@ -670,7 +675,7 @@ X(bclrl)
 X(bcctr)
 {
 #define bcctr_code(BO, BI, BH)                                                       \
-    if(BO0(BO) | (get_crf(BI) == BO1(BO))) PC = CTR & ~0xff;
+    if(BO0(BO) | (get_crf(BI) == BO1(BO))) NIP = CTR & ~0x3;
     
     bcctr_code(ARG0, ARG1, ARG2);
 }
@@ -683,12 +688,8 @@ X(bcctrl)
     bcctrl_code(ARG0, ARG1, ARG2);
 }
 
-// SPE :- Later on
-X(brinc)
-{
-    // Not implemented right now
-}
 
+// ------------------------------------- logical ------------------------------------
 /* cmp variants */
 // cmp crD, L, rA, rB 
 X(cmp)
@@ -1278,7 +1279,6 @@ X(xoris)
 X(lwz)
 {
     UMODE tmp = 0;
-    REG0 = 0;
     UMODE ea;
     if(ARG2){ tmp = REG2; }
     ea = tmp + int16_t(ARG1);
@@ -1288,7 +1288,6 @@ X(lwz)
 X(lwzx)
 {
     UMODE tmp = 0;
-    REG0 = 0;
     UMODE ea;
     if(ARG1){ tmp = REG1; }
     ea = tmp + REG2;
@@ -1297,7 +1296,6 @@ X(lwzx)
 //  lwzu rD,D(rA)
 X(lwzu)
 {
-    REG0 = 0;
     UMODE ea;
     ea = REG2 + int16_t(ARG1);
     REG0 = LOAD32(ea);
@@ -1305,10 +1303,39 @@ X(lwzu)
 }
 X(lwzux)
 {
-    REG0 = 0;
     UMODE ea;
     ea = REG1 + REG2;
     REG0 = LOAD32(ea);
+    REG1 = ea;
+}
+X(stw)
+{
+    UMODE tmp = 0;
+    UMODE ea;
+    if(ARG2){ tmp = REG2; }
+    ea = tmp + int16_t(ARG1);
+    STORE32(ea, REG0);
+}
+X(stwx)
+{
+    UMODE tmp = 0;
+    UMODE ea;
+    if(ARG1){ tmp = REG1; }
+    ea = tmp + REG2;
+    STORE32(ea, REG0);
+}
+X(stwu)
+{
+    UMODE ea;
+    ea = REG2 + int16_t(ARG1);
+    STORE32(ea, REG0);
+    REG2 = ea;
+}
+X(stwux)
+{
+    UMODE ea;
+    ea = REG1 + REG2;
+    STORE32(ea, REG0);
     REG1 = ea;
 }
 
@@ -1319,6 +1346,10 @@ X(tlbwe)
 }
 
 // ------------------------------ SPE -----------------------------------------------
+X(brinc)
+{
+    // Not implemented right now
+}
 
 X(evxor)
 {

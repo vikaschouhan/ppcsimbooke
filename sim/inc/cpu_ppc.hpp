@@ -156,9 +156,10 @@ class CPU_PPC {
 
     // powerPC register file
     ppc_regs                               m_cpu_regs;            // PPC register file
-    uint64_t                               m_pc;                  // PC  -> program counter
-    uint64_t                               m_nip;                 // NIP -> next instruction pointer
-#define PC m_pc
+    uint64_t                               m_pc;                  // PC  -> program counter ( CIA )
+    uint64_t                               m_nip;                 // NIP -> next instruction pointer ( NIA )
+#define PC   m_pc
+#define NIP  m_nip
 
     // Book keeping
     uint64_t                               m_cpu_id;              // A unique cpu id
@@ -1030,9 +1031,6 @@ instr_call CPU_PPC::get_instr(){
     // Disassemble the instr at curr pc
     call_this = m_dis.disasm(m_mem_ptr->read32(res.first, (res.second & 0x1)), m_pc, (res.second & 0x1));
 
-    // Next instr ptr
-    m_nip = (m_pc + 4);
-
     LOG("DEBUG4") << MSG_FUNC_END;
     return call_this;
 }
@@ -1121,6 +1119,8 @@ void CPU_PPC::check_for_dbg_events(int flags, uint64_t ea){
 inline void CPU_PPC::run_curr_instr(){
     LOG("DEBUG4") << MSG_FUNC_START;
 
+    m_nip += 4;   // Update NIP
+
     /* Get Instr call frame at next NIP */
     instr_call call_this = get_instr();
     LOG("DEBUG4") << "INSTR : " << call_this.get_instr_str() << std::endl;
@@ -1139,7 +1139,6 @@ inline void CPU_PPC::run_curr_instr(){
     // FIXME : This may not work at this time
     check_for_dbg_events(DBG_EVENT_IAC);
  
-    m_pc += 4; /* Increment pc just before executing instr */
     /* If there is a func pointer already registered, call it */
     if(call_this.fptr){ (reinterpret_cast<CPU_PPC::ppc_opc_fun_ptr>(call_this.fptr))(this, &call_this); }
  
@@ -1148,6 +1147,9 @@ inline void CPU_PPC::run_curr_instr(){
     call_this.fptr = reinterpret_cast<void*>(m_ppc_func_hash[call_this.opc]);
     /* call handler function for this call frame */ 
     m_ppc_func_hash[call_this.opc](this, &call_this);
+
+    // book-keeping
+    m_pc = m_nip;     // Update PC
     m_ninstrs++;
 
     LOG("DEBUG4") << MSG_FUNC_END;
