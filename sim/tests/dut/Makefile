@@ -7,23 +7,24 @@ AS := $(PREFIX)-as
 LD := $(PREFIX)-ld
 OBJDUMP := $(PREFIX)-objdump
 
-PROJ_FILE := e500
-SRCROOT   := ../..
+SRCROOT := ../..
 
-TEXT_BASE := 0xfffff000
-DATA_BASE :=
+PROJ_FILE := test_001
 
-LDFLAGS := -L -n -N -nostdlib -Wl,-Ttext=$(TEXT_BASE) -Wl,-Map=$(PROJ_FILE).map -Wa,-me500x2 -Wa,-mspe
-CFLAGS := -mregnames -Wa,-me500x2 -Wa,-mspe -I. -I$(SRCROOT)/inc
+LDFLAGS := -L -n -N -nostdlib -T e500v2_eabi_default.lcf -Wl,-Map=$(PROJ_FILE).map -Wa,-me500x2 -Wa,-mspe
+CFLAGS := -mregnames -Wa,-me500x2 -Wa,-mspe -I. -I$(SRCROOT)/inc -nostdlib
 EXTCFLAGS := -D__ASSEMBLY__
 EXTLDFLAGS :=
 # extra -D flags
 EXTFLAGS := -DCONFIG_E500 -DCONFIG_BOOKE -DCONFIG_FSL_EMB_PERFMON
 
-$(PROJ_FILE).elf: $(PROJ_FILE).o
+$(PROJ_FILE).elf: common.o $(PROJ_FILE).o startup.o
 	$(CC) $(LDFLAGS) $(EXTFLAGS) $(EXTLDFLAGS) -o $@ $^
 
-$(PROJ_FILE).o: $(PROJ_FILE).S
+%.o: %.S
+	$(CC) $(CFLAGS) $(EXTFLAGS) $(EXTCFLAGS) -c -o $@ $^
+
+%.o: %.c
 	$(CC) $(CFLAGS) $(EXTFLAGS) $(EXTCFLAGS) -c -o $@ $^
 
 all: $(PROJ_FILE).elf
