@@ -981,10 +981,6 @@ X(mfpmr)
 }
 
 
-// Move register
-X(mr)
-{
-}
 X(msync)
 {
     // Do nothing

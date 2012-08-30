@@ -3375,9 +3375,7 @@ static const struct powerpc_opcode powerpc_opcodes[] = {
 
 {"miso",	0x7f5ad378,	0xffffffff,  E6500,	PPCNONE,	{0}},
 
-{"mr",		XRC(31,444,0),	X_MASK,      COM,	PPCNONE,	{RA, RS, RBS}},
 {"or",		XRC(31,444,0),	X_MASK,      COM,	PPCNONE,	{RA, RS, RB}},
-{"mr.",		XRC(31,444,1),	X_MASK,      COM,	PPCNONE,	{RA, RS, RBS}},
 {"or.",		XRC(31,444,1),	X_MASK,      COM,	PPCNONE,	{RA, RS, RB}},
 
 {"mtexisr",	XSPR(31,451, 64), XSPR_MASK, PPC403,	PPCNONE,	{RS}},
