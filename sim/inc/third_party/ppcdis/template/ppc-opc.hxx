@@ -2725,13 +2725,9 @@ static const struct powerpc_opcode powerpc_opcodes[] = {
 
 {"dozi",	OP(9),		OP_MASK,     M601,	PPCNONE,	{RT, RA, SI}},
 
-{"cmplwi",	OPL(10,0),	OPL_MASK,    PPCCOM,	PPCNONE,	{OBF, RA, UI}},
-{"cmpldi",	OPL(10,1),	OPL_MASK,    PPC64,	PPCNONE,	{OBF, RA, UI}},
 {"cmpli",	OP(10),		OP_MASK,     PPC,	PPCNONE,	{BF, L, RA, UI}},
 {"cmpli",	OP(10),		OP_MASK,     PWRCOM,	PPC,		{BF, RA, UI}},
 
-{"cmpwi",	OPL(11,0),	OPL_MASK,    PPCCOM,	PPCNONE,	{OBF, RA, SI}},
-{"cmpdi",	OPL(11,1),	OPL_MASK,    PPC64,	PPCNONE,	{OBF, RA, SI}},
 {"cmpi",	OP(11),		OP_MASK,     PPC,	PPCNONE,	{BF, L, RA, SI}},
 {"cmpi",	OP(11),		OP_MASK,     PWRCOM,	PPC,		{BF, RA, SI}},
 
@@ -2781,7 +2777,6 @@ static const struct powerpc_opcode powerpc_opcodes[] = {
 
 {"rfid",	XL(19,18),	0xffffffff,  PPC64,	PPCNONE,	{0}},
 
-{"crnot",	XL(19,33),	XL_MASK,     PPCCOM,	PPCNONE,	{BT, BA, BBA}},
 {"crnor",	XL(19,33),	XL_MASK,     COM,	PPCNONE,	{BT, BA, BB}},
 {"rfmci",	X(19,38),   0xffffffff, PPCRFMCI|PPCA2|PPC476, PPCNONE,	{0}},
 
@@ -2798,7 +2793,6 @@ static const struct powerpc_opcode powerpc_opcodes[] = {
 {"isync",	XL(19,150),	0xffffffff,  PPCCOM,	PPCNONE,	{0}},
 {"ics",		XL(19,150),	0xffffffff,  PWRCOM,	PPCNONE,	{0}},
 
-{"crclr",	XL(19,193),	XL_MASK,     PPCCOM,	PPCNONE,	{BT, BAT, BBA}},
 {"crxor",	XL(19,193),	XL_MASK,     COM,	PPCNONE,	{BT, BA, BB}},
 
 {"dnh",		X(19,198),	X_MASK,      E500MC,	PPCNONE,	{DUI, DUIS}},
@@ -2809,7 +2803,6 @@ static const struct powerpc_opcode powerpc_opcodes[] = {
 
 {"hrfid",	XL(19,274),	0xffffffff, POWER5|CELL, PPC476,	{0}},
 
-{"crset",	XL(19,289),	XL_MASK,     PPCCOM,	PPCNONE,	{BT, BAT, BBA}},
 {"creqv",	XL(19,289),	XL_MASK,     COM,	PPCNONE,	{BT, BA, BB}},
 
 {"doze",	XL(19,402),	0xffffffff,  POWER6,	PPCNONE,	{0}},
@@ -2818,7 +2811,6 @@ static const struct powerpc_opcode powerpc_opcodes[] = {
 
 {"nap",		XL(19,434),	0xffffffff,  POWER6,	PPCNONE,	{0}},
 
-{"crmove",	XL(19,449),	XL_MASK,     PPCCOM,	PPCNONE,	{BT, BA, BBA}},
 {"cror",	XL(19,449),	XL_MASK,     COM,	PPCNONE,	{BT, BA, BB}},
 
 {"sleep",	XL(19,466),	0xffffffff,  POWER6,	PPCNONE,	{0}},
@@ -2897,8 +2889,6 @@ static const struct powerpc_opcode powerpc_opcodes[] = {
 {"rldcr",	MDS(30,9,0),	MDS_MASK,    PPC64,	PPCNONE,	{RA, RS, RB, ME6}},
 {"rldcr.",	MDS(30,9,1),	MDS_MASK,    PPC64,	PPCNONE,	{RA, RS, RB, ME6}},
 
-{"cmpw",	XOPL(31,0,0),	XCMPL_MASK,  PPCCOM,	PPCNONE,	{OBF, RA, RB}},
-{"cmpd",	XOPL(31,0,1),	XCMPL_MASK,  PPC64,	PPCNONE,	{OBF, RA, RB}},
 {"cmp",		X(31,0),	XCMP_MASK,   PPC,	PPCNONE,	{BF, L, RA, RB}},
 {"cmp",		X(31,0),	XCMPL_MASK,  PWRCOM,	PPC,		{BF, RA, RB}},
 
@@ -2970,8 +2960,6 @@ static const struct powerpc_opcode powerpc_opcodes[] = {
 {"ldepx",	X(31,29),	X_MASK,   E500MC|PPCA2,	PPCNONE,	{RT, RA, RB}},
 {"lwepx",	X(31,31),	X_MASK,   E500MC|PPCA2,	PPCNONE,	{RT, RA, RB}},
 
-{"cmplw",	XOPL(31,32,0),	XCMPL_MASK,  PPCCOM,	PPCNONE,	{OBF, RA, RB}},
-{"cmpld",	XOPL(31,32,1),	XCMPL_MASK,  PPC64,	PPCNONE,	{OBF, RA, RB}},
 {"cmpl",	X(31,32),	XCMP_MASK,   PPC,	PPCNONE,	{BF, L, RA, RB}},
 {"cmpl",	X(31,32),	XCMPL_MASK,  PWRCOM,	PPC,		{BF, RA, RB}},
 
@@ -3065,9 +3053,7 @@ static const struct powerpc_opcode powerpc_opcodes[] = {
 
 {"popcntb",	X(31,122),	XRB_MASK,    POWER5,	PPCNONE,	{RA, RS}},
 
-{"not",		XRC(31,124,0),	X_MASK,      COM,	PPCNONE,	{RA, RS, RBS}},
 {"nor",		XRC(31,124,0),	X_MASK,      COM,	PPCNONE,	{RA, RS, RB}},
-{"not.",	XRC(31,124,1),	X_MASK,      COM,	PPCNONE,	{RA, RS, RBS}},
 {"nor.",	XRC(31,124,1),	X_MASK,      COM,	PPCNONE,	{RA, RS, RB}},
 
 {"dcbfep",	XRT(31,127,0),	XRT_MASK, E500MC|PPCA2,	PPCNONE,	{RA, RB}},
@@ -3093,7 +3079,6 @@ static const struct powerpc_opcode powerpc_opcodes[] = {
 
 {"dcbtstlse",	X(31,142),	X_MASK,      PPCCHLK,	E500MC,		{CT, RA, RB}},
 
-{"mtcr",	XFXM(31,144,0xff,0), XRARB_MASK, COM,	PPCNONE,	{RS}},
 {"mtcrf",	XFXM(31,144,0,0), XFXFXM_MASK, COM,	PPCNONE,	{FXM, RS}},
 {"mtocrf",	XFXM(31,144,0,1), XFXFXM_MASK, COM,	PPCNONE,	{FXM, RS}},
 

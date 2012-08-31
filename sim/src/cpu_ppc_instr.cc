@@ -319,8 +319,7 @@
 
 #endif
 
-/*----------------------------------------------------------------------------------------------------*/
-
+// ------------------------------------- INTEGER ARITHMETIC -------------------------
 /*
  * add: Add variants.
  *
@@ -548,6 +547,8 @@ X(addzeo.)
     update_cr0(1);
 }
 
+// ---------------------------------- INTEGER LOGICAL -------------------------------
+
 /* and variants */
 X(and)
 {
@@ -581,6 +582,146 @@ X(andis.)
 {
     REG0 = REG1 & (((uint16_t)ARG2) << 16);
     update_cr0(0, UT(REG0));
+}
+
+// cntlzw:  Count leading zeroes (32-bit word).
+X(cntlzw)
+{
+#define cntlzw_code(rA, rS)                     \
+    uint32_t tmp = rS;                          \
+    int i;                                      \
+    for (i=0; i<32; i++) {                      \
+        if (tmp & 0x80000000)                   \
+            break;                              \
+        tmp <<= 1;                              \
+    }                                           \
+    rA = i;
+
+    cntlzw_code(REG0, REG1);
+}
+X(cntlzw.)
+{
+    cntlzw_code(REG0, REG1);
+    update_cr0(0,i);
+}
+
+X(nand)
+{
+#define nand_code(rA, rS, rB)                  \
+    rA = ~(rS & rB);
+
+    nand_code(REG0, REG1, REG2);
+}
+X(nand.)
+{
+    nand_code(REG0, REG1, REG2);
+    update_cr0(0, UT(REG0));
+}
+X(neg)
+{
+#define neg_code(rD, rA)                        \
+    negw(rD, rA, host_flags);
+
+    neg_code(REG0, REG1);
+}
+X(neg.)
+{
+    neg_code(REG0, REG1);
+    update_cr0(1);
+}
+X(nego)
+{
+    neg_code(REG0, REG1);
+    update_xer(1);
+}
+X(nego.)
+{
+    neg_code(REG0, REG1);
+    update_xer(1);
+    update_cr0(1);
+}
+X(nor)
+{
+#define nor_code(rA, rS, rB)                    \
+    rA = ~(rS | rB);
+
+    nor_code(REG0, REG1, REG2);
+}
+X(nor.)
+{
+    nor_code(REG0, REG1, REG2);
+    update_cr0(0, UT(REG0));
+}
+X(or)
+{
+#define or_code(rA, rS, rB)                     \
+    rA = rS | rB;
+
+    or_code(REG0, REG1, REG2);
+}
+X(or.)
+{
+    or_code(REG0, REG1, REG2);
+    update_cr0(0, UT(REG0));
+}
+X(orc)
+{
+#define orc_code(rA, rS, rB)                     \
+    rA = rS | ~(rB);
+
+    orc_code(REG0, REG1, REG2);
+}
+X(orc.)
+{
+    orc_code(REG0, REG1, REG2);
+    update_cr0(0, UT(REG0));
+}
+X(ori)
+{
+#define ori_code(rA, rS, UIMM)                 \
+    rA = rS | (uint16_t)UIMM;
+
+    ori_code(REG0, REG1, ARG2);
+}
+X(oris)
+{
+#define oris_code(rA, rS, UIMM)                \
+    rA = rS | (((uint16_t)UIMM) << 16);
+
+    oris_code(REG0, REG1, ARG2);
+}
+X(nop)
+{
+    // Do nothing
+}
+
+
+// xor variants
+X(xor)
+{
+#define xor_code(rA, rS, rB)      \
+    rA = rS ^ rB;
+
+    xor_code(REG0, REG1, REG2);
+}
+X(xor.)
+{
+    xor_code(REG0, REG1, REG2);
+    update_cr0(0, UT(REG0));
+}
+X(xori)
+{
+#define xori_code(rA, rS, UIMM)   \
+    rA = rS ^ ((uint16_t)UIMM);
+
+    xori_code(REG0, REG1, ARG2);
+}
+X(xoris)
+{
+#define xoris_code(rA, rS, UIMM)            \
+    rA = rS ^ (((uint16_t)UIMM) << 16);
+
+    xoris_code(REG0, REG1, REG2);
 }
 
 // ------------------------------- BPU ---------------------------------------------
@@ -689,7 +830,7 @@ X(bcctrl)
 }
 
 
-// ------------------------------------- logical ------------------------------------
+// ------------------------------------- INTEGER COMPARE ------------------------------------
 /* cmp variants */
 // cmp crD, L, rA, rB 
 X(cmp)
@@ -776,44 +917,9 @@ X(cmpli)
 
     cmpli_code(ARG0, ARG1, REG2, ARG3);
 }
-X(cmplw)
-{
-    cmpl_code(ARG0, 0, REG1, REG2);
-}
-X(cmplwi)
-{
-    cmpli_code(ARG0, 0, REG1, ARG2);
-}
-X(cmpw)
-{
-    cmp_code(ARG0, 0, REG1, REG2);
-}
-X(cmpwi)
-{
-    cmpi_code(ARG0, 0, REG1, ARG2);
-}
 
-// cntlzw:  Count leading zeroes (32-bit word).
-X(cntlzw)
-{
-#define cntlzw_code(rA, rS)                     \
-    uint32_t tmp = rS;                          \
-    int i;                                      \
-    for (i=0; i<32; i++) {                      \
-        if (tmp & 0x80000000)                   \
-            break;                              \
-        tmp <<= 1;                              \
-    }                                           \
-    rA = i;
 
-    cntlzw_code(REG0, REG1);
-}
-X(cntlzw.)
-{
-    cntlzw_code(REG0, REG1);
-    update_cr0(0,i);
-}
-
+// ------------------------- CONDITION REGISTER LOGICAL -------------------------
 // condition register instrs
 X(crand)
 {
@@ -850,10 +956,6 @@ X(crnor)
 
     crnor_code(ARG0, ARG1, ARG2);
 }
-X(crnot)
-{
-    crnor_code(ARG0, ARG1, ARG1);
-}
 X(cror)
 {
 #define cror_code(crD, crA, crB)                        \
@@ -868,10 +970,6 @@ X(crorc)
 
     crorc_code(ARG0, ARG1, ARG2);
 }
-X(crset)
-{
-    creqv_code(ARG0, ARG0, ARG0);
-}
 X(crxor)
 {
 #define crxor_code(crD, crA, crB)                        \
@@ -879,15 +977,15 @@ X(crxor)
 
     crxor_code(ARG0, ARG1, ARG2);
 }
-X(crmove)
+X(mcrf)
 {
-    cror_code(ARG0, ARG1, ARG1);
-}
-X(crclr)
-{
-    crxor_code(ARG0, ARG0, ARG0);
+#define mcrf_code(crfD, crfS)            \
+    update_crF(crfD, get_crF(crfS));
+
+    mcrf_code(ARG0, ARG1);
 }
 
+// ----------------------------------- SYSTEM ------------------------------
 X(isync)
 {
     // Do nothing
@@ -899,13 +997,7 @@ X(mbar)
     //Do nothing
 }
 
-X(mcrf)
-{
-#define mcrf_code(crfD, crfS)            \
-    update_crF(crfD, get_crF(crfS));
 
-    mcrf_code(ARG0, ARG1);
-}
 X(mcrxr)
 {
 #define mcrxr_code(crfD)                 \
@@ -932,10 +1024,6 @@ X(mtcrf)
     CR = ((rS & mask) | (CR & ~mask));
 
     mtcrf_code(ARG0, REG1);
-}
-X(mtcr)
-{
-    mtcrf_code(0xff, REG0);
 }
 
 // Move to/from MSR
@@ -990,104 +1078,6 @@ X(sync)
     // Do nothing ( same as msync )
 }
 
-// Add all mul* instrs here
-//
-//
-
-// Logical instrs
-X(nand)
-{
-#define nand_code(rA, rS, rB)                  \
-    rA = ~(rS & rB);
-
-    nand_code(REG0, REG1, REG2);
-}
-X(nand.)
-{
-    nand_code(REG0, REG1, REG2);
-    update_cr0(0, UT(REG0));
-}
-X(neg)
-{
-#define neg_code(rD, rA)                        \
-    negw(rD, rA, host_flags);
-
-    neg_code(REG0, REG1);
-}
-X(neg.)
-{
-    neg_code(REG0, REG1);
-    update_cr0(1);
-}
-X(nego)
-{
-    neg_code(REG0, REG1);
-    update_xer(1);
-}
-X(nego.)
-{
-    neg_code(REG0, REG1);
-    update_xer(1);
-    update_cr0(1);
-}
-X(nor)
-{
-#define nor_code(rA, rS, rB)                    \
-    rA = ~(rS | rB);
-
-    nor_code(REG0, REG1, REG2);
-}
-X(nor.)
-{
-    nor_code(REG0, REG1, REG2);
-    update_cr0(0, UT(REG0));
-}
-X(or)
-{
-#define or_code(rA, rS, rB)                     \
-    rA = rS | rB;
-
-    or_code(REG0, REG1, REG2);
-}
-X(or.)
-{
-    or_code(REG0, REG1, REG2);
-    update_cr0(0, UT(REG0));
-}
-X(orc)
-{
-#define orc_code(rA, rS, rB)                     \
-    rA = rS | ~(rB);
-
-    orc_code(REG0, REG1, REG2);
-}
-X(orc.)
-{
-    orc_code(REG0, REG1, REG2);
-    update_cr0(0, UT(REG0));
-}
-X(ori)
-{
-#define ori_code(rA, rS, UIMM)                 \
-    rA = rS | (uint16_t)UIMM;
-
-    ori_code(REG0, REG1, ARG2);
-}
-X(oris)
-{
-#define oris_code(rA, rS, UIMM)                \
-    rA = rS | (((uint16_t)UIMM) << 16);
-
-    oris_code(REG0, REG1, ARG2);
-}
-X(nop)
-{
-    // Do nothing
-}
-X(not)
-{
-    nor_code(REG0, REG1, REG1);
-}
 
 
 // Return from Interrupt
@@ -1101,8 +1091,30 @@ X(rfmci)
 {
 }
 
+// System call
+X(sc)
+{
+}
 
-// Rotate intrs
+// wrtee variants
+X(wrtee)
+{
+#define wrtee_code(rS)            \
+    MSR &= ~(1L << 15);           \
+    MSR |= rS & (1L << 15);
+
+    wrtee_code(REG0);
+}
+X(wrteei)
+{
+#define wrteei_code(E)            \
+    MSR &= ~(1 << 15);            \
+    MSR |= ((E & 0x1) << 15);
+
+    wrteei_code(ARG0);
+}
+
+// -------------------------- INTEGER SHIFT AND ROTATE -----------------------------
 X(rlwimi)
 {
 #define rlwimi_code(rA, rS, SH, MB, ME)                                            \
@@ -1155,11 +1167,6 @@ X(rotlw)
 X(rotlwi)
 {
     rlwinm_code(REG0, REG1, ARG2, 0, 31);
-}
-
-// System call
-X(sc)
-{
 }
 
 // Shift instrs
@@ -1222,52 +1229,6 @@ X(srw.)
 {
     srw_code(REG0, REG1, REG2);
     update_cr0(0, UT(REG0));
-}
-
-// wrtee variants
-X(wrtee)
-{
-#define wrtee_code(rS)            \
-    MSR &= ~(1L << 15);           \
-    MSR |= rS & (1L << 15);
-
-    wrtee_code(REG0);
-}
-X(wrteei)
-{
-#define wrteei_code(E)            \
-    MSR &= ~(1 << 15);            \
-    MSR |= ((E & 0x1) << 15);
-
-    wrteei_code(ARG0);
-}
-
-// xor variants
-X(xor)
-{
-#define xor_code(rA, rS, rB)      \
-    rA = rS ^ rB;
-
-    xor_code(REG0, REG1, REG2);
-}
-X(xor.)
-{
-    xor_code(REG0, REG1, REG2);
-    update_cr0(0, UT(REG0));
-}
-X(xori)
-{
-#define xori_code(rA, rS, UIMM)   \
-    rA = rS ^ ((uint16_t)UIMM);
-
-    xori_code(REG0, REG1, ARG2);
-}
-X(xoris)
-{
-#define xoris_code(rA, rS, UIMM)            \
-    rA = rS ^ (((uint16_t)UIMM) << 16);
-
-    xoris_code(REG0, REG1, REG2);
 }
 
 // ------------------------------ load/store ---------------------------------------
