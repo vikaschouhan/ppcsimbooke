@@ -137,7 +137,17 @@
 #define UT(arg)   ((UMODE)(arg))
 #define ST(arg)   ((SMODE)(arg))
 
+// for sign extension ( extending sign bits from source type to destination type )
+#define EXTS(t_tgt, t_src, val)    ((t_tgt)((t_src)(val)))
+#define EXTS_2N(t_src, val)        EXTS(SMODE, t_src, val)    // sign extension to native type
+#define EXTS_B2N(val)              EXTS(SMODE, int8_t, val)   // sign extension : byte to native
+#define EXTS_H2N(val)              EXTS(SMODE, int16_t, val)  // sign extension : half word to native
+#define EXTS_W2N(val)              EXTS(SMODE, int32_t, val)  // sign extension : word to native
+
 #define REG_BF(reg, mask)   ((reg & mask) ? 1:0)
+
+// PPC Exceptions
+#define  PPC_EXCEPT         sim_except_ppc
 
 #if 0
 #ifndef CHECK_FOR_FPU_EXCEPTION
@@ -1232,13 +1242,52 @@ X(srw.)
 }
 
 // ------------------------------ load/store ---------------------------------------
+// mnemonics defined : lbz, lbzu, lbzux, lbzx, lha, lhau, lhaux, lhax, lhbrx, lhz,
+//                     lhzu, lhzux, lhzx, lmw, lwarx, lwbrx, lwz, lwzu, lwzux, lwzx
+
+// byte loads
+X(lbz)
+{
+    UMODE tmp = 0;
+    UMODE ea;
+    if(ARG2){ tmp = REG2; }
+    ea = tmp + EXTS_H2N(ARG1);
+    REG0 = LOAD8(ea);    
+}
+X(lbzx)
+{
+    UMODE tmp = 0;
+    UMODE ea;
+    if(ARG1){ tmp = REG1; }
+    ea = tmp + REG2;
+    REG0 = LOAD8(ea);
+}
+X(lbzu)
+{
+    if(ARG2 == 0 || ARG0 == ARG2)
+        throw PPC_EXCEPT(PPC_EXCEPTION_PRG, PPC_EXCEPT_PRG_ILG, "Illegal opcode");
+    UMODE ea;
+    ea = REG2 + EXTS_H2N(ARG1);
+    REG0 = LOAD8(ea);
+    REG2 = ea;
+}
+X(lbzux)
+{
+    if(ARG1 == 0 || ARG0 == ARG1)
+        throw PPC_EXCEPT(PPC_EXCEPTION_PRG, PPC_EXCEPT_PRG_ILG, "Illegal opcode");
+    UMODE ea;
+    ea = REG1 + REG2;
+    REG0 = LOAD8(ea);
+    REG1 = ea;
+}
+
 // lwz rD,D(rA)
 X(lwz)
 {
     UMODE tmp = 0;
     UMODE ea;
     if(ARG2){ tmp = REG2; }
-    ea = tmp + int16_t(ARG1);
+    ea = tmp + EXTS_H2N(ARG1);
     REG0 = LOAD32(ea);
 }
 // lwzx rD,rA,rB
@@ -1254,7 +1303,7 @@ X(lwzx)
 X(lwzu)
 {
     UMODE ea;
-    ea = REG2 + int16_t(ARG1);
+    ea = REG2 + EXTS_H2N(ARG1);
     REG0 = LOAD32(ea);
     REG2 = ea;
 }
@@ -1270,7 +1319,7 @@ X(stw)
     UMODE tmp = 0;
     UMODE ea;
     if(ARG2){ tmp = REG2; }
-    ea = tmp + int16_t(ARG1);
+    ea = tmp + EXTS_H2N(ARG1);
     STORE32(ea, REG0);
 }
 X(stwx)
@@ -1284,7 +1333,7 @@ X(stwx)
 X(stwu)
 {
     UMODE ea;
-    ea = REG2 + int16_t(ARG1);
+    ea = REG2 + EXTS_H2N(ARG1);
     STORE32(ea, REG0);
     REG2 = ea;
 }
