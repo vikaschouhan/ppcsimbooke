@@ -43,7 +43,8 @@ class CPU_PPC {
         init_common();
         LOG("DEBUG4") << MSG_FUNC_END;
     }
-    CPU_PPC(uint64_t cpuid, std::string name): m_cpu_name(name), m_pc(0xfffffffc), m_cpu_id(cpuid){
+    CPU_PPC(uint64_t cpuid, int cache_line_size, std::string name):
+        m_cpu_name(name), m_cache_line_size(cache_line_size), m_pc(0xfffffffc), m_cpu_id(cpuid){
         LOG("DEBUG4") << MSG_FUNC_START;
         init_common(); 
         LOG("DEBUG4") << MSG_FUNC_END;
@@ -58,6 +59,11 @@ class CPU_PPC {
     void CAT(init_, CPU_PPC)(uint64_t cpuid, std::string name){
         m_cpu_id   = cpuid;
         m_cpu_name = name;
+#if CORE_TYPE == e500v2
+        m_cache_line_size = 32;
+#else
+        m_cache_line_size = 64;
+#endif
         m_pc       = 0xfffffffc;
     }
     
@@ -97,6 +103,9 @@ class CPU_PPC {
     }
 
     protected:
+    void       set_resv(uint64_t ea, size_t size);
+    void       clear_resv(uint64_t ea);
+    bool       check_resv(uint64_t ea, size_t size);
     void       notify_ctxt_switch();   // notify of context switches ( called by context syncronizing instructions  such as rfi, sc etc. )
     void       update_cr0(bool use_host, uint64_t value=0);      // Update CR0
     void       update_crF(unsigned bf, uint64_t val);            // Updates CR[bf] with val i.e CR[bf] <- (val & 0xf)
@@ -153,6 +162,9 @@ class CPU_PPC {
     // Reservation
     uint64_t                               m_resv_addr;           // This is always a physical address
     bool                                   m_resv_set;            // Flag for setting resv
+    uint8_t                                m_resv_size;           // Resv. size
+    static std::map<uint64_t,
+        std::pair<bool, uint8_t> >         sm_resv_map;           // shared reservation map
 
     // powerPC register file
     ppc_regs                               m_cpu_regs;            // PPC register file
@@ -206,8 +218,9 @@ class CPU_PPC {
 
 // --------------------------- STATIC DATA ---------------------------------------------------
 
-size_t                         CPU_PPC::sm_ncpus = 0;        // Current number of powerpc cpus
-
+size_t                         CPU_PPC::sm_ncpus = 0;            // Current number of powerpc cpus
+std::map<uint64_t,
+    std::pair<bool, uint8_t> > CPU_PPC::sm_resv_map;             // This keeps track of global reservation map
 
 // -----------------------------------------------------------------------------------------
 //
@@ -1320,6 +1333,41 @@ void CPU_PPC::init_reghash(){
 
     // Add more later on
     LOG("DEBUG4") << MSG_FUNC_END;
+}
+
+// set reservation
+void CPU_PPC::set_resv(uint64_t ea, size_t size){
+    LOG("DEBUG4") << MSG_FUNC_START;
+    std::pair<uint64_t, uint8_t> res = xlate(ea, 0);
+    m_resv_addr = res.first;
+    m_resv_set  = true;
+    m_resv_size = size;
+    // We need a mutex here
+    sm_resv_map[m_resv_addr & ~(m_cache_line_size - 1)] = std::make_pair(true, m_cpu_no);  // Global reservation always act on resv granules
+    LOG("DEBUG4") << MSG_FUNC_END;
+}
+
+// clear resv.
+void CPU_PPC::clear_resv(uint64_t ea){
+    LOG("DEBUG4") << MSG_FUNC_START;
+    m_resv_set = false;
+    // Need a mutex
+    sm_resv_map[m_resv_addr & ~(m_cache_line_size - 1)].first = false;
+    LOG("DEBUG4") << MSG_FUNC_END;
+}
+
+// Check resv
+bool CPU_PPC::check_resv(uint64_t ea, size_t size){
+    LOG("DEBUG4") << MSG_FUNC_START;
+    std::pair<uint64_t, uint8_t> res = xlate(ea, 1);  // Reservation is checked during stwcx.
+    uint64_t caddr = res.first & ~(m_cache_line_size - 1);    // Get granule addr
+    if(res.first == m_resv_addr and m_resv_set == true and m_resv_size == size and
+            sm_resv_map[caddr].first == true and sm_resv_map[caddr].second == m_cpu_no){
+        LOG("DEBUG4") << MSG_FUNC_END;
+        return true;
+    }
+    LOG("DEBUG4") << MSG_FUNC_END;
+    return false;
 }
 
 // Notify of context switches. LRU cache uses this parameter to flush it's

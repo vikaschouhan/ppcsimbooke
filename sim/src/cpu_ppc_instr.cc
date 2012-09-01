@@ -68,7 +68,8 @@
 // MSR_CM
 #define CM                       ((PPCREG(REG_MSR) & MSR_CM) ? 1 : 0)
 
-#define SPR(sprno)               PPCREG(REG_SPR0 + sprno) 
+#define GPR(gprno)               PPCREG(REG_GPR0 + gprno)
+#define SPR(sprno)               PPCREG(REG_SPR0 + sprno)
 #define XER                      SPR(SPRN_XER) 
 #define MSR                      PPCREG(REG_MSR) 
 #define PMR(pmrno)               PPCREG(REG_PMR0 + pmrno) 
@@ -100,6 +101,10 @@
 #define STORE16(addr, value)     CPU->write16(addr, value)
 #define STORE32(addr, value)     CPU->write32(addr, value)
 #define STORE64(addr, value)     CPU->write64(addr, value)
+
+// Reservation macros
+#define SET_RESV(ea, size)       CPU->set_resv(ea, size)
+#define CLEAR_RESV(ea)           CPU->clear_resv(ea)
 
 // TLB macros
 #define TLBWE()                  CPU->m_l2tlb.tlbwe(PPCREG(REG_MAS0), \
@@ -143,6 +148,14 @@
 #define EXTS_B2N(val)              EXTS(SMODE, int8_t, val)   // sign extension : byte to native
 #define EXTS_H2N(val)              EXTS(SMODE, int16_t, val)  // sign extension : half word to native
 #define EXTS_W2N(val)              EXTS(SMODE, int32_t, val)  // sign extension : word to native
+
+// Byte reversing macros
+#define SWAPB32(data)              ((((data >> 24) & 0xff) <<  0) ||  \
+                                    (((data >> 16) & 0xff) <<  8) ||  \
+                                    (((data >>  8) & 0xff) << 16) ||  \
+                                    (((data >>  0) & 0xff) << 24) )
+#define SWAPB16(data)              ((((data >>  8) & 0xff) <<  0) ||  \
+                                    (((data >>  0) & 0xff) <<  8) )
 
 #define REG_BF(reg, mask)   ((reg & mask) ? 1:0)
 
@@ -1243,7 +1256,9 @@ X(srw.)
 
 // ------------------------------ load/store ---------------------------------------
 // mnemonics defined : lbz, lbzu, lbzux, lbzx, lha, lhau, lhaux, lhax, lhbrx, lhz,
-//                     lhzu, lhzux, lhzx, lmw, lwarx, lwbrx, lwz, lwzu, lwzux, lwzx
+//                     lhzu, lhzux, lhzx, lmw, lwarx, lwbrx, lwz, lwzu, lwzux, lwzx,
+//                     stb, stbu, stbux, stbx, sth, sthbrx, sthu, sthux, sthx, stmw,
+//                     stw, stwbrx, stwcx., stwu, stwux, stwx
 
 // byte loads
 X(lbz)
@@ -1281,6 +1296,79 @@ X(lbzux)
     REG1 = ea;
 }
 
+// Halfword algebraic loads
+X(lha)
+{
+    UMODE tmp = 0;
+    UMODE ea;
+    if(ARG2){ tmp = REG2; }
+    ea = tmp + EXTS_H2N(ARG1);
+    REG0 = EXTS_H2N(LOAD16(ea));
+}
+X(lhax)
+{
+    UMODE tmp = 0;
+    UMODE ea;
+    if(ARG1){ tmp = REG1; }
+    ea = tmp + REG2;
+    REG0 = EXTS_H2N(LOAD16(ea));
+}
+X(lhau)
+{
+    if(ARG2 == 0 || ARG0 == ARG2)
+        throw PPC_EXCEPT(PPC_EXCEPTION_PRG, PPC_EXCEPT_PRG_ILG, "Illegal opcode");
+    UMODE ea;
+    ea = REG2 + EXTS_H2N(ARG1);
+    REG0 = EXTS_H2N(LOAD16(ea));
+    REG2 = ea;
+}
+X(lhaux)
+{
+    if(ARG1 == 0 || ARG0 == ARG1)
+        throw PPC_EXCEPT(PPC_EXCEPTION_PRG, PPC_EXCEPT_PRG_ILG, "Illegal opcode");
+    UMODE ea;
+    ea = REG1 + REG2;
+    REG0 = EXTS_H2N(LOAD16(ea));
+    REG1 = ea;
+}
+
+// Half word loads
+X(lhz)
+{
+    UMODE tmp = 0;
+    UMODE ea;
+    if(ARG2){ tmp = REG2; }
+    ea = tmp + EXTS_H2N(ARG1);
+    REG0 = LOAD16(ea);
+}
+X(lhzx)
+{
+    UMODE tmp = 0;
+    UMODE ea;
+    if(ARG1){ tmp = REG1; }
+    ea = tmp + REG2;
+    REG0 = LOAD16(ea);
+}
+X(lhzu)
+{
+    if(ARG2 == 0 || ARG0 == ARG2)
+        throw PPC_EXCEPT(PPC_EXCEPTION_PRG, PPC_EXCEPT_PRG_ILG, "Illegal opcode");
+    UMODE ea;
+    ea = REG2 + EXTS_H2N(ARG1);
+    REG0 = LOAD16(ea);
+    REG2 = ea;
+}
+X(lhzux)
+{
+    if(ARG1 == 0 || ARG0 == ARG1)
+        throw PPC_EXCEPT(PPC_EXCEPTION_PRG, PPC_EXCEPT_PRG_ILG, "Illegal opcode");
+    UMODE ea;
+    ea = REG1 + REG2;
+    REG0 = LOAD16(ea);
+    REG1 = ea;
+}
+
+// word loads
 // lwz rD,D(rA)
 X(lwz)
 {
@@ -1302,6 +1390,8 @@ X(lwzx)
 //  lwzu rD,D(rA)
 X(lwzu)
 {
+    if(ARG2 == 0 || ARG0 == ARG2)
+        throw PPC_EXCEPT(PPC_EXCEPTION_PRG, PPC_EXCEPT_PRG_ILG, "Illegal opcode");
     UMODE ea;
     ea = REG2 + EXTS_H2N(ARG1);
     REG0 = LOAD32(ea);
@@ -1309,11 +1399,136 @@ X(lwzu)
 }
 X(lwzux)
 {
+    if(ARG1 == 0 || ARG0 == ARG1)
+        throw PPC_EXCEPT(PPC_EXCEPTION_PRG, PPC_EXCEPT_PRG_ILG, "Illegal opcode");
     UMODE ea;
     ea = REG1 + REG2;
     REG0 = LOAD32(ea);
     REG1 = ea;
 }
+
+// Byte reversed indexed loads
+X(lhbrx)
+{
+    UMODE tmp = 0;
+    UMODE ea;
+    uint16_t data;
+    if(ARG1){ tmp = REG1; }
+    ea = tmp + REG2;
+    data = LOAD16(ea);
+    REG0 = SWAPB16(data);
+}
+X(lwbrx)
+{
+    UMODE tmp = 0;
+    UMODE ea;
+    uint32_t data;
+    if(ARG1){ tmp = REG1; }
+    ea = tmp + REG2;
+    data = LOAD32(ea);
+    REG0 = SWAPB32(data);
+}
+
+// load multiple words
+X(lmw)
+{
+    UMODE tmp = 0;
+    UMODE ea;
+    int r;
+    if(ARG2){ tmp = REG2; }
+    ea = tmp + EXTS_H2N(ARG1);
+    r = ARG0;
+    while(r <= 31){
+        GPR(r) = LOAD32(ea);
+        r++;
+        ea += 4;
+    }
+}
+
+// Reservation load
+X(lwarx)
+{
+    UMODE tmp = 0;
+    UMODE ea;
+    if(ARG1){ tmp = REG1; }
+    ea = tmp + REG2;
+    SET_RESV(ea, 4);
+    REG0 = LOAD32(ea);
+}
+
+// byte stores
+X(stb)
+{
+    UMODE tmp = 0;
+    UMODE ea;
+    if(ARG2){ tmp = REG2; }
+    ea = tmp + EXTS_H2N(ARG1);
+    STORE8(ea, REG0);
+}
+X(stbx)
+{
+    UMODE tmp = 0;
+    UMODE ea;
+    if(ARG1){ tmp = REG1; }
+    ea = tmp + REG2;
+    STORE8(ea, REG0);
+}
+X(stbu)
+{
+    if(ARG2 == 0)
+        throw PPC_EXCEPT(PPC_EXCEPTION_PRG, PPC_EXCEPT_PRG_ILG, "Illegal opcode");
+    UMODE ea;
+    ea = REG2 + EXTS_H2N(ARG1);
+    STORE8(ea, REG0);
+    REG2 = ea;
+}
+X(stbux)
+{
+    if(ARG1 == 0)
+        throw PPC_EXCEPT(PPC_EXCEPTION_PRG, PPC_EXCEPT_PRG_ILG, "Illegal opcode");
+    UMODE ea;
+    ea = REG1 + REG2;
+    STORE8(ea, REG0);
+    REG1 = ea;
+}
+
+// half word stores
+X(sth)
+{
+    UMODE tmp = 0;
+    UMODE ea;
+    if(ARG2){ tmp = REG2; }
+    ea = tmp + EXTS_H2N(ARG1);
+    STORE16(ea, REG0);
+}
+X(sthx)
+{
+    UMODE tmp = 0;
+    UMODE ea;
+    if(ARG1){ tmp = REG1; }
+    ea = tmp + REG2;
+    STORE16(ea, REG0);
+}
+X(sthu)
+{
+    if(ARG2 == 0)
+        throw PPC_EXCEPT(PPC_EXCEPTION_PRG, PPC_EXCEPT_PRG_ILG, "Illegal opcode");
+    UMODE ea;
+    ea = REG2 + EXTS_H2N(ARG1);
+    STORE16(ea, REG0);
+    REG2 = ea;
+}
+X(sthux)
+{
+    if(ARG1 == 0)
+        throw PPC_EXCEPT(PPC_EXCEPTION_PRG, PPC_EXCEPT_PRG_ILG, "Illegal opcode");
+    UMODE ea;
+    ea = REG1 + REG2;
+    STORE16(ea, REG0);
+    REG1 = ea;
+}
+
+// word stores
 X(stw)
 {
     UMODE tmp = 0;
@@ -1332,6 +1547,8 @@ X(stwx)
 }
 X(stwu)
 {
+    if(ARG2 == 0)
+        throw PPC_EXCEPT(PPC_EXCEPTION_PRG, PPC_EXCEPT_PRG_ILG, "Illegal opcode");
     UMODE ea;
     ea = REG2 + EXTS_H2N(ARG1);
     STORE32(ea, REG0);
@@ -1339,10 +1556,60 @@ X(stwu)
 }
 X(stwux)
 {
+    if(ARG1 == 0)
+        throw PPC_EXCEPT(PPC_EXCEPTION_PRG, PPC_EXCEPT_PRG_ILG, "Illegal opcode");
     UMODE ea;
     ea = REG1 + REG2;
     STORE32(ea, REG0);
     REG1 = ea;
+}
+
+// byte reversed stores
+X(sthbrx)
+{
+    UMODE tmp = 0;
+    UMODE ea;
+    uint16_t data;
+    if(ARG1){ tmp = REG1; }
+    ea = tmp + REG2;
+    data = REG0;
+    STORE16(ea, SWAPB16(data));
+}
+X(stwbrx)
+{
+    UMODE tmp = 0;
+    UMODE ea;
+    uint32_t data;
+    if(ARG1){ tmp = REG1; }
+    ea = tmp + REG2;
+    data = REG0;
+    STORE32(ea, SWAPB32(data));
+}
+
+// multiple word store
+X(stmw)
+{
+    UMODE tmp = 0;
+    UMODE ea;
+    int r;
+    if(ARG2){ tmp = REG2; }
+    ea = tmp + EXTS_H2N(ARG1);
+    r = ARG0;
+    while(r <= 31){
+        STORE32(ea, GPR(r));
+        r++;
+        ea += 4;
+    }
+}
+
+// Reservation store
+X(stwcx.)
+{
+//   UMODE tmp = 0;
+//   UMODE ea;
+//   if(ARG1){ tmp = REG1; }
+//   ea = tmp + REG2;
+
 }
 
 // ------------------------------ TLB ----------------------------------------------
