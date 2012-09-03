@@ -32,19 +32,23 @@
  * NOTE: All registers are 64 bits.
  *       ( even if some of them are 32 bits in actual hardware. Upper 32 bits are just ignored in those cases )
  */
-#define CPU_PPC cpu_ppc
+#define CPU_T       template<int ta_cl_s, int ta_m_bits, int ta_tlb4K_ns, int ta_tlb4K_nw, int ta_tlbCam_ne>
+#define CPU_PPC     cpu_ppc
+#define CPU_PPC_A   <ta_cl_s, ta_m_bits, ta_tlb4K_ns, ta_tlb4K_nw, ta_tlbCam_ne>
+#define CPU_PPC_T   CPU_PPC<ta_cl_s, ta_m_bits, ta_tlb4K_ns, ta_tlb4K_nw, ta_tlbCam_ne>
 
+template<int cl_s, int m_bits, int tlb4K_ns, int tlb4K_nw, int tlbCam_ne>
 class CPU_PPC {
 
     public:
     // Default constructor
-    CPU_PPC(){
+    CPU_PPC(): m_cache_line_size(cl_s){
         LOG("DEBUG4") << MSG_FUNC_START;
         init_common();
         LOG("DEBUG4") << MSG_FUNC_END;
     }
-    CPU_PPC(uint64_t cpuid, int cache_line_size, std::string name):
-        m_cpu_name(name), m_cache_line_size(cache_line_size), m_pc(0xfffffffc), m_cpu_id(cpuid){
+    CPU_PPC(uint64_t cpuid, std::string name):
+        m_cpu_name(name), m_cache_line_size(cl_s), m_pc(0xfffffffc), m_cpu_id(cpuid){
         LOG("DEBUG4") << MSG_FUNC_START;
         init_common(); 
         LOG("DEBUG4") << MSG_FUNC_END;
@@ -59,15 +63,10 @@ class CPU_PPC {
     void CAT(init_, CPU_PPC)(uint64_t cpuid, std::string name){
         m_cpu_id   = cpuid;
         m_cpu_name = name;
-#if CORE_TYPE == e500v2
-        m_cache_line_size = 32;
-#else
-        m_cache_line_size = 64;
-#endif
         m_pc       = 0xfffffffc;
     }
     
-    void       register_mem(memory &mem);             // Register memory
+    void       register_mem(memory<m_bits> &mem);     // Register memory
     size_t     get_ninstrs();                         // Get number of instrs
     uint64_t   get_pc();                              // Get pc
     void       run();
@@ -145,7 +144,7 @@ class CPU_PPC {
     //
     // NOTE : It's the responsibility of this function to populate m_ppc_func_hash and
     //        it has to be called once in the constructor.
-    friend void gen_ppc_opc_func_hash(CPU_PPC *cpu);
+    CPU_T friend void gen_ppc_opc_func_hash(CPU_PPC_T *cpu);
 
     std::string                            m_cpu_name;
     int                                    m_cpu_mode;
@@ -157,7 +156,7 @@ class CPU_PPC {
     bool                                   m_cpu_running;         // If CPU is in run mode
 
     // cache attributes
-    int                                    m_cache_line_size;     // Cache line size 
+    const int                              m_cache_line_size;     // Cache line size 
 
     // Reservation
     uint64_t                               m_resv_addr;           // This is always a physical address
@@ -187,16 +186,9 @@ class CPU_PPC {
 #define PPCREGMASK(reg_id, mask)       EBMASK(PPCREG(reg_id),    mask)
 #define PPCREGNMASK(reg_name, mask)    EBMASK(PPCREGN(reg_name), mask)
 
-    // Disassembler module
-    DIS_PPC                                m_dis;
-    // Tlb
-#if CORE_TYPE == e500v2
-    TLB_PPC<128,4,16>                      m_l2tlb;            /* Only L2 tlb is implemented */
-#else
-    TLB_PPC<128,2,16>                      m_l2tlb;
-#endif
-    // memory module
-    memory                                 *m_mem_ptr;
+    DIS_PPC                                m_dis;                  // Disassembler module
+    TLB_PPC<tlb4K_ns, tlb4K_nw, tlbCam_ne> m_l2tlb;                // tlb4K_ns = 128, tlb4K_nw = 4, tlbCam_ne = 16
+    memory<m_bits>                         *m_mem_ptr;             // Memory module
     
 
     /* Host specific stuff */
@@ -218,9 +210,9 @@ class CPU_PPC {
 
 // --------------------------- STATIC DATA ---------------------------------------------------
 
-size_t                         CPU_PPC::sm_ncpus = 0;            // Current number of powerpc cpus
-std::map<uint64_t,
-    std::pair<bool, uint8_t> > CPU_PPC::sm_resv_map;             // This keeps track of global reservation map
+CPU_T size_t                         CPU_PPC_T::sm_ncpus = 0;            // Current number of powerpc cpus
+CPU_T std::map<uint64_t,
+    std::pair<bool, uint8_t> >       CPU_PPC_T::sm_resv_map;             // This keeps track of global reservation map
 
 // -----------------------------------------------------------------------------------------
 //
@@ -234,23 +226,23 @@ std::map<uint64_t,
 //
 // --------------------------- Member function definitions -----------------------------------
 //
-void CPU_PPC::register_mem(memory &mem){
+CPU_T void CPU_PPC_T::register_mem(memory<ta_m_bits> &mem){
     if(m_mem_ptr == NULL)
         m_mem_ptr = &mem;
 }
 
-size_t CPU_PPC::get_ninstrs(){
+CPU_T size_t CPU_PPC_T::get_ninstrs(){
     return m_ninstrs;
 }
 
-uint64_t CPU_PPC::get_pc(){
+CPU_T uint64_t CPU_PPC_T::get_pc(){
     return m_pc;
 }
 //
 // All virtual functions
 // TODO:  this is very new. May or may not work.
 //        NO ppc exception support at this time
-void CPU_PPC::run(){
+CPU_T void CPU_PPC_T::run(){
     LOG("DEBUG4") << MSG_FUNC_START;
 
     std::pair<uint64_t, bool> last_bkpt = m_bm.last_breakpoint();
@@ -292,7 +284,7 @@ void CPU_PPC::run(){
 }
 
 // step operation
-void CPU_PPC::step(size_t instr_cnt){
+CPU_T void CPU_PPC_T::step(size_t instr_cnt){
     LOG("DEBUG4") << MSG_FUNC_START;
 
     size_t t=0;
@@ -327,7 +319,7 @@ void CPU_PPC::step(size_t instr_cnt){
 // virtual form of run_instr
 // Seems like c++ doesn't have an very effective way of handling non POD objects
 //  with variadic arg funcs
-void CPU_PPC::run_instr(std::string instr){
+CPU_T void CPU_PPC_T::run_instr(std::string instr){
     LOG("DEBUG4") << MSG_FUNC_START;
     instr_call call_this;
 
@@ -343,7 +335,7 @@ void CPU_PPC::run_instr(std::string instr){
 }
 
 // Overloaded form of run_instr ( specifically for CPU_PPC )
-void CPU_PPC::run_instr(uint32_t opcd){
+CPU_T void CPU_PPC_T::run_instr(uint32_t opcd){
     LOG("DEBUG4") << MSG_FUNC_START;
     instr_call call_this;
 
@@ -360,7 +352,7 @@ void CPU_PPC::run_instr(uint32_t opcd){
 #define TO_RWX(r, w, x) (((r & 0x1) << 2) | ((w & 0x1) << 1) | (x & 0x1))
 // Translate EA to RA ( for data only )
 // NOTE: All exceptions ( hardware/software ) will be handled at run_instr() or run() level.
-std::pair<uint64_t, uint8_t> CPU_PPC::xlate(uint64_t addr, bool wr){
+CPU_T std::pair<uint64_t, uint8_t> CPU_PPC_T::xlate(uint64_t addr, bool wr){
     LOG("DEBUG4") << MSG_FUNC_START;
 
     std::pair<uint64_t, uint8_t> res;
@@ -389,14 +381,14 @@ std::pair<uint64_t, uint8_t> CPU_PPC::xlate(uint64_t addr, bool wr){
 
 // Get register alias using regid
 // TODO : Check Permissions
-inline uint64_t& CPU_PPC::reg(int regid){
+CPU_T inline uint64_t& CPU_PPC_T::reg(int regid){
     LASSERT_THROW(m_ireghash.find(regid) != m_ireghash.end(),
            sim_except(SIM_EXCEPT_EINVAL, "Invalid register id " + boost::lexical_cast<std::string>(regid)), DEBUG4);
     return m_ireghash[regid]->value;
 }
 
 // Get register alias using reg name
-inline uint64_t& CPU_PPC::regn(std::string regname){
+CPU_T inline uint64_t& CPU_PPC_T::regn(std::string regname){
     LASSERT_THROW(m_reghash.find(regname) != m_reghash.end(),
            sim_except(SIM_EXCEPT_EINVAL, "Invalid register name " + regname), DEBUG4);
     // Do several checks
@@ -407,7 +399,7 @@ inline uint64_t& CPU_PPC::regn(std::string regname){
 }
 
 // Memory I/O functions
-uint8_t CPU_PPC::read8(uint64_t addr){
+CPU_T uint8_t CPU_PPC_T::read8(uint64_t addr){
     LOG("DEBUG4") << MSG_FUNC_START;
     std::pair<uint64_t, uint8_t> res = xlate(addr, 0);
  
@@ -416,7 +408,7 @@ uint8_t CPU_PPC::read8(uint64_t addr){
     return m_mem_ptr->read8(res.first, (res.second & 0x1));
 }
 
-void CPU_PPC::write8(uint64_t addr, uint8_t value){
+CPU_T void CPU_PPC_T::write8(uint64_t addr, uint8_t value){
     LOG("DEBUG4") << MSG_FUNC_START;
     std::pair<uint64_t, uint8_t> res = xlate(addr, 1);
 
@@ -425,7 +417,7 @@ void CPU_PPC::write8(uint64_t addr, uint8_t value){
     LOG("DEBUG4") << MSG_FUNC_END;
 }
 
-uint16_t CPU_PPC::read16(uint64_t addr){
+CPU_T uint16_t CPU_PPC_T::read16(uint64_t addr){
     LOG("DEBUG4") << MSG_FUNC_START;
     std::pair<uint64_t, uint8_t> res = xlate(addr, 0);
 
@@ -435,7 +427,7 @@ uint16_t CPU_PPC::read16(uint64_t addr){
 }
 
 
-void CPU_PPC::write16(uint64_t addr, uint16_t value){
+CPU_T void CPU_PPC_T::write16(uint64_t addr, uint16_t value){
     LOG("DEBUG4") << MSG_FUNC_START;
     std::pair<uint64_t, uint8_t> res = xlate(addr, 1);
 
@@ -444,7 +436,7 @@ void CPU_PPC::write16(uint64_t addr, uint16_t value){
     LOG("DEBUG4") << MSG_FUNC_END;
 }
 
-uint32_t CPU_PPC::read32(uint64_t addr){
+CPU_T uint32_t CPU_PPC_T::read32(uint64_t addr){
     LOG("DEBUG4") << MSG_FUNC_START;
     std::pair<uint64_t, uint8_t> res = xlate(addr, 0);
 
@@ -453,7 +445,7 @@ uint32_t CPU_PPC::read32(uint64_t addr){
     return m_mem_ptr->read32(res.first, (res.second & 0x1));
 }
 
-void CPU_PPC::write32(uint64_t addr, uint32_t value){
+CPU_T void CPU_PPC_T::write32(uint64_t addr, uint32_t value){
     LOG("DEBUG4") << MSG_FUNC_START;
     std::pair<uint64_t, uint8_t> res = xlate(addr, 1);
 
@@ -462,7 +454,7 @@ void CPU_PPC::write32(uint64_t addr, uint32_t value){
     LOG("DEBUG4") << MSG_FUNC_END;
 }
 
-uint64_t CPU_PPC::read64(uint64_t addr){
+CPU_T uint64_t CPU_PPC_T::read64(uint64_t addr){
     LOG("DEBUG4") << MSG_FUNC_START;
     std::pair<uint64_t, uint8_t> res = xlate(addr, 0);
 
@@ -471,7 +463,7 @@ uint64_t CPU_PPC::read64(uint64_t addr){
     return m_mem_ptr->read64(res.first, (res.second & 0x1));
 }
 
-void CPU_PPC::write64(uint64_t addr, uint64_t value){
+CPU_T void CPU_PPC_T::write64(uint64_t addr, uint64_t value){
     LOG("DEBUG4") << MSG_FUNC_START;
     std::pair<uint64_t, uint8_t> res = xlate(addr, 1);
 
@@ -481,7 +473,7 @@ void CPU_PPC::write64(uint64_t addr, uint64_t value){
 }
 
 // Initialize register attributes
-void CPU_PPC::init_reg_attrs(){
+CPU_T void CPU_PPC_T::init_reg_attrs(){
     // spr_no[5] denotes priviledge level of SPR
     // If 1 -> the SPR is supervisor only,
     // If 0 -> it's accessible from both User and supervisor mode
@@ -612,7 +604,7 @@ void CPU_PPC::init_reg_attrs(){
 //     ea -> effective address at the time fault occured ( used in case of DSI faults etc )
 //
 // FIXME : We don't support hardware exceptions yet. This is planned.
-void CPU_PPC::ppc_exception(int exception_nr, uint64_t subtype=0, uint64_t ea)
+CPU_T void CPU_PPC_T::ppc_exception(int exception_nr, uint64_t subtype=0, uint64_t ea)
 {
     LOG("DEBUG4") << MSG_FUNC_START;
 
@@ -1019,7 +1011,7 @@ void CPU_PPC::ppc_exception(int exception_nr, uint64_t subtype=0, uint64_t ea)
  *
  * @brief : Read instruction at next NIP
  */
-instr_call CPU_PPC::get_instr(){
+CPU_T instr_call CPU_PPC_T::get_instr(){
     LOG("DEBUG4") << MSG_FUNC_START;
 
     std::pair<uint64_t, uint8_t> res;           // pair of <ra, wimge>
@@ -1054,7 +1046,7 @@ instr_call CPU_PPC::get_instr(){
  *
  * @brief : flags signal for various debug events
  */
-void CPU_PPC::check_for_dbg_events(int flags, uint64_t ea){
+CPU_T void CPU_PPC_T::check_for_dbg_events(int flags, uint64_t ea){
     bool event_occurred = 0;
     uint64_t event_type = 0;
     uint64_t event_addr = 0;
@@ -1129,7 +1121,7 @@ void CPU_PPC::check_for_dbg_events(int flags, uint64_t ea){
 /*
  * @func : run current instr
  */
-inline void CPU_PPC::run_curr_instr(){
+CPU_T inline void CPU_PPC_T::run_curr_instr(){
     LOG("DEBUG4") << MSG_FUNC_START;
 
     m_nip += 4;   // Update NIP
@@ -1169,7 +1161,7 @@ inline void CPU_PPC::run_curr_instr(){
 }
 
 // Initialize all common parameters
-inline void CPU_PPC::init_common(){
+CPU_T inline void CPU_PPC_T::init_common(){
     LOG("DEBUG4") << MSG_FUNC_START;
     m_cpu_no = sm_ncpus++;                 // Increment global cpu cnt
     init_reghash();                        // Initialize registers' hash 
@@ -1187,7 +1179,7 @@ inline void CPU_PPC::init_common(){
  *
  * @brief : Initialize register pointers' hash for easy accessibility
  */
-void CPU_PPC::init_reghash(){
+CPU_T void CPU_PPC_T::init_reghash(){
      LOG("DEBUG4") << MSG_FUNC_START;
 
     m_reghash["msr"]        = &(m_cpu_regs.msr);                   m_ireghash[REG_MSR]         = m_reghash["msr"];
@@ -1336,7 +1328,7 @@ void CPU_PPC::init_reghash(){
 }
 
 // set reservation
-void CPU_PPC::set_resv(uint64_t ea, size_t size){
+CPU_T void CPU_PPC_T::set_resv(uint64_t ea, size_t size){
     LOG("DEBUG4") << MSG_FUNC_START;
     std::pair<uint64_t, uint8_t> res = xlate(ea, 0);
     m_resv_addr = res.first;
@@ -1348,7 +1340,7 @@ void CPU_PPC::set_resv(uint64_t ea, size_t size){
 }
 
 // clear resv.
-void CPU_PPC::clear_resv(uint64_t ea){
+CPU_T void CPU_PPC_T::clear_resv(uint64_t ea){
     LOG("DEBUG4") << MSG_FUNC_START;
     m_resv_set = false;
     // Need a mutex
@@ -1357,7 +1349,7 @@ void CPU_PPC::clear_resv(uint64_t ea){
 }
 
 // Check resv
-bool CPU_PPC::check_resv(uint64_t ea, size_t size){
+CPU_T bool CPU_PPC_T::check_resv(uint64_t ea, size_t size){
     LOG("DEBUG4") << MSG_FUNC_START;
     std::pair<uint64_t, uint8_t> res = xlate(ea, 1);  // Reservation is checked during stwcx.
     uint64_t caddr = res.first & ~(m_cache_line_size - 1);    // Get granule addr
@@ -1372,14 +1364,14 @@ bool CPU_PPC::check_resv(uint64_t ea, size_t size){
 
 // Notify of context switches. LRU cache uses this parameter to flush it's
 // instruction cache when a context switch happens.
-void CPU_PPC::notify_ctxt_switch(){
+CPU_T void CPU_PPC_T::notify_ctxt_switch(){
     LOG("DEBUG4") << MSG_FUNC_START;
     m_ctxt_switch = 1;
     LOG("DEBUG4") << MSG_FUNC_END;
 }
 
 // Update CR0
-void CPU_PPC::update_cr0(bool use_host, uint64_t value){
+CPU_T void CPU_PPC_T::update_cr0(bool use_host, uint64_t value){
     LOG("DEBUG4") << MSG_FUNC_START;
     int c;
     if(use_host){
@@ -1413,7 +1405,7 @@ void CPU_PPC::update_cr0(bool use_host, uint64_t value){
 
 // Updates CR[bf] with val i.e CR[bf] <- (val & 0xf)
 // bf may range from [0:7]
-void CPU_PPC::update_crF(unsigned bf, uint64_t val){
+CPU_T void CPU_PPC_T::update_crF(unsigned bf, uint64_t val){
     LOG("DEBUG4") << MSG_FUNC_START;
     bf &= 0x7;
     val &= 0xf;
@@ -1423,14 +1415,14 @@ void CPU_PPC::update_crF(unsigned bf, uint64_t val){
 }
 
 // Get crF  ( F -> [0:7] )
-unsigned CPU_PPC::get_crF(unsigned bf){
+CPU_T unsigned CPU_PPC_T::get_crF(unsigned bf){
     LOG("DEBUG4") << MSG_FUNC_START;
     LOG("DEBUG4") << MSG_FUNC_END;
     return (PPCREG(REG_CR) >> (7 - bf)*4) & 0xf;
 }
 
 // Update CR by exact field value [0:31]
-void CPU_PPC::update_crf(unsigned field, unsigned value){
+CPU_T void CPU_PPC_T::update_crf(unsigned field, unsigned value){
     LOG("DEBUG4") << MSG_FUNC_START;
     field &= 0x1f;
     value &= 0x1;
@@ -1440,14 +1432,14 @@ void CPU_PPC::update_crf(unsigned field, unsigned value){
 }
 
 // Get CR bit at exact field
-unsigned CPU_PPC::get_crf(unsigned field){
+CPU_T unsigned CPU_PPC_T::get_crf(unsigned field){
     LOG("DEBUG4") << MSG_FUNC_START;
     LOG("DEBUG4") << MSG_FUNC_END;
     return (PPCREG(REG_CR) >> (31 - field)) & 0x1;
 }
 
 // Update XER
-void CPU_PPC::update_xer(bool use_host, uint64_t value){
+CPU_T void CPU_PPC_T::update_xer(bool use_host, uint64_t value){
     LOG("DEBUG4") << MSG_FUNC_START;
     uint32_t c = 0;
     if(!use_host){
@@ -1469,7 +1461,7 @@ void CPU_PPC::update_xer(bool use_host, uint64_t value){
 
 // bf field can be only 3 bits wide. If not, it's truncated to 3 bits
 // val can be 4 bits only.
-void CPU_PPC::update_xerF(unsigned bf, unsigned val){
+CPU_T void CPU_PPC_T::update_xerF(unsigned bf, unsigned val){
     LOG("DEBUG4") << MSG_FUNC_START;
     bf &= 0x7;
     val &= 0xf;
@@ -1479,7 +1471,7 @@ void CPU_PPC::update_xerF(unsigned bf, unsigned val){
 }
 
 // value can be either 1 or 0 
-void CPU_PPC::update_xerf(unsigned field, unsigned value){
+CPU_T void CPU_PPC_T::update_xerf(unsigned field, unsigned value){
     LOG("DEBUG4") << MSG_FUNC_START;
     field &= 0x1f;
     value &= 0x1;
@@ -1488,33 +1480,33 @@ void CPU_PPC::update_xerf(unsigned field, unsigned value){
     LOG("DEBUG4") << MSG_FUNC_END;
 }
 
-unsigned CPU_PPC::get_xerF(unsigned bf){
+CPU_T unsigned CPU_PPC_T::get_xerF(unsigned bf){
     LOG("DEBUG4") << MSG_FUNC_START;
     LOG("DEBUG4") << MSG_FUNC_END;
     return (PPCREG(REG_XER) >> (7 - bf)*4) & 0xf;
 }
 
-unsigned CPU_PPC::get_xerf(unsigned field){
+CPU_T unsigned CPU_PPC_T::get_xerf(unsigned field){
     LOG("DEBUG4") << MSG_FUNC_START;
     LOG("DEBUG4") << MSG_FUNC_END;
     return (PPCREG(REG_XER) >> (31 - field)) & 0x1;
 }
 
 // Get XER[SO]
-unsigned CPU_PPC::get_xer_so(){
+CPU_T unsigned CPU_PPC_T::get_xer_so(){
     LOG("DEBUG4") << MSG_FUNC_START;
     LOG("DEBUG4") << MSG_FUNC_END;
     return ((PPCREG(REG_XER) & XER_SO) ? 1:0);
 }
 
-unsigned CPU_PPC::get_xer_ca(){
+CPU_T unsigned CPU_PPC_T::get_xer_ca(){
     LOG("DEBUG4") << MSG_FUNC_START;
     LOG("DEBUG4") << MSG_FUNC_END;
     return ((PPCREG(REG_XER) & XER_CA) ? 1:0);
 }
 
 // Get register value by name
-uint64_t CPU_PPC::get_reg(std::string reg_name) throw(sim_except) {
+CPU_T uint64_t CPU_PPC_T::get_reg(std::string reg_name) throw(sim_except) {
     LOG("DEBUG4") << MSG_FUNC_START;
     if(m_reghash.find(reg_name) == m_reghash.end()) throw sim_except(SIM_EXCEPT_EINVAL, "Illegal register name");
     LOG("DEBUG4") << MSG_FUNC_END;
@@ -1522,7 +1514,7 @@ uint64_t CPU_PPC::get_reg(std::string reg_name) throw(sim_except) {
 }
 
 // Dump CPU state
-void CPU_PPC::dump_state(int columns, std::ostream &ostr, int dump_all_sprs){
+CPU_T void CPU_PPC_T::dump_state(int columns, std::ostream &ostr, int dump_all_sprs){
     LOG("DEBUG4") << MSG_FUNC_START;
     int i;
     int colno = 0;
@@ -1592,12 +1584,12 @@ void CPU_PPC::dump_state(int columns, std::ostream &ostr, int dump_all_sprs){
 }
 
 // print all tlbs
-void CPU_PPC::print_L2tlbs(){
+CPU_T void CPU_PPC_T::print_L2tlbs(){
     m_l2tlb.print_tlbs2();
 }
 
 // friend function
-void gen_ppc_opc_func_hash(CPU_PPC *pcpu){
+CPU_T void gen_ppc_opc_func_hash(CPU_PPC_T *pcpu){
     #include "cpu_ppc_instr.inc"
 }
 

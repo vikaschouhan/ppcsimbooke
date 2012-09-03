@@ -42,7 +42,11 @@ static const int TGT_IFC  = 3;      // Integrated Flash Controller
  *        2. Only one object can be crated for this class
  *        3. It's cumpulsory that all base address should be page (4K) aligned.
  */
-class memory {
+#define  MEM_T             template<int n>
+#define  MEM_PPC           memory
+#define  MEM_PPC_T         MEM_PPC<n>
+
+template<int nbits> class MEM_PPC {
 
     #define    MEM_READ                    0
     #define    MEM_WRITE                   1
@@ -97,8 +101,8 @@ class memory {
     std::map<uint64_t, uint8_t*>            page_hash_cache;    // Cache of page_hash
 
     public:
-    typedef std::list<t_mem_tgt>::iterator  mem_tgt_iter;       /* Memory target iterator */
-    typedef std::map<uint64_t, uint8_t*>::iterator page_hash_iter; // Page hash iterator
+    typedef typename std::list<t_mem_tgt>::iterator           mem_tgt_iter;       /* Memory target iterator */
+    typedef std::map<uint64_t, uint8_t*>::iterator            page_hash_iter;     // Page hash iterator
 
     // Memory page usage attributes
     //uint64_t                                n_pages;            /* Number of pages currently in use */
@@ -121,7 +125,7 @@ class memory {
     // @func : constructor
     // @args : number of physical address lines ( To gauge the total physical address space )
     //
-    memory(const int bits) : m_bits(bits){
+    memory() : m_bits(nbits){
         LOG("DEBUG4") << MSG_FUNC_START;
         this->pa_max = (1LL << m_bits) - 1 ;
         this->pn_max = (this->pa_max) >> static_cast<int>(log2(PAGE_SIZE));
@@ -187,7 +191,7 @@ class memory {
  *
  * @brief : dump memory target
  */
-void memory::dump_mem_tgt(t_mem_tgt &mem_tgt_this, std::string fmtstr){
+MEM_T void MEM_PPC_T::dump_mem_tgt(t_mem_tgt &mem_tgt_this, std::string fmtstr){
     LOG("DEBUG4") << MSG_FUNC_START;
     std::cout << std::hex << std::showbase;
     std::cout << fmtstr << "base address = " << mem_tgt_this.baseaddr << std::endl;
@@ -207,7 +211,7 @@ void memory::dump_mem_tgt(t_mem_tgt &mem_tgt_this, std::string fmtstr){
  * @brief : dump memory target
  *
  */
-void memory::dump_mem_tgt2(t_mem_tgt &mem_tgt_this, std::string fmtstr){
+MEM_T void MEM_PPC_T::dump_mem_tgt2(t_mem_tgt &mem_tgt_this, std::string fmtstr){
     LOG("DEBUG4") << MSG_FUNC_START;
     std::cout << std::hex << std::showbase;
     std::cout << fmtstr << "tgt = " << mem_tgt_this.name << " with base_addr = " <<
@@ -224,7 +228,7 @@ void memory::dump_mem_tgt2(t_mem_tgt &mem_tgt_this, std::string fmtstr){
  * @brief : checks if this target overlaps with other targets and returns and bool status value
  *
  */
-bool memory::is_overlapping_tgt(const t_mem_tgt &mem_tgt_this){
+MEM_T bool MEM_PPC_T::is_overlapping_tgt(const t_mem_tgt &mem_tgt_this){
     LOG("DEBUG4") << MSG_FUNC_START;
     for(mem_tgt_iter iter_this = mem_tgt.begin(); iter_this != mem_tgt.end(); iter_this++){
         if((mem_tgt_this.baseaddr >= iter_this->baseaddr) &&
@@ -251,7 +255,7 @@ bool memory::is_overlapping_tgt(const t_mem_tgt &mem_tgt_this){
  * @brief : check if the passed physical address is there in the passed target
  * @return : bool
  */
-bool memory::is_paddr_there(mem_tgt_iter iter_this, uint64_t paddr){
+MEM_T bool MEM_PPC_T::is_paddr_there(typename MEM_PPC_T::mem_tgt_iter iter_this, uint64_t paddr){
     LOG("DEBUG4") << MSG_FUNC_START;
     if((iter_this->baseaddr <= paddr) && (iter_this->endaddr >= paddr)){
         LOG("DEBUG4") << MSG_FUNC_END;
@@ -268,7 +272,7 @@ bool memory::is_paddr_there(mem_tgt_iter iter_this, uint64_t paddr){
  * @brief: select a memory target based on physical address
  * @return : iterator ( pointer ) to the selected memory target
  */
-memory::mem_tgt_iter memory::select_mem_tgt(uint64_t paddr) throw(sim_except){
+MEM_T typename MEM_PPC_T::mem_tgt_iter MEM_PPC_T::select_mem_tgt(uint64_t paddr) throw(sim_except){
     LOG("DEBUG4") << MSG_FUNC_START;
     mem_tgt_iter iter_last = mem_tgt.end();
     for(mem_tgt_iter iter_this = mem_tgt.begin(); iter_this != mem_tgt.end(); iter_this++){
@@ -295,7 +299,7 @@ memory::mem_tgt_iter memory::select_mem_tgt(uint64_t paddr) throw(sim_except){
  *
  * @brief: returns a pointer to the host page
  */
-uint8_t* memory::paddr_to_hostpage(uint64_t paddr){
+MEM_T uint8_t* MEM_PPC_T::paddr_to_hostpage(uint64_t paddr){
     LOG("DEBUG4") << MSG_FUNC_START;
    
     uint64_t pageno = (paddr >> MIN_PGSZ_SHIFT);
@@ -328,7 +332,7 @@ uint8_t* memory::paddr_to_hostpage(uint64_t paddr){
  * @brief: return a host pointer to the physical address
  * @return: unsigned char pointer to the host address
  */
-uint8_t* memory::paddr_to_hostaddr(uint64_t paddr){
+MEM_T uint8_t* MEM_PPC_T::paddr_to_hostaddr(uint64_t paddr){
     LOG("DEBUG4") << MSG_FUNC_START;
     uint64_t pageno = (paddr >> MIN_PGSZ_SHIFT);
     size_t   offset =  (paddr - (pageno << MIN_PGSZ_SHIFT));
@@ -342,7 +346,7 @@ uint8_t* memory::paddr_to_hostaddr(uint64_t paddr){
  *
  * @brief : registers a memory target type
  */
-void memory::register_memory_target(uint64_t ba, size_t size, std::string name, uint32_t flags, int tgt_type, int prio){
+MEM_T void MEM_PPC_T::register_memory_target(uint64_t ba, size_t size, std::string name, uint32_t flags, int tgt_type, int prio){
     // Check for legal values.
     if(size > static_cast<size_t>(1 << this->m_bits)){
         // throw exception
@@ -386,7 +390,7 @@ void memory::register_memory_target(uint64_t ba, size_t size, std::string name, 
  *
  * @brief : dump all memory targets
  */
-void memory::dump_all_memory_targets(){
+MEM_T void MEM_PPC_T::dump_all_memory_targets(){
     for(mem_tgt_iter iter_this = mem_tgt.begin(); iter_this != mem_tgt.end(); iter_this++){
         std::cout << BAR0 << std::endl;
         dump_mem_tgt(*iter_this);
@@ -401,7 +405,7 @@ void memory::dump_all_memory_targets(){
  * @brief : dump all pages hashes for all memory targets.
  * @type : debug
  */
-void memory::dump_all_page_maps(){
+MEM_T void MEM_PPC_T::dump_all_page_maps(){
     LOG("DEBUG4") << MSG_FUNC_START;
     for(mem_tgt_iter iter_this = mem_tgt.begin(); iter_this != mem_tgt.end(); iter_this++){
         dump_mem_tgt2(*iter_this);
@@ -423,7 +427,7 @@ void memory::dump_all_page_maps(){
  * @brief : dump all pages, along with their contents into a text file / binary files
  * @type  : debug
  */
-void memory::dump_all_pages(std::ostream &ostr){
+MEM_T void MEM_PPC_T::dump_all_pages(std::ostream &ostr){
     LOG("DEBUG4") << MSG_FUNC_START;
     uint8_t *ptr = NULL;
     int grp_size = 4;
@@ -469,7 +473,7 @@ void memory::dump_all_pages(std::ostream &ostr){
  *
  * @brief : writes passed buffer to the memory
  */
-void memory::write_from_buffer(uint64_t addr, uint8_t* buff, size_t size){
+MEM_T void MEM_PPC_T::write_from_buffer(uint64_t addr, uint8_t* buff, size_t size){
     size_t curr_size;
     size_t offset;
     uint8_t *curr_page = NULL;
@@ -496,7 +500,7 @@ void memory::write_from_buffer(uint64_t addr, uint8_t* buff, size_t size){
  * @brief: reads data into buffer from requested physical address
  * @return : buffer pointer
  */
-uint8_t* memory::read_to_buffer(uint64_t addr, uint8_t *buff, size_t size){
+MEM_T uint8_t* MEM_PPC_T::read_to_buffer(uint64_t addr, uint8_t *buff, size_t size){
     size_t curr_size;
     size_t offset;
     uint8_t *curr_page = NULL;
@@ -523,7 +527,7 @@ uint8_t* memory::read_to_buffer(uint64_t addr, uint8_t *buff, size_t size){
  *
  * @brief : copies size bytes to physical address "addr" from file named "file_name"
  */
-void memory::write_from_file(uint64_t addr, std::string file_name, size_t size){
+MEM_T void MEM_PPC_T::write_from_file(uint64_t addr, std::string file_name, size_t size){
     std::ifstream ih;
     ih.open(file_name.c_str(), std::istream::in | std::ifstream::binary);
     LASSERT_THROW(ih.fail() == 0, sim_except(SIM_EXCEPT_ENOFILE, "opening file failed."), DEBUG4);
@@ -542,7 +546,7 @@ void memory::write_from_file(uint64_t addr, std::string file_name, size_t size){
  *
  * @brief : copies size bytes from physical addr "addr" to file name "file_name"
  */
-void memory::read_to_file(uint64_t addr, std::string file_name, size_t size){
+MEM_T void MEM_PPC_T::read_to_file(uint64_t addr, std::string file_name, size_t size){
     std::ofstream oh;
     oh.open(file_name.c_str(), std::ofstream::out | std::ofstream::binary | std::ofstream::trunc);
     LASSERT_THROW(oh.fail() == 0, sim_except(SIM_EXCEPT_ENOFILE, "opening file failed."), DEBUG4);
@@ -561,7 +565,7 @@ void memory::read_to_file(uint64_t addr, std::string file_name, size_t size){
  *
  * @brief : return 8 bits data at physical address
  */ 
-uint8_t memory::read8(uint64_t addr, int endianness){
+MEM_T uint8_t MEM_PPC_T::read8(uint64_t addr, int endianness){
     LOG("DEBUG4") << MSG_FUNC_START;
     uint8_t *hostptr = paddr_to_hostaddr(addr);
     LOG("DEBUG4") << MSG_FUNC_END;
@@ -573,7 +577,7 @@ uint8_t memory::read8(uint64_t addr, int endianness){
  *
  * @brief : write 8 bits of data at location physical address
  */
-void memory::write8(uint64_t addr, uint8_t value, int endianness){
+MEM_T void MEM_PPC_T::write8(uint64_t addr, uint8_t value, int endianness){
     LOG("DEBUG4") << MSG_FUNC_START;
     uint8_t *hostptr = paddr_to_hostaddr(addr);
     *hostptr = value;
@@ -586,7 +590,7 @@ void memory::write8(uint64_t addr, uint8_t value, int endianness){
  *
  * @brief : return 16 bits data at physical address
  */ 
-uint16_t memory::read16(uint64_t addr, int endianness){
+MEM_T uint16_t MEM_PPC_T::read16(uint64_t addr, int endianness){
     LOG("DEBUG4") << MSG_FUNC_START;
     uint8_t *hostptr = paddr_to_hostaddr(addr);
     uint16_t value = 0;
@@ -606,7 +610,7 @@ uint16_t memory::read16(uint64_t addr, int endianness){
  *
  * @brief : write 16 bits of data at location physical address
  */
-void memory::write16(uint64_t addr, uint16_t value, int endianness){
+MEM_T void MEM_PPC_T::write16(uint64_t addr, uint16_t value, int endianness){
     LOG("DEBUG4") << MSG_FUNC_START;
     uint8_t *hostptr = paddr_to_hostaddr(addr);
     if(endianness == EMUL_BIG_ENDIAN){
@@ -625,7 +629,7 @@ void memory::write16(uint64_t addr, uint16_t value, int endianness){
  *
  * @brief : return 32 bits data at physical address
  */ 
-uint32_t memory::read32(uint64_t addr, int endianness){
+MEM_T uint32_t MEM_PPC_T::read32(uint64_t addr, int endianness){
     LOG("DEBUG4") << MSG_FUNC_START;
     uint8_t *hostptr = paddr_to_hostaddr(addr);
     uint32_t value = 0;
@@ -649,7 +653,7 @@ uint32_t memory::read32(uint64_t addr, int endianness){
  *
  * @brief : write 32 bits of data at location physical address
  */
-void memory::write32(uint64_t addr, uint32_t value, int endianness){
+MEM_T void MEM_PPC_T::write32(uint64_t addr, uint32_t value, int endianness){
     LOG("DEBUG4") << MSG_FUNC_START;
     uint8_t *hostptr = paddr_to_hostaddr(addr);
     if(endianness == EMUL_BIG_ENDIAN){
@@ -670,7 +674,7 @@ void memory::write32(uint64_t addr, uint32_t value, int endianness){
  * @func : read64 
  * @args : physical address, endianness
  */
-uint64_t memory::read64(uint64_t addr, int endianness){
+MEM_T uint64_t MEM_PPC_T::read64(uint64_t addr, int endianness){
     LOG("DEBUG4") << MSG_FUNC_START;
     uint8_t *hostptr = paddr_to_hostaddr(addr);
     uint64_t value = 0;
@@ -701,7 +705,7 @@ uint64_t memory::read64(uint64_t addr, int endianness){
  * @func : write64
  * @args : physical address, data, endianness
  */
-void memory::write64(uint64_t addr, uint64_t value, int endianness){
+MEM_T void MEM_PPC_T::write64(uint64_t addr, uint64_t value, int endianness){
     LOG("DEBUG4") << MSG_FUNC_START;
     uint8_t *hostptr = paddr_to_hostaddr(addr);
     if(endianness == EMUL_BIG_ENDIAN){
@@ -727,41 +731,41 @@ void memory::write64(uint64_t addr, uint64_t value, int endianness){
 }
 
 // Load /store versions for integers
-uint8_t memory::load_byte(uint64_t addr, int endianness){
+MEM_T uint8_t MEM_PPC_T::load_byte(uint64_t addr, int endianness){
     return read8(addr, endianness);
 }
-void memory::store_byte(uint64_t addr, uint8_t data, int endianness){
+MEM_T void MEM_PPC_T::store_byte(uint64_t addr, uint8_t data, int endianness){
     write8(addr, data, endianness);
 }
-uint16_t memory::load_halfword(uint64_t addr, int endianness){
+MEM_T uint16_t MEM_PPC_T::load_halfword(uint64_t addr, int endianness){
     return read16(addr, endianness);
 }
-void memory::store_halfword(uint64_t addr, uint16_t data, int endianness){
+MEM_T void MEM_PPC_T::store_halfword(uint64_t addr, uint16_t data, int endianness){
     write16(addr, data, endianness);
 }
-uint32_t memory::load_word(uint64_t addr, int endianness){
+MEM_T uint32_t MEM_PPC_T::load_word(uint64_t addr, int endianness){
     return read32(addr, endianness);
 }
-void memory::store_word(uint64_t addr, uint32_t data, int endianness){
+MEM_T void MEM_PPC_T::store_word(uint64_t addr, uint32_t data, int endianness){
     write32(addr, data, endianness); 
 }
-uint64_t memory::load_doubleword(uint64_t addr, int endianness){
+MEM_T uint64_t MEM_PPC_T::load_doubleword(uint64_t addr, int endianness){
     return read64(addr, endianness);
 }
-void memory::store_doubleword(uint64_t addr, uint64_t data, int endianness){
+MEM_T void MEM_PPC_T::store_doubleword(uint64_t addr, uint64_t data, int endianness){
     write64(addr, data, endianness);
 }
 
 // Load /store versions for buffers
-void memory::store_buffer(uint64_t addr, uint8_t* buff, size_t size){
+MEM_T void MEM_PPC_T::store_buffer(uint64_t addr, uint8_t* buff, size_t size){
     write_from_buffer(addr, buff, size);
 }
-uint8_t* memory::load_buffer(uint64_t addr, uint8_t *buff, size_t size){
+MEM_T uint8_t* MEM_PPC_T::load_buffer(uint64_t addr, uint8_t *buff, size_t size){
     return read_to_buffer(addr, buff, size);
 }
 
 // Load an elf file
-void memory::load_elf(std::string filename){
+MEM_T void MEM_PPC_T::load_elf(std::string filename){
     ELFIO::elfio elfreader;
     LASSERT_THROW(elfreader.load(filename), sim_except(SIM_EXCEPT_ENOFILE, "File couldn't be opened"), DEBUG4);
    

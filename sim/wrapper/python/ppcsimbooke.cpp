@@ -34,13 +34,25 @@
 #include "machine.hpp"
 #include "ppc_dis.hpp"
  
-#define  SIM_REL  "current"
+#define  SIM_REL                     "current"
+// CPU parameters
+#define  N_CPUS                      2     // Number of cpus
+#define  CPU_CACHE_LINE_SIZE         32    // cache line size
+#define  CPU_PHY_ADDR_SIZE           36    // physical address line size
+#define  CPU_TLB4K_N_SETS            128   // number of sets in tlb4K
+#define  CPU_TLB4K_N_WAYS            4     // number of ways/set in tlb4K
+#define  CPU_TLBCAM_N_ENTRIES        16    // Number of entries in tlbCam
+
+typedef CPU_PPC<CPU_CACHE_LINE_SIZE, CPU_PHY_ADDR_SIZE, CPU_TLB4K_N_SETS, CPU_TLB4K_N_WAYS, CPU_TLBCAM_N_ENTRIES>   cpu_e500v2_t;
+typedef MEM_PPC<CPU_PHY_ADDR_SIZE>                                                                                  memory_e500v2_t;
+typedef machine<N_CPUS, CPU_PHY_ADDR_SIZE, CPU_CACHE_LINE_SIZE,
+        CPU_TLB4K_N_SETS, CPU_TLB4K_N_WAYS, CPU_TLBCAM_N_ENTRIES>                                                   machine_e500v2_t;
 
 // Wrapping some cpu functions
 
 // func ptrs for overloaded CPU_PPC::run_instrs()
-void (CPU_PPC::*run_instr_ptr_d0)(uint32_t) = &CPU_PPC::run_instr;
-void (CPU_PPC::*run_instr_ptr2_d0)(std::string) = &CPU_PPC::run_instr;
+void (cpu_e500v2_t::*run_instr_ptr_d0)(uint32_t)     = &cpu_e500v2_t::run_instr;
+void (cpu_e500v2_t::*run_instr_ptr2_d0)(std::string) = &cpu_e500v2_t::run_instr;
 
 // Wrapping some ppc_dis functions
 instr_call (DIS_PPC::*disasm_ptr)(uint32_t, uint64_t, int)  = &DIS_PPC::disasm;
@@ -310,25 +322,25 @@ BOOST_PYTHON_MODULE(ppcsim)
 
         // Memory namespace
         {
-            class_<memory> memory_py("memory", init<uint64_t>());
+            class_<memory_e500v2_t> memory_py("memory");
             scope memory_scope = memory_py;
-            memory_py.def("reg_tgt",       &memory::register_memory_target, register_memory_target_overloads())
-                .def("dump_tgts",          &memory::dump_all_memory_targets)
-                .def("dump_page_maps",     &memory::dump_all_page_maps)
-                .def("dump_pages",         &memory::dump_all_pages, dump_all_pages_overloads())
+            memory_py.def("reg_tgt",       &memory_e500v2_t::register_memory_target, register_memory_target_overloads())
+                .def("dump_tgts",          &memory_e500v2_t::dump_all_memory_targets)
+                .def("dump_page_maps",     &memory_e500v2_t::dump_all_page_maps)
+                .def("dump_pages",         &memory_e500v2_t::dump_all_pages, dump_all_pages_overloads())
                 //.def("write_buf",         &memory::write_from_buffer)
                 //.def("read_buf",          &memory::read_to_buffer, return_value_policy<manage_new_object>())
-                .def("read8",              &memory::read8,  read8_overloads())
-                .def("write8",             &memory::write8, write8_overloads())
-                .def("read16",             &memory::read16, read16_overloads())
-                .def("write16",            &memory::write16, write16_overloads())
-                .def("read32",             &memory::read32, read32_overloads())
-                .def("write32",            &memory::write32, write32_overloads())
-                .def("read64",             &memory::read64, read64_overloads())
-                .def("write64",            &memory::write64, write64_overloads())
-                .def("write_from_file",    &memory::write_from_file)
-                .def("read_to_file",       &memory::read_to_file)
-                .def("load_elf",           &memory::load_elf)
+                .def("read8",              &memory_e500v2_t::read8,  read8_overloads())
+                .def("write8",             &memory_e500v2_t::write8, write8_overloads())
+                .def("read16",             &memory_e500v2_t::read16, read16_overloads())
+                .def("write16",            &memory_e500v2_t::write16, write16_overloads())
+                .def("read32",             &memory_e500v2_t::read32, read32_overloads())
+                .def("write32",            &memory_e500v2_t::write32, write32_overloads())
+                .def("read64",             &memory_e500v2_t::read64, read64_overloads())
+                .def("write64",            &memory_e500v2_t::write64, write64_overloads())
+                .def("write_from_file",    &memory_e500v2_t::write_from_file)
+                .def("read_to_file",       &memory_e500v2_t::read_to_file)
+                .def("load_elf",           &memory_e500v2_t::load_elf)
                 ;
 
             // Memory targets namespace ( defines constants for memory targets )
@@ -354,41 +366,40 @@ BOOST_PYTHON_MODULE(ppcsim)
             ;
 
         // The derived cpu_ppc_book class ( Our main cpu class )
-        class_<CPU_PPC> cpu_ppc_py("cpu_ppc", init<uint64_t, std::string>());
+        class_<cpu_e500v2_t> cpu_ppc_py("cpu_ppc", init<uint64_t, std::string>());
         cpu_ppc_py.def("run_instr",   run_instr_ptr_d0)
             .def("run_instr",         run_instr_ptr2_d0)
-            .def("run",               &CPU_PPC::run)
-            .def("step",              &CPU_PPC::step, step_overloads())
-            .def("get_reg",           &CPU_PPC::get_reg)
-            .def("dump_state",        &CPU_PPC::dump_state, dump_state_overloads())
-            .def("print_L2tlbs",      &CPU_PPC::print_L2tlbs)
-            .def("init_reg_attrs",    &CPU_PPC::init_reg_attrs)
-            .def("read8",             &CPU_PPC::read8)
-            .def("write8",            &CPU_PPC::write8)
-            .def("read16",            &CPU_PPC::read16)
-            .def("write16",           &CPU_PPC::write16)
-            .def("read32",            &CPU_PPC::read32)
-            .def("write32",           &CPU_PPC::write32)
-            .def("read64",            &CPU_PPC::read64)
-            .def("write64",           &CPU_PPC::write64)
-            .add_property("regs",     make_function(&CPU_PPC::___get_regs, return_value_policy<reference_existing_object>()))
-            .def_readonly("PC",       &CPU_PPC::get_pc)
-            .def_readonly("ninstrs",  &CPU_PPC::get_ninstrs)
-            .def_readonly("bm",       &CPU_PPC::m_bm)
+            .def("run",               &cpu_e500v2_t::run)
+            .def("step",              &cpu_e500v2_t::step, step_overloads())
+            .def("get_reg",           &cpu_e500v2_t::get_reg)
+            .def("dump_state",        &cpu_e500v2_t::dump_state, dump_state_overloads())
+            .def("print_L2tlbs",      &cpu_e500v2_t::print_L2tlbs)
+            .def("init_reg_attrs",    &cpu_e500v2_t::init_reg_attrs)
+            .def("read8",             &cpu_e500v2_t::read8)
+            .def("write8",            &cpu_e500v2_t::write8)
+            .def("read16",            &cpu_e500v2_t::read16)
+            .def("write16",           &cpu_e500v2_t::write16)
+            .def("read32",            &cpu_e500v2_t::read32)
+            .def("write32",           &cpu_e500v2_t::write32)
+            .def("read64",            &cpu_e500v2_t::read64)
+            .def("write64",           &cpu_e500v2_t::write64)
+            .add_property("regs",     make_function(&cpu_e500v2_t::___get_regs, return_value_policy<reference_existing_object>()))
+            .def_readonly("PC",       &cpu_e500v2_t::get_pc)
+            .def_readonly("ninstrs",  &cpu_e500v2_t::get_ninstrs)
+            .def_readonly("bm",       &cpu_e500v2_t::m_bm)
             ;
 
 
     }
 
     // Class machine ( Our top level machine class. This is the class we are going to use directly. )
-    typedef machine<2,36>  machine_2cpus_36pl;
-    class_<machine_2cpus_36pl> machine_py("machine");
-    machine_py.def_readonly("ncpus", &machine_2cpus_36pl::m_ncpus)
-        .def_readwrite("memory",     &machine_2cpus_36pl::m_memory)
-        .add_property("cpu0",        make_function(&machine_2cpus_36pl::get_cpu<0>, return_value_policy<reference_existing_object>()))
-        .add_property("cpu1",        make_function(&machine_2cpus_36pl::get_cpu<1>, return_value_policy<reference_existing_object>()))
-        .def("load_elf",             &machine_2cpus_36pl::load_elf)
-        .def("run",                  &machine_2cpus_36pl::run, mc_run_overloads())
+    class_<machine_e500v2_t> machine_py("machine");
+    machine_py.def_readonly("ncpus", &machine_e500v2_t::m_ncpus)
+        .def_readwrite("memory",     &machine_e500v2_t::m_memory)
+        .add_property("cpu0",        make_function(&machine_e500v2_t::get_cpu<0>, return_value_policy<reference_existing_object>()))
+        .add_property("cpu1",        make_function(&machine_e500v2_t::get_cpu<1>, return_value_policy<reference_existing_object>()))
+        .def("load_elf",             &machine_e500v2_t::load_elf)
+        .def("run",                  &machine_e500v2_t::run, mc_run_overloads())
         ;
   
     // Custom message after loading this module 

@@ -210,7 +210,7 @@ int main(int argc, char** argv){
             ostr << std::endl;
             ostr << "    // " << opcode << std::endl;
             ostr << "    struct " << opcode_n << " {" << std::endl;
-            ostr << "        static void " << opcode_fun << "(cpu_ppc *pcpu, instr_call *ic)" << std::endl;
+            ostr << "        static void " << opcode_fun << "(CPU_PPC_T *pcpu, instr_call *ic)" << std::endl;
             ostr << pseudocode << std::endl;
             ostr << "    };" << std::endl;
             ostr << "    pcpu->m_ppc_func_hash[" << std::hex << std::showbase
