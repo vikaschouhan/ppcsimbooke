@@ -3,5 +3,6 @@
 
 char*  malloc(int size);
 void   mfree(char* ptr, int size);
+char*  result_ptr();
 
 #endif

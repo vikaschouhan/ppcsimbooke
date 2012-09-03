@@ -11,7 +11,7 @@ int add(int x, int y){
 void nomain(){
     int a = 5;
     int b;
-    char* result = malloc(4);   // Allocate memory
+    char* result = result_ptr();  // get result area ptr
 
     b = add(a, z);
     if(b == 13)
@@ -19,6 +19,5 @@ void nomain(){
     else
         *((unsigned int*)result) = 0xbaadbaad;
 
-    mfree(result, 4);    // free memory
     return;
 }

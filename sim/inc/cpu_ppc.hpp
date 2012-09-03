@@ -159,6 +159,8 @@ class CPU_PPC {
     const int                              m_cache_line_size;     // Cache line size 
 
     // Reservation
+    // FIXME: Reservation support is not fully implemented.
+    //        It may not work for multicore at all
     uint64_t                               m_resv_addr;           // This is always a physical address
     bool                                   m_resv_set;            // Flag for setting resv
     uint8_t                                m_resv_size;           // Resv. size
@@ -1353,6 +1355,9 @@ CPU_T bool CPU_PPC_T::check_resv(uint64_t ea, size_t size){
     LOG("DEBUG4") << MSG_FUNC_START;
     std::pair<uint64_t, uint8_t> res = xlate(ea, 1);  // Reservation is checked during stwcx.
     uint64_t caddr = res.first & ~(m_cache_line_size - 1);    // Get granule addr
+    if(sm_resv_map.find(caddr) == sm_resv_map.end()){
+        return false;
+    }
     if(res.first == m_resv_addr and m_resv_set == true and m_resv_size == size and
             sm_resv_map[caddr].first == true and sm_resv_map[caddr].second == m_cpu_no){
         LOG("DEBUG4") << MSG_FUNC_END;

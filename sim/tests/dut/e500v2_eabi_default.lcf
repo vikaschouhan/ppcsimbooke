@@ -3,11 +3,12 @@ OUTPUT_ARCH(powerpc:common)
 ENTRY(__start)
 
 /* Heap and stack */
-PROVIDE (__heap_start = 0);
-PROVIDE (__heap_size = 0x100000);
-PROVIDE (__heap_end = __heap_size -1);
-PROVIDE (__stack_start = 0x200000);
-PROVIDE (__stack_size = 0x4000);
+PROVIDE (__result_start = 0x0);
+PROVIDE (__heap_start   = 0x100000);
+PROVIDE (__heap_size    = 0x100000);
+PROVIDE (__heap_end     = __heap_start + __heap_size -1);
+PROVIDE (__stack_start  = 0x300000);
+PROVIDE (__stack_size   = 0x4000);
 
 SECTIONS
 {

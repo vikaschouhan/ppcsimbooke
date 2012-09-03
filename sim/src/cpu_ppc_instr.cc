@@ -104,6 +104,7 @@
 
 // Reservation macros
 #define SET_RESV(ea, size)       CPU->set_resv(ea, size)
+#define CHECK_RESV(ea, size)     CPU->check_resv(ea, size)
 #define CLEAR_RESV(ea)           CPU->clear_resv(ea)
 
 // TLB macros
@@ -1605,11 +1606,17 @@ X(stmw)
 // Reservation store
 X(stwcx.)
 {
-//   UMODE tmp = 0;
-//   UMODE ea;
-//   if(ARG1){ tmp = REG1; }
-//   ea = tmp + REG2;
-
+    UMODE tmp = 0;
+    UMODE ea;
+    if(ARG1){ tmp = REG1; }
+    ea = tmp + REG2;
+    if(CHECK_RESV(ea, 4)){
+        STORE32(ea, REG0);
+        update_crF(0, 0x20 | get_xer_so());  // Set ZERO bit
+    }else{
+        update_crF(0, get_xer_so());
+    }
+    CLEAR_RESV(ea);
 }
 
 // ------------------------------ TLB ----------------------------------------------
