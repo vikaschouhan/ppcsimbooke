@@ -45,7 +45,7 @@ CINCLUDES   := $(SIM_ROOT)/inc
 # Include current directory for dynamically generated headers
 HOST_CFLAGS                 := -I${CINCLUDES} -I.
 HOST_CXXFLAGS               := -I${CXXINCLUDES} -I. -I/usr/include/boost
-HOST_LDFLAGS                := -L/usr/lib64
+HOST_LDFLAGS                := -L/usr/lib64 -lboost_thread
 
 HOST_BOOST_PYTHON_CXXFLAGS  := -I`python-config --includes` -DCONFIG_BOOST_PYTHON
 HOST_BOOST_PYTHON_LDFLAGS   := -lboost_python -shared
@@ -95,28 +95,28 @@ test_ppcdis_interface: test_ppcdis_interface.o
 	$(CXX) -o $@ $^
 
 test_machine_interface: test_machine_interface.o
-	$(CXX) -o $@ $^
+	$(CXX) $(HOST_LDFLAGS) -o $@ $^
 
 test_cpu_ppc_interface: test_cpu_ppc_interface.o
-	$(CXX) -o $@ $^
+	$(CXX) $(HOST_LDFLAGS) -o $@ $^
 
 test_tlb_booke_interface: test_tlb_booke_interface.o
-	$(CXX) -o $@ $^
+	$(CXX) $(HOST_LDFLAGS) -o $@ $^
 
 test_memory_interface: test_memory_interface.o
-	$(CXX) -o $@ $^
+	$(CXX) $(HOST_LDFLAGS) -o $@ $^
 
 test_exception_class: test_exception_class.o
-	$(CXX) -o $@ $^
+	$(CXX) $(HOST_LDFLAGS) -o $@ $^
 
 test_log_class: test_log_class.o
-	$(CXX) -o $@ $^
+	$(CXX) $(HOST_LDFLAGS) -o $@ $^
 
 test_lru_class: test_lru_class.o
-	$(CXX) -o $@ $^
+	$(CXX) $(HOST_LDFLAGS) -o $@ $^
 
 test_bm_class: test_bm_class.o
-	$(CXX) -o $@ $^
+	$(CXX) $(HOST_LDFLAGS) -o $@ $^
 
 sim_tests: $(SIM_TEST_EXES)
 

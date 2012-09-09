@@ -92,6 +92,8 @@ BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(disasm2_overloads, disasm, 1, 2);
 
 // Overloads for machine::run()
 BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(mc_run_overloads, run, 0, 1);
+// Overloads for machine::stop()
+BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(mc_stop_overloads, stop, 0, 1);
 
 // Dummy class to be used for adding extra classes in python proxies
 template <int x> class dummy{
@@ -371,6 +373,9 @@ BOOST_PYTHON_MODULE(ppcsim)
             .def("run_instr",         run_instr_ptr2_d0)
             .def("run",               &cpu_e500v2_t::run)
             .def("step",              &cpu_e500v2_t::step, step_overloads())
+            .def("halt",              &cpu_e500v2_t::halt)
+            .def("stop",              &cpu_e500v2_t::stop)
+            .def("run_mode",          &cpu_e500v2_t::run_mode)
             .def("get_reg",           &cpu_e500v2_t::get_reg)
             .def("dump_state",        &cpu_e500v2_t::dump_state, dump_state_overloads())
             .def("print_L2tlbs",      &cpu_e500v2_t::print_L2tlbs)
@@ -400,6 +405,7 @@ BOOST_PYTHON_MODULE(ppcsim)
         .add_property("cpu1",        make_function(&machine_e500v2_t::get_cpu<1>, return_value_policy<reference_existing_object>()))
         .def("load_elf",             &machine_e500v2_t::load_elf)
         .def("run",                  &machine_e500v2_t::run, mc_run_overloads())
+        .def("stop",                 &machine_e500v2_t::stop, mc_stop_overloads())
         ;
   
     // Custom message after loading this module 

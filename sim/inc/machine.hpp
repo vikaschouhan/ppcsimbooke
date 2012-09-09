@@ -38,17 +38,40 @@ template <int n_cpus, int m_bits, int cl_size, int tlb4K_ns, int tlb4K_nw, int t
     }
 
     // Common run ( invokes run of invoked CPUs using multiple threads )
+    // TODO:  for time being we are not keeping any record of threads, just starting them and
+    //        leaving them to detatch
+    //        We need to do some bookeeping in future.
     void run(unsigned mask=0){
+        LOG("DEBUG4") << MSG_FUNC_START;
         if(mask == 0){
-            m_cpu[0].run();
+            boost::thread thr0(boost::bind(&cpu_t::run, &(m_cpu[0])));
+            LOG("DEBUG4") << MSG_FUNC_END;
             return;
         }
-        // FIXME: Use a multithreaded approach here.
-        //for(size_t i=0; i<sizeof(mask); i++){
-        //    if((mask >> i) & 0x1){
-        //        m_cpu[0].run();
-        //    }
-        //}
+        for(size_t i=0; i<sizeof(mask); i++){
+            if((mask >> i) & 0x1){
+                boost::thread thr0(boost::bind(&cpu_t::run, &(m_cpu[i])));
+            }
+        }
+        LOG("DEBUG4") << MSG_FUNC_END;
+        return;
+    }
+
+    void stop(unsigned mask=0){
+        LOG("DEBUG4") << MSG_FUNC_START;
+        if(mask == 0){
+            m_cpu[0].stop();
+            LOG("DEBUG4") << MSG_FUNC_END;
+            return;
+        }
+        // FIXME: All threads should be stopped at once.
+        //        We will look into this later on.
+        for(size_t i=0; i<sizeof(mask); i++){
+            if((mask >> i) & 0x1){
+                m_cpu[i].stop();
+            }
+        }
+        LOG("DEBUG4") << MSG_FUNC_END;
         return;
     }
 

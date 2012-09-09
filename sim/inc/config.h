@@ -29,6 +29,8 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/lexical_cast.hpp>
+#include <boost/bind.hpp>
+#include <boost/thread.hpp>
 
 // Include all common misc local header files
 #include "exception.hpp"

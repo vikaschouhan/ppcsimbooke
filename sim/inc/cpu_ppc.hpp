@@ -73,6 +73,9 @@ class CPU_PPC {
     void       run_instr(std::string instr);
     void       run_instr(uint32_t opcd);
     void       step(size_t instr_cnt=1);      // by default step by 1 ic cnt
+    void       halt();                        // halt cpu
+    void       stop();                        // stop cpu
+    void       run_mode();                    // prints run mode
     
     // All memory read/write functions ( these act on effective addresses and address
     // translation is done by the tlb module )
@@ -151,6 +154,7 @@ class CPU_PPC {
 #define CPU_MODE_RUNNING            (0x1)
 #define CPU_MODE_STEPPING           (0x2)
 #define CPU_MODE_HALTED             (0x3)
+#define CPU_MODE_STOPPED            (0x4)
     int                                    m_cpu_bits;            // 32 or 64
     struct timeval                         m_cpu_start_time;
     bool                                   m_cpu_running;         // If CPU is in run mode
@@ -274,10 +278,17 @@ CPU_T void CPU_PPC_T::run(){
             ppc_exception(e.err_code0(), e.err_code1(), e.addr());
         }
 
+        // FIXME: Will remove this in future.
+        //        PS: This code causes segfaults, if used within thread context from python
         // Periodically check for any python error signals ( only for boost python )
-        if(py_signal_callback::callback != NULL)
-            if(py_signal_callback::callback())
-                goto loop_exit_0;
+        //if(py_signal_callback::callback != NULL)
+        //    if(py_signal_callback::callback())
+        //        goto loop_exit_0;
+
+        // If running status is changed to stopped/halted, exit out of loop
+        if(m_cpu_mode == CPU_MODE_HALTED or m_cpu_mode == CPU_MODE_STOPPED){
+            goto loop_exit_0;
+        }
     }
     loop_exit_0:
     ;
@@ -315,6 +326,32 @@ CPU_T void CPU_PPC_T::step(size_t instr_cnt){
         }
     }
 #undef I
+    LOG("DEBUG4") << MSG_FUNC_END;
+}
+
+CPU_T void CPU_PPC_T::halt(){
+    LOG("DEBUG4") << MSG_FUNC_START;
+    // FIXME: should change it under mutex control
+    m_cpu_mode = CPU_MODE_HALTED;
+    LOG("DEBUG4") << MSG_FUNC_END;
+}
+
+CPU_T void CPU_PPC_T::stop(){
+    LOG("DEBUG4") << MSG_FUNC_START;
+    // FIXME: should change it under mutex control
+    m_cpu_mode = CPU_MODE_STOPPED;
+    LOG("DEBUG4") << MSG_FUNC_END;
+}
+
+CPU_T void CPU_PPC_T::run_mode(){
+    LOG("DEBUG4") << MSG_FUNC_START;
+    switch(m_cpu_mode){
+        case CPU_MODE_RUNNING  : std::cout << "Running"  << std::endl; break;
+        case CPU_MODE_STEPPING : std::cout << "Stepping" << std::endl; break;
+        case CPU_MODE_HALTED   : std::cout << "Halted"   << std::endl; break;
+        case CPU_MODE_STOPPED  : std::cout << "Stopped"  << std::endl; break;
+        default                : std::cout << "Unknown"  << std::endl; break;
+    }
     LOG("DEBUG4") << MSG_FUNC_END;
 }
 
