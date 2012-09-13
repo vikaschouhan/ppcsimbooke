@@ -12,6 +12,10 @@ CROSS_AS       := $(CROSS_PREFIX)as
 CROSS_LD       := $(CROSS_PREFIX)ld
 CROSS_OBJDUMP  := $(CROSS_PREFIX)objdump
 
+#============================= user defined flags ===============================================
+ENABLE_LOG     := 1
+ENABLE_DEBUG   := 0
+
 #============================= Define All EXE targets here =======================================
 # Exes for tests
 SIM_TEST_EXES := test_ppcdis_interface    \
@@ -51,10 +55,15 @@ HOST_BOOST_PYTHON_CXXFLAGS  := -I`python-config --includes` -DCONFIG_BOOST_PYTHO
 HOST_BOOST_PYTHON_LDFLAGS   := -lboost_python -shared
 
 # enable this for <cstdint>
-HOST_EXTFLAGS               := -std=c++0x -O -Wall -DCONFIG_BOOKE -DCONFIG_E500 -DCORE_TYPE=e500v2 -DCONFIG_FSL_EMB_PERFMON -O2
+HOST_EXTFLAGS               := -std=c++0x -O -Wall -DCONFIG_BOOKE -DCONFIG_E500 -DCORE_TYPE=e500v2 -DCONFIG_FSL_EMB_PERFMON -O2 -DSIM_DEBUG=$(ENABLE_LOG)
 
 HOST_ARCH                   := $(shell uname -m)
 HOST_EXTFLAGS               += -DHOST_ARCH=$(HOST_ARCH)
+
+# conditionals
+ifeq ($(ENABLE_DEBUG), 1)
+	HOST_EXTFLAGS    += -g
+endif
 
 #============================ TARGET FLAGS =========================================================
 CROSS_CFLAGS                := -mregnames -Wa,-me500x2 -Wa,-mspe -I. -I$(SIM_ROOT)/inc -nostdlib

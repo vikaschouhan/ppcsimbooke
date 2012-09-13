@@ -42,6 +42,8 @@
 
 // Define misc macros.
 // For debug couts, printfs etc..
+#ifndef SIM_DEBUG
 #define SIM_DEBUG 1
+#endif
 
 #endif

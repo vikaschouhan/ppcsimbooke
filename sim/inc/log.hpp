@@ -46,113 +46,151 @@ template<int EN_LOG> class Log
 #define LOG_LEVEL_INFO        (0x8)
 
     private:
-    inline std::string now_time()
-    {
-        char buffer[11];
-        time_t t;
-        time(&t);
-        tm r = {0};
-        strftime(buffer, sizeof(buffer), "%X", localtime_r(&t, &r));
-        struct timeval tv;
-        gettimeofday(&tv, 0);
-        char result[100] = {0};
-        std::sprintf(result, "%s.%03ld", buffer, (long)tv.tv_usec / 1000); 
-        return result;
-    }
-
-    inline std::string to_str(int level){
-        static std::map<int, std::string>  lev2str = {
-            std::make_pair(LOG_LEVEL_DEBUG,   "DEBUG"  ),
-            std::make_pair(LOG_LEVEL_DEBUG1,  "DEBUG1" ),
-            std::make_pair(LOG_LEVEL_DEBUG2,  "DEBUG2" ),
-            std::make_pair(LOG_LEVEL_DEBUG3,  "DEBUG3" ),
-            std::make_pair(LOG_LEVEL_DEBUG4,  "DEBUG4" ),
-            std::make_pair(LOG_LEVEL_ERROR,   "ERROR"  ),
-            std::make_pair(LOG_LEVEL_WARNING, "WARNING"),
-            std::make_pair(LOG_LEVEL_INFO,    "INFO"   )
-        };
-        return lev2str[level];
-    }
-
-    inline int from_str(std::string level){
-        static std::map<std::string, int>  str2lev = {
-            std::make_pair("DEBUG"    ,LOG_LEVEL_DEBUG   ),
-            std::make_pair("DEBUG1"   ,LOG_LEVEL_DEBUG1  ),
-            std::make_pair("DEBUG2"   ,LOG_LEVEL_DEBUG2  ),
-            std::make_pair("DEBUG3"   ,LOG_LEVEL_DEBUG3  ),
-            std::make_pair("DEBUG4"   ,LOG_LEVEL_DEBUG4  ),
-            std::make_pair("ERROR"    ,LOG_LEVEL_ERROR   ),
-            std::make_pair("WARNING"  ,LOG_LEVEL_WARNING ),
-            std::make_pair("INFO"     ,LOG_LEVEL_INFO    )
-        };
-        return str2lev[level];
-    }
+    inline std::string now_time();
+    inline std::string to_str(int level);
+    inline int from_str(std::string level);
 
     public:
-    Log(){
-        m_stream = &(std::cout);
-        m_enable_log = true;
-        m_log_level = LOG_LEVEL_INFO;
-    }
-    Log(std::string filename){
-        m_fstream.open(filename.c_str());
-        m_stream = &m_fstream;
-        m_enable_log = true;
-        m_log_level = LOG_LEVEL_INFO;
-    }
-    ~Log(){
-        m_stream = NULL;
-        m_fstream.close();
-    }
+    Log();
+    Log(std::string);
+    ~Log();
 
-    void direct_to_file(std::string filename){
-        m_fstream.close();
-        m_fstream.open(filename.c_str());
-        m_stream = &m_fstream;
-    }
+    void direct_to_file(std::string filename);
+    void enable();
+    void disable();
 
-    void enable(){
-        m_enable_log = true;
-    }
-
-    void disable(){
-        m_enable_log = false;
-    }
-
-    // Overload << for normal buildin types
-    template<typename T> Log& operator<<(T item)
-    {
-        if(EN_LOG){
-            if(m_enable_log == true){
-                (*m_stream) << item;
-            }
-        }
-        return *this;
-    }
-
-    // overload for stream manipulators ( std::endl etc for eg. )
-    Log& operator<<(std::ostream& (*pf)(std::ostream&)){
-        if(EN_LOG){
-            if(m_enable_log == true){
-                (*m_stream) << pf;
-            }
-        }
-        return *this;
-    }
-
-    Log& operator()(std::string level){
-        if(EN_LOG){
-            if(m_enable_log == true){
-                (*m_stream) << "- " << now_time() << " [" << level << "]" << '\t';
-            }
-        }
-        return *this;
-    }
-
-    Log& operator()(int level){
-        return (*this)(to_str(level));
-    }
+    template<typename T> Log& operator<<(T item);
+    Log& operator<<(std::ostream& (*pf)(std::ostream&));
+    Log& operator()(std::string level);
+    Log& operator()(int level);
 };
+
+// Member functions
+//
+template<int X> inline std::string Log<X>::now_time()
+{
+    char buffer[11];
+    time_t t;
+    time(&t);
+    tm r = {0};
+    strftime(buffer, sizeof(buffer), "%X", localtime_r(&t, &r));
+    struct timeval tv;
+    gettimeofday(&tv, 0);
+    char result[100] = {0};
+    std::sprintf(result, "%s.%03ld", buffer, (long)tv.tv_usec / 1000); 
+    return result;
+}
+
+template<int X> inline std::string Log<X>::to_str(int level){
+    static std::map<int, std::string>  lev2str = {
+        std::make_pair(LOG_LEVEL_DEBUG,   "DEBUG"  ),
+        std::make_pair(LOG_LEVEL_DEBUG1,  "DEBUG1" ),
+        std::make_pair(LOG_LEVEL_DEBUG2,  "DEBUG2" ),
+        std::make_pair(LOG_LEVEL_DEBUG3,  "DEBUG3" ),
+        std::make_pair(LOG_LEVEL_DEBUG4,  "DEBUG4" ),
+        std::make_pair(LOG_LEVEL_ERROR,   "ERROR"  ),
+        std::make_pair(LOG_LEVEL_WARNING, "WARNING"),
+        std::make_pair(LOG_LEVEL_INFO,    "INFO"   )
+    };
+    return lev2str[level];
+}
+
+template<int X> inline int Log<X>::from_str(std::string level){
+    static std::map<std::string, int>  str2lev = {
+        std::make_pair("DEBUG"    ,LOG_LEVEL_DEBUG   ),
+        std::make_pair("DEBUG1"   ,LOG_LEVEL_DEBUG1  ),
+        std::make_pair("DEBUG2"   ,LOG_LEVEL_DEBUG2  ),
+        std::make_pair("DEBUG3"   ,LOG_LEVEL_DEBUG3  ),
+        std::make_pair("DEBUG4"   ,LOG_LEVEL_DEBUG4  ),
+        std::make_pair("ERROR"    ,LOG_LEVEL_ERROR   ),
+        std::make_pair("WARNING"  ,LOG_LEVEL_WARNING ),
+        std::make_pair("INFO"     ,LOG_LEVEL_INFO    )
+    };
+    return str2lev[level];
+}
+
+// Constructor 0
+template<int X> Log<X>::Log(){
+    m_stream = &(std::cout);
+    m_enable_log = true;
+    m_log_level = LOG_LEVEL_INFO;
+}
+template< > Log<0>::Log(){}
+
+template<int X> Log<X>::Log(std::string filename){
+    m_fstream.open(filename.c_str());
+    m_stream = &m_fstream;
+    m_enable_log = true;
+    m_log_level = LOG_LEVEL_INFO;
+}
+template< > Log<0>::Log(std::string filename){
+    std::cout << "Logging is ddisabled." << std::endl;
+}
+
+template<int X> Log<X>::~Log(){
+    m_stream = NULL;
+    m_fstream.close();
+}
+template< > Log<0>::~Log(){}
+
+template<int X> void Log<X>::direct_to_file(std::string filename){
+    m_fstream.close();
+    m_fstream.open(filename.c_str());
+    m_stream = &m_fstream;
+}
+template< > void Log<0>::direct_to_file(std::string filename){
+    std::cout << "Logging is disabled." << std::endl;
+}
+
+template<int X> void Log<X>::enable(){
+    m_enable_log = true;
+}
+template< > void Log<0>::enable(){}
+
+template<int X> void Log<X>::disable(){
+    m_enable_log = false;
+}
+template< > void Log<0>::disable(){}
+
+// Overload << for normal buildin types
+template<int X> template<typename T> Log<X>& Log<X>::operator<<(T item)
+{
+    if(m_enable_log == true){
+        (*m_stream) << item;
+    }
+    return *this;
+}
+template< > template<typename T> Log<0>& Log<0>::operator<<(T item){
+    return *this;
+}
+
+// overload for stream manipulators ( std::endl etc for eg. )
+template<int X> Log<X>& Log<X>::operator<<(std::ostream& (*pf)(std::ostream&)){
+    if(m_enable_log == true){
+        (*m_stream) << pf;
+    }
+    return *this;
+}
+template< > Log<0>& Log<0>::operator<<(std::ostream& (*pf)(std::ostream&)){
+    return *this;
+}
+
+template<int X> Log<X>& Log<X>::operator()(std::string level){
+    if(m_enable_log == true){
+        (*m_stream) << "- " << now_time() << " [" << level << "]" << '\t';
+    }
+    return *this;
+}
+template< > Log<0>& Log<0>::operator()(std::string level){
+    return *this;
+}
+
+template<int X> Log<X>& Log<X>::operator()(int level){
+    return (*this)(to_str(level));
+}
+template< > Log<0>& Log<0>::operator()(int level){
+    return (*this);
+}
 
 #ifndef SIM_DEBUG
 #define SIM_DEBUG 1
