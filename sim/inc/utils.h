@@ -104,8 +104,8 @@ static const int  EMUL_LITTLE_ENDIAN     =  1;
 // Messages for logging purposes
 // These print the beginning and end of function calls
 // NOTE:  These require GCC compiler to work properly
-#define MSG_FUNC_START "Entering " << __PRETTY_FUNCTION__ << " ."
-#define MSG_FUNC_END   "Exiting " << __PRETTY_FUNCTION__ << " ."
+#define MSG_FUNC_START "Entering " << __PRETTY_FUNCTION__ << " ." << std::endl
+#define MSG_FUNC_END   "Exiting " << __PRETTY_FUNCTION__ << " ." << std::endl
 
 // Macro for ensuring that function end message is always printed even in case of abrubt returns
 // Void functions don't allow return values

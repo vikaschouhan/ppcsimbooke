@@ -1,7 +1,6 @@
 In this directory, we hold header files which are provided by some third-party projects.
 
 1. ppc       -> Linux header files for various PPC registers and bitfields.
-2. log       -> A logging framework by Petru Marginean which appeared on Dr. Dobb's Journal.
-3. ppcdis    -> ppc disassembler code from GNU binutils.
-4. lru       -> An lru cache implementation using boost::bimap's by Tim Day.
+2. ppcdis    -> ppc disassembler code from GNU binutils.
+3. lru       -> An lru cache implementation using boost::bimap's by Tim Day.
 

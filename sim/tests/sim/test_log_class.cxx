@@ -10,16 +10,16 @@ int main(int argc, char* argv[])
     try
     {
 	    const int count = 3;
-        LOG("DEBUG") << "A loop with " << count << " iterations";
+        LOG("DEBUG") << "A loop with " << count << " iterations" << std::endl;
         for (int i = 0; i != count; ++i)
         {
-	        LOG("DEBUG1") << "the counter i = " << i;
+	        LOG("DEBUG1") << "the counter i = " << i << std::endl;
         }
         return 0;
     }
     catch(const std::exception& e)
     {
-        LOG("ERROR") << e.what();
+        LOG("ERROR") << e.what() << std::endl;
     }
-    return -1;
+    return 0;
 }
