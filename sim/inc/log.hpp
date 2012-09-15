@@ -55,14 +55,15 @@ template<int EN_LOG> class Log
     Log(std::string);
     ~Log();
 
-    void direct_to_file(std::string filename);
-    void enable();
-    void disable();
+    void        direct_to_file(std::string filename);
+    void        enable();
+    void        disable();
+    bool        is_enabled();
 
     template<typename T> Log& operator<<(T item);
-    Log& operator<<(std::ostream& (*pf)(std::ostream&));
-    Log& operator()(std::string level);
-    Log& operator()(int level);
+    Log&                      operator<<(std::ostream& (*pf)(std::ostream&));
+    Log&                      operator()(std::string level);
+    Log&                      operator()(int level);
 };
 
 // Member functions
@@ -151,6 +152,11 @@ template<int X> void Log<X>::disable(){
     m_enable_log = false;
 }
 template< > void Log<0>::disable(){}
+
+// Check if Loggger is enabled
+template<int X> bool Log<X>::is_enabled(){
+    return m_enable_log;
+}
 
 // Overload << for normal buildin types
 template<int X> template<typename T> Log<X>& Log<X>::operator<<(T item)

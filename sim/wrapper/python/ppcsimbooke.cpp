@@ -94,6 +94,8 @@ BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(disasm2_overloads, disasm, 1, 2);
 BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(mc_run_overloads, run, 0, 1);
 // Overloads for machine::stop()
 BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(mc_stop_overloads, stop, 0, 1);
+// Overloads for machine::run_mode()
+BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(mc_run_mode_overloads, run_mode, 0, 1);
 
 // Dummy class to be used for adding extra classes in python proxies
 template <int x> class dummy{
@@ -406,6 +408,11 @@ BOOST_PYTHON_MODULE(ppcsim)
         .def("load_elf",             &machine_e500v2_t::load_elf)
         .def("run",                  &machine_e500v2_t::run, mc_run_overloads())
         .def("stop",                 &machine_e500v2_t::stop, mc_stop_overloads())
+        .def("run_mode",             &machine_e500v2_t::run_mode, mc_run_mode_overloads())
+        .def("trace_to_file",        &machine_e500v2_t::trace_to_file)
+        .def("en_trace",             &machine_e500v2_t::trace_enable)
+        .def("dis_trace",            &machine_e500v2_t::trace_disable)
+        .def("is_trace_en",          &machine_e500v2_t::is_trace_enabled)
         ;
   
     // Custom message after loading this module 

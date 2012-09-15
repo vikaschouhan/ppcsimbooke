@@ -41,34 +41,14 @@ template<int cl_s, int m_bits, int tlb4K_ns, int tlb4K_nw, int tlbCam_ne>
 class CPU_PPC {
 
     public:
-    // Default constructor
-    CPU_PPC(): m_cache_line_size(cl_s){
-        LOG("DEBUG4") << MSG_FUNC_START;
-        init_common();
-        LOG("DEBUG4") << MSG_FUNC_END;
-    }
-    CPU_PPC(uint64_t cpuid, std::string name):
-        m_cpu_name(name), m_cache_line_size(cl_s), m_pc(0xfffffffc), m_cpu_id(cpuid){
-        LOG("DEBUG4") << MSG_FUNC_START;
-        init_common(); 
-        LOG("DEBUG4") << MSG_FUNC_END;
-    }
-    ~CPU_PPC(){
-        LOG("DEBUG4") << MSG_FUNC_START;
-        sm_ncpus--;
-        LOG("DEBUG4") << MSG_FUNC_END;
-    } 
+    CPU_PPC();
+    CPU_PPC(uint64_t cpuid, std::string name);
+    ~CPU_PPC();
 
-    // Initalize CPU ( for objects  being created by default constructor )
-    void CAT(init_, CPU_PPC)(uint64_t cpuid, std::string name){
-        m_cpu_id   = cpuid;
-        m_cpu_name = name;
-        m_pc       = 0xfffffffc;
-    }
-    
-    void       register_mem(memory<m_bits> &mem);     // Register memory
-    size_t     get_ninstrs();                         // Get number of instrs
-    uint64_t   get_pc();                              // Get pc
+    void       init(uint64_t cpuid, std::string name);  // Initialize CPU
+    void       register_mem(memory<m_bits> &mem);       // Register memory
+    size_t     get_ninstrs();                           // Get number of instrs
+    uint64_t   get_pc();                                // Get pc
     void       run();
     void       run_instr(std::string instr);
     void       run_instr(uint32_t opcd);
@@ -136,8 +116,8 @@ class CPU_PPC {
     inline void           init_common();
 
     public:
-    // Breakpoint manager
-    BM                                     m_bm;
+    BM                                     m_bm;                   // breakpoint manager
+    static Log<1>                          sm_instr_tracer;        // Instruction tracer module
     
     private: 
     // This function defines nested functions ( using struct encapsulation technique )
@@ -183,6 +163,8 @@ class CPU_PPC {
     uint8_t                                m_cpu_no;              // Cpu no
     static size_t                          sm_ncpus;              // Total cpus
     size_t                                 m_ninstrs;             // Number of instrs
+    instr_call                             m_instr_this;          // Current instr
+    instr_call                             m_instr_next;          // next instr
 
     // Pointers to generic registers/stuff hashed by name and numerical identifiers
     std::map<std::string, ppc_reg64*>      m_reghash;
@@ -195,6 +177,7 @@ class CPU_PPC {
     DIS_PPC                                m_dis;                  // Disassembler module
     TLB_PPC<tlb4K_ns, tlb4K_nw, tlbCam_ne> m_l2tlb;                // tlb4K_ns = 128, tlb4K_nw = 4, tlbCam_ne = 16
     memory<m_bits>                         *m_mem_ptr;             // Memory module
+    
     
 
     /* Host specific stuff */
@@ -217,6 +200,7 @@ class CPU_PPC {
 // --------------------------- STATIC DATA ---------------------------------------------------
 
 CPU_T size_t                         CPU_PPC_T::sm_ncpus = 0;            // Current number of powerpc cpus
+CPU_T Log<1>                         CPU_PPC_T::sm_instr_tracer;         // Instruction tracer
 CPU_T std::map<uint64_t,
     std::pair<bool, uint8_t> >       CPU_PPC_T::sm_resv_map;             // This keeps track of global reservation map
 
@@ -232,6 +216,33 @@ CPU_T std::map<uint64_t,
 //
 // --------------------------- Member function definitions -----------------------------------
 //
+
+// Default constructor
+CPU_T CPU_PPC_T::CPU_PPC(): m_cache_line_size(ta_cl_s){
+    LOG("DEBUG4") << MSG_FUNC_START;
+    init_common();
+    LOG("DEBUG4") << MSG_FUNC_END;
+}
+
+CPU_T CPU_PPC_T::CPU_PPC(uint64_t cpuid, std::string name):
+    m_cpu_name(name), m_cache_line_size(ta_cl_s), m_pc(0xfffffffc), m_cpu_id(cpuid){
+    LOG("DEBUG4") << MSG_FUNC_START;
+    init_common(); 
+    LOG("DEBUG4") << MSG_FUNC_END;
+}
+
+CPU_T CPU_PPC_T::~CPU_PPC(){
+    LOG("DEBUG4") << MSG_FUNC_START;
+    sm_ncpus--;
+    LOG("DEBUG4") << MSG_FUNC_END;
+} 
+
+CPU_T void CPU_PPC_T::init(uint64_t cpuid, std::string name){    // Initialize CPU
+    m_cpu_id   = cpuid;
+    m_cpu_name = name;
+    m_pc       = 0xfffffffc;
+}
+
 CPU_T void CPU_PPC_T::register_mem(memory<ta_m_bits> &mem){
     if(m_mem_ptr == NULL)
         m_mem_ptr = &mem;
@@ -291,7 +302,7 @@ CPU_T void CPU_PPC_T::run(){
         }
     }
     loop_exit_0:
-    ;
+    m_cpu_mode = CPU_MODE_STOPPED;
 #undef I
     LOG("DEBUG4") << MSG_FUNC_END;
 }
@@ -325,6 +336,7 @@ CPU_T void CPU_PPC_T::step(size_t instr_cnt){
             sim_except_ppc(e.err_code0(), e.err_code1(), e.addr());
         }
     }
+    m_cpu_mode = CPU_MODE_STOPPED;
 #undef I
     LOG("DEBUG4") << MSG_FUNC_END;
 }
@@ -1168,6 +1180,9 @@ CPU_T inline void CPU_PPC_T::run_curr_instr(){
     /* Get Instr call frame at next NIP */
     instr_call call_this = get_instr();
     LOG("DEBUG4") << "INSTR : " << call_this.get_instr_str() << std::endl;
+
+    // Trace instructions
+    sm_instr_tracer("DEBUG") << "[CPU_" << (int)m_cpu_no << std::hex << "]\t" << "PC: 0x" << m_pc << "\t" << call_this.get_instr_str() << std::endl;
 
     if(m_bm.check_pc(m_pc)){
         // Throw a software breakpoint exception
