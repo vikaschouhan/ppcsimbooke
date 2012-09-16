@@ -65,8 +65,8 @@ cpu_continue:
     ori r1,r1,__stack_start@l;
 
     # jump to nomain
-    lis r0,    nomain@h;
-    ori r0,r0, nomain@l;
+    lis r0,    main@h;
+    ori r0,r0, main@l;
     mtspr SPRN_LR, r0;
     blrl;
 0:  b 0b;   

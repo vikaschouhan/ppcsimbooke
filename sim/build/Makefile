@@ -70,7 +70,7 @@ endif
 #============================ TARGET FLAGS =========================================================
 CROSS_CFLAGS                := -mregnames -Wa,-me500x2 -Wa,-mspe -I. -I$(SIM_ROOT)/inc 
 CROSS_LDFLAGS               := -L -n -N -T $(DUT_TESTS_ROOT)/e500v2_eabi_default.lcf -Wa,-me500x2 -Wa,-mspe
-CROSS_EXTFLAGS              := -D__ASSEMBLY__ -DCONFIG_E500 -DCONFIG_BOOKE -DCONFIG_FSL_EMB_PERFMON
+CROSS_EXTFLAGS              := -D__ASSEMBLY__ -DCONFIG_E500 -DCONFIG_BOOKE -DCONFIG_FSL_EMB_PERFMON -std=c99
 CROSS_OBJS_COMM             := common.o newlib_stubs.o startup.o
 
 #============================ BUILD formatting UTILITY =============================================
@@ -98,6 +98,9 @@ all: $(EXES)
 
 #======= BUILD DUT TESTS
 test_001: $(CROSS_OBJS_COMM) test_001.o
+	$(CROSS_CC) $(CROSS_LDFLAGS) $(CROSS_EXTFLAGS) -Wl,-Map=$(@).map -o $(@).elf $^
+
+test_palindrome_0: $(CROSS_OBJS_COMM) test_palindrome_0.o
 	$(CROSS_CC) $(CROSS_LDFLAGS) $(CROSS_EXTFLAGS) -Wl,-Map=$(@).map -o $(@).elf $^
 
 dut_tests: $(DUT_TEST_EXES)

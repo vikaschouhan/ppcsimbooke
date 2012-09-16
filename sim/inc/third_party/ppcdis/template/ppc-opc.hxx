@@ -2606,16 +2606,10 @@ static const struct powerpc_opcode powerpc_opcodes[] = {
 
 {"rlwimi.",	M(20,1),	M_MASK,      PPCCOM,	PPCNONE,	{RA, RS, SH, MBE, ME}},
 
-{"rotlwi",	MME(21,31,0),	MMBME_MASK,  PPCCOM,	PPCNONE,	{RA, RS, SH}},
-{"clrlwi",	MME(21,31,0),	MSHME_MASK,  PPCCOM,	PPCNONE,	{RA, RS, MB}},
 {"rlwinm",	M(21,0),	M_MASK,      PPCCOM,	PPCNONE,	{RA, RS, SH, MBE, ME}},
-{"rotlwi.",	MME(21,31,1),	MMBME_MASK,  PPCCOM,	PPCNONE,	{RA, RS, SH}},
-{"clrlwi.",	MME(21,31,1),	MSHME_MASK,  PPCCOM,	PPCNONE,	{RA, RS, MB}},
 {"rlwinm.",	M(21,1),	M_MASK,      PPCCOM,	PPCNONE,	{RA, RS, SH, MBE, ME}},
 
-{"rotlw",	MME(23,31,0),	MMBME_MASK,  PPCCOM,	PPCNONE,	{RA, RS, RB}},
 {"rlwnm",	M(23,0),	M_MASK,      PPCCOM,	PPCNONE,	{RA, RS, RB, MBE, ME}},
-{"rotlw.",	MME(23,31,1),	MMBME_MASK,  PPCCOM,	PPCNONE,	{RA, RS, RB}},
 {"rlwnm.",	M(23,1),	M_MASK,      PPCCOM,	PPCNONE,	{RA, RS, RB, MBE, ME}},
 
 {"ori",		OP(24),		OP_MASK,     PPCCOM,	PPCNONE,	{RA, RS, UI}},
@@ -2630,11 +2624,7 @@ static const struct powerpc_opcode powerpc_opcodes[] = {
 
 {"andis.",	OP(29),		OP_MASK,     PPCCOM,	PPCNONE,	{RA, RS, UI}},
 
-{"rotldi",	MD(30,0,0),	MDMB_MASK,   PPC64,	PPCNONE,	{RA, RS, SH6}},
-{"clrldi",	MD(30,0,0),	MDSH_MASK,   PPC64,	PPCNONE,	{RA, RS, MB6}},
 {"rldicl",	MD(30,0,0),	MD_MASK,     PPC64,	PPCNONE,	{RA, RS, SH6, MB6}},
-{"rotldi.",	MD(30,0,1),	MDMB_MASK,   PPC64,	PPCNONE,	{RA, RS, SH6}},
-{"clrldi.",	MD(30,0,1),	MDSH_MASK,   PPC64,	PPCNONE,	{RA, RS, MB6}},
 {"rldicl.",	MD(30,0,1),	MD_MASK,     PPC64,	PPCNONE,	{RA, RS, SH6, MB6}},
 
 {"rldicr",	MD(30,1,0),	MD_MASK,     PPC64,	PPCNONE,	{RA, RS, SH6, ME6}},

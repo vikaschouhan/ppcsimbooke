@@ -8,7 +8,7 @@ int add(int x, int y){
 }
 
 // Nomain function
-void nomain(){
+int main(){
     int a = 5;
     int b;
 
@@ -18,5 +18,5 @@ void nomain(){
     else
         log_fail();
 
-    return;
+    return 0;
 }

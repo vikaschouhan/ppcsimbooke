@@ -26,7 +26,7 @@ while ((a.memory.read32(0x4) != 0x900d900d) and (a.memory.read32(0x4) != 0xbaadb
 
 # Stop the machine and sleep for w while
 a.stop()
-time.sleep(2)
+time.sleep(1)
 
 # Check results
 if a.memory.read32(0x4) == 0x900d900d:
