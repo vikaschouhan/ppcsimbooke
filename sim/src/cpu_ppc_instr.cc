@@ -440,10 +440,6 @@ X(addi)
     if(ARG1){ add_code(REG0, REG1, tmp); }
     else    { REG0 = (int16_t)ARG2;             }
 }
-X(li)
-{
-    REG0 = (int16_t)ARG1;
-}
 X(la)
 {
     SMODE tmp = (int16_t)ARG1;
@@ -504,10 +500,6 @@ X(addis)
     SMODE tmp = (((int16_t)ARG2) << 16);
     if(ARG1){ add_code(REG0, REG1, tmp); }
     else    { REG0 = ((int16_t)ARG2) << 16;     }
-}
-X(lis)
-{
-    REG0 = ((int16_t)ARG1) << 16;
 }
 X(subis)
 {
@@ -714,11 +706,6 @@ X(oris)
 
     oris_code(REG0, REG1, ARG2);
 }
-X(nop)
-{
-    // Do nothing
-}
-
 
 // xor variants
 X(xor)

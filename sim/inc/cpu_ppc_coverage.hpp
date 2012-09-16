@@ -232,7 +232,7 @@ std::vector<std::string> CPU_PPC_COVERAGE::sm_instr_list = {
    "lbz", "lbzu", "lbzux", "lbzx", "lha", "lhau", "lhaux", "lhax", "lhbrx", "lhz", "lhzu",
    "lhzux", "lhzx", "lmw", "lwarx", "lwbrx", "lwz", "lwzu", "lwzux", "lwzx",
    
-   "mbar", "mcrf", "mcrxr", "mfcr", "mfmsr", "mfpmr", "msync", "mtcrf", "mtmsr", "mtpmr",
+   "mbar", "mcrf", "mcrxr", "mfcr", "mfmsr", "mfpmr", "mfspr", "msync", "mtcrf", "mtmsr", "mtpmr",
    "mtspr", "mulhw", "mulhw.", "mulhwu", "mulhwu.", "mulli", "mullw", "mullw.", "mullwo", "mullwo.",
    
    "nand", "nand.", "neg", "neg.", "nego", "nego.", "nor", "nor.",

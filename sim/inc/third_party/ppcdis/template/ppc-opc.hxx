@@ -2537,12 +2537,10 @@ static const struct powerpc_opcode powerpc_opcodes[] = {
 {"addic.",	OP(13),		OP_MASK,     PPCCOM,	PPCNONE,	{RT, RA, SI}},
 {"subic.",	OP(13),		OP_MASK,     PPCCOM,	PPCNONE,	{RT, RA, NSI}},
 
-{"li",		OP(14),		DRA_MASK,    PPCCOM,	PPCNONE,	{RT, SI}},
 {"addi",	OP(14),		OP_MASK,     PPCCOM,	PPCNONE,	{RT, RA0, SI}},
 {"subi",	OP(14),		OP_MASK,     PPCCOM,	PPCNONE,	{RT, RA0, NSI}},
 {"la",		OP(14),		OP_MASK,     PPCCOM,	PPCNONE,	{RT, D, RA0}},
 
-{"lis",		OP(15),		DRA_MASK,    PPCCOM,	PPCNONE,	{RT, SISIGNOPT}},
 {"addis",	OP(15),		OP_MASK,     PPCCOM,	PPCNONE,	{RT, RA0, SISIGNOPT}},
 {"subis",	OP(15),		OP_MASK,     PPCCOM,	PPCNONE,	{RT, RA0, NSI}},
 
@@ -2620,7 +2618,6 @@ static const struct powerpc_opcode powerpc_opcodes[] = {
 {"rotlw.",	MME(23,31,1),	MMBME_MASK,  PPCCOM,	PPCNONE,	{RA, RS, RB}},
 {"rlwnm.",	M(23,1),	M_MASK,      PPCCOM,	PPCNONE,	{RA, RS, RB, MBE, ME}},
 
-{"nop",		OP(24),		0xffffffff,  PPCCOM,	PPCNONE,	{0}},
 {"ori",		OP(24),		OP_MASK,     PPCCOM,	PPCNONE,	{RA, RS, UI}},
 
 {"oris",	OP(25),		OP_MASK,     PPCCOM,	PPCNONE,	{RA, RS, UI}},
