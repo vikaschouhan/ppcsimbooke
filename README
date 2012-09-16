@@ -25,5 +25,9 @@ To compile the simulator model, issue "make ppcsim".
  
 NOTE: 
     1. There is no dependency checking during build process, since it's a simple makefile based build process.
-    2. This work is distributed under the terms of GNU GPL v2. Detailed license agreements are there in COPYING file.
-       Copyright : Vikas Chouhan ( presentisgood@gmail.com ) 2012. 
+    2. The cross compiler for building dut tests should have newlib C library compiled in.
+       Preferable choice is CodeSourcery C++ suite ( http://www.mentor.com/embedded-software/sourcery-tools/sourcery-codebench/editions/lite-edition )
+
+NOTICE:    
+    This work is distributed under the terms of GNU GPL v2. Detailed license agreements are there in COPYING file.
+    Copyright : Vikas Chouhan ( presentisgood@gmail.com ) 2012. 

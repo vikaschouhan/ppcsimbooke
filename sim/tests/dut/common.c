@@ -7,33 +7,28 @@ extern void* __heap_size;
 extern void* __result_start;
 
 // Heap pointers
-char* heap_top      = (char*)&__heap_start;
-char* heap_bottom   = (char*)&__heap_end;
-char* heap_curr_ptr = (char*)&__heap_start;
-char* res_curr_ptr  = (char*)&__result_start;
+char* heap_top       = (char*)&__heap_start;
+char* heap_bottom    = (char*)&__heap_end;
+char* res_start_ptr  = (char*)&__result_start;
+char* res_curr_ptr   = (char*)&__result_start;
 
 #define NULL  (0)
 
-// Allocate memory
-char *malloc(int size){
-    if(heap_curr_ptr + size > heap_bottom){
-        return NULL;
-    }
-    char* ptr = heap_curr_ptr;
-    heap_curr_ptr += size;
-    return ptr;
+// log pass status
+void log_pass(){
+    unsigned int* ptr = (unsigned int*)res_start_ptr;
+    *ptr = 0x80000001;
+    ptr++;
+    *ptr = 0x900d900d;
+    ptr++;
 }
 
-// Free memory
-void mfree(char* ptr, int size){
-    if(heap_curr_ptr - size < heap_top){
-        heap_curr_ptr = heap_top;
-    }
-    heap_curr_ptr -= size;
-    return;
+void log_fail(){
+    unsigned int* ptr = (unsigned int*)res_start_ptr;
+    *ptr = 0x80000001;
+    ptr++;
+    *ptr = 0xbaadbaad;
+    ptr++;
 }
 
-// get result area pointer
-char* result_ptr(){
-    return (char*)res_curr_ptr;
-}
+// Add custom user defined functions

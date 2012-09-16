@@ -11,19 +11,12 @@ int add(int x, int y){
 void nomain(){
     int a = 5;
     int b;
-    unsigned int* result = result_ptr();  // get result area ptr
 
     b = add(a, z);
-    if(b == 13){
-        *result = 0x80000001;
-        result++;
-        *result = 0x900d900d;
-    }
-    else{
-        *result = 0x80000001;
-        result++;
-        *result = 0xbaadbaad;
-    }
+    if(b == 13)
+        log_pass();
+    else
+        log_fail();
 
     return;
 }

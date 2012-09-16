@@ -1,7 +1,7 @@
 # Makefile for all tests 
 #
 
-CROSS_PREFIX   := powerpc-e500-eabi-
+CROSS_PREFIX   := powerpc-eabi-
 
 CC             := gcc 
 CXX            := g++
@@ -15,6 +15,7 @@ CROSS_OBJDUMP  := $(CROSS_PREFIX)objdump
 #============================= user defined flags ===============================================
 ENABLE_LOG     := 1
 ENABLE_DEBUG   := 0
+BUILD_FMT_UTIL := 1
 
 #============================= Define All EXE targets here =======================================
 # Exes for tests
@@ -67,14 +68,19 @@ ifeq ($(ENABLE_DEBUG), 1)
 endif
 
 #============================ TARGET FLAGS =========================================================
-CROSS_CFLAGS                := -mregnames -Wa,-me500x2 -Wa,-mspe -I. -I$(SIM_ROOT)/inc -nostdlib
-CROSS_LDFLAGS               := -L -n -N -nostdlib -T $(DUT_TESTS_ROOT)/e500v2_eabi_default.lcf -Wa,-me500x2 -Wa,-mspe
+CROSS_CFLAGS                := -mregnames -Wa,-me500x2 -Wa,-mspe -I. -I$(SIM_ROOT)/inc 
+CROSS_LDFLAGS               := -L -n -N -T $(DUT_TESTS_ROOT)/e500v2_eabi_default.lcf -Wa,-me500x2 -Wa,-mspe
 CROSS_EXTFLAGS              := -D__ASSEMBLY__ -DCONFIG_E500 -DCONFIG_BOOKE -DCONFIG_FSL_EMB_PERFMON
+CROSS_OBJS_COMM             := common.o newlib_stubs.o startup.o
 
 #============================ BUILD formatting UTILITY =============================================
 # Buid formatting utility ( only once )
-EXEC_PPC_INSTR_RES := $(shell g++ $(HOST_CXXFLAGS) $(HOST_EXTFLAGS) -lboost_program_options -o format_instrs $(SIM_ROOT)/utils/format_instrs.cpp ; \
+ifeq ($(BUILD_FMT_UTIL), 1)
+    EXEC_PPC_INSTR_RES := $(shell g++ $(HOST_CXXFLAGS) $(HOST_EXTFLAGS) -lboost_program_options -o format_instrs $(SIM_ROOT)/utils/format_instrs.cpp ; \
                        ./format_instrs --ifile $(SIM_ROOT)/src/cpu_ppc_instr.cc --ofile cpu_ppc_instr.inc)
+endif
+# Copy run_and_check.py
+    EXEC_CP_RUN_PY := $(shell cp $(DUT_TESTS_ROOT)/run_and_check.py .)
 
 #============================ Start build ==========================================================
 all: $(EXES)
@@ -91,11 +97,10 @@ all: $(EXES)
 	$(CROSS_CC) $(CROSS_CFLAGS) $(CROSS_EXTFLAGS) -c -o $@ $^
 
 #======= BUILD DUT TESTS
-test_001: common.o test_001.o startup.o
+test_001: $(CROSS_OBJS_COMM) test_001.o
 	$(CROSS_CC) $(CROSS_LDFLAGS) $(CROSS_EXTFLAGS) -Wl,-Map=$(@).map -o $(@).elf $^
 
 dut_tests: $(DUT_TEST_EXES)
-	@cp $(DUT_TESTS_ROOT)/run_and_check.py .
 
 #======= BUILD SIMULATOR MODULE
 ppcsim: $(SIM_PY_ROOT)/ppcsimbooke.cpp
