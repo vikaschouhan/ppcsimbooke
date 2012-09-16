@@ -18,14 +18,15 @@ ENABLE_DEBUG   := 0
 
 #============================= Define All EXE targets here =======================================
 # Exes for tests
-SIM_TEST_EXES := test_ppcdis_interface    \
-	         test_machine_interface   \
-             test_cpu_ppc_interface   \
-             test_tlb_booke_interface \
-             test_memory_interface    \
-             test_exception_class     \
-             test_log_class           \
-			 test_lru_class           \
+SIM_TEST_EXES := test_ppcdis_interface        \
+	         test_machine_interface           \
+             test_cpu_ppc_interface           \
+			 test_cpu_ppc_coverage_interface  \
+             test_tlb_booke_interface         \
+             test_memory_interface            \
+             test_exception_class             \
+             test_log_class                   \
+			 test_lru_class                   \
 			 test_bm_class
 DUT_TEST_EXES := test_001
 PYWRAP_SO := ppcsim
@@ -94,6 +95,7 @@ test_001: common.o test_001.o startup.o
 	$(CROSS_CC) $(CROSS_LDFLAGS) $(CROSS_EXTFLAGS) -Wl,-Map=$(@).map -o $(@).elf $^
 
 dut_tests: $(DUT_TEST_EXES)
+	@cp $(DUT_TESTS_ROOT)/run_and_check.py .
 
 #======= BUILD SIMULATOR MODULE
 ppcsim: $(SIM_PY_ROOT)/ppcsimbooke.cpp
@@ -107,6 +109,9 @@ test_machine_interface: test_machine_interface.o
 	$(CXX) $(HOST_LDFLAGS) -o $@ $^
 
 test_cpu_ppc_interface: test_cpu_ppc_interface.o
+	$(CXX) $(HOST_LDFLAGS) -o $@ $^
+
+test_cpu_ppc_coverage_interface: test_cpu_ppc_coverage_interface.o
 	$(CXX) $(HOST_LDFLAGS) -o $@ $^
 
 test_tlb_booke_interface: test_tlb_booke_interface.o
@@ -130,7 +135,7 @@ test_bm_class: test_bm_class.o
 sim_tests: $(SIM_TEST_EXES)
 
 clean:
-	rm -rf *.o $(EXES) *.txt *.log cpu_ppc_instr.inc format_instrs *.tcc *.so *.elf *.map
+	rm -rf *.o $(EXES) *.txt *.log cpu_ppc_instr.inc format_instrs *.tcc *.so *.elf *.map *.py
 
 distclean: clean
 	echo "Done"

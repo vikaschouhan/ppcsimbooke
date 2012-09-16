@@ -33,3 +33,6 @@ if a.memory.read32(0x4) == 0x900d900d:
     print "%s - [PASSED]" % (ops.efile)
 else:
     print "%s - [FAILED]" % (ops.efile)
+
+# Generate coverage logs
+a.gen_cov_logs()

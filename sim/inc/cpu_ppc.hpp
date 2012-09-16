@@ -9,6 +9,7 @@
 #include "cpu_host.h"                // Some host definitions
 #include "memory.hpp"                // Memory module
 #include "bm.hpp"                    // Software Breakpoint manager
+#include "cpu_ppc_coverage.hpp"      // Coverage logger
 
 // powerPC register attribute flags
 // if attr=0, this means the register is illegal
@@ -78,6 +79,13 @@ class CPU_PPC {
     void       dump_state(int columns=0, std::ostream &ostr=std::cout, int dump_all_sprs=0);   // Dump Cpu state
     void       print_L2tlbs();                                 // Print L2 tlbs
     void       init_reg_attrs();                               // Initialize register attributes
+
+    // Logging
+    void       enable_cov_log();
+    void       disable_cov_log();
+    bool       is_cov_log_enabled();
+    void       gen_cov_log();
+    void       log_cov_to_file(std::string filename);
 
     // for boost::python
     ppc_regs& ___get_regs(){
@@ -165,6 +173,9 @@ class CPU_PPC {
     size_t                                 m_ninstrs;             // Number of instrs
     instr_call                             m_instr_this;          // Current instr
     instr_call                             m_instr_next;          // next instr
+
+    // Logging facilities
+    CPU_PPC_COVERAGE                       m_cov_logger;          // coverage logger
 
     // Pointers to generic registers/stuff hashed by name and numerical identifiers
     std::map<std::string, ppc_reg64*>      m_reghash;
@@ -645,7 +656,7 @@ CPU_T void CPU_PPC_T::init_reg_attrs(){
     PPCREGATTR(spr, SPRN_TLB1CFG  )    = REG_READ_SUP                                                                     ;
 
 #undef PPCREGATTR
-}                              
+}
 
 // Interrupt handling routines ( they handle exceptions at hardware level only and redirect control
 //                               to appropriate ISR. ).
@@ -1183,6 +1194,8 @@ CPU_T inline void CPU_PPC_T::run_curr_instr(){
 
     // Trace instructions
     sm_instr_tracer("DEBUG") << "[CPU_" << (int)m_cpu_no << std::hex << "]\t" << "PC: 0x" << m_pc << "\t" << call_this.get_instr_str() << std::endl;
+    // Log coverage
+    m_cov_logger.probe(call_this.opcname);
 
     if(m_bm.check_pc(m_pc)){
         // Throw a software breakpoint exception
@@ -1224,6 +1237,12 @@ CPU_T inline void CPU_PPC_T::init_common(){
     m_instr_cache.set_size(512);           // LRU cache size = 512 instrs
     m_ctxt_switch = 0;                     // Initialize flag to zero
     m_cpu_mode = CPU_MODE_HALTED;
+
+    // Init logging facilities
+    std::ostringstream ostr;
+    ostr << "cpu_" << int(m_cpu_no) << "_cov.log";
+    m_cov_logger.log_to_file(ostr.str());
+    
     LOG("DEBUG4") << MSG_FUNC_END;
 }
 
@@ -1642,7 +1661,42 @@ CPU_T void CPU_PPC_T::dump_state(int columns, std::ostream &ostr, int dump_all_s
 
 // print all tlbs
 CPU_T void CPU_PPC_T::print_L2tlbs(){
+    LOG("DEBUG4") << MSG_FUNC_START;
     m_l2tlb.print_tlbs2();
+    LOG("DEBUG4") << MSG_FUNC_END;
+}
+
+CPU_T void CPU_PPC_T::enable_cov_log(){
+    LOG("DEBUG4") << MSG_FUNC_START;
+    m_cov_logger.enable();
+    LOG("DEBUG4") << MSG_FUNC_END;
+}
+
+CPU_T void CPU_PPC_T::disable_cov_log(){
+    LOG("DEBUG4") << MSG_FUNC_START;
+    m_cov_logger.disable();
+    LOG("DEBUG4") << MSG_FUNC_END;
+}
+
+CPU_T bool CPU_PPC_T::is_cov_log_enabled(){
+    LOG("DEBUG4") << MSG_FUNC_START;
+    return m_cov_logger.is_enabled();
+    LOG("DEBUG4") << MSG_FUNC_END;
+}
+
+CPU_T void CPU_PPC_T::gen_cov_log(){
+    LOG("DEBUG4") << MSG_FUNC_START;
+    m_cov_logger.add_ext_info("###############################################################");
+    m_cov_logger.add_ext_info("  COVERAGE FOR CPU " + boost::lexical_cast<std::string>(int(m_cpu_no)));
+    m_cov_logger.add_ext_info("###############################################################\n");
+    m_cov_logger.generate_log();
+    LOG("DEBUG4") << MSG_FUNC_END;
+}
+
+CPU_T void CPU_PPC_T::log_cov_to_file(std::string filename){
+    LOG("DEBUG4") << MSG_FUNC_START;
+    m_cov_logger.log_to_file(filename);
+    LOG("DEBUG4") << MSG_FUNC_END;
 }
 
 // friend function

@@ -382,6 +382,10 @@ BOOST_PYTHON_MODULE(ppcsim)
             .def("dump_state",        &cpu_e500v2_t::dump_state, dump_state_overloads())
             .def("print_L2tlbs",      &cpu_e500v2_t::print_L2tlbs)
             .def("init_reg_attrs",    &cpu_e500v2_t::init_reg_attrs)
+            .def("en_cov",            &cpu_e500v2_t::enable_cov_log)
+            .def("dis_cov",           &cpu_e500v2_t::disable_cov_log)
+            .def("is_cov_enabled",    &cpu_e500v2_t::is_cov_log_enabled)
+            .def("log_cov_to_file",   &cpu_e500v2_t::log_cov_to_file)
             .def("read8",             &cpu_e500v2_t::read8)
             .def("write8",            &cpu_e500v2_t::write8)
             .def("read16",            &cpu_e500v2_t::read16)
@@ -413,6 +417,7 @@ BOOST_PYTHON_MODULE(ppcsim)
         .def("en_trace",             &machine_e500v2_t::trace_enable)
         .def("dis_trace",            &machine_e500v2_t::trace_disable)
         .def("is_trace_en",          &machine_e500v2_t::is_trace_enabled)
+        .def("gen_cov_logs",         &machine_e500v2_t::gen_cov_logs)
         ;
   
     // Custom message after loading this module 

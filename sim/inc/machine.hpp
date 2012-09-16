@@ -33,6 +33,9 @@ struct MACHINE {
     void trace_disable();
     bool is_trace_enabled();
 
+    // Logging facilities
+    void gen_cov_logs();                         // Generate coverage logs for all cpus
+
     // for boost::python
     template<int cpu_no> cpu_t& get_cpu(){
         return m_cpu[cpu_no];
@@ -143,6 +146,13 @@ MACHINE_T bool MACHINE_CL_T::is_trace_enabled(){
     LOG("DEBUG4") << MSG_FUNC_START;
     LOG("DEBUG4") << MSG_FUNC_END;
     return cpu_t::sm_instr_tracer.is_enabled();
+}
+
+MACHINE_T void MACHINE_CL_T::gen_cov_logs(){
+    LOG("DEBUG4") << MSG_FUNC_START;
+    for(int i=0; i<m_ncpus; i++)
+        m_cpu[i].gen_cov_log();
+    LOG("DEBUG4") << MSG_FUNC_END;
 }
 
 #endif
