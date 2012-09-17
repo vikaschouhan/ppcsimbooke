@@ -163,196 +163,57 @@
 // PPC Exceptions
 #define  PPC_EXCEPT         sim_except_ppc
 
-#if 0
-#ifndef CHECK_FOR_FPU_EXCEPTION
-#define CHECK_FOR_FPU_EXCEPTION { if (!(cpu->cd.ppc.msr & PPC_MSR_FP)) { \
-		/*  Synchronize the PC, and cause an FPU exception:  */  \
-		uint64_t low_pc = ((size_t)ic -				 \
-		    (size_t)cpu->cd.ppc.cur_ic_page)			 \
-		    / sizeof(struct ppc_instr_call);			 \
-		cpu->pc = (cpu->pc & ~((PPC_IC_ENTRIES_PER_PAGE-1) <<	 \
-		    PPC_INSTR_ALIGNMENT_SHIFT)) + (low_pc <<		 \
-		    PPC_INSTR_ALIGNMENT_SHIFT);				 \
-		ppc_exception(cpu, PPC_EXCEPTION_FPU);			 \
-		return; } }
-#endif
-#endif
-
 /*----------------------------------------------------------------------------
  * x86/x86_64 assembly.
  * Instead of calculating Overflow, carry bits etc, we are leveraging host flag
  * register directly.
  * ---------------------------------------------------------------------------*/
-/*
- * NOTE: All operands are memory operands, so that pointers could also be
- *       used as arguments
- *
- * add
- * arg0 -> result
- * arg1 -> source
- * arg2 -> source
- *
- * d -> double word ( = 64 bits )
- * w -> word ( = 32 bits )
- *
- * flags -> x86_64 %rflags
- */
-#define addd_x64(arg0, arg1, arg2, flags)      \
-    asm(                                       \
-            "movq %3, %%r15\n"                 \
-            "addq %2, %%r15\n"                 \
-            "movq %%r15, %0\n"                 \
-            "pushfq\n"                         \
-            "pop %%r14\n"                      \
-            "movq %%r14, %1\n"                 \
-            : "=m"(arg0), "=m"(flags)          \
-            : "m"(arg1), "m"(arg2)             \
-            : "%r14", "%r15"                   \
-       )
-#define addw_x86(arg0, arg1, arg2, flags)      \
-    asm(                                       \
-            "movl %3, %%ebx\n"                 \
-            "addl %2, %%ebx\n"                 \
-            "movl %%ebx, %0\n"                 \
-            "pushfl\n"                         \
-            "pop %%ecx\n"                      \
-            "movl %%ecx, %1\n"                 \
-            : "=m"(arg0), "=m"(flags)          \
-            : "m"(arg1), "m"(arg2)             \
-            : "%ebx", "%ecx"                   \
-       )
-/* 32 bit add on x86_64 */
-#define addw_x64(arg0, arg1, arg2, flags)      \
-    asm(                                       \
-            "movl %3, %%ebx\n"                 \
-            "addl %2, %%ebx\n"                 \
-            "movl %%ebx, %0\n"                 \
-            "pushfq\n"                         \
-            "pop %%rcx\n"                      \
-            "movl %%ecx, %1\n"                 \
-            : "=m"(arg0), "=m"(flags)          \
-            : "m"(arg1), "m"(arg2)             \
-            : "%rbx", "%rcx"                   \
-       )
-/*
- * sub
- *
- * arg0 <- arg1 - arg2
- */
-#define subd_x64(arg0, arg1, arg2, flags)      \
-    asm(                                       \
-            "movq %2, %%r15\n"                 \
-            "subq %3, %%r15\n"                 \
-            "movq %%r15, %0\n"                 \
-            "pushfq\n"                         \
-            "pop %%r14\n"                      \
-            "movq %%r14, %1\n"                 \
-            : "=m"(arg0), "=m"(flags)          \
-            : "m"(arg1), "m"(arg2)             \
-            : "%r14", "%r15"                   \
-       )
-#define subw_x86(arg0, arg1, arg2, flags)      \
-    asm(                                       \
-            "movl %2, %%ebx\n"                 \
-            "subl %3, %%ebx\n"                 \
-            "movl %%ebx, %0\n"                 \
-            "pushfl\n"                         \
-            "pop %%ecx\n"                      \
-            "movl %%ecx, %1\n"                 \
-            : "=m"(arg0), "=m"(flags)          \
-            : "m"(arg1), "m"(arg2)             \
-            : "%ebx", "%ecx"                   \
-       )
-/* 32 bit subtract on x86_64 */
-#define subw_x64(arg0, arg1, arg2, flags)      \
-    asm(                                       \
-            "movl %2, %%ebx\n"                 \
-            "subl %3, %%ebx\n"                 \
-            "movl %%ebx, %0\n"                 \
-            "pushfq\n"                         \
-            "pop %%rcx\n"                      \
-            "movl %%ecx, %1\n"                 \
-            : "=m"(arg0), "=m"(flags)          \
-            : "m"(arg1), "m"(arg2)             \
-            : "%rbx", "%rcx"                   \
-       )
-
-// Negate
-#define negd_x64(arg0, arg1, flags)            \
-    asm(                                       \
-            "movq %2, %%r15\n"                 \
-            "negq %%r15\n"                     \
-            "movq %%r15, %0\n"                 \
-            "pushfq\n"                         \
-            "pop %%r14\n"                      \
-            "movq %%r14, %1\n"                 \
-            : "=m"(arg0), "=m"(flags)          \
-            : "m"(arg1)                        \
-            : "%r14", "%r15"                   \
-       )
-#define negw_x64(arg0, arg1, flags)            \
-    asm(                                       \
-            "movl %2, %%ebx\n"                 \
-            "negl %%ebx\n"                     \
-            "movl %%ebx, %0\n"                 \
-            "pushfq\n"                         \
-            "pop %%rcx\n"                      \
-            "movl %%ecx, %1\n"                 \
-            : "=m"(arg0), "=m"(flags)          \
-            : "m"(arg1)                        \
-            : "%rbx", "%rcx"                   \
-       )
-#define negw_x86(arg0, arg1, arg2, flags)      \
-    asm(                                       \
-            "movl %2, %%ebx\n"                 \
-            "negl %%ebx\n"                     \
-            "movl %%ebx, %0\n"                 \
-            "pushfl\n"                         \
-            "pop %%ecx\n"                      \
-            "movl %%ecx, %1\n"                 \
-            : "=m"(arg0), "=m"(flags)          \
-            : "m"(arg1), "m"(arg2)             \
-            : "%ebx", "%ecx"                   \
-       )
-
-
-/* Use host and target identification to properly select the add variant */
-/*
- *  These are not correct for time being.
- *  factors on which it all depends :-
- *  1. 64 bits target on 32 bits host ( only full emulation )
- *  2. 64 bits target on 64 bits host ( partial emulation )
- *  3. 32 bits target on 32 bits hist ( partial emulation )
- *  4. 32 bits target on 64 bits host ( partial emulation ) :- Not started yet.
- *
- *  host -> host machine's cpu ( x86 for eg. )
- *  target -> target machine's cpu ( ppc in our case )
- */
-
 #if HOST_ARCH == x86_64
 
-#define addw   addw_x64 
-#define subw   subw_x64
-#define negw   negw_x64
+#define EBX       "%rbx"
+#define ECX       "%rcx"
+#define POP_ECX   "pop %%rcx\n"
 
 #elif HOST_ARCH == i686
 
-#define addw   addw_x86
-#define subw   subw_x86
-#define negw   negw_x86
+#define EBX       "%ebx"
+#define ECX       "%ecx"
+#define POP_ECX   "pop %%ecx\n"
 
 #endif
 
+#define addw(arg0, arg1, arg2, flags)                                      \
+    asm volatile(                                                          \
+            "mov %3, %%ebx\n"                                              \
+            "add %2, %%ebx\n"                                              \
+            "mov %%ebx, %0\n"                                              \
+            "pushf\n"                                                      \
+            POP_ECX                                                        \
+            "movl %%ecx, %1\n"                                             \
+            : "=m"(arg0), "=m"(flags) : "m"(arg1), "m"(arg2) : EBX, ECX    \
+       )
+#define subw(arg0, arg1, arg2, flags)                                      \
+    asm volatile(                                                          \
+            "mov %2, %%ebx\n"                                              \
+            "sub %3, %%ebx\n"                                              \
+            "mov %%ebx, %0\n"                                              \
+            "pushf\n"                                                      \
+            POP_ECX                                                        \
+            "movl %%ecx, %1\n"                                             \
+            : "=m"(arg0), "=m"(flags) : "m"(arg1), "m"(arg2) : EBX, ECX    \
+       )
+#define negw(arg0, arg1, flags)                                            \
+    asm volatile(                                                          \
+            "mov %2, %%ebx\n"                                              \
+            "neg %%ebx\n"                                                  \
+            "mov %%ebx, %0\n"                                              \
+            "pushf\n"                                                      \
+            POP_ECX                                                        \
+            "movl %%ecx, %1\n"                                             \
+            : "=m"(arg0), "=m"(flags) : "m"(arg1) : EBX, ECX               \
+       )
+
 // ------------------------------------- INTEGER ARITHMETIC -------------------------
-/*
- * add: Add variants.
- *
- * arg[0] = pointer to uint64_t target
- * arg[1] = pointer to uint64_t source0
- * arg[2] = pointer to uint64_t source1
- *
- * update_* functions update appropriate registers ( CR/xer ) via x86 flag register
- */
 X(add)
 {
 #define add_code(rD, rA, rB)           \
@@ -376,6 +237,7 @@ X(addo.)
     update_xer(1);
     update_cr0(1);
 }
+
 /* Not sure if there's a diff between add and addc 
  * ( the pseudocode for both are exactly same )
  * */
@@ -399,6 +261,7 @@ X(addco.)
     update_xer(1);
     update_cr0(1);
 }
+
 /* Add extended : rA + rB + CA */
 X(adde)
 {
@@ -424,53 +287,18 @@ X(addeo.)
     update_xer(1);
     update_cr0(1);
 }
-/*
- *  addi:  Add immediate.
- *
- *  arg[0] = pointer to destination uint64_t
- *  arg[1] = pointer to source uint64_t
- *  arg[2] = immediate value (int16_t or larger)
- *
- *  Also flags(CR) shouldn't change on just assignment
- *  
- */
+
 X(addi)
 {
     SMODE tmp = (int16_t)ARG2;
     if(ARG1){ add_code(REG0, REG1, tmp); }
     else    { REG0 = (int16_t)ARG2;             }
 }
-X(la)
-{
-    SMODE tmp = (int16_t)ARG1;
-    if(ARG2){ add_code(REG0, REG2, tmp); }
-    else    { REG0 = (int16_t)ARG1;             }
-}
-X(subi)
-{
-    SMODE tmp = (int16_t)ARG2;
-    if(ARG1){ subw(REG0, REG1, tmp, host_flags); }
-    else    { REG0 = -(int16_t)ARG2;            }
-}
-/*  addic:  Add immediate, Carry.
- *
- *  arg[0] = pointer to dest register
- *  arg[1] = pointer to source register
- *  arg[1] = immediate value (int16_t )
- */
-/* Don't understand if there's any diff. between addi and addic
- * (pseudocode for both are same)
- */
+
 X(addic)
 {
     SMODE tmp = (int16_t)ARG2;
     add_code(REG0, REG1, tmp);
-    update_xer(1);
-}
-X(subic)
-{
-    SMODE tmp = (int16_t)ARG2;
-    subw(REG0, REG1, tmp, host_flags);
     update_xer(1);
 }
 X(addic.)
@@ -480,36 +308,14 @@ X(addic.)
     update_xer(1);
     update_cr0(1);
 }
-X(subic.)
-{
-    SMODE tmp = (int16_t)ARG2;
-    subw(REG0, REG1, tmp, host_flags);
-    update_xer(1);
-    update_cr0(1);
-}
-/*
- *
- * addis: Add immediate shifted.
- *
- * arg[0] = pointer to uint64_t target
- * arg[1] = pointer to uint64_t source
- * arg[2] = int16_t immediate value
- */
+
 X(addis)
 {
     SMODE tmp = (((int16_t)ARG2) << 16);
     if(ARG1){ add_code(REG0, REG1, tmp); }
     else    { REG0 = ((int16_t)ARG2) << 16;     }
 }
-X(subis)
-{
-    SMODE tmp = (((int16_t)ARG2) << 16);
-    if(ARG1){ subw(REG0, REG1, tmp, host_flags); }
-    else    { REG0 = -((int16_t)ARG2 << 16);    }
-}
-/* addme
- * rA + xer[CA] - 1  
- *  */
+
 X(addme)
 {
     SMODE tmp = REG_BF(XER, XER_CA) - 1;
@@ -534,10 +340,7 @@ X(addmeo.)
     update_xer(1);
     update_cr0(1);
 }
-/*
- * addze
- * rA + xer[CA]
- */
+
 X(addze)
 {
     UMODE tmp = REG_BF(XER, XER_CA);
@@ -1170,14 +973,6 @@ X(rlwnm.)
 {
     rlwnm_code(REG0, REG1, REG2, ARG3, ARG4);
     update_cr0(0, UT(REG0));
-}
-X(rotlw)
-{
-    rlwnm_code(REG0, REG1, REG2, 0, 31);
-}
-X(rotlwi)
-{
-    rlwinm_code(REG0, REG1, ARG2, 0, 31);
 }
 
 // Shift instrs
