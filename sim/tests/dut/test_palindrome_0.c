@@ -5,28 +5,17 @@ int is_palindrome(char*);
  
 int main()
 {
-   //char* str_palin[] = { "abcba", "qwertytrewq", "zxcvbvcxz" };
-   //char* str_nonpalin[] = { "asdfghj", "poqwert" };
- 
-   //for(int i=0; i<(sizeof(str_palin)/sizeof(char*)); i++){
-   //    if(!is_palindrome(str_palin[i])){
-   //        log_fail();
-   //        return -1;
-   //    }
-   //}
+   char* ptr  = "Vikiv";        // This is not palindrome.
+   char* ptr2 = "VikiV";        // This is palindrome.
 
-   //for(int i=0; i<(sizeof(str_nonpalin)/sizeof(char*)); i++){
-   //    if(is_palindrome(str_nonpalin[i])){
-   //        log_fail();
-   //        return -1;
-   //    }
-   //}
-   //
-   //log_pass();
-
-   char* ptr = "Vikiv";
    if(is_palindrome(ptr)){
+       log_fail();              // log fail, since ptr is not palindrome
+   }else{
        log_pass();
+   }
+
+   if(is_palindrome(ptr2)){
+       log_pass();              // log pass, since ptr is palindrome
    }else{
        log_fail();
    }

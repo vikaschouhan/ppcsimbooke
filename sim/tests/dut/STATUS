@@ -1,0 +1,8 @@
+Current status of DUT tests.
+=========================================================
+
+S.No.    TEST_NAME                             STATUS
+---------------------------------------------------------
+1.      test_001                       :       passes
+2.      test_palindrome_0              :       passes
+3.      test_palindrome_1              :       fails
