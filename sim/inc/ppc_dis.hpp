@@ -647,7 +647,7 @@ void DIS_PPC::print_insn_fmt (const char *insn_name)
         const struct powerpc_operand *operand;
         int need_comma;
         int need_paren;
-        int skip_optional;
+        //int skip_optional;
 
         if (opcode->operands[0] != 0)
             fprintf(stream, "%-7s ", opcode->name);
@@ -657,7 +657,7 @@ void DIS_PPC::print_insn_fmt (const char *insn_name)
         /* Now extract and print the operands.  */
         need_comma = 0;
         need_paren = 0;
-        skip_optional = -1;
+        //skip_optional = -1;
         for (opindex = opcode->operands; *opindex != 0; opindex++)
         {
             operand = powerpc_operands + *opindex;

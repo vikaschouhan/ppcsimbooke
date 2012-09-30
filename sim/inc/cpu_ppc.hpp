@@ -97,18 +97,31 @@ class CPU_PPC {
     void       clear_resv(uint64_t ea);
     bool       check_resv(uint64_t ea, size_t size);
     void       notify_ctxt_switch();   // notify of context switches ( called by context syncronizing instructions  such as rfi, sc etc. )
-    void       update_cr0(bool use_host, uint64_t value=0);      // Update CR0
+
+    // change CR, XER
+    void       update_cr0(uint64_t value=0);                     // Update CR0
+    void       update_cr0_host();                                // Update CR0 using host flags
+
+    // Used for Condition register operations
     void       update_crF(unsigned bf, uint64_t val);            // Updates CR[bf] with val i.e CR[bf] <- (val & 0xf)
     unsigned   get_crF(unsigned bf);                             // Get crF  ( F -> [0:7] )
     void       update_crf(unsigned field, unsigned value);       // Update CR by exact field value [0:31]
     unsigned   get_crf(unsigned field);                          // Get CR bit at exact field
-    void       update_xer(bool use_host, uint64_t value=0);      // Update XER
+
+    void       update_xer(uint64_t value=0);                     // Update XER
+    void       update_xer_host();                                // Update XER using host flags
+    void       update_xer_ca(bool value=0);                      // Update XER[CA]
+    void       update_xer_ca_host();                             // Update XER[CA] using host flags
+
     void       update_xerF(unsigned bf, unsigned val);
     void       update_xerf(unsigned field, unsigned value);
+    
     unsigned   get_xerF(unsigned bf);
     unsigned   get_xerf(unsigned field);
     unsigned   get_xer_so();                                     // Get XER[SO]
     unsigned   get_xer_ca();
+
+    // Misc
     std::pair<uint64_t, uint8_t>  xlate(uint64_t addr, bool wr=0);  // Translate EA to RA ( return a pair of <xlated addr, wimge> )
 
     // Accessing registers using reghash interface ( for use with ppc code translation unit )
@@ -1447,29 +1460,41 @@ CPU_T void CPU_PPC_T::notify_ctxt_switch(){
 }
 
 // Update CR0
-CPU_T void CPU_PPC_T::update_cr0(bool use_host, uint64_t value){
+CPU_T void CPU_PPC_T::update_cr0(uint64_t value){
     LOG("DEBUG4") << MSG_FUNC_START;
     int c;
-    if(use_host){
-       if(host_state.flags & X86_FLAGS_SF){ c = 8; }
-       if(host_state.flags & X86_FLAGS_ZF){ c |= 2; }
-    }else{
-        if (m_cpu_bits == 64) {
-            if ((int64_t)value < 0)
-                c = 8;
-            else if ((int64_t)value > 0)
-                c = 4;
-            else
-                c = 2;
-        } else {
-            if ((int32_t)value < 0)
-                c = 8;
-            else if ((int32_t)value > 0)
-                c = 4;
-            else
-                c = 2;
-        }
+
+    if (m_cpu_bits == 64) {
+        if ((int64_t)value < 0)
+            c = 8;
+        else if ((int64_t)value > 0)
+            c = 4;
+        else
+            c = 2;
+    } else {
+        if ((int32_t)value < 0)
+            c = 8;
+        else if ((int32_t)value > 0)
+            c = 4;
+        else
+            c = 2;
     }
+
+    /*  SO bit, copied from XER:  */
+    c |= ((PPCREG(REG_XER) >> 31) & 1);
+
+    PPCREG(REG_CR) &= ~((uint32_t)0xf << 28);
+    PPCREG(REG_CR) |= ((uint32_t)c << 28);
+    LOG("DEBUG4") << MSG_FUNC_END;
+}
+
+// Update CR0 using host flags
+CPU_T void CPU_PPC_T::update_cr0_host(){
+    LOG("DEBUG4") << MSG_FUNC_START;
+    int c;
+
+    if(host_state.flags & X86_FLAGS_SF){ c = 8; }
+    if(host_state.flags & X86_FLAGS_ZF){ c |= 2; }
 
     /*  SO bit, copied from XER:  */
     c |= ((PPCREG(REG_XER) >> 31) & 1);
@@ -1515,20 +1540,37 @@ CPU_T unsigned CPU_PPC_T::get_crf(unsigned field){
 }
 
 // Update XER
-CPU_T void CPU_PPC_T::update_xer(bool use_host, uint64_t value){
+CPU_T void CPU_PPC_T::update_xer(uint64_t value){
     LOG("DEBUG4") << MSG_FUNC_START;
     uint32_t c = 0;
-    if(!use_host){
-        // Don't use host facilities 
-    }else{
-        if(host_state.flags & X86_FLAGS_CF){ c = 2; }
-        if(host_state.flags & X86_FLAGS_OF){
-            c |= 4;
-            //if(curr_instr != "mtspr"){   /* If current instruction is not "mtspr", set SO bit also */
-            //    c |= 8;
-            //}
-        }
+
+    // TODO: This function does nothing at this moment.
+    //       Implement this later on
+    //
+
+    /* Set XER */
+    PPCREG(REG_XER) &= ~((uint32_t)0xf << 28);
+    PPCREG(REG_XER) |= (c << 28);
+    LOG("DEBUG4") << MSG_FUNC_END;
+}
+
+// Update XER using host flags
+// NOTE: only updates XER[SO] and [OV].
+//       XER[CA] is updated by update_xer_ca()
+CPU_T void CPU_PPC_T::update_xer_host(){
+    LOG("DEBUG4") << MSG_FUNC_START;
+    uint32_t c = 0;
+
+    // Update OV
+    if(host_state.flags & X86_FLAGS_OF){
+        c |= 4;
+        //if(curr_instr != "mtspr"){   /* If current instruction is not "mtspr", set SO bit also */
+        //    c |= 8;
+        //}
     }
+
+    // TODO: Update SO
+
     /* Set XER */
     PPCREG(REG_XER) &= ~((uint32_t)0xf << 28);
     PPCREG(REG_XER) |= (c << 28);
@@ -1553,6 +1595,27 @@ CPU_T void CPU_PPC_T::update_xerf(unsigned field, unsigned value){
     value &= 0x1;
     PPCREG(REG_XER) &= ~(0x1 << (31 - field));
     PPCREG(REG_XER) |= (value << (31 - field));
+    LOG("DEBUG4") << MSG_FUNC_END;
+}
+
+// Update XER[CA]
+CPU_T void CPU_PPC_T::update_xer_ca(bool value){
+    LOG("DEBUG4") << MSG_FUNC_START;
+    int val = (value) ? 1:0;
+    PPCREG(REG_XER) &= XER_CA;                    // clear XER[CA]
+    PPCREG(REG_XER) |= val << rshift(XER_CA);     // Insert value into XER[CA]
+    LOG("DEBUG4") << MSG_FUNC_END;
+}
+
+// Update XER[CA] using host flags
+CPU_T void CPU_PPC_T::update_xer_ca_host(){
+    LOG("DEBUG4") << MSG_FUNC_START;
+
+    if(host_state.flags & X86_FLAGS_CF){
+        PPCREG(REG_XER) &= XER_CA;                    // clear XER[CA]
+        PPCREG(REG_XER) |= 1UL << rshift(XER_CA);     // Insert value into XER[CA]
+    }
+
     LOG("DEBUG4") << MSG_FUNC_END;
 }
 

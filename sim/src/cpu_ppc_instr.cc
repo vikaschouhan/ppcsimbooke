@@ -29,8 +29,9 @@
  */
 
 //
-// NOTE: CPU and IC should come from the parsing utility
-//
+// NOTE: 1. CPU and IC should come from the parsing utility.
+//       2. update_xer() updates all bits of XER. Some freescale ppc instrs only update CA, others only update
+//          SO and OV at a time. To update only XER[CA] use update_xer_ca()
 
 // Global defines for this template file
 //
@@ -48,11 +49,9 @@
 #undef  update_crF  
 #undef  update_crf  
 #undef  update_xer  
-#undef  update_xerf 
 #undef  get_xer_so  
 #undef  get_crf     
 #undef  get_crF     
-#undef  get_xerF    
 #undef  host_flags  
 #undef  dummy_flags 
 
@@ -79,16 +78,30 @@
 #define PC                       CPU->m_pc
 #define NIP                      CPU->m_nip
 #define update_cr0               CPU->update_cr0
+#define update_cr0_host          CPU->update_cr0_host
 #define update_crF               CPU->update_crF
 #define update_crf               CPU->update_crf
 #define update_xer               CPU->update_xer
-#define update_xerf              CPU->update_xerf
+#define update_xer_host          CPU->update_xer_host
+#define update_xer_ca            CPU->update_xer_ca
+#define update_xer_ca_host       CPU->update_xer_ca_host
 #define get_xer_so               CPU->get_xer_so
 #define get_crf                  CPU->get_crf
 #define get_crF                  CPU->get_crF
 #define get_xerF                 CPU->get_xerF
-#define host_flags               CPU->host_state.flags
+#define get_xerf                 CPU->get_xerf
+#define get_xer_so               CPU->get_xer_so
+#define get_xer_ca               CPU->get_xer_ca
+#define HOST_FLAGS               CPU->host_state.flags
 #define dummy_flags              CPU->host_state.dummy
+
+// Generic macros
+#define UPDATE_CA()               update_xer_ca_host()
+#define UPDATE_SO_OV()            update_xer_host()
+#define UPDATE_CR0()              update_cr0_host()
+#define GET_CA()                  get_xer_ca()
+#define GET_SO()                  get_xer_so()
+#define UPDATE_CR0_V              update_cr0
 
 // load/store macros
 //
@@ -150,6 +163,17 @@
 #define EXTS_H2N(val)              EXTS(SMODE, int16_t, val)  // sign extension : half word to native
 #define EXTS_W2N(val)              EXTS(SMODE, int32_t, val)  // sign extension : word to native
 
+// rotation macros
+#define ROTL64(x, y)               ((uint64_t)(((x) << (y)) | ((x) >> (64 - (y)))))                           // x=64bit, y=64bit
+#define ROTL32(x, y)               ROTL64((((x) & 0xffffffff) | (((x) & 0xffffffff) << 32)), (y))             // x=32bit, y=64bit
+
+// mask
+#define BITMASK(x)                 ((x) ? ((1ULL << (64 - (x))) - 1) : -1)                                                // 64 bit Bitmask for bit pos x
+#define MASK(x, y)                 (((x) < (y)) ? (BITMASK(x) ^ BITMASK(y+1)) : ~(BITMASK(x+1) ^ BITMASK(y)))             // Generate mask of 1's from x to y
+
+// 32_63
+#define B_32_63(x)                 ((x) & 0xffffffff)
+
 // Byte reversing macros
 #define SWAPB32(data)              ((((data >> 24) & 0xff) <<  0) ||  \
                                     (((data >> 16) & 0xff) <<  8) ||  \
@@ -157,8 +181,6 @@
                                     (((data >>  0) & 0xff) << 24) )
 #define SWAPB16(data)              ((((data >>  8) & 0xff) <<  0) ||  \
                                     (((data >>  0) & 0xff) <<  8) )
-
-#define REG_BF(reg, mask)   ((reg & mask) ? 1:0)
 
 // PPC Exceptions
 #define  PPC_EXCEPT         sim_except_ppc
@@ -182,116 +204,153 @@
 
 #endif
 
-#define addw(arg0, arg1, arg2, flags)                                      \
-    asm volatile(                                                          \
-            "mov %3, %%ebx\n"                                              \
-            "add %2, %%ebx\n"                                              \
-            "mov %%ebx, %0\n"                                              \
-            "pushf\n"                                                      \
-            POP_ECX                                                        \
-            "movl %%ecx, %1\n"                                             \
-            : "=m"(arg0), "=m"(flags) : "m"(arg1), "m"(arg2) : EBX, ECX    \
+#define addw(arg0, arg1, arg2)                                                   \
+    asm volatile(                                                                \
+            "mov %3, %%ebx\n"                                                    \
+            "add %2, %%ebx\n"                                                    \
+            "mov %%ebx, %0\n"                                                    \
+            "pushf\n"                                                            \
+            POP_ECX                                                              \
+            "movl %%ecx, %1\n"                                                   \
+            : "=m"(arg0), "=m"(HOST_FLAGS) : "m"(arg1), "m"(arg2) : EBX, ECX     \
        )
-#define subw(arg0, arg1, arg2, flags)                                      \
-    asm volatile(                                                          \
-            "mov %2, %%ebx\n"                                              \
-            "sub %3, %%ebx\n"                                              \
-            "mov %%ebx, %0\n"                                              \
-            "pushf\n"                                                      \
-            POP_ECX                                                        \
-            "movl %%ecx, %1\n"                                             \
-            : "=m"(arg0), "=m"(flags) : "m"(arg1), "m"(arg2) : EBX, ECX    \
+#define subw(arg0, arg1, arg2)                                                   \
+    asm volatile(                                                                \
+            "mov %2, %%ebx\n"                                                    \
+            "sub %3, %%ebx\n"                                                    \
+            "mov %%ebx, %0\n"                                                    \
+            "pushf\n"                                                            \
+            POP_ECX                                                              \
+            "movl %%ecx, %1\n"                                                   \
+            : "=m"(arg0), "=m"(HOST_FLAGS) : "m"(arg1), "m"(arg2) : EBX, ECX     \
        )
-#define negw(arg0, arg1, flags)                                            \
-    asm volatile(                                                          \
-            "mov %2, %%ebx\n"                                              \
-            "neg %%ebx\n"                                                  \
-            "mov %%ebx, %0\n"                                              \
-            "pushf\n"                                                      \
-            POP_ECX                                                        \
-            "movl %%ecx, %1\n"                                             \
-            : "=m"(arg0), "=m"(flags) : "m"(arg1) : EBX, ECX               \
+#define andw(arg0, arg1, arg2)                                                   \
+    asm volatile(                                                                \
+            "mov %3, %%ebx\n"                                                    \
+            "and %2, %%ebx\n"                                                    \
+            "mov %%ebx, %0\n"                                                    \
+            "pushf\n"                                                            \
+            POP_ECX                                                              \
+            "movl %%ecx, %1\n"                                                   \
+            : "=m"(arg0), "=m"(HOST_FLAGS) : "m"(arg1), "m"(arg2) : EBX, ECX     \
        )
+#define orw(arg0, arg1, arg2)                                                    \
+    asm volatile(                                                                \
+            "mov %3, %%ebx\n"                                                    \
+            "or %2, %%ebx\n"                                                     \
+            "mov %%ebx, %0\n"                                                    \
+            "pushf\n"                                                            \
+            POP_ECX                                                              \
+            "movl %%ecx, %1\n"                                                   \
+            : "=m"(arg0), "=m"(HOST_FLAGS) : "m"(arg1), "m"(arg2) : EBX, ECX     \
+       )
+#define xorw(arg0, arg1, arg2)                                                   \
+    asm volatile(                                                                \
+            "mov %3, %%ebx\n"                                                    \
+            "xor %2, %%ebx\n"                                                    \
+            "mov %%ebx, %0\n"                                                    \
+            "pushf\n"                                                            \
+            POP_ECX                                                              \
+            "movl %%ecx, %1\n"                                                   \
+            : "=m"(arg0), "=m"(HOST_FLAGS) : "m"(arg1), "m"(arg2) : EBX, ECX     \
+       )
+#define negw(arg0, arg1)                                                         \
+    asm volatile(                                                                \
+            "mov %2, %%ebx\n"                                                    \
+            "neg %%ebx\n"                                                        \
+            "mov %%ebx, %0\n"                                                    \
+            "pushf\n"                                                            \
+            POP_ECX                                                              \
+            "movl %%ecx, %1\n"                                                   \
+            : "=m"(arg0), "=m"(HOST_FLAGS) : "m"(arg1) : EBX, ECX                \
+       )
+
 
 // ------------------------------------- INTEGER ARITHMETIC -------------------------
 X(add)
 {
 #define add_code(rD, rA, rB)           \
-    addw(rD, rA, rB, host_flags);
+    addw(rD, rA, rB);
 
     add_code(REG0, REG1, REG2);
 }
 X(add.)
 {
     add_code(REG0, REG1, REG2);
-    update_cr0(1);
+    UPDATE_CR0();
 }
 X(addo)
 {
     add_code(REG0, REG1, REG2);
-    update_xer(1);
+    UPDATE_SO_OV();
 }
 X(addo.)
 {
     add_code(REG0, REG1, REG2);
-    update_xer(1);
-    update_cr0(1);
+    UPDATE_SO_OV();
+    UPDATE_CR0();
 }
 
-/* Not sure if there's a diff between add and addc 
- * ( the pseudocode for both are exactly same )
- * */
+// These instrs always update XER[CA] flag
 X(addc)
 {
     add_code(REG0, REG1, REG2);
+    UPDATE_CA();
 }
 X(addc.)
 {
     add_code(REG0, REG1, REG2);
-    update_cr0(1);
+    UPDATE_CA();
+    UPDATE_CR0();
 }
 X(addco)
 {
     add_code(REG0, REG1, REG2);
-    update_xer(1);
+    UPDATE_CA();
+    UPDATE_SO_OV();
 }
 X(addco.)
 {
     add_code(REG0, REG1, REG2);
-    update_xer(1);
-    update_cr0(1);
+    UPDATE_CA();
+    UPDATE_SO_OV();
+    UPDATE_CR0();
 }
 
 /* Add extended : rA + rB + CA */
 X(adde)
 {
-    UMODE tmp = REG2 + REG_BF(XER, XER_CA);
+    UMODE tmp = REG2 + GET_CA();
     add_code(REG0, REG1, tmp);
+    UPDATE_CA();
 }
 X(adde.)
 {
-    UMODE tmp = REG2 + REG_BF(XER, XER_CA);
+    UMODE tmp = REG2 + GET_CA();
     add_code(REG0, REG1, tmp);
-    update_cr0(1);
+    UPDATE_CA();
+    UPDATE_CR0();
 }
 X(addeo)
 {
-    UMODE tmp = REG2 + REG_BF(XER, XER_CA);
+    UMODE tmp = REG2 + GET_CA();
     add_code(REG0, REG1, tmp);
-    update_xer(1);
+    UPDATE_CA();
+    UPDATE_SO_OV();
 }
 X(addeo.)
 {
-    UMODE tmp = REG2 + REG_BF(XER, XER_CA);
+    UMODE tmp = REG2 + GET_CA();
     add_code(REG0, REG1, tmp);
-    update_xer(1);
-    update_cr0(1);
+    UPDATE_CA();
+    UPDATE_SO_OV();
+    UPDATE_CR0();
 }
 
 X(addi)
 {
     SMODE tmp = (int16_t)ARG2;
-    if(ARG1){ add_code(REG0, REG1, tmp); }
+    if(ARG1){ add_code(REG0, REG1, tmp);        }
     else    { REG0 = (int16_t)ARG2;             }
 }
 
@@ -299,108 +358,185 @@ X(addic)
 {
     SMODE tmp = (int16_t)ARG2;
     add_code(REG0, REG1, tmp);
-    update_xer(1);
+    UPDATE_CA();
 }
 X(addic.)
 {
     SMODE tmp = (int16_t)ARG2;
     add_code(REG0, REG1, tmp);
-    update_xer(1);
-    update_cr0(1);
+    UPDATE_CA();
+    UPDATE_CR0();
 }
 
 X(addis)
 {
     SMODE tmp = (((int16_t)ARG2) << 16);
-    if(ARG1){ add_code(REG0, REG1, tmp); }
+    if(ARG1){ add_code(REG0, REG1, tmp);        }
     else    { REG0 = ((int16_t)ARG2) << 16;     }
 }
 
+// XER[CA] is always altered
 X(addme)
 {
-    SMODE tmp = REG_BF(XER, XER_CA) - 1;
+    SMODE tmp = GET_CA() - 1;
     add_code(REG0, REG1, tmp);
+    UPDATE_CA();
 }
 X(addme.)
 {
-    SMODE tmp = REG_BF(XER, XER_CA) - 1;
+    SMODE tmp = GET_CA() - 1;
     add_code(REG0, REG1, tmp);
-    update_cr0(1);
+    UPDATE_CA();
+    UPDATE_CR0();
 }
 X(addmeo)
 {
-    SMODE tmp = REG_BF(XER, XER_CA) - 1;
+    SMODE tmp = GET_CA() - 1;
     add_code(REG0, REG1, tmp);
-    update_xer(1);
+    UPDATE_CA();
+    UPDATE_SO_OV();
 }
 X(addmeo.)
 {
-    SMODE tmp = REG_BF(XER, XER_CA) - 1;
+    SMODE tmp = GET_CA() - 1;
     add_code(REG0, REG1, tmp);
-    update_xer(1);
-    update_cr0(1);
+    UPDATE_CA();
+    UPDATE_SO_OV();
+    UPDATE_CR0();
 }
 
+// XER[CA] is always altered
 X(addze)
 {
-    UMODE tmp = REG_BF(XER, XER_CA);
+    UMODE tmp = GET_CA();
     add_code(REG0, REG1, tmp);
+    UPDATE_CA();
 }
 X(addze.)
 {
-    UMODE tmp = REG_BF(XER, XER_CA);
+    UMODE tmp = GET_CA();
     add_code(REG0, REG1, tmp);
-    update_cr0(1);
+    UPDATE_CA();
+    UPDATE_CR0();
 }
 X(addzeo)
 {
-    UMODE tmp = REG_BF(XER, XER_CA);
+    UMODE tmp = GET_CA();
     add_code(REG0, REG1, tmp);
-    update_xer(1);
+    UPDATE_CA();
+    UPDATE_SO_OV();
 }
 X(addzeo.)
 {
-    UMODE tmp = REG_BF(XER, XER_CA);
+    UMODE tmp = GET_CA();
     add_code(REG0, REG1, tmp);
-    update_xer(1);
-    update_cr0(1);
+    UPDATE_CA();
+    UPDATE_SO_OV();
+    UPDATE_CR0();
 }
+
+X(subf)
+{
+#define subf_code(rD, rA, rB)            \
+    uint64_t subf_tmp = rB + 1;          \
+    uint64_t inva = ~rA;                 \
+    add_code(rD, inva, subf_tmp)
+
+    subf_code(REG0, REG1, REG2);
+}
+X(subf.)
+{
+    subf_code(REG0, REG1, REG2);
+    UPDATE_CR0();
+}
+X(subfo)
+{
+    subf_code(REG0, REG1, REG2);
+    UPDATE_SO_OV();
+}
+X(subfo.)
+{
+    subf_code(REG0, REG1, REG2);
+    UPDATE_SO_OV();
+    UPDATE_CR0();
+}
+
+// XER[CA] is altered
+X(subfic)
+{
+    uint64_t tmp = EXTS_H2N(ARG2);
+    subf_code(REG0, REG1, tmp);
+    UPDATE_CA();
+}
+
+// XER[CA] is always altered
+X(subfc)
+{
+    subf_code(REG0, REG1, REG2);
+    UPDATE_CA();
+}
+X(subfc.)
+{
+    subf_code(REG0, REG1, REG2);
+    UPDATE_CA();
+    UPDATE_CR0();
+}
+X(subfco)
+{
+    subf_code(REG0, REG1, REG2);
+    UPDATE_CA();
+    UPDATE_SO_OV();
+}
+X(subfco.)
+{
+    subf_code(REG0, REG1, REG2);
+    UPDATE_CA();
+    UPDATE_SO_OV();
+    UPDATE_CR0();
+}
+
 
 // ---------------------------------- INTEGER LOGICAL -------------------------------
 
 /* and variants */
 X(and)
 {
-    UMODE tmp = REG1 & REG2;
-    REG0 = tmp;
+#define and_code(rA, rS, rB)             \
+    andw(rA, rS, rB)
+
+    and_code(REG0, REG1, REG2);
 }
 X(and.)
 {
-    REG0 = REG1 & REG2;
-    update_cr0(0, UT(REG0));
+    and_code(REG0, REG1, REG2);
+    UPDATE_CR0();
 }
 X(andc)
 {
-    UMODE tmp = REG1 & (~REG2);
-    REG0 = tmp;
+    UMODE tmp = ~REG2;
+    and_code(REG0, REG1, tmp);
 }
 X(andc.)
 {
-    REG0 = REG1 & (~REG2);
-    update_cr0(0, UT(REG0));
+    UMODE tmp = ~REG2;
+    and_code(REG0, REG1, tmp);
+    UPDATE_CR0();
 }
+
 /* andi_dot:  AND immediate, update CR.
  * rA <- rS + 16(0) || UIMM
  */
 X(andi.)
 {
-    REG0 = REG1 & (uint16_t)ARG2;
-    update_cr0(0, UT(REG0));
+    UMODE tmp = (uint16_t)ARG2;
+    and_code(REG0, REG1, tmp);
+    UPDATE_CR0();
 }
 X(andis.)
 {
-    REG0 = REG1 & (((uint16_t)ARG2) << 16);
-    update_cr0(0, UT(REG0));
+    UMODE tmp = (((uint16_t)ARG2) << 16);
+    and_code(REG0, REG1, tmp);
+    UPDATE_CR0();
 }
 
 // cntlzw:  Count leading zeroes (32-bit word).
@@ -421,121 +557,124 @@ X(cntlzw)
 X(cntlzw.)
 {
     cntlzw_code(REG0, REG1);
-    update_cr0(0,i);
+    UPDATE_CR0_V(i);
 }
 
 X(nand)
 {
 #define nand_code(rA, rS, rB)                  \
-    rA = ~(rS & rB);
+    and_code(rA, rS, rB);                      \
+    rA = ~rA
 
     nand_code(REG0, REG1, REG2);
 }
 X(nand.)
 {
     nand_code(REG0, REG1, REG2);
-    update_cr0(0, UT(REG0));
+    UPDATE_CR0();
 }
 X(neg)
 {
 #define neg_code(rD, rA)                        \
-    negw(rD, rA, host_flags);
+    negw(rD, rA);
 
     neg_code(REG0, REG1);
 }
 X(neg.)
 {
     neg_code(REG0, REG1);
-    update_cr0(1);
+    UPDATE_CR0();
 }
 X(nego)
 {
     neg_code(REG0, REG1);
-    update_xer(1);
+    UPDATE_SO_OV();
 }
 X(nego.)
 {
     neg_code(REG0, REG1);
-    update_xer(1);
-    update_cr0(1);
+    UPDATE_SO_OV();
+    UPDATE_CR0();
 }
+
+//
 X(nor)
 {
 #define nor_code(rA, rS, rB)                    \
-    rA = ~(rS | rB);
+    orw(rA, rS, rB);                            \
+    rA = ~rA
 
     nor_code(REG0, REG1, REG2);
 }
 X(nor.)
 {
     nor_code(REG0, REG1, REG2);
-    update_cr0(0, UT(REG0));
+    UPDATE_CR0();
 }
+
 X(or)
 {
 #define or_code(rA, rS, rB)                     \
-    rA = rS | rB;
+    orw(rA, rS, rB)
 
     or_code(REG0, REG1, REG2);
 }
 X(or.)
 {
     or_code(REG0, REG1, REG2);
-    update_cr0(0, UT(REG0));
+    UPDATE_CR0();
 }
+
 X(orc)
 {
 #define orc_code(rA, rS, rB)                     \
-    rA = rS | ~(rB);
+    UMODE tmp = ~rB;                             \
+    orw(rA, rS, tmp)
 
     orc_code(REG0, REG1, REG2);
 }
 X(orc.)
 {
     orc_code(REG0, REG1, REG2);
-    update_cr0(0, UT(REG0));
+    UPDATE_CR0();
 }
+
 X(ori)
 {
-#define ori_code(rA, rS, UIMM)                 \
-    rA = rS | (uint16_t)UIMM;
-
-    ori_code(REG0, REG1, ARG2);
+    UMODE tmp = (uint16_t)(ARG2);
+    or_code(REG0, REG1, tmp);
 }
+
 X(oris)
 {
-#define oris_code(rA, rS, UIMM)                \
-    rA = rS | (((uint16_t)UIMM) << 16);
-
-    oris_code(REG0, REG1, ARG2);
+    UMODE tmp = (((uint16_t)ARG2) << 16);
+    or_code(REG0, REG1, tmp);
 }
 
 // xor variants
 X(xor)
 {
 #define xor_code(rA, rS, rB)      \
-    rA = rS ^ rB;
+    xorw(rA, rS, rB)
 
     xor_code(REG0, REG1, REG2);
 }
 X(xor.)
 {
     xor_code(REG0, REG1, REG2);
-    update_cr0(0, UT(REG0));
+    UPDATE_CR0();
 }
+
 X(xori)
 {
-#define xori_code(rA, rS, UIMM)   \
-    rA = rS ^ ((uint16_t)UIMM);
-
-    xori_code(REG0, REG1, ARG2);
+    UMODE tmp = ((uint16_t)ARG2);
+    xor_code(REG0, REG1, tmp);
 }
+
 X(xoris)
 {
-#define xoris_code(rA, rS, UIMM)            \
-    rA = rS ^ (((uint16_t)UIMM) << 16);
-
-    xoris_code(REG0, REG1, REG2);
+    UMODE tmp = (((uint16_t)ARG2) << 16);
+    xor_code(REG0, REG1, tmp);
 }
 
 // ------------------------------- BPU ---------------------------------------------
@@ -942,7 +1081,7 @@ X(rlwimi)
 X(rlwimi.)
 {
     rlwimi_code(REG0, REG1, ARG2, ARG3, ARG4);
-    update_cr0(0, UT(REG0));
+    UPDATE_CR0_V(UT(REG0));
 }
 X(rlwinm)
 {
@@ -957,7 +1096,7 @@ X(rlwinm)
 X(rlwinm.)
 {
     rlwinm_code(REG0, REG1, ARG2, ARG3, ARG4);
-    update_cr0(0, UT(REG0));
+    UPDATE_CR0_V(UT(REG0));
 }
 X(rlwnm)
 {
@@ -972,7 +1111,7 @@ X(rlwnm)
 X(rlwnm.)
 {
     rlwnm_code(REG0, REG1, REG2, ARG3, ARG4);
-    update_cr0(0, UT(REG0));
+    UPDATE_CR0_V(UT(REG0));
 }
 
 // Shift instrs
@@ -988,45 +1127,52 @@ X(slw)
 X(slw.)
 {
     slw_code(REG0, REG1, REG2);
-    update_cr0(0, UT(REG0));
+    UPDATE_CR0_V(UT(REG0));
 }
 X(sraw)
 {
 #define sraw_code(rA, rS, rB)                                                            \
-    uint32_t tmp = (rS >> (rB & 0x1f)) | (rS << (32 - (rB & 0x1f)));                     \
-    uint64_t mask = (((rB >> 5) & 0x1) == 0) ? ~((1L << (32 - (rB & 0x1f))) - 1) : 0;    \
+    uint64_t n = rB & 0x1f;                                                              \
+    uint64_t tmp = ROTL32(B_32_63(rS), (64 - n));                                        \
+    uint64_t mask;                                                                       \
+    if(((rB >> 5) & 0x1) == 0)  mask = MASK(n+32, 63);                                   \
+    else                        mask = 0;                                                \
     int sign = ((rS >> 31) & 0x1);                                                       \
     rA = (tmp & mask) | (((sign) ? 0xffffffffffffffffL : 0L) & ~mask);                   \
-    update_xerf(0, (sign & ((tmp & ~mask) != 0)));
+    update_xer_ca(sign & ((tmp & ~mask) != 0));
 
     sraw_code(REG0, REG1, REG2);
 }
 X(sraw.)
 {
     sraw_code(REG0, REG1, REG2);
-    update_cr0(0, UT(REG0));
+    UPDATE_CR0_V(UT(REG0));
 }
 X(srawi)
 {
 #define srawi_code(rA, rS, SH)                                                           \
-    uint32_t tmp = (rS >> (SH & 0x1f)) | (rS << (32 - (SH & 0x1f)));                     \
-    uint64_t mask = ~((1L << (32 - (SH & 0x1f))) - 1);                                   \
+    uint64_t n = SH & 0x1f;                                                              \
+    uint64_t tmp = ROTL32(B_32_63(rS), (64 - n));                                        \
+    uint64_t mask = MASK(n+32, 63);                                                      \
     int sign = ((rS >> 31) & 0x1);                                                       \
     rA = (tmp & mask) | (((sign) ? 0xffffffffffffffffL : 0L) & ~mask);                   \
-    update_xerf(0, (sign & ((tmp & ~mask) != 0)));
+    update_xer_ca(sign & (B_32_63(tmp & ~mask) != 0));
 
     srawi_code(REG0, REG1, ARG2);
 }
 X(srawi.)
 {
     srawi_code(REG0, REG1, ARG2);
-    update_cr0(0, UT(REG0));
+    UPDATE_CR0_V(UT(REG0));
 }
 X(srw)
 {
 #define srw_code(rA, rS, rB)                                                             \
-    uint32_t tmp = (rS >> (rB & 0x1f)) | (rS << (32 - (rB & 0x1f)));                     \
-    uint32_t mask = (((rB >> 5) & 0x1) == 0) ? ~((1L << (32 - (rB & 0x1f))) - 1) : 0;    \
+    uint64_t n = rB & 0x1f;                                                              \
+    uint64_t tmp = ROTL32(B_32_63(rS), (64 - n));                                        \
+    uint64_t mask;                                                                       \
+    if (((rB >> 5) & 0x1) == 0)   mask = MASK(n+32, 63);                                 \
+    else                          mask = 0;                                              \
     rA = (tmp & mask);
 
     srw_code(REG0, REG1, REG2);
@@ -1034,7 +1180,7 @@ X(srw)
 X(srw.)
 {
     srw_code(REG0, REG1, REG2);
-    update_cr0(0, UT(REG0));
+    UPDATE_CR0_V(UT(REG0));
 }
 
 // ------------------------------ load/store ---------------------------------------

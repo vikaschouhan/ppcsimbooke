@@ -29,7 +29,8 @@ SIM_TEST_EXES := test_ppcdis_interface        \
              test_log_class                   \
 			 test_lru_class                   \
 			 test_bm_class
-DUT_TEST_EXES := test_001
+DUT_TEST_EXES := test_001                     \
+	         test_palindrome_0
 PYWRAP_SO := ppcsim
 
 EXES := $(PYWRAP_SO) $(SIM_TEST_EXES) $(DUT_TEST_EXES)
