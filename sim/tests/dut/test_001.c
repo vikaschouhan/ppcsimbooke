@@ -7,16 +7,16 @@ int add(int x, int y){
     return x+y;
 }
 
-// Nomain function
+// main function
 int main(){
     int a = 5;
     int b;
 
     b = add(a, z);
     if(b == 13)
-        log_pass();
+        LOG_PASS();
     else
-        log_fail();
+        LOG_FAIL();
 
     return 0;
 }

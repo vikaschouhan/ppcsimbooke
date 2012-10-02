@@ -1,5 +1,7 @@
 #include "common.h"
 #include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
 
 int is_palindrome(char*);
  
@@ -9,15 +11,15 @@ int main()
    char* ptr2 = "VikiV";        // This is palindrome.
 
    if(is_palindrome(ptr)){
-       log_fail();              // log fail, since ptr is not palindrome
+       LOG_FAIL();              // log fail, since ptr is not palindrome
    }else{
-       log_pass();
+       LOG_PASS();
    }
 
    if(is_palindrome(ptr2)){
-       log_pass();              // log pass, since ptr is palindrome
+       LOG_PASS();              // log pass, since ptr is palindrome
    }else{
-       log_fail();
+       LOG_FAIL();
    }
 
    return 0;
@@ -25,7 +27,7 @@ int main()
  
 int is_palindrome(char *str)
 {
-    int len = 5;
+    int len = strlen(str);
     int i;
 
     for(i=0; i<len/2; i++){

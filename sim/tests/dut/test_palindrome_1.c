@@ -1,5 +1,6 @@
 #include "common.h"
 #include <stdlib.h>
+#include <string.h>
 
 int is_palindrome(char*);
  
@@ -8,28 +9,25 @@ int main()
    char* str_palin[] = { "abcba", "qwertytrewq", "zxcvbvcxz" };
    char* str_nonpalin[] = { "asdfghj", "poqwert" };
  
-   for(int i=0; i<(sizeof(str_palin)/sizeof(char*)); i++){
+   for(int i=0; i<(sizeof(str_palin)/sizeof(str_palin[0])); i++){
        if(!is_palindrome(str_palin[i])){
-           log_fail();
-           return -1;
-       }
-   }
-
-   for(int i=0; i<(sizeof(str_nonpalin)/sizeof(char*)); i++){
-       if(is_palindrome(str_nonpalin[i])){
-           log_fail();
-           return -1;
+           LOG_FAIL();
        }
    }
    
-   log_pass();
-
+   for(int i=0; i<(sizeof(str_nonpalin)/sizeof(str_nonpalin[0])); i++){
+       if(is_palindrome(str_nonpalin[i])){
+           LOG_FAIL();
+       }
+   }
+   
+   LOG_PASS();
    return 0;
 }
  
 int is_palindrome(char *str)
 {
-    int len = 5;
+    int len = strlen(str);
     int i;
 
     for(i=0; i<len/2; i++){

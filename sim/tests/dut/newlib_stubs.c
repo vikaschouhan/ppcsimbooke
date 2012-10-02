@@ -200,18 +200,28 @@ int wait(int *status) {
  write
  Write a character to a file. `libc' subroutines will use this system routine for output to all files, including stdout
  Returns -1 on error or number of bytes sent
- */
+
+ NOTE: for now, write() writes to memory's trace area
+*/
 int write(int file, const void *ptr, size_t len) {
+    extern char* trace_top;
+    extern char* trace_bottom;
+    static char* trace_ptr = 0;
+
+    if(trace_ptr == 0){
+        trace_ptr = trace_top;
+    }
+
+    if(trace_ptr + len > trace_bottom){
+        trace_ptr = trace_top;
+    }
+
     int n;
     switch (file) {
     case STDOUT_FILENO: /*stdout*/
-        for (n = 0; n < len; n++) {
-            /* Empty */
-        }
-        break;
     case STDERR_FILENO: /* stderr */
         for (n = 0; n < len; n++) {
-            /* Empty */
+            *trace_ptr++ = *(char *)ptr++;
         }
         break;
     default:
