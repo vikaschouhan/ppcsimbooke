@@ -267,6 +267,23 @@
 
 
 // ------------------------------------- INTEGER ARITHMETIC -------------------------
+// mnemonics :
+//             add    ( add., addo, addo. )
+//             addc   ( addc., addco, addco. )
+//             adde   ( adde., addeo, addeo. )
+//             addi,
+//             addic  ( addic. )
+//             addis,
+//             addme  ( addme., addmeo, addmeo. )
+//             addze  ( addze., addzeo, addzeo. )
+//             subf   ( subf., subfo, subfo. )
+//             subfc  ( subfc., subfco, subfco. )
+//             subfe  ( subfe., subfeo, subfeo. )
+//             subfic,
+//             subfme ( subfme., subfmeo, subfmeo. )
+//             subfze ( subfze., subfzeo, subfzeo. )
+//
+
 X(add)
 {
 #define add_code(rD, rA, rB)           \
@@ -491,6 +508,87 @@ X(subfco.)
 {
     subf_code(REG0, REG1, REG2);
     UPDATE_CA();
+    UPDATE_SO_OV();
+    UPDATE_CR0();
+}
+
+X(subfe)
+{
+#define subfe_code(rD, rA, rB)          \
+    UMODE tmp = GET_CA() + rB;          \
+    UMODE inva = ~rA;                   \
+    add_code(rD, inva, tmp);            \
+    UPDATE_CA()
+
+    subfe_code(REG0, REG1, REG2);
+}
+X(subfe.)
+{
+    subfe_code(REG0, REG1, REG2);
+    UPDATE_CR0();
+}
+X(subfeo)
+{
+    subfe_code(REG0, REG1, REG2);
+    UPDATE_SO_OV();
+}
+X(subfeo.)
+{
+    subfe_code(REG0, REG1, REG2);
+    UPDATE_SO_OV();
+    UPDATE_CR0();
+}
+
+X(subfme)
+{
+#define subfme_code(rD, rA)             \
+    SMODE tmp = GET_CA() - 1;           \
+    UMODE inva = ~rA;                   \
+    add_code(rD, inva, tmp);            \
+    UPDATE_CA()
+
+    subfme_code(REG0, REG1);
+}
+X(subfme.)
+{
+    subfme_code(REG0, REG1);
+    UPDATE_CR0();
+}
+X(subfmeo)
+{
+    subfme_code(REG0, REG1);
+    UPDATE_SO_OV();
+}
+X(subfmeo.)
+{
+    subfme_code(REG0, REG1);
+    UPDATE_SO_OV();
+    UPDATE_CR0();
+}
+
+X(subfze)
+{
+#define subfze_code(rD, rA)             \
+    UMODE tmp = GET_CA();               \
+    UMODE inva = ~rA;                   \
+    add_code(rD, inva, tmp);            \
+    UPDATE_CA()
+
+    subfze_code(REG0, REG1);
+}
+X(subfze.)
+{
+    subfze_code(REG0, REG1);
+    UPDATE_CR0();
+}
+X(subfzeo)
+{
+    subfze_code(REG0, REG1);
+    UPDATE_SO_OV();
+}
+X(subfzeo.)
+{
+    subfze_code(REG0, REG1);
     UPDATE_SO_OV();
     UPDATE_CR0();
 }
@@ -1206,10 +1304,10 @@ X(srw.)
 }
 
 // ------------------------------ load/store ---------------------------------------
-// mnemonics defined : lbz, lbzu, lbzux, lbzx, lha, lhau, lhaux, lhax, lhbrx, lhz,
-//                     lhzu, lhzux, lhzx, lmw, lwarx, lwbrx, lwz, lwzu, lwzux, lwzx,
-//                     stb, stbu, stbux, stbx, sth, sthbrx, sthu, sthux, sthx, stmw,
-//                     stw, stwbrx, stwcx., stwu, stwux, stwx
+// mnemonics : lbz, lbzu, lbzux, lbzx, lha, lhau, lhaux, lhax, lhbrx, lhz,
+//             lhzu, lhzux, lhzx, lmw, lwarx, lwbrx, lwz, lwzu, lwzux, lwzx,
+//             stb, stbu, stbux, stbx, sth, sthbrx, sthu, sthux, sthx, stmw,
+//             stw, stwbrx, stwcx., stwu, stwux, stwx
 
 // byte loads
 X(lbz)
