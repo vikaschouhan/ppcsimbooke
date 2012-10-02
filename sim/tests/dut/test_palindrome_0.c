@@ -10,6 +10,8 @@ int main()
    char* ptr  = "Vikiv";        // This is not palindrome.
    char* ptr2 = "VikiV";        // This is palindrome.
 
+   printf("Starting palindrome test 0.\n");
+
    if(is_palindrome(ptr)){
        LOG_FAIL();              // log fail, since ptr is not palindrome
    }else{

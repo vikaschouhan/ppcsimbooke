@@ -68,6 +68,8 @@ BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(dump_state_overloads, dump_state, 0, 3);
 BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(register_memory_target_overloads, register_memory_target, 5, 6);
 // Overloads for memory::dump_all_pages()
 BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(dump_all_pages_overloads, dump_all_pages, 0, 1);
+// Overloads for memory::dump_page()
+BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(dump_page_overloads, dump_page, 1, 2);
 // Overloads for memory::read16()
 BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(read8_overloads, read8, 1, 2);
 // Overloads for memory::write16()
@@ -332,6 +334,7 @@ BOOST_PYTHON_MODULE(ppcsim)
                 .def("dump_tgts",          &memory_e500v2_t::dump_all_memory_targets)
                 .def("dump_page_maps",     &memory_e500v2_t::dump_all_page_maps)
                 .def("dump_pages",         &memory_e500v2_t::dump_all_pages, dump_all_pages_overloads())
+                .def("dump_page",          &memory_e500v2_t::dump_page, dump_page_overloads())
                 //.def("write_buf",         &memory::write_from_buffer)
                 //.def("read_buf",          &memory::read_to_buffer, return_value_policy<manage_new_object>())
                 .def("read8",              &memory_e500v2_t::read8,  read8_overloads())
@@ -344,6 +347,7 @@ BOOST_PYTHON_MODULE(ppcsim)
                 .def("write64",            &memory_e500v2_t::write64, write64_overloads())
                 .def("write_from_file",    &memory_e500v2_t::write_from_file)
                 .def("read_to_file",       &memory_e500v2_t::read_to_file)
+                .def("read_to_ascii_file", &memory_e500v2_t::read_to_ascii_file)
                 .def("load_elf",           &memory_e500v2_t::load_elf)
                 ;
 

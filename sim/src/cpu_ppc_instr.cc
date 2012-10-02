@@ -539,6 +539,28 @@ X(andis.)
     UPDATE_CR0();
 }
 
+// Byte extend
+X(extsb)
+{
+    REG0 = EXTS_B2N(REG1);
+}
+X(extsb.)
+{
+    REG0 = EXTS_B2N(REG1);
+    UPDATE_CR0_V(REG0);
+}
+
+// Halfword extend
+X(extsh)
+{
+    REG0 = EXTS_H2N(REG1);
+}
+X(extsh.)
+{
+    REG0 = EXTS_H2N(REG1);
+    UPDATE_CR0_V(REG0);
+}
+
 // cntlzw:  Count leading zeroes (32-bit word).
 X(cntlzw)
 {

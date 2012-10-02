@@ -149,12 +149,14 @@ template<int nbits> class MEM_PPC {
     void dump_all_memory_targets();
     void dump_all_page_maps();
     void dump_all_pages(std::ostream &ostr = std::cout);
+    void dump_page(uint64_t addr, std::ostream &ostr = std::cout);
 
     // Memory I/O
     inline void write_from_buffer(uint64_t addr, uint8_t* buff, size_t size);
     inline uint8_t *read_to_buffer(uint64_t addr, uint8_t *buff, size_t size);
     inline void write_from_file(uint64_t addr, std::string file_name, size_t size);
     inline void read_to_file(uint64_t addr, std::string file_name, size_t size);
+    inline void read_to_ascii_file(uint64_t addr, std::string file_name, size_t size);
     inline uint8_t read8(uint64_t addr, int endianness = EMUL_BIG_ENDIAN);
     inline void write8(uint64_t addr, uint8_t value, int endianness = EMUL_BIG_ENDIAN);
     inline uint16_t read16(uint64_t addr, int endianness = EMUL_BIG_ENDIAN);
@@ -468,6 +470,47 @@ MEM_T void MEM_PPC_T::dump_all_pages(std::ostream &ostr){
 }
 
 /*
+ * @func  : dump_page
+ * @args  : none
+ *
+ * @brief : dump page by physical address ( i.e containing a physical address )
+ * @type  : debug
+ */
+MEM_T void MEM_PPC_T::dump_page(uint64_t addr, std::ostream &ostr){
+    LOG("DEBUG4") << MSG_FUNC_START;
+    uint8_t *ptr = NULL;
+    int grp_size = 4;
+    int columns = 8;
+    int i;
+
+    ostr << std::noshowbase;
+
+    // Print base address of this page
+    ostr << BAR0 << std::endl;
+    ostr << "ra:" << "0x" << std::hex << std::setfill('0') << std::setw(16) << (addr & ~(MIN_PGSZ - 1)) << std::endl;
+    ostr << BAR0 << std::endl;
+
+    ptr = paddr_to_hostpage(addr);
+    addr = 0;
+
+    for(i=0; i<MIN_PGSZ; i++){
+        if(!(i % (columns*grp_size))){
+            ostr << std::endl;
+            ostr << std::hex << "0x" << std::setfill('0') << std::setw(16) << addr ;
+            addr += grp_size*columns;
+        }
+        if(!(i % grp_size)){
+            ostr << "    ";
+        }
+        ostr << std::hex << std::setw(2) << (unsigned int)(*ptr);
+        ptr++;
+    }
+    ostr << std::endl;
+
+    LOG("DEBUG4") << MSG_FUNC_END;
+}
+
+/*
  * @func : write_from_buffer
  * @args : uint64_t address, char *, size_t
  *
@@ -554,6 +597,36 @@ MEM_T void MEM_PPC_T::read_to_file(uint64_t addr, std::string file_name, size_t 
     uint8_t *buff = new uint8_t[size];
     read_to_buffer(addr, buff, size);
     oh.write(reinterpret_cast<char*>(buff), size);
+    delete[] buff;
+
+    oh.close();
+}
+
+/*
+ * @func : read_to_ascii_file
+ * @args : physical address, file name, size
+ *
+ * @brief : writes size bytes from physical addr "addr" to file name "file_name" coverting them to ascii in the process
+ */
+MEM_T void MEM_PPC_T::read_to_ascii_file(uint64_t addr, std::string file_name, size_t size){
+    std::ofstream oh;
+    oh.open(file_name.c_str(), std::ofstream::out | std::ofstream::trunc);
+    LASSERT_THROW(oh.fail() == 0, sim_except(SIM_EXCEPT_ENOFILE, "opening file failed."), DEBUG4);
+
+    uint8_t *buff = new uint8_t[size];
+    read_to_buffer(addr, buff, size);
+
+    for(size_t i=0; i<size; i++){
+        if(buff[i] >= 0x20 && buff[i] <= 0x7e)                          // All printable chars from SPACE to ~
+            oh << buff[i];
+        else if(buff[i] == 0xa || buff[i] == 0xc || buff[i] == 0xd)     // Line feed, Form feed, Carriage return
+            oh << std::endl;
+        else if(buff[i] == 0x9)                                         // Horizontal tab
+            oh << "\t";
+        else
+            oh << std::endl;
+    }
+
     delete[] buff;
 
     oh.close();
