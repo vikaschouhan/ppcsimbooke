@@ -109,6 +109,7 @@ class CPU_PPC {
     unsigned   get_crf(unsigned field);                          // Get CR bit at exact field
 
     void       update_xer(uint64_t value=0);                     // Update XER
+    void       update_xer_so_ov(uint8_t so_ov);                  // Update SO & OV
     void       update_xer_host();                                // Update XER using host flags
     void       update_xer_ca(bool value=0);                      // Update XER[CA]
     void       update_xer_ca_host();                             // Update XER[CA] using host flags
@@ -1549,6 +1550,20 @@ CPU_T void CPU_PPC_T::update_xer(uint64_t value){
     //
 
     /* Set XER */
+    PPCREG(REG_XER) &= ~((uint32_t)0xf << 28);
+    PPCREG(REG_XER) |= (c << 28);
+    LOG("DEBUG4") << MSG_FUNC_END;
+}
+
+// Update XER[SO] & XER[OV] by value.
+// so_ov is a 2 bit value with ((XER[SO] << 1) | XER[OV])
+CPU_T void CPU_PPC_T::update_xer_so_ov(uint8_t so_ov){
+    LOG("DEBUG4") << MSG_FUNC_START;
+    uint32_t c = 0;
+
+    if(so_ov & 0x1){ c |= 4; }      // Update OV
+    if(so_ov & 0x10){ c |= 8; }     // Update SO 
+
     PPCREG(REG_XER) &= ~((uint32_t)0xf << 28);
     PPCREG(REG_XER) |= (c << 28);
     LOG("DEBUG4") << MSG_FUNC_END;

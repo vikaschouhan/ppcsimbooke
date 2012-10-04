@@ -83,6 +83,7 @@
 #define update_crf               CPU->update_crf
 #define update_xer               CPU->update_xer
 #define update_xer_host          CPU->update_xer_host
+#define update_xer_so_ov         CPU->update_xer_so_ov
 #define update_xer_ca            CPU->update_xer_ca
 #define update_xer_ca_host       CPU->update_xer_ca_host
 #define get_xer_so               CPU->get_xer_so
@@ -98,6 +99,7 @@
 // Generic macros
 #define UPDATE_CA()               update_xer_ca_host()
 #define UPDATE_SO_OV()            update_xer_host()
+#define UPDATE_SO_OV_V            update_xer_so_ov 
 #define UPDATE_CR0()              update_cr0_host()
 #define GET_CA()                  get_xer_ca()
 #define GET_SO()                  get_xer_so()
@@ -204,6 +206,8 @@
 
 #endif
 
+// NOTE: 1. Division routines don't check for divide by zero conditions. We will
+//          catch a SIGFPE signal, if this isn't handled in advanced.
 #define addw(arg0, arg1, arg2)                                                   \
     asm volatile(                                                                \
             "mov %3, %%ebx\n"                                                    \
@@ -219,6 +223,30 @@
             "mov %2, %%ebx\n"                                                    \
             "sub %3, %%ebx\n"                                                    \
             "mov %%ebx, %0\n"                                                    \
+            "pushf\n"                                                            \
+            POP_ECX                                                              \
+            "movl %%ecx, %1\n"                                                   \
+            : "=m"(arg0), "=m"(HOST_FLAGS) : "m"(arg1), "m"(arg2) : EBX, ECX     \
+       )
+#define divw(arg0, arg1, arg2)                                                   \
+    asm volatile(                                                                \
+            "mov %3, %%ebx\n"                                                    \
+            "mov %2, %%eax\n"                                                    \
+            "cdq\n"                                                              \
+            "idiv %%ebx\n"                                                       \
+            "mov %%eax, %0\n"                                                    \
+            "pushf\n"                                                            \
+            POP_ECX                                                              \
+            "movl %%ecx, %1\n"                                                   \
+            : "=m"(arg0), "=m"(HOST_FLAGS) : "m"(arg1), "m"(arg2) : EBX, ECX     \
+       )
+#define divuw(arg0, arg1, arg2)                                                  \
+    asm volatile(                                                                \
+            "mov %3, %%ebx\n"                                                    \
+            "mov %2, %%eax\n"                                                    \
+            "xor %%edx, %%edx\n"                                                 \
+            "div %%ebx\n"                                                        \
+            "mov %%eax, %0\n"                                                    \
             "pushf\n"                                                            \
             POP_ECX                                                              \
             "movl %%ecx, %1\n"                                                   \
@@ -282,7 +310,8 @@
 //             subfic,
 //             subfme ( subfme., subfmeo, subfmeo. )
 //             subfze ( subfze., subfzeo, subfzeo. )
-//
+//             divw   ( divw., divwo, divwo. )
+//             divwu  ( divwu., divwuo, divwuo. )
 
 X(add)
 {
@@ -591,6 +620,58 @@ X(subfzeo.)
     subfze_code(REG0, REG1);
     UPDATE_SO_OV();
     UPDATE_CR0();
+}
+
+X(divw)
+{
+#define divw_code(rD, rA, rB)          \
+    if(rB){ divw(rD, rA, rB); }
+
+    divw_code(REG0, REG1, REG2);
+}
+X(divw.)
+{
+    divw_code(REG0, REG1, REG2);
+    UPDATE_CR0();
+}
+X(divwo)
+{
+    divw_code(REG0, REG1, REG2);
+    UPDATE_SO_OV();
+    if(REG2 == 0 || (((REG1 & 0xffffffff) == 0x80000000) && REG2 == 0xffffffff)){ UPDATE_SO_OV_V(1); }
+}
+X(divwo.)
+{
+    divw_code(REG0, REG1, REG2);
+    UPDATE_SO_OV();
+    UPDATE_CR0();
+    if(REG2 == 0 || (((REG1 & 0xffffffff) == 0x80000000) && REG2 == 0xffffffff)){ UPDATE_SO_OV_V(1); }
+}
+
+X(divwu)
+{
+#define divwu_code(rD, rA, rB)         \
+    if(rB){ divuw(rD, rA, rB); }
+
+    divwu_code(REG0, REG1, REG2);
+}
+X(divwu.)
+{
+    divwu_code(REG0, REG1, REG2);
+    UPDATE_CR0();
+}
+X(divwuo)
+{
+    divwu_code(REG0, REG1, REG2);
+    UPDATE_SO_OV();
+    if(REG2 == 0){ UPDATE_SO_OV_V(1); }   // Set OV=1 if division by zero
+}
+X(divwuo.)
+{
+    divwu_code(REG0, REG1, REG2);
+    UPDATE_SO_OV();
+    UPDATE_CR0();
+    if(REG2 == 0){ UPDATE_SO_OV_V(1); }
 }
 
 
