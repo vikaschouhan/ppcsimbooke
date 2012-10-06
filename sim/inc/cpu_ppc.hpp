@@ -1492,10 +1492,11 @@ CPU_T void CPU_PPC_T::update_cr0(uint64_t value){
 // Update CR0 using host flags
 CPU_T void CPU_PPC_T::update_cr0_host(){
     LOG("DEBUG4") << MSG_FUNC_START;
-    int c;
+    int c = 0;
 
-    if(host_state.flags & X86_FLAGS_SF){ c = 8; }
-    if(host_state.flags & X86_FLAGS_ZF){ c |= 2; }
+    if(host_state.flags & X86_FLAGS_SF){ c = 8;  }          // If sign flag, set cr0[lt] flag
+    else                               { c |= 4; }          // else set cr0[gt] flag
+    if(host_state.flags & X86_FLAGS_ZF){ c |= 2; }          // if zero flag, set cr0[eq] flag
 
     /*  SO bit, copied from XER:  */
     c |= ((PPCREG(REG_XER) >> 31) & 1);

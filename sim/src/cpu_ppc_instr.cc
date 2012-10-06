@@ -160,10 +160,13 @@
 
 // for sign extension ( extending sign bits from source type to destination type )
 #define EXTS(t_tgt, t_src, val)    ((t_tgt)((t_src)(val)))
-#define EXTS_2N(t_src, val)        EXTS(SMODE, t_src, val)    // sign extension to native type
-#define EXTS_B2N(val)              EXTS(SMODE, int8_t, val)   // sign extension : byte to native
-#define EXTS_H2N(val)              EXTS(SMODE, int16_t, val)  // sign extension : half word to native
-#define EXTS_W2N(val)              EXTS(SMODE, int32_t, val)  // sign extension : word to native
+#define EXTS_2N(t_src, val)        EXTS(SMODE, t_src, val)                // sign extension to native type
+#define EXTS_B2N(val)              EXTS(SMODE, int8_t, val)               // sign extension : byte to native
+#define EXTS_H2N(val)              EXTS(SMODE, int16_t, val)              // sign extension : half word to native
+#define EXTS_W2N(val)              EXTS(SMODE, int32_t, val)              // sign extension : word to native
+#define EXTS_H2W(val)              EXTS(int32_t, int16_t, val)            // sign extension : half to word
+#define EXTS_B2W(val)              EXTS(int32_t, int8_t, val)             // sign extension : byte to word
+#define EXTS_B2H(val)              EXTS(int16_t, int8_t, val)             // sign extension : byte to half-word
 
 // rotation macros
 #define ROTL64(x, y)               ((uint64_t)(((x) << (y)) | ((x) >> (64 - (y)))))                           // x=64bit, y=64bit
@@ -228,6 +231,41 @@
             "movl %%ecx, %1\n"                                                   \
             : "=m"(arg0), "=m"(HOST_FLAGS) : "m"(arg1), "m"(arg2) : EBX, ECX     \
        )
+// mulw/muluw takes two destination operands
+//     arg0h -> higer 32 bits of result
+//     arg0l -> lower 32 bits of result
+// NOTE : 1. all other arguments ( arg1 & arg2 ) are 32 bits each.
+//        2. x86 "imul"/"mul" doesn't set SF or ZF, hence there is no way of determining
+//           CR0 from host_flags. It sets OF and CF flags though, so XER can be
+//           determined.
+#define mulw(arg0h, arg0l, arg1, arg2)                                           \
+    asm volatile(                                                                \
+            "mov %4, %%ebx\n"                                                    \
+            "mov %3, %%eax\n"                                                    \
+            "imul %%ebx\n"                                                       \
+            "mov %%eax, %1\n"                                                    \
+            "mov %%edx, %0\n"                                                    \
+            "pushf\n"                                                            \
+            POP_ECX                                                              \
+            "movl %%ecx, %2\n"                                                   \
+            : "=m"(arg0h), "=m"(arg0l), "=m"(HOST_FLAGS)                         \
+            : "m"(arg1), "m"(arg2) : EBX, ECX                                    \
+       )
+#define muluw(arg0h, arg0l, arg1, arg2)                                          \
+    asm volatile(                                                                \
+            "mov %4, %%ebx\n"                                                    \
+            "mov %3, %%eax\n"                                                    \
+            "mul %%ebx\n"                                                        \
+            "mov %%eax, %1\n"                                                    \
+            "mov %%edx, %0\n"                                                    \
+            "pushf\n"                                                            \
+            POP_ECX                                                              \
+            "movl %%ecx, %2\n"                                                   \
+            : "=m"(arg0h), "=m"(arg0l), "=m"(HOST_FLAGS)                         \
+            : "m"(arg1), "m"(arg2) : EBX, ECX                                    \
+       )
+// NOTE : All required flags ( CF, OF, SF & ZF ) are all undefined after x86 "idiv"
+//        and "div". So we have to take care of these explicitly.
 #define divw(arg0, arg1, arg2)                                                   \
     asm volatile(                                                                \
             "mov %3, %%ebx\n"                                                    \
@@ -252,6 +290,9 @@
             "movl %%ecx, %1\n"                                                   \
             : "=m"(arg0), "=m"(HOST_FLAGS) : "m"(arg1), "m"(arg2) : EBX, ECX     \
        )
+// NOTE : flags status for "and" ,"or" and "xor"
+//        OF, CF -> cleared
+//        SF, ZF -> altered according to result
 #define andw(arg0, arg1, arg2)                                                   \
     asm volatile(                                                                \
             "mov %3, %%ebx\n"                                                    \
@@ -282,6 +323,8 @@
             "movl %%ecx, %1\n"                                                   \
             : "=m"(arg0), "=m"(HOST_FLAGS) : "m"(arg1), "m"(arg2) : EBX, ECX     \
        )
+// NOTE : flag status
+//        All flags (CF, OF, ZF and SF) altered.
 #define negw(arg0, arg1)                                                         \
     asm volatile(                                                                \
             "mov %2, %%ebx\n"                                                    \
@@ -293,25 +336,29 @@
             : "=m"(arg0), "=m"(HOST_FLAGS) : "m"(arg1) : EBX, ECX                \
        )
 
-
+// START
 // ------------------------------------- INTEGER ARITHMETIC -------------------------
 // mnemonics :
 //             add    ( add., addo, addo. )
 //             addc   ( addc., addco, addco. )
 //             adde   ( adde., addeo, addeo. )
-//             addi,
+//             addi
 //             addic  ( addic. )
-//             addis,
+//             addis
 //             addme  ( addme., addmeo, addmeo. )
 //             addze  ( addze., addzeo, addzeo. )
 //             subf   ( subf., subfo, subfo. )
 //             subfc  ( subfc., subfco, subfco. )
 //             subfe  ( subfe., subfeo, subfeo. )
-//             subfic,
+//             subfic
 //             subfme ( subfme., subfmeo, subfmeo. )
 //             subfze ( subfze., subfzeo, subfzeo. )
 //             divw   ( divw., divwo, divwo. )
 //             divwu  ( divwu., divwuo, divwuo. )
+//             mulhw  ( mulhw. )
+//             mulhwu ( mulhwu. )
+//             mulli
+//             mullw  ( mullw., mullwo, mullwo. )
 
 X(add)
 {
@@ -632,19 +679,19 @@ X(divw)
 X(divw.)
 {
     divw_code(REG0, REG1, REG2);
-    UPDATE_CR0();
+    UPDATE_CR0_V(REG0);
 }
 X(divwo)
 {
     divw_code(REG0, REG1, REG2);
-    UPDATE_SO_OV();
+    UPDATE_SO_OV_V(0);
     if(REG2 == 0 || (((REG1 & 0xffffffff) == 0x80000000) && REG2 == 0xffffffff)){ UPDATE_SO_OV_V(1); }
 }
 X(divwo.)
 {
     divw_code(REG0, REG1, REG2);
-    UPDATE_SO_OV();
-    UPDATE_CR0();
+    UPDATE_SO_OV_V(0);
+    UPDATE_CR0_V(REG0);
     if(REG2 == 0 || (((REG1 & 0xffffffff) == 0x80000000) && REG2 == 0xffffffff)){ UPDATE_SO_OV_V(1); }
 }
 
@@ -658,24 +705,104 @@ X(divwu)
 X(divwu.)
 {
     divwu_code(REG0, REG1, REG2);
-    UPDATE_CR0();
+    UPDATE_CR0_V(REG0);
 }
 X(divwuo)
 {
     divwu_code(REG0, REG1, REG2);
-    UPDATE_SO_OV();
+    UPDATE_SO_OV_V(0);
     if(REG2 == 0){ UPDATE_SO_OV_V(1); }   // Set OV=1 if division by zero
 }
 X(divwuo.)
 {
     divwu_code(REG0, REG1, REG2);
-    UPDATE_SO_OV();
-    UPDATE_CR0();
+    UPDATE_SO_OV_V(0);
+    UPDATE_CR0_V(REG0);
     if(REG2 == 0){ UPDATE_SO_OV_V(1); }
 }
 
+X(mulhw)
+{
+#define mulhw_code(rD, rA, rB)            \
+    uint32_t dest_l;                      \
+    mulw(rD, dest_l, rA, rB)
 
+    mulhw_code(REG0, REG1, REG2);
+}
+X(mulhw.)
+{
+    mulhw_code(REG0, REG1, REG2);
+    UPDATE_CR0_V(REG0);
+}
+
+X(mulli)
+{
+    uint32_t dest_h;
+    uint32_t imm_val = EXTS_H2W(ARG2);          // Sign extend 16 bit IMM to 32 bit
+    mulw(dest_h, REG0, REG1, imm_val);
+}
+
+X(mulhwu)
+{
+#define mulhwu_code(rD, rA, rB)           \
+    uint32_t dest_l;                      \
+    muluw(rD, dest_l, rA, rB)
+
+    mulhwu_code(REG0, REG1, REG2);
+}
+X(mulhwu.)
+{
+    mulhwu_code(REG0, REG1, REG2);
+    UPDATE_CR0_V(REG0);                 // muluw doesn't set SF or ZF, hence we have to set CR0 by value
+}
+
+X(mullw)
+{
+#define mullw_code(rD, rA, rB)            \
+    uint32_t dest_h;                      \
+    mulw(dest_h, rD, rA, rB)
+
+    mullw_code(REG0, REG1, REG2);
+}
+X(mullw.)
+{
+    mullw_code(REG0, REG1, REG2);
+    UPDATE_CR0_V(REG0);
+}
+X(mullwo)
+{
+    mullw_code(REG0, REG1, REG2);
+    UPDATE_SO_OV();
+}
+X(mullwo.)
+{
+    mullw_code(REG0, REG1, REG2);
+    UPDATE_SO_OV();
+    UPDATE_CR0_V(REG0);
+}
+
+
+// START
 // ---------------------------------- INTEGER LOGICAL -------------------------------
+// mnemonics :
+//               and       ( and. )
+//               andi.
+//               andis.
+//               andc      ( andc. )
+//               cntlzw    ( cntlzw. )
+//               eqv       ( eqv. )
+//               extsb     ( extsb. )
+//               extsh.    ( extsh. )
+//               nand      ( nand. )
+//               nor       ( nor. )
+//               or        ( or. )
+//               ori
+//               oris
+//               orc       ( orc. )
+//               xor       ( xor. )
+//               xori
+//               xoris
+//
 
 /* and variants */
 X(and)
@@ -690,6 +817,7 @@ X(and.)
     and_code(REG0, REG1, REG2);
     UPDATE_CR0();
 }
+
 X(andc)
 {
     UMODE tmp = ~REG2;
@@ -702,15 +830,13 @@ X(andc.)
     UPDATE_CR0();
 }
 
-/* andi_dot:  AND immediate, update CR.
- * rA <- rS + 16(0) || UIMM
- */
 X(andi.)
 {
     UMODE tmp = (uint16_t)ARG2;
     and_code(REG0, REG1, tmp);
     UPDATE_CR0();
 }
+
 X(andis.)
 {
     UMODE tmp = (((uint16_t)ARG2) << 16);
@@ -761,18 +887,30 @@ X(cntlzw.)
     UPDATE_CR0_V(i);
 }
 
+X(eqv)
+{
+#define eqv_code(rD, rA, rB)                   \
+    rD = ~(rA ^ rB)
+
+    eqv_code(REG0, REG1, REG2);
+}
+X(eqv.)
+{
+    eqv_code(REG0, REG1, REG2);
+    UPDATE_CR0_V(REG0);
+}
+
 X(nand)
 {
 #define nand_code(rA, rS, rB)                  \
-    and_code(rA, rS, rB);                      \
-    rA = ~rA
+    rA = ~(rS & rB)
 
     nand_code(REG0, REG1, REG2);
 }
 X(nand.)
 {
     nand_code(REG0, REG1, REG2);
-    UPDATE_CR0();
+    UPDATE_CR0_V(REG0);
 }
 X(neg)
 {
@@ -802,15 +940,14 @@ X(nego.)
 X(nor)
 {
 #define nor_code(rA, rS, rB)                    \
-    orw(rA, rS, rB);                            \
-    rA = ~rA
+    rA = ~(rS | rB)
 
     nor_code(REG0, REG1, REG2);
 }
 X(nor.)
 {
     nor_code(REG0, REG1, REG2);
-    UPDATE_CR0();
+    UPDATE_CR0_V(REG0);
 }
 
 X(or)
@@ -878,6 +1015,7 @@ X(xoris)
     xor_code(REG0, REG1, tmp);
 }
 
+// START
 // ------------------------------- BPU ---------------------------------------------
 // BTB instrs
 X(bbelr)
@@ -889,8 +1027,19 @@ X(bblels)
     // Not implemented
 }
 
+
+// START
 // --------------------------------- branch -----------------------------------------
+// mnemonics :
+//               b     ( ba, bl, bla )
+//               bc    ( bca, bcl, bcla )
+//               bclr  ( bclrl )
+//               bcctr ( bcctrl )
+//
+
 // branch unconditional
+// NOTE : LI is already decoded by the disassembler module into proper target addr ( ARG0 ),
+//        hence "b" and "ba" are same. 
 X(b)
 {
 #define b_code(tgtaddr)      \
@@ -984,8 +1133,15 @@ X(bcctrl)
 }
 
 
+// START
 // ------------------------------------- INTEGER COMPARE ------------------------------------
-/* cmp variants */
+// mnemonics :
+//               cmp
+//               cmpi
+//               cmpl
+//               cmpli
+//
+
 // cmp crD, L, rA, rB 
 X(cmp)
 {
@@ -1073,8 +1229,21 @@ X(cmpli)
 }
 
 
+// START
 // ------------------------- CONDITION REGISTER LOGICAL -------------------------
 // condition register instrs
+// mnemonics :
+//               crand
+//               cror
+//               crxor
+//               crnand
+//               crnor
+//               creqv
+//               crandc
+//               crorc
+//               mcrf
+//
+
 X(crand)
 {
 #define crand_code(crD, crA, crB)                       \
@@ -1139,6 +1308,7 @@ X(mcrf)
     mcrf_code(ARG0, ARG1);
 }
 
+// START
 // ----------------------------------- SYSTEM ------------------------------
 X(isync)
 {
@@ -1268,7 +1438,16 @@ X(wrteei)
     wrteei_code(ARG0);
 }
 
+// START
 // -------------------------- INTEGER SHIFT AND ROTATE -----------------------------
+// mnemonics :
+//               rlwinm  ( rlwinm. )
+//               rlwnm   ( rlwnm. )
+//               rlwimi  ( rlwimi. )
+//               slw     ( slw. )
+//               srw     ( srw. )
+//               srawi   ( srawi. )
+//               sraw    ( sraw. )
 X(rlwimi)
 {
 #define rlwimi_code(rA, rS, SH, MB, ME)                                            \
@@ -1385,10 +1564,31 @@ X(srw.)
 }
 
 // ------------------------------ load/store ---------------------------------------
-// mnemonics : lbz, lbzu, lbzux, lbzx, lha, lhau, lhaux, lhax, lhbrx, lhz,
-//             lhzu, lhzux, lhzx, lmw, lwarx, lwbrx, lwz, lwzu, lwzux, lwzx,
-//             stb, stbu, stbux, stbx, sth, sthbrx, sthu, sthux, sthx, stmw,
-//             stw, stwbrx, stwcx., stwu, stwux, stwx
+// mnemonics : 
+//              lbz          stb
+//              lbzx         stbx
+//              lbzu         stbu
+//              lbzux        stbux
+//              lhz          sth
+//              lhzx         sthx
+//              lhzu         sthu
+//              lhzux        sthux
+//              lha          stw
+//              lhax         stwx
+//              lhau         stwu
+//              lhaux        stwux
+//              lwz
+//              lwzx
+//              lwzu
+//              lwzux
+//
+//              lhbrx        sthbrx
+//              lwbrx        stwbrx
+//
+//              lmw          stmw
+//
+//              lwarx        stwcx.
+//              
 
 // byte loads
 X(lbz)
@@ -1748,12 +1948,14 @@ X(stwcx.)
     CLEAR_RESV(ea);
 }
 
+// START
 // ------------------------------ TLB ----------------------------------------------
 X(tlbwe)
 {
     TLBWE();
 }
 
+// START
 // ------------------------------ SPE -----------------------------------------------
 X(brinc)
 {
