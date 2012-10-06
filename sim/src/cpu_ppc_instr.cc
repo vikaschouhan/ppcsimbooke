@@ -125,6 +125,11 @@
 // TLB macros
 #define TLBWE()                  CPU->m_l2tlb.tlbwe(PPCREG(REG_MAS0), \
                                      PPCREG(REG_MAS1), PPCREG(REG_MAS2), PPCREG(REG_MAS3), PPCREG(REG_MAS7), PPCREG(REG_HID0))
+#define TLBRE()                  CPU->m_l2tlb.tlbre(PPCREG(REG_MAS0), \
+                                     PPCREG(REG_MAS1), PPCREG(REG_MAS2), PPCREG(REG_MAS3), PPCREG(REG_MAS7), PPCREG(REG_HID0))
+#define TLBIVAX(ea)              CPU->m_l2tlb.tlbive(ea)
+#define TLBSX(ea)                CPU->m_l2tlb.tlbse(ea, PPCREG(REG_MAS0), \
+                                     PPCREG(REG_MAS1), PPCREG(REG_MAS2), PPCREG(REG_MAS3), PPCREG(REG_MAS6), PPCREG(REG_MAS7), PPCREG(REG_HID0))
 
 // In case of register operands, their pointers are instead passed in corresponding ARG parameter.
 #define ARG_BASE                 IC->arg
@@ -1950,9 +1955,93 @@ X(stwcx.)
 
 // START
 // ------------------------------ TLB ----------------------------------------------
+// mnemonics :
+//              tlbivax
+//              tlbre
+//              tlbsx
+//              tlbsync
+//              tlbwe
+
 X(tlbwe)
 {
     TLBWE();
+}
+
+X(tlbre)
+{
+    TLBRE();
+}
+
+X(tlbsx)
+{
+    uint64_t ea = REG1;
+    if(ARG0){ ea += REG0; }
+    TLBSX(ea);
+}
+
+X(tlbivax)
+{
+    uint64_t ea = REG1;
+    if(ARG0){ ea += REG0; }
+    TLBIVAX(ea);
+}
+
+X(tlbsync)
+{
+    //dummy
+}
+
+// START
+// ------------------------------ CACHE -------------------------------------------
+// mnemonics :
+//               dcba
+//               dcbf
+//               dcbz
+//               dcbst
+//               dcbt
+//               dcbtst
+//               icbi
+//               icbt
+// TODO  : Right now, no cache is implemented, hence cache instructions are all dummy.
+
+X(dcba)
+{
+    // dummy
+}
+
+X(dcbf)
+{
+    // dummy
+}
+
+X(dcbz)
+{
+    // dummy
+}
+
+X(dcbst)
+{
+    // dummy
+}
+
+X(dcbt)
+{
+    // dummy
+}
+
+X(dcbtst)
+{
+    // dummy
+}
+
+X(icbi)
+{
+    // dummy
+}
+
+X(icbt)
+{
+    // dummy
 }
 
 // START

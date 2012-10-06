@@ -110,9 +110,9 @@ template<int tlb4K_ns, int tlb4K_nw, int tlbCam_ne> class TLB_PPC {
     void print_tlbs();
     void print_tlbs2();
     
-    void tlbre(uint32_t &mas0, uint32_t &mas1, uint32_t &mas2, uint32_t &mas3, uint32_t &mas7, uint32_t hid0);
-    void tlbwe(uint32_t mas0, uint32_t mas1, uint32_t mas2, uint32_t mas3, uint32_t mas7, uint32_t hid0);
-    void tlbse(uint64_t ea, uint32_t &mas0, uint32_t &mas1, uint32_t &mas2, uint32_t &mas3, uint32_t &mas6, uint32_t &mas7, uint32_t hid0);
+    void tlbre(uint64_t &mas0, uint64_t &mas1, uint64_t &mas2, uint64_t &mas3, uint64_t &mas7, uint64_t hid0);
+    void tlbwe(uint64_t mas0, uint64_t mas1, uint64_t mas2, uint64_t mas3, uint64_t mas7, uint64_t hid0);
+    void tlbse(uint64_t ea, uint64_t &mas0, uint64_t &mas1, uint64_t &mas2, uint64_t &mas3, uint64_t &mas6, uint64_t &mas7, uint64_t hid0);
     void tlbive(uint64_t ea);
     std::pair<uint64_t, uint8_t> xlate(uint64_t ea, bool as, uint8_t pid, uint8_t rwx, bool pr);
 
@@ -339,14 +339,14 @@ TLB_T void TLB_PPC_T::print_tlbs2(){
  * @brief : Reads TLB entry matching the information passed in MAS registers
  *
  */
-TLB_T void TLB_PPC_T::tlbre(uint32_t &mas0, uint32_t &mas1, uint32_t &mas2, uint32_t &mas3, uint32_t &mas7, uint32_t hid0){
+TLB_T void TLB_PPC_T::tlbre(uint64_t &mas0, uint64_t &mas1, uint64_t &mas2, uint64_t &mas3, uint64_t &mas7, uint64_t hid0){
     LOG("DEBUG4") << MSG_FUNC_START;
 
     unsigned tlbsel = EBMASK(mas0,       MAS0_TLBSEL);
     unsigned esel   = EBMASK(mas0,       MAS0_ESEL);
     uint64_t epn    = EBMASK(mas2,       MAS2_EPN);
-    uint64_t rpn    = EBMASK(mas3,       MAS3_RPN);
-    unsigned tsize  = EBMASK(mas1,       MAS1_TSIZE);
+    //uint64_t rpn    = EBMASK(mas3,       MAS3_RPN);
+    //unsigned tsize  = EBMASK(mas1,       MAS1_TSIZE);
 
     // check validity of page numbers
     //LASSERT_THROW(CHK_VALID_PN(epn, tsize), sim_except(SIM_EXCEPT_EINVAL, "Illegal MAS2[EPN] or MAS1[TSIZE]."), DEBUG4);
@@ -382,7 +382,7 @@ TLB_T void TLB_PPC_T::tlbre(uint32_t &mas0, uint32_t &mas1, uint32_t &mas2, uint
  *         mas0, mas1, mas2, mas3, mas7 -> MAS registers.
  *         hid0 -> HID0 register
  */
-TLB_T void TLB_PPC_T::tlbwe(uint32_t mas0, uint32_t mas1, uint32_t mas2, uint32_t mas3, uint32_t mas7, uint32_t hid0){
+TLB_T void TLB_PPC_T::tlbwe(uint64_t mas0, uint64_t mas1, uint64_t mas2, uint64_t mas3, uint64_t mas7, uint64_t hid0){
     LOG("DEBUG4") << MSG_FUNC_START;
 
     unsigned tlbsel = EBMASK(mas0,    MAS0_TLBSEL);
@@ -434,13 +434,13 @@ TLB_T void TLB_PPC_T::tlbwe(uint32_t mas0, uint32_t mas1, uint32_t mas2, uint32_
  * @brief : This function searches for a tlb entry matching the passed effective address , TS = MAS6[SAS] and TID = MAS6[SPID0]
  *
  */
-TLB_T void TLB_PPC_T::tlbse(uint64_t ea, uint32_t &mas0, uint32_t &mas1, uint32_t &mas2, uint32_t &mas3, uint32_t &mas6, uint32_t &mas7, uint32_t hid0){
+TLB_T void TLB_PPC_T::tlbse(uint64_t ea, uint64_t &mas0, uint64_t &mas1, uint64_t &mas2, uint64_t &mas3, uint64_t &mas6, uint64_t &mas7, uint64_t hid0){
     LOG("DEBUG4") << MSG_FUNC_START;
 
     uint32_t  as  = EBMASK(mas6,  MAS6_SAS);
     uint32_t pid  = EBMASK(mas6,  MAS6_SPID0);
     size_t   tsel = -1;
-    size_t   ssel = -1;
+    //size_t   ssel = -1;
     size_t   wsel = -1;
     t_tlb_entry *entry = NULL;
 
@@ -453,7 +453,7 @@ TLB_T void TLB_PPC_T::tlbse(uint64_t ea, uint32_t &mas0, uint32_t &mas1, uint32_
                (pid == tlb_type.tlb_set[j].tlb_way[k].tid)){                                                \
                 entry = &(tlb_type.tlb_set[j].tlb_way[k]);                                                  \
                 tsel = tlb_type.tlbno;                                                                      \
-                ssel = j;                                                                                   \
+                /*ssel = j;*/                                                                               \
                 wsel = k;                                                                                   \
                 goto exit_loop_0;                                                                           \
             }                                                                                               \
@@ -466,8 +466,11 @@ TLB_T void TLB_PPC_T::tlbse(uint64_t ea, uint32_t &mas0, uint32_t &mas1, uint32_
     exit_loop_0:
     /* Valid bit set means, search was successful */
     mas1  |= IBMASK((entry)?1:0, MAS1_V);
+
     /* Now return if the search was unsuccessful */
-    assert_ret(entry != NULL, 1);
+    if(entry == NULL){
+        RETURNVOID(DEBUG4);
+    }
 
     mas0  |= IBMASK(tsel,                                 MAS0_TLBSEL);
     mas0  |= IBMASK(wsel,                                 MAS0_ESEL);
@@ -485,7 +488,7 @@ TLB_T void TLB_PPC_T::tlbse(uint64_t ea, uint32_t &mas0, uint32_t &mas1, uint32_
 
     mas3  |= IBMASK(entry->ra >> MIN_PGSZ_SHIFT,          MAS3_RPN);
     mas3  |= IBMASK(entry->u03,                           MAS3_U03);
-    mas3  |= IBMASK(PERMIS_TO_PPC_PERMIS(entry->permis),  MAS3_PERMIS);
+    mas3  |= IBMASK(PERMIS_TO_PPCPERMIS(entry->permis),   MAS3_PERMIS);
 
     if(EBMASK(hid0, HID0_EN_MAS7_UPDATE))
         mas7 |= IBMASK((entry->ra >> 32) & 0xf,  MAS7_RPN);    /* Upper 4 bits of rpn */
@@ -513,7 +516,7 @@ TLB_T void TLB_PPC_T::tlbive(uint64_t ea){
 
     uint8_t  tlbsel = (ea >> 3) & 0x1;
     uint8_t  inv_all = (ea >> 2) & 0x1;
-    t_tlb_entry &entry = NULL;
+    t_tlb_entry *entry = NULL;
 
     /* Test if INV_ALL is set and tlbno = 1 */
     if(inv_all && (tlbsel == 1)){
