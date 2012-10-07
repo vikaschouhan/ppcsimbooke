@@ -16,6 +16,7 @@ CROSS_OBJDUMP  := $(CROSS_PREFIX)objdump
 ENABLE_LOG     := 1
 ENABLE_DEBUG   := 0
 BUILD_FMT_UTIL := 1
+ENABLE_SPE     := 0               # SPE is diabled right now
 
 #============================= Define All EXE targets here =======================================
 # Exes for tests
@@ -71,10 +72,22 @@ ifeq ($(ENABLE_DEBUG), 1)
 endif
 
 #============================ TARGET FLAGS =========================================================
-CROSS_CFLAGS                := -mregnames -Wa,-me500x2 -Wa,-mspe -I. -I$(SIM_ROOT)/inc 
-CROSS_LDFLAGS               := -L -n -N -T $(DUT_TESTS_ROOT)/e500v2_eabi_default.lcf -Wa,-me500x2 -Wa,-mspe
+CROSS_CFLAGS                := -mregnames -Wa,-me500x2 -I. -I$(SIM_ROOT)/inc 
+CROSS_LDFLAGS               := -L -n -N -T $(DUT_TESTS_ROOT)/e500v2_eabi_default.lcf -Wa,-me500x2
 CROSS_EXTFLAGS              := -D__ASSEMBLY__ -DCONFIG_E500 -DCONFIG_BOOKE -DCONFIG_FSL_EMB_PERFMON -std=c99
 CROSS_OBJS_COMM             := common.o newlib_stubs.o startup.o
+
+#
+# NOTE : -me500x2 by default generates embedded booke FPU instructions.
+#        Not sure, if it's a bug or something else.
+#        So, we override FPU using either software emulation or SPE
+ifeq ($(ENABLE_SPE), 1)
+	# Enable single/double precision floating point instrs using SPE
+	CROSS_EXTFLAGS   += -te500v2  -mspe
+else
+	# Enable floating point emulation, if SPE is disabled
+	CROSS_EXTFLAGS   += -msoft-float
+endif
 
 #============================ BUILD formatting UTILITY =============================================
 # Buid formatting utility ( only once )
