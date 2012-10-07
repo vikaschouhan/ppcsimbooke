@@ -31,6 +31,7 @@ SIM_TEST_EXES := test_ppcdis_interface        \
 			 test_lru_class                   \
 			 test_bm_class
 DUT_TEST_EXES := test_001                     \
+	         test_sqrt_0                      \
 	         test_palindrome_0                \
 			 test_palindrome_1
 PYWRAP_SO := ppcsim
@@ -114,6 +115,9 @@ all: $(EXES)
 
 #======= BUILD DUT TESTS
 test_001: $(CROSS_OBJS_COMM) test_001.o
+	$(CROSS_CC) $(CROSS_LDFLAGS) $(CROSS_EXTFLAGS) -Wl,-Map=$(@).map -o $(@).elf $^
+
+test_sqrt_0: $(CROSS_OBJS_COMM) test_sqrt_0.o
 	$(CROSS_CC) $(CROSS_LDFLAGS) $(CROSS_EXTFLAGS) -Wl,-Map=$(@).map -o $(@).elf $^
 
 test_palindrome_0: $(CROSS_OBJS_COMM) test_palindrome_0.o
