@@ -38,13 +38,50 @@
 #include <cstring>                     // for strcmp
 #include "third_party/ppcdis/ppcdis.h"
 
+// some global variables
+ppc_cpu_t  cpu_dialect = -1;
+
+// Return new dialect according to specified cpu name
+ppc_cpu_t ppc_parse_cpu(const char *arg)
+{
+    ppc_cpu_t ppc_cpu = 0;
+
+    /* Sticky bits.  */
+    ppc_cpu_t retain_flags = ppc_cpu & (PPC_OPCODE_ALTIVEC | PPC_OPCODE_VSX
+                             | PPC_OPCODE_SPE | PPC_OPCODE_ANY);
+    unsigned int i;
+
+    for (i = 0; i < sizeof (ppc_opts) / sizeof (ppc_opts[0]); i++)
+    {
+        if (strcmp (ppc_opts[i].opt, arg) == 0)
+        {
+            if (ppc_opts[i].sticky)
+            {
+                retain_flags |= ppc_opts[i].sticky;
+                if ((ppc_cpu & ~(ppc_cpu_t) (PPC_OPCODE_ALTIVEC | PPC_OPCODE_VSX
+                       | PPC_OPCODE_SPE | PPC_OPCODE_ANY)) != 0)
+                break;
+            }
+            ppc_cpu = ppc_opts[i].cpu;
+            break;
+        }
+    }
+    if (i >= sizeof (ppc_opts) / sizeof (ppc_opts[0]))
+        return 0;
+
+    ppc_cpu |= retain_flags;
+    return ppc_cpu;
+}
+
 // Get a 64 bit unique value from the lookup table using the opcode's name
 // this 64 bit value = ( 32 bit opcode value ) << 32 | opcode index number in lookup table
 uint64_t get_opcode_hash(std::string opcname){
 
     for (int indx = 0; indx < powerpc_num_opcodes; indx++){
         if(!strcmp(opcname.c_str(), powerpc_opcodes[indx].name)){
-            return (powerpc_opcodes[indx].opcode << 32 | indx);
+            if (!(cpu_dialect != (ppc_cpu_t)(-1) &&
+                       ((powerpc_opcodes[indx].flags & cpu_dialect) == 0 || (powerpc_opcodes[indx].deprecated & cpu_dialect) != 0)))
+                return (powerpc_opcodes[indx].opcode << 32 | indx);
         }
     }
     // Throw a warning on undefined opcodes
@@ -116,6 +153,9 @@ int main(int argc, char** argv){
     // Generate a local tcc file after resolving all macros
     gcc_cmdline = "g++ -E -DUMODE=uint32_t -DSMODE=int32_t -DCPU=pcpu -DIC=ic " + ifilename + " &> " + ofilename_tmp;
     system(gcc_cmdline.c_str());
+
+    // parse cpu dialect
+    cpu_dialect = ppc_parse_cpu("e500x2");
     
     std::ifstream  istr;
     std::ofstream  ostr;

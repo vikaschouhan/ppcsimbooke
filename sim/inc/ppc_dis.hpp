@@ -133,7 +133,7 @@ void DIS_PPC::init_opcd_indices(){
 
 // Initialize dialect
 void DIS_PPC::init_dialect(){
-   m_dialect = ppc_parse_cpu (0, "e500");
+   m_dialect = ppc_parse_cpu (0, "e500x2");
 }
 
 // Return new dialect according to specified cpu name
