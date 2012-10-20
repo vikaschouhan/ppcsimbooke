@@ -1,3 +1,10 @@
 A framework for bare metal powerpc applications/tests.
 ============================================================
-Coopyright : Vikas Chouhan ( presentisgood@gmail.com )
+Copyright : Vikas Chouhan ( presentisgood@gmail.com )
+
+This framework uses newlib embedded C library and somethings ofcourse don't work for obvious reasons.
+Problems / broken functionalities.
+
+1. scanf family of funtions won't work.
+2. printf seems to be either broken for float/double specifiers or the support is entirely missing.
+

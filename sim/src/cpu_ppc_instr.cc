@@ -1456,10 +1456,10 @@ X(wrteei)
 X(rlwimi)
 {
 #define rlwimi_code(rA, rS, SH, MB, ME)                                            \
-    uint32_t tmp = (rS << (SH & 0x1f)) | (rS >> (32 - (SH & 0x1f)));               \
-    uint32_t mask = (MB <= ME) ? (((1L << (ME - MB + 1)) - 1) << (31 - ME)) :      \
-                     ~(((1L << (MB - ME + 1)) - 1) << (31 - MB));                  \
-    rA = (tmp & mask) | (rA & ~mask);
+    uint64_t n = (SH & 0x1f);                                                      \
+    uint64_t r = ROTL32(B_32_63(rS), n);                                           \
+    uint64_t m = MASK(MB + 32, ME + 32);                                           \
+    rA = (r & m) | (rA & ~m)
 
     rlwimi_code(REG0, REG1, ARG2, ARG3, ARG4);
 }
@@ -1471,10 +1471,10 @@ X(rlwimi.)
 X(rlwinm)
 {
 #define rlwinm_code(rA, rS, SH, MB, ME)                                            \
-    uint32_t tmp = (rS << (SH & 0x1f)) | (rS >> (32 - (SH & 0x1f)));               \
-    uint32_t mask = (MB <= ME) ? (((1L << (ME - MB + 1)) - 1) << (31 - ME)) :      \
-                     ~(((1L << (MB - ME + 1)) - 1) << (31 - MB));                  \
-    rA = (tmp & mask);
+    uint64_t n = (SH & 0x1f);                                                      \
+    uint64_t r = ROTL32(B_32_63(rS), n);                                           \
+    uint64_t m = MASK(MB + 32, ME + 32);                                           \
+    rA = (r & m)
 
     rlwinm_code(REG0, REG1, ARG2, ARG3, ARG4);
 }
@@ -1486,10 +1486,10 @@ X(rlwinm.)
 X(rlwnm)
 {
 #define rlwnm_code(rA, rS, rB, MB, ME)                                             \
-    uint32_t tmp = (rS << (rB & 0x1f)) | (rS >> (32 - (rB & 0x1f)));               \
-    uint32_t mask = (MB <= ME) ? (((1L << (ME - MB + 1)) - 1) << (31 - ME)) :      \
-                     ~(((1L << (MB - ME + 1)) - 1) << (31 - MB));                  \
-    rA = (tmp & mask);
+    uint64_t n = (rB & 0x1f);                                                      \
+    uint64_t r = ROTL32(B_32_63(rS), n);                                           \
+    uint64_t m = MASK(MB+32, ME+32);                                               \
+    rA = (r & m)
 
     rlwnm_code(REG0, REG1, REG2, ARG3, ARG4);
 }
@@ -1503,9 +1503,13 @@ X(rlwnm.)
 X(slw)
 {
 #define slw_code(rA, rS, rB)                                                       \
-    uint32_t tmp = (rS << (rB & 0x1f)) | (rS >> (32 - (rB & 0x1f)));               \
-    uint32_t mask = (((rB >> 5) & 0x1) == 0) ? ~((1L << (rB & 0x1f)) - 1) : 0;     \
-    rA = (tmp & mask);
+    uint64_t n = (rB & 0x1f);                                                      \
+    uint64_t r = ROTL32(B_32_63(rS), n);                                           \
+    uint64_t m;                                                                    \
+    uint8_t rB_58 = (rB >> 5) & 0x1;                                               \
+    if(rB_58 == 0)  m = MASK(32, (63 - n));                                        \
+    else            m = 0;                                                         \
+    rA = (r & m)
 
     slw_code(REG0, REG1, REG2);
 }
@@ -1517,14 +1521,15 @@ X(slw.)
 X(sraw)
 {
 #define sraw_code(rA, rS, rB)                                                            \
-    uint64_t n = rB & 0x1f;                                                              \
-    uint64_t tmp = ROTL32(B_32_63(rS), (64 - n));                                        \
-    uint64_t mask;                                                                       \
-    if(((rB >> 5) & 0x1) == 0)  mask = MASK(n+32, 63);                                   \
-    else                        mask = 0;                                                \
-    int sign = ((rS >> 31) & 0x1);                                                       \
-    rA = (tmp & mask) | (((sign) ? 0xffffffffffffffffL : 0L) & ~mask);                   \
-    update_xer_ca(sign & ((tmp & ~mask) != 0));
+    uint64_t n = (rB & 0x1f);                                                            \
+    uint64_t r = ROTL32(B_32_63(rS), (64 - n));                                          \
+    uint64_t m;                                                                          \
+    uint8_t rB_58 = (rB >> 5) & 0x1;                                                     \
+    if(rB_58 == 0)  m = MASK(n+32, 63);                                                  \
+    else            m = 0;                                                               \
+    int s = ((rS >> 31) & 0x1);                                                          \
+    rA = (r & m) | (((s) ? 0xffffffffffffffffL : 0L) & ~m);                              \
+    update_xer_ca(s & (B_32_63(r & ~m) != 0))
 
     sraw_code(REG0, REG1, REG2);
 }
@@ -1536,12 +1541,12 @@ X(sraw.)
 X(srawi)
 {
 #define srawi_code(rA, rS, SH)                                                           \
-    uint64_t n = SH & 0x1f;                                                              \
-    uint64_t tmp = ROTL32(B_32_63(rS), (64 - n));                                        \
-    uint64_t mask = MASK(n+32, 63);                                                      \
-    int sign = ((rS >> 31) & 0x1);                                                       \
-    rA = (tmp & mask) | (((sign) ? 0xffffffffffffffffL : 0L) & ~mask);                   \
-    update_xer_ca(sign & (B_32_63(tmp & ~mask) != 0));
+    uint64_t n = (SH & 0x1f);                                                            \
+    uint64_t r = ROTL32(B_32_63(rS), (64 - n));                                          \
+    uint64_t m = MASK(n+32, 63);                                                         \
+    int s = ((rS >> 31) & 0x1);                                                          \
+    rA = (r& m) | (((s) ? 0xffffffffffffffffL : 0L) & ~m);                               \
+    update_xer_ca(s & (B_32_63(r & ~m) != 0))
 
     srawi_code(REG0, REG1, ARG2);
 }
@@ -1553,12 +1558,13 @@ X(srawi.)
 X(srw)
 {
 #define srw_code(rA, rS, rB)                                                             \
-    uint64_t n = rB & 0x1f;                                                              \
-    uint64_t tmp = ROTL32(B_32_63(rS), (64 - n));                                        \
-    uint64_t mask;                                                                       \
-    if (((rB >> 5) & 0x1) == 0)   mask = MASK(n+32, 63);                                 \
-    else                          mask = 0;                                              \
-    rA = (tmp & mask);
+    uint64_t n = (rB & 0x1f);                                                            \
+    uint64_t r = ROTL32(B_32_63(rS), (64 - n));                                          \
+    uint64_t m;                                                                          \
+    uint8_t rB_58 = ((rB >> 5) & 0x1);                                                   \
+    if ( rB_58 == 0)   m = MASK(n+32, 63);                                               \
+    else               m = 0;                                                            \
+    rA = (r & m)
 
     srw_code(REG0, REG1, REG2);
 }
