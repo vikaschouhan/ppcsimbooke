@@ -7,3 +7,4 @@ S.No.    TEST_NAME                             STATUS
 2.      test_palindrome_0              :       passes
 3.      test_palindrome_1              :       passes
 4.      test_sqrt_0                    :       passes
+5.      test_fft_0                     :       fails

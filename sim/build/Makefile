@@ -33,7 +33,9 @@ SIM_TEST_EXES := test_ppcdis_interface        \
 DUT_TEST_EXES := test_001                     \
 	         test_sqrt_0                      \
 	         test_palindrome_0                \
-			 test_palindrome_1
+			 test_palindrome_1                \
+			 test_fft_0
+
 PYWRAP_SO := ppcsim
 
 EXES := $(PYWRAP_SO) $(SIM_TEST_EXES) $(DUT_TEST_EXES)
@@ -76,6 +78,7 @@ endif
 CROSS_CFLAGS                := -mregnames -Wa,-me500x2 -I. -I$(SIM_ROOT)/inc 
 CROSS_LDFLAGS               := -L -n -N -T $(DUT_TESTS_ROOT)/e500v2_eabi_default.lcf -Wa,-me500x2
 CROSS_EXTFLAGS              := -D__ASSEMBLY__ -DCONFIG_E500 -DCONFIG_BOOKE -DCONFIG_FSL_EMB_PERFMON -std=c99
+CROSS_EXT_LIBS              := -lm
 CROSS_OBJS_COMM             := common.o newlib_stubs.o startup.o
 
 #
@@ -115,16 +118,19 @@ all: $(EXES)
 
 #======= BUILD DUT TESTS
 test_001: $(CROSS_OBJS_COMM) test_001.o
-	$(CROSS_CC) $(CROSS_LDFLAGS) $(CROSS_EXTFLAGS) -Wl,-Map=$(@).map -o $(@).elf $^
+	$(CROSS_CC) $(CROSS_LDFLAGS) $(CROSS_EXTFLAGS) -Wl,-Map=$(@).map -o $(@).elf $^ $(CROSS_EXT_LIBS)
 
 test_sqrt_0: $(CROSS_OBJS_COMM) test_sqrt_0.o
-	$(CROSS_CC) $(CROSS_LDFLAGS) $(CROSS_EXTFLAGS) -Wl,-Map=$(@).map -o $(@).elf $^
+	$(CROSS_CC) $(CROSS_LDFLAGS) $(CROSS_EXTFLAGS) -Wl,-Map=$(@).map -o $(@).elf $^ $(CROSS_EXT_LIBS)
 
 test_palindrome_0: $(CROSS_OBJS_COMM) test_palindrome_0.o
-	$(CROSS_CC) $(CROSS_LDFLAGS) $(CROSS_EXTFLAGS) -Wl,-Map=$(@).map -o $(@).elf $^
+	$(CROSS_CC) $(CROSS_LDFLAGS) $(CROSS_EXTFLAGS) -Wl,-Map=$(@).map -o $(@).elf $^ $(CROSS_EXT_LIBS)
 
 test_palindrome_1: $(CROSS_OBJS_COMM) test_palindrome_1.o
-	$(CROSS_CC) $(CROSS_LDFLAGS) $(CROSS_EXTFLAGS) -Wl,-Map=$(@).map -o $(@).elf $^
+	$(CROSS_CC) $(CROSS_LDFLAGS) $(CROSS_EXTFLAGS) -Wl,-Map=$(@).map -o $(@).elf $^ $(CROSS_EXT_LIBS)
+
+test_fft_0: $(CROSS_OBJS_COMM) test_fft_0.o
+	$(CROSS_CC) $(CROSS_LDFLAGS) $(CROSS_EXTFLAGS) -Wl,-Map=$(@).map -o $(@).elf $^ $(CROSS_EXT_LIBS)
 
 dut_tests: $(DUT_TEST_EXES)
 

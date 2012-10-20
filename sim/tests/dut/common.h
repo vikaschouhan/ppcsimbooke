@@ -8,7 +8,6 @@ void log_fail();
 #define LOG_PASS()  log_pass()
 #define LOG_FAIL()  log_fail(); return -1
 
-#define EPSILON  0.001
-#define FLOAT_EQ(a, b)  (fabs(a-b) < EPSILON) ? 1:0
+#define FLOAT_EQ(a, b, EPSILON)  ((fabs(a-b) < EPSILON) ? 1:0)
 
 #endif
