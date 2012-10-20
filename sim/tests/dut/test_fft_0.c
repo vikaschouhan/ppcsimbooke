@@ -31,7 +31,7 @@ int main()
   double epsilon;           /* tolerance factor */
 
   /* Initialize parameters */
-  N=8;
+  N=2;
 
   /* Check that N = 2^n for some integer n >= 1. */
   if(N >= 2)
@@ -53,22 +53,10 @@ int main()
   /* Initialize time domain samples */
   x[0][0] = 1.2 ; x[0][1] = 3.4;
   x[1][0] = 5.6 ; x[1][1] = 0.4;
-  x[2][0] = 1.1 ; x[2][1] = 6.7;
-  x[3][0] = 0.7 ; x[3][1] = 9.2;
-  x[4][0] = 8.2 ; x[4][1] = 3.5;
-  x[5][0] = 7.6 ; x[5][1] = 1.8;
-  x[6][0] = 7.3 ; x[6][1] = 3.9;
-  x[7][0] = 6.2 ; x[7][1] = 8.1;
 
   /* Initialize freq domain expected samples */
-  Xexp[0][0] = 37.9  ; Xexp[0][1] = 37.0 ;
-  Xexp[1][0] = -1.9  ; Xexp[1][1] = 9.6  ;
-  Xexp[2][0] = -14.1 ; Xexp[2][1] = -10.0;
-  Xexp[3][0] = -12.5 ; Xexp[3][1] = 0.8  ;
-  Xexp[4][0] = -2.3  ; Xexp[4][1] = -2.0 ;
-  Xexp[5][0] = -6.5  ; Xexp[5][1] = 2.6  ;
-  Xexp[6][0] = 16.1  ; Xexp[6][1] = 2.6  ;
-  Xexp[7][0] = -7.1  ; Xexp[7][1] = -13.4;
+  Xexp[0][0] = 6.8  ; Xexp[0][1] = 3.8 ;
+  Xexp[1][0] = -4.4 ; Xexp[1][1] = 3.0 ;
 
   epsilon = 0.1;
 

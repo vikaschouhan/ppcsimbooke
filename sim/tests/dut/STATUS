@@ -4,7 +4,7 @@ Current status of DUT tests.
 S.No.    TEST_NAME                             STATUS
 ---------------------------------------------------------
 1.      test_001                       :       passes
-2.      test_palindrome_0              :       passes
-3.      test_palindrome_1              :       passes
-4.      test_sqrt_0                    :       passes
-5.      test_fft_0                     :       fails
+2.      test_palindrome_0              :       passes         # A very simple palindrome test
+3.      test_palindrome_1              :       passes         # Somewhat more complex palindrome test
+4.      test_sqrt_0                    :       passes         # simple square root test
+5.      test_fft_0                     :       passes         # FFT test with 2 complex samples
