@@ -429,6 +429,8 @@ BOOST_PYTHON_MODULE(ppcsim)
     std::cout << "=============================================================================================================="  << std::endl;
     std::cout << "This a simulator for booke based powerPC cores and is intended to simulate core, and the memory subsystem."      << std::endl; 
     std::cout << "Copyright Vikas Chouhan ( presentisgood@gmail.com ) 2012"                                                        << std::endl;
+    std::cout << "=============================================================================================================="  << std::endl;
+    std::cout << std::endl;
 
     // Redirect all logs to this file.
     LOG_TO_FILE("ppcsim.log");

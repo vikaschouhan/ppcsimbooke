@@ -32,6 +32,12 @@
 // NOTE: 1. CPU and IC should come from the parsing utility.
 //       2. update_xer() updates all bits of XER. Some freescale ppc instrs only update CA, others only update
 //          SO and OV at a time. To update only XER[CA] use update_xer_ca()
+//
+// TERMINOLOGIES :
+//       1. byte means 8 bits.
+//       2. half-word means 16 bits.
+//       3. word means 32 bits.
+//       4. double/double-word means 64 bits.
 
 // Global defines for this template file
 //
@@ -165,13 +171,19 @@
 
 // for sign extension ( extending sign bits from source type to destination type )
 #define EXTS(t_tgt, t_src, val)    ((t_tgt)((t_src)(val)))
+
 #define EXTS_2N(t_src, val)        EXTS(SMODE, t_src, val)                // sign extension to native type
 #define EXTS_B2N(val)              EXTS(SMODE, int8_t, val)               // sign extension : byte to native
 #define EXTS_H2N(val)              EXTS(SMODE, int16_t, val)              // sign extension : half word to native
 #define EXTS_W2N(val)              EXTS(SMODE, int32_t, val)              // sign extension : word to native
+
 #define EXTS_H2W(val)              EXTS(int32_t, int16_t, val)            // sign extension : half to word
 #define EXTS_B2W(val)              EXTS(int32_t, int8_t, val)             // sign extension : byte to word
 #define EXTS_B2H(val)              EXTS(int16_t, int8_t, val)             // sign extension : byte to half-word
+
+#define EXTS_B2D(val)              EXTS(int64_t, int8_t, val)             // sign extension : byte to double-word
+#define EXTS_H2D(val)              EXTS(int64_t, int16_t, val)            // sign extension : half-word to double-word
+#define EXTS_W2D(val)              EXTS(int64_t, int32_t, val)            // sign extension : word to double-word
 
 // rotation macros
 #define ROTL64(x, y)               ((uint64_t)(((x) << (y)) | ((x) >> (64 - (y)))))                           // x=64bit, y=64bit
@@ -181,8 +193,9 @@
 #define BITMASK(x)                 ((x) ? ((1ULL << (64 - (x))) - 1) : -1)                                                // 64 bit Bitmask for bit pos x
 #define MASK(x, y)                 (((x) < (y)) ? (BITMASK(x) ^ BITMASK(y+1)) : ~(BITMASK(x+1) ^ BITMASK(y)))             // Generate mask of 1's from x to y
 
-// 32_63
-#define B_32_63(x)                 ((x) & 0xffffffff)
+// 32_63 (x should be 64 bits)
+#define B_32_63(x)                 ((x) & 0xffffffff)                    // get bits 32:63
+#define B_N(x, n)                  (((x) >> (63 - n)) & 0x1)             // get bit n
 
 // Byte reversing macros
 #define SWAPB32(data)              ((((data >> 24) & 0xff) <<  0) ||  \
@@ -875,21 +888,19 @@ X(extsh.)
 X(cntlzw)
 {
 #define cntlzw_code(rA, rS)                     \
-    uint32_t tmp = rS;                          \
-    int i;                                      \
-    for (i=0; i<32; i++) {                      \
-        if (tmp & 0x80000000)                   \
-            break;                              \
-        tmp <<= 1;                              \
+    uint64_t n = 32;                            \
+    while(n < 64){                              \
+        if(B_N(rS, n))  break;                  \
+        n++;                                    \
     }                                           \
-    rA = i;
+    rA = (n - 32)
 
     cntlzw_code(REG0, REG1);
 }
 X(cntlzw.)
 {
     cntlzw_code(REG0, REG1);
-    UPDATE_CR0_V(i);
+    UPDATE_CR0_V(REG0);
 }
 
 X(eqv)
@@ -1151,84 +1162,78 @@ X(bcctrl)
 X(cmp)
 {
 #define cmp_code(crD, L, rA, rB)                                       \
-    unsigned res = 0;                                                  \
-    switch(L){                                                         \
-        case 0:                                                        \
-            if((int32_t)rA > (int32_t)rB){ res |= 0x2; }               \
-            else if((int32_t)rA < (int32_t)rB){ res |= 0x4; }          \
-            else { res |= 0x1; }                                       \
-            break;                                                     \
-        case 1:                                                        \
-            if((int64_t)rA > (int64_t)rB){ res |= 0x2; }               \
-            else if((int64_t)rA < (int64_t)rB){ res |= 0x4; }          \
-            else { res |= 0x1; }                                       \
-            break;                                                     \
+    int64_t a, b, c;                                                   \
+    uint64_t crX;                                                      \
+    if(L == 0){                                                        \
+        a = EXTS_W2D(B_32_63(rA));                                     \
+        b = EXTS_W2D(B_32_63(rB));                                     \
+    }else{                                                             \
+        a = rA;                                                        \
+        b = rB;                                                        \
     }                                                                  \
-    update_crF(crD, (res << 1));                                       \
-    update_crf((crD*4+3), get_xer_so());
+    if(a < b)          { c = 0x4; }                                    \
+    else if(a > b)     { c = 0x2; }                                    \
+    else               { c = 0x1; }                                    \
+    crX = (c << 1) | GET_SO();                                         \
+    update_crF(crD, crX)
 
     cmp_code(ARG0, ARG1, REG2, REG3);
 }
 X(cmpi)
 {
 #define cmpi_code(crD, L, rA, SIMM)                                    \
-    unsigned res = 0;                                                  \
-    switch(L){                                                         \
-        case 0:                                                        \
-            if((int32_t)rA > (int32_t)SIMM){ res |= 0x2; }             \
-            else if((int32_t)rA < (int32_t)SIMM){ res |= 0x4; }        \
-            else { res |= 0x1; }                                       \
-            break;                                                     \
-        case 1:                                                        \
-            if((int64_t)rA > (int64_t)SIMM){ res |= 0x2; }             \
-            else if((int64_t)rA < (int64_t)SIMM){ res |= 0x4; }        \
-            else { res |= 0x1; }                                       \
-            break;                                                     \
+    int64_t a, b, c;                                                   \
+    uint64_t crX;                                                      \
+    if(L == 0){                                                        \
+        a = EXTS_W2D(B_32_63(rA));                                     \
+    }else{                                                             \
+        a = rA;                                                        \
     }                                                                  \
-    update_crF(ARG0, (res << 1));                                      \
-    update_crf((ARG0*4+3), get_xer_so());
+    b = EXTS_H2D(SIMM);                                                \
+    if(a < b)          { c = 0x4; }                                    \
+    else if(a > b)     { c = 0x2; }                                    \
+    else               { c = 0x1; }                                    \
+    crX = (c << 1) | GET_SO();                                         \
+    update_crF(crD, crX)
 
     cmpi_code(ARG0, ARG1, REG2, ARG3);
 }
 X(cmpl)
 {
 #define cmpl_code(crD, L, rA, rB)                                      \
-    unsigned res = 0;                                                  \
-    switch(L){                                                         \
-        case 0:                                                        \
-            if((uint32_t)rA > (uint32_t)rB){ res |= 0x2; }             \
-            else if((uint32_t)rA < (uint32_t)rB){ res |= 0x4; }        \
-            else { res |= 0x1; }                                       \
-            break;                                                     \
-        case 1:                                                        \
-            if((uint64_t)rA > (uint64_t)rB){ res |= 0x2; }             \
-            else if((uint64_t)rA < (uint64_t)rB){ res |= 0x4; }        \
-            else { res |= 0x1; }                                       \
-            break;                                                     \
+    uint64_t a, b, c;                                                  \
+    uint64_t crX;                                                      \
+    if(L == 0){                                                        \
+        a = B_32_63(rA);                                               \
+        b = B_32_63(rB);                                               \
+    }else{                                                             \
+        a = rA;                                                        \
+        b = rB;                                                        \
     }                                                                  \
-    update_crF(ARG0, (res << 1));                                      \
-    update_crf((ARG0*4+3), get_xer_so());
+    if(a < b)          { c = 0x4; }                                    \
+    else if(a > b)     { c = 0x2; }                                    \
+    else               { c = 0x1; }                                    \
+    crX = (c << 1) | GET_SO();                                         \
+    update_crF(crD, crX)
 
     cmpl_code(ARG0, ARG1, REG2, REG3);
 }
 X(cmpli)
 {
 #define cmpli_code(crD, L, rA, UIMM)                                   \
-    unsigned res = 0;                                                  \
-    switch(L){                                                         \
-        case 0:                                                        \
-            if((uint32_t)rA > (uint32_t)UIMM){ res |= 0x2; }           \
-            else if((uint32_t)rA < (uint32_t)UIMM){ res |= 0x4; }      \
-            else { res |= 0x1; }                                       \
-            break;                                                     \
-        case 1:                                                        \
-            if((uint64_t)rA > (uint64_t)UIMM){ res |= 0x2; }           \
-            else if((uint64_t)rA < (uint64_t)UIMM){ res |= 0x4; }      \
-            else { res |= 0x1; }                                       \
-            break;                                                     \
+    uint64_t a, b, c;                                                  \
+    uint64_t crX;                                                      \
+    if(L == 0){                                                        \
+        a = B_32_63(rA);                                               \
+    }else{                                                             \
+        a = rA;                                                        \
     }                                                                  \
-    update_crF(ARG0, (res << 1));                                      \
-    update_crf((ARG0*4+3), get_xer_so());
+    b = UIMM;                                                          \
+    if(a < b)          { c = 0x4; }                                    \
+    else if(a > b)     { c = 0x2; }                                    \
+    else               { c = 0x1; }                                    \
+    crX = (c << 1) | GET_SO();                                         \
+    update_crF(crD, crX)
 
     cmpli_code(ARG0, ARG1, REG2, ARG3);
 }
