@@ -1858,12 +1858,18 @@ X(tlbsync)
 // mnemonics :
 //               dcba
 //               dcbf
+//               dcbi
+//               dcblc
 //               dcbz
 //               dcbst
 //               dcbt
 //               dcbtst
+//               dcbtstls
 //               icbi
+//               icblc
 //               icbt
+//               icbtls
+//
 // TODO  : Right now, no cache is implemented, hence cache instructions are all dummy.
 
 X(dcba)
@@ -1872,6 +1878,16 @@ X(dcba)
 }
 
 X(dcbf)
+{
+    // dummy
+}
+
+X(dcbi)
+{
+    // dummy
+}
+
+X(dcblc)
 {
     // dummy
 }
@@ -1896,12 +1912,27 @@ X(dcbtst)
     // dummy
 }
 
+X(dcbtstls)
+{
+    // dummy
+}
+
 X(icbi)
 {
     // dummy
 }
 
+X(icblc)
+{
+    // dummy
+}
+
 X(icbt)
+{
+    // dummy
+}
+
+X(icbtls)
 {
     // dummy
 }
@@ -2150,6 +2181,19 @@ X(mfpmr)
     rD = PMR(PMRN);
 
     mfpmr_code(ARG0, REG1);
+}
+
+// START
+// ------------------------------ INTEGER SELECT -----------------------------------
+// mnemonics :
+//              isel
+
+X(isel)
+{
+    uint64_t a = 0;
+    if(ARG1) { a = REG1; }
+    if(B_N(CR, (32 + ARG3)) == 0){ REG0 = a;    }
+    else                         { REG0 = REG2; }
 }
 
 // START
