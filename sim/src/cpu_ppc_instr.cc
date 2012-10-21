@@ -70,8 +70,8 @@
 #define PPCREG(regid)            (CPU->reg(regid))
 #define PPCREGN(reg_name)        (CPU->regn(reg_name))
 
-// MSR_CM
-#define CM                       ((PPCREG(REG_MSR) & MSR_CM) ? 1 : 0)
+// MSR bits
+#define MSR_CM                   ((PPCREG(REG_MSR) & MSR_CM) ? 1 : 0)
 
 #define GPR(gprno)               PPCREG(REG_GPR0 + gprno)
 #define SPR(sprno)               PPCREG(REG_SPR0 + sprno)
@@ -81,6 +81,12 @@
 #define CR                       PPCREG(REG_CR)
 #define LR                       PPCREG(REG_LR)
 #define CTR                      PPCREG(REG_CTR)
+#define SRR0                     PPCREG(REG_SRR0)
+#define SRR1                     PPCREG(REG_SRR1)
+#define CSRR0                    PPCREG(REG_CSRR0)
+#define CSRR1                    PPCREG(REG_CSRR1)
+#define MCSRR0                   PPCREG(REG_MCSRR0)
+#define MCSRR1                   PPCREG(REG_MCSRR1)
 #define PC                       CPU->m_pc
 #define NIP                      CPU->m_nip
 #define update_cr0               CPU->update_cr0
@@ -1088,7 +1094,7 @@ X(bc)
 
 #define bc_code(BO, BI, tgtaddr)                                                     \
     if(!BO2(BO)) CTR = CTR - 1;                                                      \
-    int ctr_ok  = BO2(BO) | ((((CM) ? CTR: (CTR & 0xffffffff)) != 0) ^ BO3(BO));     \
+    int ctr_ok  = BO2(BO) | ((((MSR_CM) ? CTR: (CTR & 0xffffffff)) != 0) ^ BO3(BO)); \
     int cond_ok = BO0(BO) | (get_crf(BI) == BO1(BO));                                \
     if(ctr_ok & cond_ok) NIP = tgtaddr;
 
@@ -1116,7 +1122,7 @@ X(bclr)
 {
 #define bclr_code(BO, BI, BH)                                                       \
     if(!BO2(BO)) CTR = CTR - 1;                                                     \
-    int ctr_ok = BO2(BO) | ((((CM) ? CTR: (CTR & 0xffffffff)) != 0) ^ BO3(BO));     \
+    int ctr_ok = BO2(BO) | ((((MSR_CM) ? CTR: (CTR & 0xffffffff)) != 0) ^ BO3(BO)); \
     int cond_ok = BO0(BO) | (get_crf(BI) == BO1(BO));                               \
     if(ctr_ok & cond_ok) NIP = LR & ~0x3;
 
@@ -1318,135 +1324,6 @@ X(mcrf)
     mcrf_code(ARG0, ARG1);
 }
 
-// START
-// ----------------------------------- SYSTEM ------------------------------
-X(isync)
-{
-    // Do nothing
-}
-
-// Barrier
-X(mbar)
-{
-    //Do nothing
-}
-
-
-X(mcrxr)
-{
-#define mcrxr_code(crfD)                 \
-    update_crF(crfD, get_xerF(0));
-
-    mcrxr_code(ARG0);
-}
-X(mfcr)
-{
-#define mfcr_code(rD)                               \
-    rD = (CR & (uint64_t)0xffffffff);
-
-    mfcr_code(ARG0);
-}
-X(mtcrf)
-{
-#define mtcrf_code(CRM, rS)                         \
-    uint64_t mask = 0, i;                           \
-    uint8_t tmp = CRM;                              \
-    for(i=0; i<8; i++){                             \
-        mask |= (tmp & 0x80)?(0xf << (7 - i)*4):0;  \
-        tmp <<= 1;                                  \
-    }                                               \
-    CR = ((rS & mask) | (CR & ~mask));
-
-    mtcrf_code(ARG0, REG1);
-}
-
-// Move to/from MSR
-X(mfmsr)
-{
-    REG0 = MSR;
-}
-X(mtmsr)
-{
-    MSR = REG0;
-}
-
-// Move to/from SPR
-X(mfspr)
-{
-#define mfspr_code(rD, SPRN)                   \
-    rD = SPR(SPRN);
-
-    mfspr_code(REG0, ARG1);
-}
-X(mtspr)
-{
-#define mtspr_code(SPRN, rS)                  \
-    SPR(SPRN) = rS;
-
-    mtspr_code(ARG0, REG1);
-}
-
-// Move to/from PMR
-X(mtpmr)
-{
-#define mtpmr_code(PMRN, rS)                  \
-    PMR(PMRN) = rS;
-
-    mtpmr_code(ARG0, REG1);
-}
-X(mfpmr)
-{
-#define mfpmr_code(rD, PMRN)                  \
-    rD = PMR(PMRN);
-
-    mfpmr_code(ARG0, REG1);
-}
-
-
-X(msync)
-{
-    // Do nothing
-}
-X(sync)
-{
-    // Do nothing ( same as msync )
-}
-
-
-
-// Return from Interrupt
-X(rfi)
-{
-}
-X(rfci)
-{
-}
-X(rfmci)
-{
-}
-
-// System call
-X(sc)
-{
-}
-
-// wrtee variants
-X(wrtee)
-{
-#define wrtee_code(rS)            \
-    MSR &= ~(1L << 15);           \
-    MSR |= rS & (1L << 15);
-
-    wrtee_code(REG0);
-}
-X(wrteei)
-{
-#define wrteei_code(E)            \
-    MSR &= ~(1 << 15);            \
-    MSR |= ((E & 0x1) << 15);
-
-    wrteei_code(ARG0);
-}
 
 // START
 // -------------------------- INTEGER SHIFT AND ROTATE -----------------------------
@@ -1603,7 +1480,6 @@ X(srw.)
 //
 //              lmw          stmw
 //
-//              lwarx        stwcx.
 //              
 
 // byte loads
@@ -1791,17 +1667,6 @@ X(lmw)
     }
 }
 
-// Reservation load
-X(lwarx)
-{
-    UMODE tmp = 0;
-    UMODE ea;
-    if(ARG1){ tmp = REG1; }
-    ea = tmp + REG2;
-    SET_RESV(ea, 4);
-    REG0 = LOAD32(ea);
-}
-
 // byte stores
 X(stb)
 {
@@ -1948,21 +1813,7 @@ X(stmw)
     }
 }
 
-// Reservation store
-X(stwcx.)
-{
-    UMODE tmp = 0;
-    UMODE ea;
-    if(ARG1){ tmp = REG1; }
-    ea = tmp + REG2;
-    if(CHECK_RESV(ea, 4)){
-        STORE32(ea, REG0);
-        update_crF(0, 0x20 | get_xer_so());  // Set ZERO bit
-    }else{
-        update_crF(0, get_xer_so());
-    }
-    CLEAR_RESV(ea);
-}
+
 
 // START
 // ------------------------------ TLB ----------------------------------------------
@@ -2056,7 +1907,258 @@ X(icbt)
 }
 
 // START
+// ------------------------------ SYSTEM LINKAGE -----------------------------------
+// menmonics :
+//             rfi
+//             rfmci
+//             rfci
+//             sc
+//             mfmsr
+//             mtmsr
+//             wrtee
+//             wrteei
+
+X(rfi)
+{
+    MSR = SRR1;
+    NIP = ((UMODE)SRR0) & ~0x3ULL;       // Mask Lower 2 bits to zero
+}
+
+X(rfmci)
+{
+    MSR = MCSRR1;
+    NIP = ((UMODE)MCSRR0) & ~0x3ULL;
+}
+
+X(rfci)
+{
+    MSR = CSRR1;
+    NIP = ((UMODE)CSRR0) & ~0x3ULL;
+}
+
+X(sc)
+{
+    throw PPC_EXCEPT(PPC_EXCEPT_SC, "system call");     // raise a system call exception
+}
+
+X(mfmsr)
+{
+    uint64_t newmsr = B_32_63(REG0);
+    uint8_t newmsr_cm = ((newmsr & MSR_CM) ? 1:0);
+    if((MSR_CM == 0) && (newmsr_cm == 1)) { NIP &= 0xffffffff; }
+
+    // Another check is required for MSR_GS == 1, but since we don't have guest mode
+    // this is irrelevant.
+    MSR = newmsr;
+}
+
+X(mtmsr)
+{
+    REG0 = B_32_63(MSR);
+}
+
+X(wrtee)
+{
+#define wrtee_code(rS)            \
+    MSR &= ~(1L << 15);           \
+    MSR |= rS & (1L << 15);
+
+    wrtee_code(REG0);
+}
+X(wrteei)
+{
+#define wrteei_code(E)            \
+    MSR &= ~(1 << 15);            \
+    MSR |= ((E & 0x1) << 15);
+
+    wrteei_code(ARG0);
+}
+
+// START
+// ------------------------------ TRAP ----------------------------------------------
+// mnemonics :
+//             twi
+//             tw
+
+X(twi)
+{
+#define twi_code(TO, rA, SI)                                                           \
+    int64_t a = EXTS_W2D(B_32_63(rA));                                                 \
+    int64_t b = EXTS_H2D(SI);                                                          \
+    uint64_t au = rA;                                                                  \
+    uint64_t bu = SI;                                                                  \
+    bool trap = false;                                                                 \
+    if((a < b)   && ((TO >> 0) & 0x1)) { trap = true; }                                \
+    if((a > b)   && ((TO >> 1) & 0x1)) { trap = true; }                                \
+    if((a == b)  && ((TO >> 2) & 0x1)) { trap = true; }                                \
+    if((au < bu) && ((TO >> 3) & 0x1)) { trap = true; }                                \
+    if((au > bu) && ((TO >> 4) & 0x1)) { trap = true; }                                \
+    if(trap == true){                                                                  \
+        throw PPC_EXCEPT(PPC_EXCEPTION_PRG, PPC_EXCEPT_PRG_TRAP, "System Trap");       \
+    }
+
+    twi_code(ARG0, REG1, ARG2);
+}
+
+X(tw)
+{
+#define tw_code(TO, rA, rB)                                                            \
+    int64_t a = EXTS_W2D(B_32_63(rA));                                                 \
+    int64_t b = EXTS_W2D(B_32_63(rB));                                                 \
+    uint64_t au = rA;                                                                  \
+    uint64_t bu = rB;                                                                  \
+    bool trap = false;                                                                 \
+    if((a < b)   && ((TO >> 0) & 0x1)) { trap = true; }                                \
+    if((a > b)   && ((TO >> 1) & 0x1)) { trap = true; }                                \
+    if((a == b)  && ((TO >> 2) & 0x1)) { trap = true; }                                \
+    if((au < bu) && ((TO >> 3) & 0x1)) { trap = true; }                                \
+    if((au > bu) && ((TO >> 4) & 0x1)) { trap = true; }                                \
+    if(trap == true){                                                                  \
+        throw PPC_EXCEPT(PPC_EXCEPTION_PRG, PPC_EXCEPT_PRG_TRAP, "System Trap");       \
+    }
+
+    tw_code(ARG0, REG1, REG2);
+}
+
+// START
+// ------------------------------ PROCESSOR CONTROL --------------------------------
+// mnemonics :
+//              mtcrf
+//              mcrxr
+//              mfcr
+//              mtspr
+//              mfspr
+
+X(mtcrf)
+{
+#define mtcrf_code(CRM, rS)                         \
+    uint64_t mask = 0, i;                           \
+    uint8_t tmp = CRM;                              \
+    for(i=0; i<8; i++){                             \
+        mask |= (tmp & 0x80)?(0xf << (7 - i)*4):0;  \
+        tmp <<= 1;                                  \
+    }                                               \
+    CR = ((B_32_63(rS) & mask) | (CR & ~mask))
+
+    mtcrf_code(ARG0, REG1);
+}
+
+X(mcrxr)
+{
+#define mcrxr_code(crfD)                 \
+    uint8_t bf = (crfD & 0xff);          \
+    update_crF(bf, get_xerF(0));         \
+    /* clear XER[32:35] */               \
+    XER &= 0xfffffff
+
+    mcrxr_code(ARG0);
+}
+
+X(mfcr)
+{
+#define mfcr_code(rD)                               \
+    rD = B_32_63(CR)
+
+    mfcr_code(ARG0);
+}
+
+X(mfspr)
+{
+#define mfspr_code(rD, SPRN)                   \
+    rD = SPR(SPRN);
+
+    mfspr_code(REG0, ARG1);
+}
+
+X(mtspr)
+{
+#define mtspr_code(SPRN, rS)                  \
+    SPR(SPRN) = rS;
+
+    mtspr_code(ARG0, REG1);       // FIXME : No special checks for SPRN no. Will fix this later on.
+}
+
+// START
+// ------------------------------ MEMORY SYNCHRONIZATION ---------------------------
+// mnemonics :
+//             isync
+//             lwarx
+//             mbar
+//             msync
+//             stwcx.
+
+X(isync)
+{
+    // Do nothing
+}
+
+// Barrier
+X(mbar)
+{
+    //Do nothing
+}
+
+X(msync)
+{
+    // Do nothing
+}
+
+// Reservation load
+X(lwarx)
+{
+    UMODE tmp = 0;
+    UMODE ea;
+    if(ARG1){ tmp = REG1; }
+    ea = tmp + REG2;
+    SET_RESV(ea, 4);
+    REG0 = LOAD32(ea);
+}
+
+// Reservation store
+X(stwcx.)
+{
+    UMODE tmp = 0;
+    UMODE ea;
+    if(ARG1){ tmp = REG1; }
+    ea = tmp + REG2;
+    if(CHECK_RESV(ea, 4)){
+        STORE32(ea, REG0);
+        update_crF(0, 0x20 | get_xer_so());  // Set ZERO bit
+    }else{
+        update_crF(0, get_xer_so());
+    }
+    CLEAR_RESV(ea);
+}
+
+// START
+// ------------------------------ PERFORMANCE MONITORING ---------------------------
+// mnemonics :
+//             mfpmr
+//             mtpmr
+
+X(mtpmr)
+{
+#define mtpmr_code(PMRN, rS)                  \
+    PMR(PMRN) = rS;
+
+    mtpmr_code(ARG0, REG1);
+}
+
+X(mfpmr)
+{
+#define mfpmr_code(rD, PMRN)                  \
+    rD = PMR(PMRN);
+
+    mfpmr_code(ARG0, REG1);
+}
+
+// START
 // ------------------------------ SPE -----------------------------------------------
+// mnemonics :
+//             brinc
+//             evxor
+//
+
 X(brinc)
 {
     // Not implemented right now

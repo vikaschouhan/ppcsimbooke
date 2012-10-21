@@ -5,6 +5,6 @@ Copyright : Vikas Chouhan ( presentisgood@gmail.com )
 This framework uses newlib embedded C library and somethings ofcourse don't work for obvious reasons.
 Problems / broken functionalities.
 
-1. scanf family of funtions won't work.
-2. printf seems to be either broken for float/double specifiers or the support is entirely missing.
+1. [s]scanf family of funtions won't work.
+2. [s]printf family of functions seem to be broken. It can't parse %d, %f specifiers etc correctly.
 

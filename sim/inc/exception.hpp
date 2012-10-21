@@ -109,6 +109,11 @@ class sim_except_ppc : public std::exception {
         m_errcode[1] = c1;
         m_addr       = a;
     }
+    sim_except_ppc(uint64_t c0, std::string message = "PPC exception"){
+        m_errcode[0] = c0;
+        m_message    = message;
+    }
+
     // Destructor
     ~sim_except_ppc() throw(){
     }

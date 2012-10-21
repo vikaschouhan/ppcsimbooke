@@ -221,7 +221,7 @@ int write(int file, const void *ptr, size_t len) {
     case STDOUT_FILENO: /*stdout*/
     case STDERR_FILENO: /* stderr */
         for (n = 0; n < len; n++) {
-            *trace_ptr++ = *(char *)ptr++;
+            *trace_ptr++ = *(unsigned char *)ptr++;
         }
         break;
     default:
