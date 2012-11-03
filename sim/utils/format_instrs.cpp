@@ -257,7 +257,8 @@ int main(int argc, char** argv){
                  << get_opcode_hash(opcode_org) << "] = " << opcode_n << "::" << opcode_fun << ";" << std::endl;
             ostr << std::endl;
         }else{
-            // Skip comments and blank lines
+            // Add comments and blank lines
+            ostr << *curr_ptr;
             curr_ptr++;
         }
     }

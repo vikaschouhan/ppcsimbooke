@@ -1,16 +1,17 @@
 /*
- *  POWER/PowerPC instructions.
+ * ------------------------------------------------------------------------------------
+ *  PowerPC BookE RTL description.
+ * ------------------------------------------------------------------------------------
  *
- *  This file format was taken from a similar file from "gxemu" project by Anders Gavare,
- *  but it doesn't contain any of the code in any of those files.
+ *  NOTE: This file format was taken from a similar file from "gxemu" project by
+ *        Anders Gavare, but it doesn't contain any of the code in any of those files.
  *
  *  -----------------------------------------------------------------------------------
  *  Author : Vikas Chouhan ( presentisgood@gmail.com )
  *  copyright (C) 2012.
  *  
- *  All instructions have been heavily conditioned for Freescale ppc processors.
  *  e500v2 is taken as a reference, but the code is generic and can be used for higher
- *  64 bit cores.
+ *  booke 64 bit cores.
  *
  *  NOTE:
  *  This file is not a regular C/C++ file ( although it looks like it :) ).
@@ -18,7 +19,7 @@
  *  pseudocode implementation. An external utility uses this template to generate a new
  *  header/C++ file before direct use.
  *
- *  Pseudocodes are written in accordance with Power ISA 2.06 provided by power.org and
+ *  RTL is written in accordance with Power ISA 2.06 provided by power.org and
  *  PowerPC e500 core ref. manual provided by Freescale.
  *
  */
@@ -196,11 +197,20 @@
 #define ROTL32(x, y)               ROTL64((((x) & 0xffffffff) | (((x) & 0xffffffff) << 32)), (y))             // x=32bit, y=64bit
 
 // mask
-#define BITMASK(x)                 ((x) ? ((1ULL << (64 - (x))) - 1) : -1)                                                // 64 bit Bitmask for bit pos x
-#define MASK(x, y)                 (((x) < (y)) ? (BITMASK(x) ^ BITMASK(y+1)) : ~(BITMASK(x+1) ^ BITMASK(y)))             // Generate mask of 1's from x to y
+typedef struct BITMASK_TYPE {
+    inline static uint64_t BITMASK_FN(uint64_t x){
+        if(x){
+            return (1ULL << (64 - (x))) - 1;
+        }else
+            return 0xffffffffffffffffULL;
+    }
+} BITMASK_TYPE;
+#define BITMASK(x)                 BITMASK_TYPE::BITMASK_FN(x)                                                      // 64 bit bitmask for bitpos x
+#define MASK(x, y)                 (((x) < (y)) ? (BITMASK(x) ^ BITMASK(y+1)) : ~(BITMASK(x+1) ^ BITMASK(y)))       // Generate mask of 1's from x to y
 
 // 32_63 (x should be 64 bits)
 #define B_32_63(x)                 ((x) & 0xffffffff)                    // get bits 32:63
+#define B_0_31(x)                  (((x) >> 32) & 0xffffffff)            // get bits 0:31
 #define B_N(x, n)                  (((x) >> (63 - n)) & 0x1)             // get bit n
 
 // Byte reversing macros
@@ -2196,19 +2206,74 @@ X(isel)
     else                         { REG0 = REG2; }
 }
 
-// START
+
+/////////////////////////////////////////////////////////////////////////////////////
+
 // ------------------------------ SPE -----------------------------------------------
-// mnemonics :
-//             brinc
-//             evxor
-//
+
+typedef struct BITREV {
+    inline uint64_t static BITREV_FN(uint64_t x){
+        uint64_t result = 0;
+        uint64_t mask = 1;
+        int shift = 31;
+        int cnt = 32;
+        uint64_t t;
+
+        while(cnt > 0){
+           t = x & mask;
+           if(shift >= 0){ result |= t << shift; }
+           else{ result |= (t >> -shift); }
+           cnt --;
+           shift -= 2;
+           mask <<= 1;
+        }
+        return result;
+    }
+} BITREV;
+
+// SPE macros
+#define SATURATE(ov, carry, sat_ovn, sat_ov, val)                ((ov) ? ((carry) ? sat_ovn : sat_ov) : val)
+#define SL(value, cnt)                                           ((cnt > 31) ? 0 : (value << cnt))
+#define BITREVERSE(x)                                            BITREV::BITREV_FN(x)
+
+
+// ----------------------------------------------------------------------------------
 
 X(brinc)
 {
-    // Not implemented right now
+    // FIXME : Verify value of n for e500v2
+    int n         = 32;  // Implementation dependant
+    uint64_t mask = (MASK(64-n, 63) & REG2);
+    uint64_t a    = (MASK(64-n, 63) & REG1);
+
+    uint64_t d    = BITREVERSE(1 + BITREVERSE(a | ~mask));
+    REG0          = (MASK(0, 63-n) & REG1) | (d & mask);
+}
+
+X(efdabs)
+{
+    REG0 = REG1 & 0x7fffffffffffffffULL;       // Change sign bit to zero
+}
+X(efdnabs)
+{
+    REG0 = (REG1 & 0x7fffffffffffffffULL) | 0x8000000000000000ULL;
+}
+X(efdneg)
+{
+    REG0 = -REG1;     // both double precision FP & uint64_t are 64 bits and sign bit is always MSB
 }
 
 X(evxor)
 {
     REG0 = REG1 ^ REG2;
+}
+
+X(evmergehi)
+{
+    REG0 = (B_0_31(REG1) << 32) | B_0_31(REG2);
+}
+
+X(evmergelo)
+{
+    REG0 = (B_32_63(REG1) << 32) | B_32_63(REG2);
 }

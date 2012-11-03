@@ -1,8 +1,12 @@
 #ifndef _COMMON_H
 #define _COMMON_H
 
+#include <stdio.h>
+
 void log_pass();
 void log_fail();
+
+void print_float(float num);
 
 // Macros for logging pass/fail status
 #define LOG_PASS()  log_pass()

@@ -1,5 +1,6 @@
 // Support file
 //
+#include <stdio.h>
 
 extern void* __heap_start;
 extern void* __heap_end;
@@ -19,7 +20,9 @@ char* res_curr_ptr   = (char*)&__result_start;
 char* trace_top      = (char*)&__trace_start;
 char* trace_bottom   = (char*)&__trace_end;
 
+#ifndef NULL
 #define NULL  (0)
+#endif
 
 // log pass status
 void log_pass(){
@@ -39,3 +42,46 @@ void log_fail(){
 }
 
 // Add custom user defined functions
+
+
+void print_float(float num){
+    char c,sign, tmp[66];
+    unsigned char* str = tmp;
+    unsigned int c0;
+    unsigned long long expnt = 10;
+    int precision = 10;
+    int l;
+    float r;
+    int i;
+
+    const char *digits="0123456789";
+
+    for(i=0; i<precision; i++){
+        expnt *= 10;
+    }
+
+    /* calculate left and right parts */
+    i = 0;
+    l = (int)num;
+    r = num - (float)l;
+
+    if(l < 0){
+        l = -l;
+        //printf("-");
+        printf("minus ");
+    }
+
+    printf("%u", l);
+
+    *str++ =  '.';
+    for(i=0; i<precision; i++){
+        c0 = (unsigned int)(r * 10);
+        if(c0 < 0 || c0 > 9)
+            *str++ = '0';
+        else
+            *str++ = digits[c0];
+        r = r*10 - (unsigned int)c0;
+    }
+
+    printf("%s\n", tmp);
+}
