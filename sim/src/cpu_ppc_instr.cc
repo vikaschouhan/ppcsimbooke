@@ -2236,6 +2236,14 @@ typedef struct BITREV {
 #define SL(value, cnt)                                           ((cnt > 31) ? 0 : (value << cnt))
 #define BITREVERSE(x)                                            BITREV::BITREV_FN(x)
 
+// NOTE : ABS_32(0x8000_0000) = 0x8000_0000
+#define ABS_32(x)                                                ((((int32_t)(x)) > 0) ? (x) : -((int32_t)(x)))
+#define ABS_64(x)                                                ((((int64_t)(x)) > 0) ? (x) : -((int64_t)(x)))
+
+// Sign extension macros
+// 5 BI (bits) to word
+#define EXTS_5BI2W(x)                                            ((((x) >> 4) & 0x1) ? (((x) & 0xfffff) | ~0xfffffUL) : ((x) & 0xfffff))
+
 
 // ----------------------------------------------------------------------------------
 
@@ -2248,6 +2256,16 @@ X(brinc)
 
     uint64_t d    = BITREVERSE(1 + BITREVERSE(a | ~mask));
     REG0          = (MASK(0, 63-n) & REG1) | (d & mask);
+}
+
+X(evabs)
+{
+    REG0 = (ABS_32(B_0_31(REG1)) << 32) | ABS_32(B_32_63(REG1));
+}
+
+X(evaddiw)
+{
+    REG0 = (B_32_63(B_0_31(REG1) + EXTS_5BI2W(ARG2)) << 32) | B_32_63(B_32_63(REG1) + EXTS_5BI2W(ARG2));
 }
 
 X(efdabs)

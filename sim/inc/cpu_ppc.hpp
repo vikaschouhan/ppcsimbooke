@@ -558,13 +558,11 @@ CPU_T void CPU_PPC_T::init_reg_attrs(){
 
     // Set MSR attributes
     m_cpu_regs.msr.attr  = REG_READ_SUP  | REG_WRITE_SUP   | REG_READ_USR  ;
+    m_cpu_regs.acc.attr  = REG_READ_SUP  | REG_WRITE_SUP   | REG_READ_USR  | REG_WRITE_USR ;
 
-    // Set GPRs and FPRs attributes
+    // Set GPRs attributes
     for(i=0; i<PPC_NGPRS; i++){
         PPCREGATTR(gpr, i)  = REG_READ_SUP  | REG_WRITE_SUP   | REG_READ_USR  | REG_WRITE_USR ;
-    }
-    for(i=0; i<PPC_NFPRS; i++){
-        PPCREGATTR(fpr, i)  = REG_READ_SUP  | REG_WRITE_SUP   | REG_READ_USR  | REG_WRITE_USR ;
     }
 
     // Set SPRs attributes
@@ -1271,7 +1269,7 @@ CPU_T void CPU_PPC_T::init_reghash(){
 
     m_reghash["msr"]        = &(m_cpu_regs.msr);                   m_ireghash[REG_MSR]         = m_reghash["msr"];
     m_reghash["cr"]         = &(m_cpu_regs.cr);                    m_ireghash[REG_CR]          = m_reghash["cr"];
-    m_reghash["fpscr"]      = &(m_cpu_regs.fpscr);                 m_ireghash[REG_FPSCR]       = m_reghash["fpscr"];
+    m_reghash["acc"]        = &(m_cpu_regs.acc);                   m_ireghash[REG_ACC]         = m_reghash["acc"];
 
     m_reghash["atbl"]       = &(m_cpu_regs.spr[SPRN_ATBL]);        m_ireghash[REG_ATBL]        = m_reghash["atbl"];
     m_reghash["atbu"]       = &(m_cpu_regs.spr[SPRN_ATBU]);        m_ireghash[REG_ATBU]        = m_reghash["atbu"];
@@ -1403,11 +1401,6 @@ CPU_T void CPU_PPC_T::init_reghash(){
         m_reghash[static_cast<std::ostringstream *>(&(std::ostringstream() << "r" << i))->str()] = &(m_cpu_regs.gpr[i]); 
         m_reghash[static_cast<std::ostringstream *>(&(std::ostringstream() << "gpr" << i))->str()] = &(m_cpu_regs.gpr[i]);
         m_ireghash[REG_GPR0 + i] = &(m_cpu_regs.gpr[i]);
-    }
-    for (size_t i=0; i<PPC_NFPRS; i++){
-        m_reghash[static_cast<std::ostringstream *>(&(std::ostringstream() << "f" << i))->str()] = &(m_cpu_regs.fpr[i]);
-        m_reghash[static_cast<std::ostringstream *>(&(std::ostringstream() << "fpr" << i))->str()] = &(m_cpu_regs.fpr[i]);
-        m_ireghash[REG_FPR0 + i] = &(m_cpu_regs.fpr[i]);
     }
 
     // Add more later on
@@ -1693,16 +1686,6 @@ CPU_T void CPU_PPC_T::dump_state(int columns, std::ostream &ostr, int dump_all_s
         if(++colno >= columns){ ostr << std::endl; colno = 0; }
     }
     ostr << std::endl;
-    ostr << std::endl;
-    colno = 0;
-
-    // dump fprs
-    for(i=0; i<PPC_NFPRS; i++){
-        strout << "f" << std::dec << i << " = " << std::hex << std::showbase << PPCREG(REG_FPR0 + i);
-        ostr << std::left << std::setw(23) << strout.str() << "    ";
-        strout.str("");
-        if(++colno >= columns){ ostr << std::endl; colno = 0; }
-    }
     ostr << std::endl;
     colno = 0;
 

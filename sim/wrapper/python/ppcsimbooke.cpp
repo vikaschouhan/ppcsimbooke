@@ -138,8 +138,6 @@ int py_sig_callback(){
 // Add attributes for GPRs
 #define ADD_GPR(reg_num, reg_alias) \
     ppc_regs_py.add_property(reg_alias, make_function(&ppc_regs::get_gpr<reg_num>, return_value_policy<reference_existing_object>()))
-#define ADD_FPR(reg_num, reg_alias) \
-    ppc_regs_py.add_property(reg_alias, make_function(&ppc_regs::get_fpr<reg_num>, return_value_policy<reference_existing_object>()))
 #define ADD_SPR(reg_num, reg_alias) \
     ppc_regs_py.add_property(reg_alias, make_function(&ppc_regs::get_spr<reg_num>, return_value_policy<reference_existing_object>()))
 #define ADD_PMR(reg_num, reg_alias) \
@@ -155,16 +153,6 @@ int py_sig_callback(){
        ADD_GPR(20, "R20" ); ADD_GPR(21, "R21" ); ADD_GPR(22, "R22" ); ADD_GPR(23, "R23" );  \
        ADD_GPR(24, "R24" ); ADD_GPR(25, "R25" ); ADD_GPR(26, "R26" ); ADD_GPR(27, "R27" );  \
        ADD_GPR(28, "R28" ); ADD_GPR(29, "R29" ); ADD_GPR(30, "R30" ); ADD_GPR(31, "R31" );  \
-                                                                                            \
-      /* Add attributes for FPRS */                                                         \
-      ADD_FPR(0,  "F0"  ); ADD_FPR(1,  "F1"  ); ADD_FPR(2,  "F2"  ); ADD_FPR(3,  "F3"  );   \
-      ADD_FPR(4,  "F4"  ); ADD_FPR(5,  "F5"  ); ADD_FPR(6,  "F6"  ); ADD_FPR(7,  "F7"  );   \
-      ADD_FPR(8,  "F8"  ); ADD_FPR(9,  "F9"  ); ADD_FPR(10, "F10" ); ADD_FPR(11, "F11" );   \
-      ADD_FPR(12, "F12" ); ADD_FPR(13, "F13" ); ADD_FPR(14, "F14" ); ADD_FPR(15, "F15" );   \
-      ADD_FPR(16, "F16" ); ADD_FPR(17, "F17" ); ADD_FPR(18, "F18" ); ADD_FPR(19, "F19" );   \
-      ADD_FPR(20, "F20" ); ADD_FPR(21, "F21" ); ADD_FPR(22, "F22" ); ADD_FPR(23, "F23" );   \
-      ADD_FPR(24, "F24" ); ADD_FPR(25, "F25" ); ADD_FPR(26, "F26" ); ADD_FPR(27, "F27" );   \
-      ADD_FPR(28, "F28" ); ADD_FPR(29, "F29" ); ADD_FPR(30, "F30" ); ADD_FPR(31, "F31" );   \
                                                                                             \
       /* Add attributes for other registers */                                              \
       ADD_SPR(SPRN_ATBL,    "ATBL"   ); ADD_SPR(SPRN_ATBU,    "ATBU"    ); ADD_SPR(SPRN_CSRR0,   "CSRR0"  ); ADD_SPR(SPRN_CSRR1,    "CSRR1"  );    \
@@ -309,12 +297,13 @@ BOOST_PYTHON_MODULE(ppcsim)
             .def("get_bf",          &ppc_reg64::get_bf)
             ;
 
-        // PPC register file type ( contains all registers, GPRs, FPRs, SPRs etc. )
+        // PPC register file type ( contains all registers, GPRs, SPRs etc. )
         {
             class_<ppc_regs> ppc_regs_py("ppc_regs");
             scope ppc_regs_scope = ppc_regs_py;
             ppc_regs_py.add_property("MSR", &ppc_regs::msr)
                 .add_property("CR",  &ppc_regs::cr)
+                .add_property("ACC", &ppc_regs::acc)
                 ;
             ADD_ALL_REGS();
 

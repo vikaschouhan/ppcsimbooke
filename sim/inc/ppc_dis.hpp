@@ -1,14 +1,14 @@
 #ifndef _PPC_DIS_HPP_
 #define _PPC_DIS_HPP_
 
-// ppc_dis.hpp ( disassembler facilities for powerPC cpu module )
+// ppc_dis.hpp ( disassembler facilities for powerPC e500v2 cpu module )
 // This file contains disassembler class and corresponding member functions.
 //
 // Authors :
 //     GNU project.
 //     Vikas Chouhan ( presentisgood@gmail.com )  Copyright 2012.
 //
-// This file is part of ppc-sim library bundled with test_gen_ppc.
+// This file is part of ppc-sim library bundled with ppcsimbooke.
 //
 // This library is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -25,12 +25,16 @@
 // Free Software Foundation, 51 Franklin Street - Fifth Floor, Boston,
 // MA 02110-1301, USA.
 
-// Most of the functions in this module will seem to C'ish, since these
-// were taken from ppc-dis project, which is written in C.
+// Most of the functions in this module will seem to be C'ish, since these
+// were taken from ppc-dis project, ( which inturn was
+// taken from GNU binutils ) which is written in C.
 //
 // NOTE: The functions in this file are in messy state. Hope to clean it some day.
 //       Also since most of the functions were originally in C, I had to make changes
 //       to fit them in C++ perspective. So they are kinda in mixed state.
+//
+// UPDATE :
+//       Nov 2 2012 : Commented all floating point code, since e500v2 doesn't have a FPU      
 
 #include "config.h"
 #include "cpu_ppc_regs.h"
@@ -364,11 +368,11 @@ instr_call DIS_PPC::disasm(uint32_t opcd, uint64_t pc, int endianness)
                 call_this.arg[i].p = (REG_GPR0 + value);
                 call_this.arg[i].v = value;
                 call_this.arg[i].t = 1;
-            } else if ((operand->flags & PPC_OPERAND_FPR) != 0){
-                call_this.fmt += "f%ld";
-                call_this.arg[i].p = (REG_FPR0 + value);
-                call_this.arg[i].v = value;
-                call_this.arg[i].t = 1;
+            //} else if ((operand->flags & PPC_OPERAND_FPR) != 0){
+            //    call_this.fmt += "f%ld";
+            //    call_this.arg[i].p = (REG_FPR0 + value);
+            //    call_this.arg[i].v = value;
+            //    call_this.arg[i].t = 1;
             } else if ((operand->flags & PPC_OPERAND_VR) != 0){
                 call_this.fmt += "v%ld";
                 // FIXME: VRs are not supported at this time.
@@ -528,13 +532,13 @@ instr_call DIS_PPC::disasm(std::string instr, uint64_t pc)
             call_this.arg[i].v = value;
             call_this.arg[i].t = 1;
         }
-        else if ((operand->flags & PPC_OPERAND_FPR) != 0){
-            sscanf(token, "f%ld", &value);
-            call_this.fmt    += "f%ld";
-            call_this.arg[i].p = (REG_FPR0 + value);
-            call_this.arg[i].v = value;
-            call_this.arg[i].t = 1;
-        }
+        //else if ((operand->flags & PPC_OPERAND_FPR) != 0){
+        //    sscanf(token, "f%ld", &value);
+        //    call_this.fmt    += "f%ld";
+        //    call_this.arg[i].p = (REG_FPR0 + value);
+        //    call_this.arg[i].v = value;
+        //    call_this.arg[i].t = 1;
+        //}
         else if ((operand->flags & PPC_OPERAND_VR) != 0){
             sscanf(token, "v%ld", &value);
             call_this.fmt    += "v%ld";
@@ -681,8 +685,8 @@ void DIS_PPC::print_insn_fmt (const char *insn_name)
             else if((operand->flags & PPC_OPERAND_GPR_0) != 0){
                     fprintf(stream, "rX|0(X=integer)");
             }
-            else if ((operand->flags & PPC_OPERAND_FPR) != 0)
-                fprintf(stream, "fX(X=integer)");
+            //else if ((operand->flags & PPC_OPERAND_FPR) != 0)
+            //    fprintf(stream, "fX(X=integer)");
             else if ((operand->flags & PPC_OPERAND_VR) != 0)
                 fprintf(stream, "vX(X=integer)");
             else if ((operand->flags & PPC_OPERAND_VSR) != 0)

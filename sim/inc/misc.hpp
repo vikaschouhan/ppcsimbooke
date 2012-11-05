@@ -87,11 +87,8 @@ struct instr_call {
 
 // Some constants
 #define    PPC_NGPRS        32
-#define    PPC_NFPRS        32
-#define    PPC_NVRS         32
 #define    PPC_NSPRS        1024
 #define    PPC_NPMRS        1024
-#define    PPC_NTGPRS       4
 
 // PPC register ( 64 bit only )
 struct ppc_reg64 {
@@ -114,22 +111,18 @@ struct ppc_reg64 {
     }
 };
 
-// PPC register file ( this is the file we are gonna use in our cpu )
+// e500v2 PPC register file ( this is the file we are gonna use in our cpu )
 struct ppc_regs {
     ppc_reg64         cr;
-    ppc_reg64         fpscr;
+    ppc_reg64         acc;
     ppc_reg64         msr;
     ppc_reg64         gpr[PPC_NGPRS];
-    ppc_reg64         fpr[PPC_NFPRS];
     ppc_reg64         spr[PPC_NSPRS];
     ppc_reg64         pmr[PPC_NPMRS];
 
     // Functions for boost::python usage only
     template<int gprno> ppc_reg64& get_gpr(){
         return gpr[gprno];
-    }
-    template<int fprno> ppc_reg64& get_fpr(){
-        return fpr[fprno];
     }
     template<int sprno> ppc_reg64& get_spr(){
         return spr[sprno];
