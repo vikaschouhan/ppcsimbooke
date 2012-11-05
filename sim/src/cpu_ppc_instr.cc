@@ -2442,7 +2442,7 @@ X(efdnabs)
 }
 X(efdneg)
 {
-    REG0 = -REG1;     // both double precision FP & uint64_t are 64 bits and sign bit is always MSB
+    REG0 = (REG1 & 0x7fffffffffffffffULL) | ((REG1 ^ 0x8000000000000000ULL) & 0x8000000000000000ULL);
 }
 
 X(evxor)
