@@ -77,7 +77,9 @@
 #define GPR(gprno)               PPCREG(REG_GPR0 + gprno)
 #define SPR(sprno)               PPCREG(REG_SPR0 + sprno)
 #define XER                      SPR(SPRN_XER) 
-#define MSR                      PPCREG(REG_MSR) 
+#define MSR                      PPCREG(REG_MSR)
+#define ACC                      PPCREG(REG_ACC)
+#define SPEFSCR                  PPCREG(REG_SPEFSCR)
 #define PMR(pmrno)               PPCREG(REG_PMR0 + pmrno) 
 #define CR                       PPCREG(REG_CR)
 #define LR                       PPCREG(REG_LR)
@@ -2087,8 +2089,7 @@ X(mtcrf)
 X(mcrxr)
 {
 #define mcrxr_code(crfD)                 \
-    uint8_t bf = (crfD & 0xff);          \
-    update_crF(bf, get_xerF(0));         \
+    update_crF(crfD, get_xerF(0));       \
     /* clear XER[32:35] */               \
     XER &= 0xfffffff
 
@@ -2232,8 +2233,8 @@ typedef struct BITREV {
 } BITREV;
 
 // SPE macros
-#define SATURATE(ov, carry, sat_ovn, sat_ov, val)                ((ov) ? ((carry) ? sat_ovn : sat_ov) : val)
-#define SL(value, cnt)                                           ((cnt > 31) ? 0 : (value << cnt))
+#define SATURATE(ov, carry, sat_ovn, sat_ov, val)                ((ov) ? ((carry) ? (sat_ovn) : (sat_ov)) : val)
+#define SL(value, cnt)                                           (((cnt) > 31) ? 0 : ((value) << (cnt)))
 #define BITREVERSE(x)                                            BITREV::BITREV_FN(x)
 
 // NOTE : ABS_32(0x8000_0000) = 0x8000_0000
@@ -2265,8 +2266,171 @@ X(evabs)
 
 X(evaddiw)
 {
-    REG0 = (B_32_63(B_0_31(REG1) + EXTS_5BI2W(ARG2)) << 32) | B_32_63(B_32_63(REG1) + EXTS_5BI2W(ARG2));
+    // ARG2 is zero extended and added to each of lower & upper halves of REG1
+    REG0 = (B_32_63(B_0_31(REG1) + (ARG2 & 0xfffff)) << 32) | B_32_63(B_32_63(REG1) +(ARG2 & 0xfffff));
 }
+
+X(evaddsmiaaw)
+{
+    REG0 = (B_32_63(B_0_31(ACC) + B_0_31(REG1)) << 32) | B_32_63(B_32_63(ACC) + B_32_63(REG1));
+    ACC  = REG0;
+}
+
+X(evaddssiaaw)
+{
+    int64_t tmp;
+    int ovh, ovl, tmp31;
+    uint64_t h=0, l=0;
+
+    tmp   = EXTS_W2D(B_0_31(ACC)) + EXTS_W2D(B_0_31(REG1));
+    ovh   = B_N(tmp, 31) ^ B_N(tmp, 32);
+    tmp31 = B_N(tmp, 31);
+    h     = SATURATE(ovh, tmp31, 0x80000000UL, 0x7fffffffUL, B_32_63(tmp));
+
+    tmp   = EXTS_W2D(B_32_63(ACC)) + EXTS_W2D(B_32_63(REG1));
+    ovl   = B_N(tmp, 31) ^ B_N(tmp, 32);
+    tmp31 = B_N(tmp, 31);
+    l     = SATURATE(ovl, tmp31, 0x80000000UL, 0x7fffffffUL, B_32_63(tmp));
+
+    REG0  = (h << 32) |  l;
+    ACC   = REG0;
+
+    // Update SPEFSCR
+    SPEFSCR &= ~(SPEFSCR_OVH | SPEFSCR_OV);
+    SPEFSCR |= ((ovh) ? SPEFSCR_OVH:0) | ((ovl) ? SPEFSCR_OV:0) | ((ovh) ? SPEFSCR_SOVH:0) | ((ovl) ? SPEFSCR_SOV:0);
+}
+
+X(evaddusiaaw)
+{
+    uint64_t tmp;
+    int ovh, ovl, tmp31;
+    uint64_t h=0, l=0;
+
+    tmp   = B_0_31(ACC) + B_0_31(REG1);
+    ovh   = B_N(tmp, 31);
+    tmp31 = ovh;
+    h     = SATURATE(ovh, tmp31, 0xffffffffUL, 0xffffffffUL, B_32_63(tmp));
+
+    tmp   = B_32_63(ACC) + B_32_63(REG1);
+    ovl   = B_N(tmp, 31);
+    tmp31 = ovl;
+    l     = SATURATE(ovl, tmp31, 0xffffffffUL, 0xffffffffUL, B_32_63(tmp));
+
+    REG0  = (h << 32) | l;
+    ACC   = REG0;
+
+    // Update SPEFSCR
+    SPEFSCR &= ~(SPEFSCR_OVH | SPEFSCR_OV);
+    SPEFSCR |= ((ovh) ? SPEFSCR_OVH:0) | ((ovl) ? SPEFSCR_OV:0) | ((ovh) ? SPEFSCR_SOVH:0) | ((ovl) ? SPEFSCR_SOV:0);
+}
+
+X(evaddumiaaw)
+{
+    REG0  = (B_32_63(B_0_31(ACC) + B_0_31(REG1)) << 32) | B_32_63(B_32_63(ACC) + B_32_63(REG1));
+    ACC   = REG0;
+}
+
+X(evaddw)
+{
+    REG0  = (B_32_63(B_0_31(REG1) + B_0_31(REG2)) << 32) | B_32_63(B_32_63(REG1) + B_32_63(REG2));
+}
+
+X(evand)
+{
+    REG0  = (B_32_63(B_0_31(REG1) & B_0_31(REG2)) << 32) | B_32_63(B_32_63(REG1) & B_32_63(REG2));
+}
+
+X(evandc)
+{
+    REG0  = (B_32_63(B_0_31(REG1) & ~B_0_31(REG2)) << 32) | B_32_63(B_32_63(REG1) & ~B_32_63(REG2));
+}
+
+X(evcmpeq)
+{
+    uint32_t ah, al, bh, bl;
+    int ch=0, cl=0;
+
+    ah  = B_0_31(REG1);
+    al  = B_32_63(REG1);
+    bh  = B_0_31(REG2);
+    bl  = B_32_63(REG2);
+
+    if(ah == bh){ ch = 1; }
+    if(al == bl){ cl = 1; }
+
+    // Update CR[BF] where BF=ARG0
+    update_crF(ARG0, ((ch << 3) | (cl << 2) | ((ch | cl) << 1) | (ch & cl)));
+}
+
+X(evcmpgts)
+{
+    int32_t ah, al, bh, bl;
+    int ch=0, cl=0;
+
+    ah  = B_0_31(REG1);
+    al  = B_32_63(REG1);
+    bh  = B_0_31(REG2);
+    bl  = B_32_63(REG2);
+
+    if(ah > bh){ ch = 1; }
+    if(al > bl){ cl = 1; }
+
+    // Update CR[BF] where BF=ARG0
+    update_crF(ARG0, ((ch << 3) | (cl << 2) | ((ch | cl) << 1) | (ch & cl)));
+}
+
+X(evcmpgtu)
+{
+    uint32_t ah, al, bh, bl;
+    int ch=0, cl=0;
+
+    ah  = B_0_31(REG1);
+    al  = B_32_63(REG1);
+    bh  = B_0_31(REG2);
+    bl  = B_32_63(REG2);
+
+    if(ah > bh){ ch = 1; }
+    if(al > bl){ cl = 1; }
+
+    // Update CR[BF] where BF=ARG0
+    update_crF(ARG0, ((ch << 3) | (cl << 2) | ((ch | cl) << 1) | (ch & cl)));
+}
+
+X(evcmplts)
+{
+    int32_t ah, al, bh, bl;
+    int ch=0, cl=0;
+
+    ah  = B_0_31(REG1);
+    al  = B_32_63(REG1);
+    bh  = B_0_31(REG2);
+    bl  = B_32_63(REG2);
+
+    if(ah < bh){ ch = 1; }
+    if(al < bl){ cl = 1; }
+
+    // Update CR[BF] where BF=ARG0
+    update_crF(ARG0, ((ch << 3) | (cl << 2) | ((ch | cl) << 1) | (ch & cl)));
+}
+
+X(evcmpltu)
+{
+    uint32_t ah, al, bh, bl;
+    int ch=0, cl=0;
+
+    ah  = B_0_31(REG1);
+    al  = B_32_63(REG1);
+    bh  = B_0_31(REG2);
+    bl  = B_32_63(REG2);
+
+    if(ah < bh){ ch = 1; }
+    if(al < bl){ cl = 1; }
+
+    // Update CR[BF] where BF=ARG0
+    update_crF(ARG0, ((ch << 3) | (cl << 2) | ((ch | cl) << 1) | (ch & cl)));
+}
+
+// ----------------- SPE FP ---------------------------------------------------------------------------
 
 X(efdabs)
 {
