@@ -177,6 +177,14 @@
 // endif    
 #define UT(arg)   ((UMODE)(arg))
 #define ST(arg)   ((SMODE)(arg))
+#define U64(arg)  ((uint64_t)(arg))
+#define S64(arg)  ((int64_t)(arg))
+#define U32(arg)  ((uint32_t)(arg))
+#define S32(arg)  ((int32_t)(arg))
+#define U16(arg)  ((uint16_t)(arg))
+#define S16(arg)  ((int16_t)(arg))
+#define U8(arg)   ((uint8_t)(arg))
+#define S8(arg)   ((int8_t)(arg))
 
 // for sign extension ( extending sign bits from source type to destination type )
 #define EXTS(t_tgt, t_src, val)    ((t_tgt)((t_src)(val)))
@@ -212,8 +220,12 @@ typedef struct BITMASK_TYPE {
 
 // 32_63 (x should be 64 bits)
 #define B_32_63(x)                 ((x) & 0xffffffff)                    // get bits 32:63
+#define B_48_63(x)                 ((x) & 0xffff    )                    // get bits 48:63
+#define B_56_63(x)                 ((x) & 0xff      )                    // get bits 56:63
 #define B_0_31(x)                  (((x) >> 32) & 0xffffffff)            // get bits 0:31
-#define B_N(x, n)                  (((x) >> (63 - n)) & 0x1)             // get bit n
+#define B_16_31(x)                 (((x) >> 32) & 0xffff    )            // get bits 16:31
+#define B_24_31(x)                 (((x) >> 32) & 0xff      )            // get bits 24:31
+#define B_N(x, n)                  (((x) >> (63 - (n))) & 0x1)           // get bit n
 
 // Byte reversing macros
 #define SWAPB32(data)              ((((data >> 24) & 0xff) <<  0) ||  \
@@ -2428,6 +2440,206 @@ X(evcmpltu)
 
     // Update CR[BF] where BF=ARG0
     update_crF(ARG0, ((ch << 3) | (cl << 2) | ((ch | cl) << 1) | (ch & cl)));
+}
+
+X(evcntlsw)
+{
+    int n = 0;
+    uint64_t s = B_N(REG1, n);
+    uint64_t h, l;
+
+    while(n < 32){
+        if(B_N(REG1, n) != s){ break; }
+        n++;
+    }
+    h = n;
+
+    n = 0;
+    s = B_N(REG1, n+32);
+
+    while(n < 32){
+        if(B_N(REG1, n+32) != s){ break; }
+        n++;
+    }
+    l =  n;
+
+    REG0 = (h << 32) | l;
+}
+
+X(evcntlzw)
+{
+    int n = 0;
+    uint64_t h, l;
+
+    while(n < 32){
+        if(B_N(REG1, n) == 1){ break; }
+        n++;
+    }
+    h = n;
+
+    n = 0;
+    while(n < 32){
+        if(B_N(REG1, n+32) == 1){ break; }
+        n++;
+    }
+    l =  n;
+
+    REG0 = (h << 32) | l;
+}
+
+X(evdivws)
+{
+    // TODO : Implement this
+    throw sim_except_fatal("Not implemented !!");
+}
+
+X(evdivwu)
+{
+    // TODO : Implement this
+    throw sim_except_fatal("Not implemented !!");
+}
+
+X(eveqv)
+{
+    REG0 = REG1 ^ REG2;  // xor to compare
+}
+
+X(evextsb)
+{
+    REG0 = (B_32_63(EXTS_B2D(B_24_31(REG1))) << 32) | B_32_63(EXTS_B2D(B_56_63(REG1)));
+}
+
+X(evextsh)
+{
+    REG0 = (B_32_63(EXTS_H2D(B_16_31(REG1))) << 32) | B_32_63(EXTS_H2D(B_48_63(REG1)));
+}
+
+X(evldd)
+{
+    UMODE b = 0;
+    UMODE ea;
+
+    if(ARG2){ b = REG2; }
+    ea = b + ARG1;
+
+    REG0 = LOAD64(ea);
+}
+
+X(evlddx)
+{
+    UMODE b = 0;
+    UMODE ea;
+
+    if(ARG1){ b = REG1; }
+    ea = b + REG2;
+
+    REG0 = LOAD64(ea);
+}
+
+X(evldh)
+{
+    UMODE b = 0, ea;
+
+    if(ARG2){ b = REG2; }
+    ea = b + ARG1;
+
+    REG0 = (U64(LOAD16(ea)) << 48) | (U64(LOAD16(ea + 2)) << 32) | (U64(LOAD16(ea + 4)) << 16) | U64(LOAD16(ea + 6));
+}
+
+X(evldhx)
+{
+    UMODE b = 0, ea;
+
+    if(ARG1){ b = REG1; }
+    ea = b + REG2;
+
+    REG0 = (U64(LOAD16(ea)) << 48) | (U64(LOAD16(ea + 2)) << 32) | (U64(LOAD16(ea + 4)) << 16) | U64(LOAD16(ea + 6));
+}
+
+X(evldw)
+{
+    UMODE b = 0, ea;
+
+    if(ARG2){ b = REG2; }
+    ea = b + ARG1;
+
+    REG0 = (U64(LOAD32(ea)) << 32) | U64(LOAD32(ea + 4));
+}
+
+X(evldwx)
+{
+    UMODE b = 0, ea;
+
+    if(ARG1){ b = REG1;  }
+    ea = b + REG2;
+
+    REG0 = (U64(LOAD32(ea)) << 32) | U64(LOAD32(ea + 4));
+}
+
+X(evlhhesplat)
+{
+    UMODE b = 0, ea;
+
+    if(ARG2){ b = REG2; }
+    ea = b + ARG1;
+
+    uint16_t v = LOAD16(ea);
+    REG0 = ((U64(v) << 48) | (U64(v) << 16)) & 0xffff0000ffff0000ULL;
+}
+
+X(evlhhesplatx)
+{
+    UMODE b = 0, ea;
+
+    if(ARG1){ b = REG1;  }
+    ea = b + REG2;
+
+    uint16_t v = LOAD16(ea);
+    REG0 = ((U64(v) << 48) | (U64(v) << 16)) & 0xffff0000ffff0000ULL;
+}
+
+X(evlhhossplat)
+{
+    UMODE b = 0, ea;
+
+    if(ARG2){ b = REG2; }
+    ea = b + ARG1;
+
+    uint16_t v = LOAD16(ea);
+    REG0 = (B_32_63(EXTS_H2D(v)) << 32) | B_32_63(EXTS_H2D(v));
+}
+
+X(evlhhossplatx)
+{
+    UMODE b = 0, ea;
+
+    if(ARG1){ b = REG1;  }
+    ea = b + REG2;
+
+    uint16_t v = LOAD16(ea);
+    REG0 = (B_32_63(EXTS_H2D(v)) << 32) | B_32_63(EXTS_H2D(v));
+}
+
+X(evlhhousplat)
+{
+    UMODE b = 0, ea;
+
+    if(ARG2){ b = REG2; }
+    ea = b + ARG1;
+
+    uint16_t v = LOAD16(ea);
+    REG0 = (U64(v) << 32) | U64(v);
+}
+
+X(evlhhousplatx)
+{
+    UMODE b = 0, ea;
+
+    if(ARG1){ b = REG1;  }
+    ea = b + REG2;
+
+    uint16_t v = LOAD16(ea);
+    REG0 = (U64(v) << 32) | U64(v);
 }
 
 // ----------------- SPE FP ---------------------------------------------------------------------------
