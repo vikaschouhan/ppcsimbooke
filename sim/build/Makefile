@@ -63,7 +63,7 @@ HOST_BOOST_PYTHON_CXXFLAGS  := -I`python-config --includes` -DCONFIG_BOOST_PYTHO
 HOST_BOOST_PYTHON_LDFLAGS   := -lboost_python -shared
 
 # enable this for <cstdint>
-HOST_EXTFLAGS               := -std=c++0x -O -Wall -DCONFIG_BOOKE -DCONFIG_E500 -DCORE_TYPE=e500v2 -DCONFIG_FSL_EMB_PERFMON -O2 -DSIM_DEBUG=$(ENABLE_LOG)
+HOST_EXTFLAGS               := -std=c++0x -Wall -DCONFIG_BOOKE -DCONFIG_E500 -DCORE_TYPE=e500v2 -DCONFIG_FSL_EMB_PERFMON -O2 -DSIM_DEBUG=$(ENABLE_LOG)
 HOST_EXTFLAGS               += -Wno-narrowing
 
 HOST_ARCH                   := $(shell uname -m)

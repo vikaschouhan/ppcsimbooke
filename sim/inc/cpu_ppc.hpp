@@ -131,6 +131,7 @@ class CPU_PPC {
 
     private:
     void                  run_b();                               // blocking run
+    void                  clear_ctrs();                          // clear counters
     void                  init_reghash();
     void                  ppc_exception(int exception_nr, uint64_t subtype, uint64_t ea=0xffffffffffffffffULL);
     instr_call            get_instr();                           // Automatically tries to read instr from next NIP(PC)
@@ -185,7 +186,8 @@ class CPU_PPC {
     uint64_t                               m_cpu_id;              // A unique cpu id
     uint8_t                                m_cpu_no;              // Cpu no
     static size_t                          sm_ncpus;              // Total cpus
-    size_t                                 m_ninstrs;             // Number of instrs
+    size_t                                 m_ninstrs;             // Number of instrs (total)
+    size_t                                 m_ninstrs_last;        // Number of instrs in last run
     instr_call                             m_instr_this;          // Current instr
     instr_call                             m_instr_next;          // next instr
 
@@ -220,6 +222,10 @@ class CPU_PPC {
     // opcode to function pointer map
     typedef void (*ppc_opc_fun_ptr)(CPU_PPC *, struct instr_call *);
     std::map<uint64_t, ppc_opc_fun_ptr>    m_ppc_func_hash;
+
+    // timings
+    boost::posix_time::ptime               m_prev_stamp;
+    boost::posix_time::ptime               m_next_stamp;
 
 };
 
@@ -299,6 +305,8 @@ CPU_T void CPU_PPC_T::step(size_t instr_cnt){
     std::pair<uint64_t, bool> last_bkpt = m_bm.last_breakpoint();
     m_cpu_mode = CPU_MODE_STEPPING;
 
+    clear_ctrs();
+
     // run this instruction if this was last breakpointed
     if(last_bkpt.first == m_pc and last_bkpt.second == true){
         m_bm.disable_breakpoints();
@@ -319,6 +327,8 @@ CPU_T void CPU_PPC_T::step(size_t instr_cnt){
         }
     }
     m_cpu_mode = CPU_MODE_STOPPED;
+
+    m_ninstrs += m_ninstrs_last;
 #undef I
     LOG("DEBUG4") << MSG_FUNC_END;
 }
@@ -1156,6 +1166,10 @@ CPU_T void CPU_PPC_T::run_b(){
     std::pair<uint64_t, bool> last_bkpt = m_bm.last_breakpoint();
     m_cpu_mode = CPU_MODE_RUNNING;
 
+    // get first timing & clear all counters
+    m_prev_stamp = boost::posix_time::microsec_clock::local_time();
+    clear_ctrs();
+
     // run this instruction if this was last breakpointed
     if(last_bkpt.first == m_pc and last_bkpt.second == true){
         m_bm.disable_breakpoints();
@@ -1192,9 +1206,27 @@ CPU_T void CPU_PPC_T::run_b(){
             goto loop_exit_0;
         }
     }
+
     loop_exit_0:
     m_cpu_mode = CPU_MODE_STOPPED;
+
+    m_ninstrs += m_ninstrs_last;  // update total instrs cnt
+
+    // get current time & calculate the diff
+    m_next_stamp = boost::posix_time::microsec_clock::local_time();
+    boost::posix_time::time_duration t_d = m_next_stamp - m_prev_stamp;
+
+    // calculate instrs/sec
+    double instrs_per_sec = (static_cast<double>(m_ninstrs_last)/t_d.total_microseconds()) * 1000000;
+    std::cout << std::dec << "IPS = " << instrs_per_sec << std::endl;
+
 #undef I
+    LOG("DEBUG4") << MSG_FUNC_END;
+}
+
+CPU_T inline void CPU_PPC_T::clear_ctrs(){
+    LOG("DEBUG4") << MSG_FUNC_START;
+    m_ninstrs_last = 0;
     LOG("DEBUG4") << MSG_FUNC_END;
 }
 
@@ -1240,7 +1272,7 @@ CPU_T inline void CPU_PPC_T::run_curr_instr(){
 
     // book-keeping
     m_pc = m_nip;     // Update PC
-    m_ninstrs++;
+    m_ninstrs_last++;
 
     LOG("DEBUG4") << MSG_FUNC_END;
 }
