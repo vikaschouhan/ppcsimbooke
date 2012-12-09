@@ -75,13 +75,13 @@ MACHINE_T void MACHINE_CL_T::load_elf(std::string filename){
 MACHINE_T void MACHINE_CL_T::run(unsigned mask){
     LOG("DEBUG4") << MSG_FUNC_START;
     if(mask == 0){
-        boost::thread thr0(boost::bind(&cpu_t::run, &(m_cpu[0])));
+        m_cpu[0].run();
         LOG("DEBUG4") << MSG_FUNC_END;
         return;
     }
     for(size_t i=0; i<sizeof(mask); i++){
         if((mask >> i) & 0x1){
-            boost::thread thr0(boost::bind(&cpu_t::run, &(m_cpu[i])));
+            m_cpu[i].run();
         }
     }
     LOG("DEBUG4") << MSG_FUNC_END;

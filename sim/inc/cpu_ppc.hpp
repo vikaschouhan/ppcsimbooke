@@ -50,7 +50,7 @@ class CPU_PPC {
     void       register_mem(memory<m_bits> &mem);       // Register memory
     size_t     get_ninstrs();                           // Get number of instrs
     uint64_t   get_pc();                                // Get pc
-    void       run();
+    void       run();                                   // Non blocking run
     void       run_instr(std::string instr);
     void       run_instr(uint32_t opcd);
     void       step(size_t instr_cnt=1);      // by default step by 1 ic cnt
@@ -130,6 +130,7 @@ class CPU_PPC {
     inline uint64_t&      regn(std::string regname);
 
     private:
+    void                  run_b();                               // blocking run
     void                  init_reghash();
     void                  ppc_exception(int exception_nr, uint64_t subtype, uint64_t ea=0xffffffffffffffffULL);
     instr_call            get_instr();                           // Automatically tries to read instr from next NIP(PC)
@@ -280,55 +281,11 @@ CPU_T size_t CPU_PPC_T::get_ninstrs(){
 CPU_T uint64_t CPU_PPC_T::get_pc(){
     return m_pc;
 }
-//
-// All virtual functions
-// TODO:  this is very new. May or may not work.
-//        NO ppc exception support at this time
+
+// run (non blocking)
 CPU_T void CPU_PPC_T::run(){
     LOG("DEBUG4") << MSG_FUNC_START;
-
-    std::pair<uint64_t, bool> last_bkpt = m_bm.last_breakpoint();
-    m_cpu_mode = CPU_MODE_RUNNING;
-
-    // run this instruction if this was last breakpointed
-    if(last_bkpt.first == m_pc and last_bkpt.second == true){
-        m_bm.disable_breakpoints();
-        run_curr_instr();
-        m_bm.clear_last_breakpoint();
-        m_bm.enable_breakpoints();
-    }
-
-#define I  run_curr_instr() 
-        
-
-    for(;;){
-        // Observe each instruction for possible exceptions
-        try {
-            // Execute 32 instrs without looping again
-            // Loop unrolling above 32 instrs, makes compilation slow like crazy
-            // ( it already takes too much ), so I am sticking with a low count here.
-            I; I; I; I; I; I; I; I;         I; I; I; I; I; I; I; I;
-            I; I; I; I; I; I; I; I;         I; I; I; I; I; I; I; I;
-        }
-        catch(sim_except_ppc& e){
-            ppc_exception(e.err_code0(), e.err_code1(), e.addr());
-        }
-
-        // FIXME: Will remove this in future.
-        //        PS: This code causes segfaults, if used within thread context from python
-        // Periodically check for any python error signals ( only for boost python )
-        //if(py_signal_callback::callback != NULL)
-        //    if(py_signal_callback::callback())
-        //        goto loop_exit_0;
-
-        // If running status is changed to stopped/halted, exit out of loop
-        if(m_cpu_mode == CPU_MODE_HALTED or m_cpu_mode == CPU_MODE_STOPPED){
-            goto loop_exit_0;
-        }
-    }
-    loop_exit_0:
-    m_cpu_mode = CPU_MODE_STOPPED;
-#undef I
+    boost::thread thr0(&CPU_PPC_T::run_b, this);
     LOG("DEBUG4") << MSG_FUNC_END;
 }
 
@@ -1190,6 +1147,55 @@ CPU_T void CPU_PPC_T::check_for_dbg_events(int flags, uint64_t ea){
             LTHROW(sim_except_ppc_halt("Cpu halted due to debug exception."), DEBUG4);
         }
     }
+}
+
+// Blocking run
+CPU_T void CPU_PPC_T::run_b(){
+    LOG("DEBUG4") << MSG_FUNC_START;
+
+    std::pair<uint64_t, bool> last_bkpt = m_bm.last_breakpoint();
+    m_cpu_mode = CPU_MODE_RUNNING;
+
+    // run this instruction if this was last breakpointed
+    if(last_bkpt.first == m_pc and last_bkpt.second == true){
+        m_bm.disable_breakpoints();
+        run_curr_instr();
+        m_bm.clear_last_breakpoint();
+        m_bm.enable_breakpoints();
+    }
+
+#define I  run_curr_instr() 
+        
+
+    for(;;){
+        // Observe each instruction for possible exceptions
+        try {
+            // Execute 32 instrs without looping again
+            // Loop unrolling above 32 instrs, makes compilation slow like crazy
+            // ( it already takes too much ), so I am sticking with a low count here.
+            I; I; I; I; I; I; I; I;         I; I; I; I; I; I; I; I;
+            I; I; I; I; I; I; I; I;         I; I; I; I; I; I; I; I;
+        }
+        catch(sim_except_ppc& e){
+            ppc_exception(e.err_code0(), e.err_code1(), e.addr());
+        }
+
+        // FIXME: Will remove this in future.
+        //        PS: This code causes segfaults, if used within thread context from python
+        // Periodically check for any python error signals ( only for boost python )
+        //if(py_signal_callback::callback != NULL)
+        //    if(py_signal_callback::callback())
+        //        goto loop_exit_0;
+
+        // If running status is changed to stopped/halted, exit out of loop
+        if(m_cpu_mode == CPU_MODE_HALTED or m_cpu_mode == CPU_MODE_STOPPED){
+            goto loop_exit_0;
+        }
+    }
+    loop_exit_0:
+    m_cpu_mode = CPU_MODE_STOPPED;
+#undef I
+    LOG("DEBUG4") << MSG_FUNC_END;
 }
 
 /*

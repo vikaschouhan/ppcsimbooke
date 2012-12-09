@@ -225,6 +225,8 @@ typedef struct BITMASK_TYPE {
 #define B_0_31(x)                  (((x) >> 32) & 0xffffffff)            // get bits 0:31
 #define B_16_31(x)                 (((x) >> 32) & 0xffff    )            // get bits 16:31
 #define B_24_31(x)                 (((x) >> 32) & 0xff      )            // get bits 24:31
+#define B_32_47(x)                 ((x >> 16)   & 0xffff    )            // get bits 32:47
+#define B_0_15(x)                  ((x >> 48)   & 0xffff    )            // get bits 0:15
 #define B_N(x, n)                  (((x) >> (63 - (n))) & 0x1)           // get bit n
 
 // Byte reversing macros
@@ -2257,6 +2259,26 @@ typedef struct BITREV {
 // 5 BI (bits) to word
 #define EXTS_5BI2W(x)                                            ((((x) >> 4) & 0x1) ? (((x) & 0xfffff) | ~0xfffffUL) : ((x) & 0xfffff))
 
+// FIXME : Verify the correctness of these macros/functions
+typedef struct SFF {
+    inline uint64_t static SF(uint16_t a, uint16_t b){
+        uint64_t p = EXTS_H2D(a) * EXTS_H2D(b);
+        p = EXTS_W2D(B_32_63(p));
+        p = (p << 1) & 0xfffffffe;
+        return p;
+    }
+    inline uint64_t static GSF(uint16_t a, uint16_t b){
+        uint64_t p = EXTS_H2D(a) * EXTS_H2D(b);
+        p = EXTS_W2D(B_32_63(p));
+        p = (p << 1) & 0xfffffffffffffffeULL;
+        return p;
+    }
+} SF_F;
+
+// Guarded fraction multiplications
+#define SF(a, b)                                                 SFF::SF(U16(a), U16(b))
+#define GSF(a, b)                                                SFF::GSF(U16(a), U16(b))
+
 
 // ----------------------------------------------------------------------------------
 
@@ -2642,6 +2664,250 @@ X(evlhhousplatx)
     REG0 = (U64(v) << 32) | U64(v);
 }
 
+X(evlwhe)
+{
+    UMODE b = 0, ea;
+
+    if(ARG2){ b = REG2; }
+    ea = b + ARG1;
+
+    REG0 = (U64(LOAD16(ea)) << 48) | (U64(LOAD16(ea+2)) << 16);
+}
+
+X(evlwhex)
+{
+    UMODE b = 0, ea;
+
+    if(ARG1){ b = REG1; }
+    ea = b + REG2;
+
+    REG0 = (U64(LOAD16(ea)) << 48) | (U64(LOAD16(ea+2)) << 16);
+}
+
+X(evlwhos)
+{
+    UMODE b = 0, ea;
+
+    if(ARG2){ b = REG2; }
+    ea = b + ARG1;
+
+    REG0 = (B_32_63(EXTS_H2D(LOAD16(ea))) << 32) | B_32_63(EXTS_H2D(LOAD16(ea+2)));
+}
+
+X(evlwhosx)
+{
+    UMODE b = 0, ea;
+
+    if(ARG1){ b = REG1; }
+    ea = b + REG2;
+
+    REG0 = (B_32_63(EXTS_H2D(LOAD16(ea))) << 32) | B_32_63(EXTS_H2D(LOAD16(ea+2)));
+}
+
+X(evlwhou)
+{
+    UMODE b = 0, ea;
+
+    if(ARG2){ b = REG2; }
+    ea = b + ARG1;
+
+    REG0 = (B_32_63(U64(LOAD16(ea))) << 32) | B_32_63(U64(LOAD16(ea+2)));
+}
+
+X(evlwhoux)
+{
+    UMODE b = 0, ea;
+
+    if(ARG1){ b = REG1; }
+    ea = b + REG2;
+
+    REG0 = (B_32_63(U64(LOAD16(ea))) << 32) | B_32_63(U64(LOAD16(ea+2)));
+}
+
+X(evlwhsplat)
+{
+    UMODE b = 0, ea;
+
+    if(ARG2){ b = REG2; }
+    ea = b + ARG1;
+
+    uint16_t u = LOAD16(ea);
+    uint16_t v = LOAD16(ea+2);
+
+    REG0 = (U64(u) << 48) | (U64(u) << 32) | (U64(v) << 16) | U64(v);
+}
+
+X(evlwhsplatx)
+{
+    UMODE b = 0, ea;
+
+    if(ARG1){ b = REG1; }
+    ea = b + REG2;
+
+    uint16_t u = LOAD16(ea);
+    uint16_t v = LOAD16(ea+2);
+
+    REG0 = (U64(u) << 48) | (U64(u) << 32) | (U64(v) << 16) | U64(v);
+}
+
+X(evlwwsplat)
+{
+    UMODE b = 0, ea;
+
+    if(ARG2){ b = REG2; }
+    ea = b + ARG1;
+
+    uint32_t u = LOAD32(ea);
+
+    REG0 = (U64(u) << 32) | U64(u);
+}
+
+X(evlwwsplatx)
+{
+    UMODE b = 0, ea;
+
+    if(ARG1){ b = REG1; }
+    ea = b + REG2;
+
+    uint32_t u = LOAD32(ea);
+
+    REG0 = (U64(u) << 32) | U64(u);
+}
+
+X(evmergehi)
+{
+    REG0 = (B_0_31(REG1) << 32) | B_0_31(REG2);
+}
+
+X(evmergelo)
+{
+    REG0 = (B_32_63(REG1) << 32) | B_32_63(REG2);
+}
+
+X(evmergehilo)
+{
+    REG0 = (B_0_31(REG1) << 32) | B_32_63(REG2);
+}
+
+X(evmergelohi)
+{
+    REG0 = (B_32_63(REG1) << 32) | B_0_31(REG2);
+}
+
+X(evmhegsmfaa)
+{
+    uint64_t tmp = GSF(B_32_47(REG1), B_32_47(REG2));
+    REG0 = ACC + tmp;
+    ACC  = REG0;
+}
+
+X(evmhegsmfan)
+{
+    uint64_t tmp = GSF(B_32_47(REG1), B_32_47(REG2));
+    REG0 = ACC - tmp;
+    ACC  = REG0;
+}
+
+X(evmhegsmiaa)
+{
+    uint64_t tmp = B_32_63(EXTS_H2W(B_32_47(REG1)) * EXTS_H2W(B_32_47(REG2)));
+    tmp = EXTS_W2D(tmp);
+    REG0 = ACC + tmp;
+    ACC  = REG0;
+}
+
+X(evmhegsmian)
+{
+    uint64_t tmp = B_32_63(EXTS_H2W(B_32_47(REG1)) * EXTS_H2W(B_32_47(REG2)));
+    tmp = EXTS_W2D(tmp);
+    REG0 = ACC + tmp;
+    ACC  = REG0;
+}
+
+X(evmhegumiaa)
+{
+    uint64_t tmp = B_32_63(B_32_47(REG1) * B_32_47(REG2));
+    REG0 = ACC + tmp;
+    ACC  = REG0;
+}
+
+X(evmhegumian)
+{
+    uint64_t tmp = B_32_63(B_32_47(REG1) * B_32_47(REG2));
+    REG0 = ACC - tmp;
+    ACC  = REG0;
+}
+
+X(evmhesmf)
+{
+    REG0 = (B_32_63(SF(B_0_15(REG1), B_0_15(REG2))) << 32) | B_32_63(SF(B_32_47(REG1), B_32_47(REG2)));
+}
+
+X(evmhesmfa)
+{
+    REG0 = (B_32_63(SF(B_0_15(REG1), B_0_15(REG2))) << 32) | B_32_63(SF(B_32_47(REG1), B_32_47(REG2)));
+    ACC  = REG0;
+}
+
+X(evmhesmfaaw)
+{
+    uint32_t u = B_32_63(B_0_31(ACC)  + SF(B_0_15(REG1), B_0_15(REG2)));
+    uint32_t v = B_32_63(B_32_63(ACC) + SF(B_32_47(REG1), B_32_47(REG2)));
+
+    REG0 = (U64(u) << 32) | U64(v);
+    ACC  = REG0;
+}
+
+X(evmhesmfanw)
+{
+    uint32_t u = B_32_63(B_0_31(ACC)  - SF(B_0_15(REG1), B_0_15(REG2)));
+    uint32_t v = B_32_63(B_32_63(ACC) - SF(B_32_47(REG1), B_32_47(REG2)));
+
+    REG0 = (U64(u) << 32) | U64(v);
+    ACC  = REG0;
+}
+
+X(evmhesmi)
+{
+    uint32_t u = B_32_63(EXTS_H2W(B_0_15(REG1)) * EXTS_H2W(B_0_15(REG2)));
+    uint32_t v = B_32_63(EXTS_H2W(B_32_47(REG1)) * EXTS_H2W(B_32_47(REG2)));
+
+    REG0 = (U64(u) << 32) | U64(v);
+}
+
+X(evmhesmia)
+{
+    uint32_t u = B_32_63(EXTS_H2W(B_0_15(REG1)) * EXTS_H2W(B_0_15(REG2)));
+    uint32_t v = B_32_63(EXTS_H2W(B_32_47(REG1)) * EXTS_H2W(B_32_47(REG2)));
+
+    REG0 = (U64(u) << 32) | U64(v);
+    ACC  = REG0;
+}
+
+X(evmhesmiaaw)
+{
+    uint32_t u = B_32_63(EXTS_H2W(B_0_15(REG1)) * EXTS_H2W(B_0_15(REG2)));
+    uint32_t v = B_32_63(EXTS_H2W(B_32_47(REG1)) * EXTS_H2W(B_32_47(REG2)));
+
+    u = B_0_31(ACC) + u;
+    v = B_32_63(ACC) + v;
+
+    REG0 = (U64(u) << 32) | U64(v);
+    ACC  = REG0;
+}
+
+X(evmhesmianw)
+{
+    uint32_t u = B_32_63(EXTS_H2W(B_0_15(REG1)) * EXTS_H2W(B_0_15(REG2)));
+    uint32_t v = B_32_63(EXTS_H2W(B_32_47(REG1)) * EXTS_H2W(B_32_47(REG2)));
+
+    u = B_0_31(ACC) - u;
+    v = B_32_63(ACC) - v;
+
+    REG0 = (U64(u) << 32) | U64(v);
+    ACC  = REG0;
+}
+
 // ----------------- SPE FP ---------------------------------------------------------------------------
 
 X(efdabs)
@@ -2662,12 +2928,4 @@ X(evxor)
     REG0 = REG1 ^ REG2;
 }
 
-X(evmergehi)
-{
-    REG0 = (B_0_31(REG1) << 32) | B_0_31(REG2);
-}
 
-X(evmergelo)
-{
-    REG0 = (B_32_63(REG1) << 32) | B_32_63(REG2);
-}
