@@ -61,7 +61,7 @@ class DIS_PPC{
     private:
     ppc_cpu_t       m_dialect;
     ppc_dis_cache   m_dis_cache;                         // Disassembler cache
-    ppc_dis_cache   m_dis_cache2;                        // Second cache for string based opcodes
+    ppc_dis_cache2  m_dis_cache2;                        // Second cache for string based opcodes
     static uint16_t m_ppc_opcd_indices[N_PPC_OPCODES];
     static bool     m_opcd_indices_done;
 
@@ -96,7 +96,7 @@ class DIS_PPC{
             init_opcd_indices();
             m_opcd_indices_done = 1;
         }
-        m_dis_cache.set_size(256);   // 256 entry cache
+        m_dis_cache.set_size(1024);   // 256 entry cache
         m_dis_cache2.set_size(16);   // 16 entry cache
     }
 

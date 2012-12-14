@@ -1217,8 +1217,8 @@ CPU_T void CPU_PPC_T::run_b(){
     boost::posix_time::time_duration t_d = m_next_stamp - m_prev_stamp;
 
     // calculate instrs/sec
-    double instrs_per_sec = (static_cast<double>(m_ninstrs_last)/t_d.total_microseconds()) * 1000000;
-    std::cout << std::dec << "IPS = " << instrs_per_sec << std::endl;
+    double instrs_per_sec = (static_cast<double>(m_ninstrs_last)/t_d.total_microseconds()) * 1000;
+    std::cout << "Average Speed = " << instrs_per_sec << " KIPS." << std::endl;
 
 #undef I
     LOG("DEBUG4") << MSG_FUNC_END;
@@ -1243,7 +1243,7 @@ CPU_T inline void CPU_PPC_T::run_curr_instr(){
     LOG("DEBUG4") << "INSTR : " << call_this.get_instr_str() << std::endl;
 
     // Trace instructions
-    sm_instr_tracer("DEBUG") << "[CPU_" << (int)m_cpu_no << std::hex << "]\t" << "PC: 0x" << m_pc << "\t" << call_this.get_instr_str() << std::endl;
+    //sm_instr_tracer("DEBUG") << "[CPU_" << (int)m_cpu_no << std::hex << "]\t" << "PC: 0x" << m_pc << "\t" << call_this.get_instr_str() << std::endl;
     // Log coverage
     m_cov_logger.probe(call_this.opcname);
 
@@ -1260,9 +1260,6 @@ CPU_T inline void CPU_PPC_T::run_curr_instr(){
     // Check for any debug events for IAC
     // FIXME : This may not work at this time
     check_for_dbg_events(DBG_EVENT_IAC);
- 
-    /* If there is a func pointer already registered, call it */
-    if(call_this.fptr){ (reinterpret_cast<CPU_PPC::ppc_opc_fun_ptr>(call_this.fptr))(this, &call_this); }
  
     LASSERT_THROW(m_ppc_func_hash.find(call_this.opc) != m_ppc_func_hash.end(),
             sim_except(SIM_EXCEPT_EINVAL, "Invalid/Unimplemented opcode " + call_this.opcname), DEBUG4);

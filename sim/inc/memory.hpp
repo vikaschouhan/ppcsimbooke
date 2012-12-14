@@ -141,7 +141,13 @@ template<int nbits> class MEM_PPC {
     // @args : none
     //
     ~memory(){
-        LOG("DEBUG4") << MSG_FUNC_START; 
+        LOG("DEBUG4") << MSG_FUNC_START;
+        // clear all phy pages
+        for(mem_tgt_iter iter0 = mem_tgt.begin(); iter0 != mem_tgt.end(); iter0++){
+            for(page_hash_iter iter1 = iter0->page_hash.begin(); iter1 != iter0->page_hash.end(); iter1++){
+                delete[] iter1->second;
+            }
+        }
         LOG("DEBUG4") << MSG_FUNC_END;
     }
 

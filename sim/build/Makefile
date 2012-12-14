@@ -13,7 +13,7 @@ CROSS_LD       := $(CROSS_PREFIX)ld
 CROSS_OBJDUMP  := $(CROSS_PREFIX)objdump
 
 #============================= user defined flags ===============================================
-ENABLE_LOG     := 1
+ENABLE_LOG     := 0
 ENABLE_DEBUG   := 0
 BUILD_FMT_UTIL := 1
 ENABLE_SPE     := 0               # SPE is diabled right now
