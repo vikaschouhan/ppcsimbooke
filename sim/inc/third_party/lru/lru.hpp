@@ -15,6 +15,12 @@
 // SET is expected to be one of boost::bimaps::set_of 
 // or boost::bimaps::unordered_set_of 
 // Optional info can be defined ( by default int )
+//
+// NOTE :
+//        1. This class doesn't throw exceptions for performance
+//           reasons. Instead it sets an internal flag which can
+//           be inquired with error() member funtion.
+//
 template < typename K, typename V, typename I = int > class lru_cache
 {
     public: 
@@ -29,14 +35,11 @@ template < typename K, typename V, typename I = int > class lru_cache
       > container_type; 
 
     // Default constructor
-    lru_cache() : _capacity(256) { } 
+    lru_cache() : _capacity(256), _err_code(0) { }
 
     // Constuctor specifies the cached function and 
     // the maximum number of records to be stored. 
-    lru_cache(size_t c) : _capacity(c) 
-    { 
-        assert_and_throw(_capacity != 0, sim_except_fatal("lru capcity shouldn't be zero")); 
-    }
+    lru_cache(size_t c) : _capacity(c), _err_code(0) { }
 
     // @func  : operator[] 
     // @brief : Obtain value of the cached function for k
@@ -47,9 +50,9 @@ template < typename K, typename V, typename I = int > class lru_cache
         // Attempt to find existing record 
         const typename container_type::left_iterator it = _container.left.find(k); 
         if (it == _container.left.end()) { 
-            // We don't have it: 
-            // Throw an exception. It's the responsibility of user to manually call insert now
-            throw sim_except(SIM_EXCEPT_EINVAL, "Illegal key");
+            // We don't have it:
+            _err_code = SIM_EXCEPT_EINVAL;
+            return value_type();
  
         } else { 
  
@@ -60,7 +63,19 @@ template < typename K, typename V, typename I = int > class lru_cache
             // Return the retrieved value 
             return it->second; 
         } 
-    } 
+    }
+
+    // @func  : is_preset
+    // @brief : check is the key is present.
+    bool is_present(const key_type& k){
+        // Attempt to find existing record 
+        const typename container_type::left_iterator it = _container.left.find(k); 
+        if (it == _container.left.end()) { 
+            // We don't have it: 
+            return false; 
+        }
+        return true;
+    }
 
     // @func  : info_at
     // @brief : Obtain value of the additional info at key k
@@ -71,9 +86,8 @@ template < typename K, typename V, typename I = int > class lru_cache
         const typename container_type::left_iterator it = _container.left.find(k); 
         if (it == _container.left.end()) { 
             // We don't have it: 
-            // Throw an exception. It's the responsibility of user to manually call insert now
-            throw sim_except(SIM_EXCEPT_EINVAL, "Illegal key");
- 
+            _err_code = SIM_EXCEPT_EINVAL;
+           return info_type(); 
         }
         // Return the retrieved value 
         return it->info; 
@@ -83,7 +97,10 @@ template < typename K, typename V, typename I = int > class lru_cache
     // @brief : insert new key-value pair into the cache
     void insert(const key_type& k, const value_type& v, const info_type i = info_type()) { 
     
-        assert_and_throw(_container.size() <= _capacity, sim_except_fatal("lru cache size shouldn't grow beyond it's capacity"));
+        if(_container.size() > _capacity){
+            _err_code = SIM_EXCEPT_ELIMIT;
+            return;
+        };
 
         // If necessary, make space 
         if (_container.size() == _capacity) { 
@@ -103,6 +120,14 @@ template < typename K, typename V, typename I = int > class lru_cache
         _container.clear();
     }
 
+    // @func  : get error code
+    // @brief : returns the error code & clears it
+    int error(){
+        int code = _err_code;
+        _err_code = 0;
+        return code;
+    }
+
     // @func  : set_size
     // @brief : set size
     void set_size(size_t c){
@@ -113,7 +138,8 @@ template < typename K, typename V, typename I = int > class lru_cache
 
     private: 
     size_t _capacity; 
-    container_type _container; 
+    container_type _container;
+    int _err_code;
 }; 
  
 #endif

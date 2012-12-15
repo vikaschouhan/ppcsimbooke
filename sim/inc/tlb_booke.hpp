@@ -23,6 +23,15 @@
 
 #include "config.h"
 #include "utils.h"
+#include "third_party/lru/lru.hpp"
+
+// Derive an interim 45 bit virtual address from MSR[PR], RWX permissions,
+//                                               MSR[IS/DS], PID[0/1/2] & EA
+#define  TO_VIRT(pr, rwx, as, pid, ea)    ((((pr) & 0x1) << 44)     |   \
+                                           (((rwx) & 0x7)<< 41)     |   \
+                                           (((as) & 0x1) << 40)     |   \
+                                           (((pid) & 0xff) << 32)   |   \
+                                           ((ea) & 0xffffffff))
 
 // Macros for easy accessibility
 #define TLB_T                      template<int x, int y, int z>
@@ -40,6 +49,7 @@ template<int tlb4K_ns, int tlb4K_nw, int tlbCam_ne> class TLB_PPC {
     // Tlb entry
     struct t_tlb_entry {
         uint32_t  tid;     // PID
+        uint64_t  vpn;     // Interim 41 bit virtual page address
         uint64_t  epn;     // Effective page no     --------
         uint64_t  rpn;     // Real Page no          -------- Both page numbers are absolute page numbers
         uint64_t  ea;      // effective address     --------
@@ -93,9 +103,24 @@ template<int tlb4K_ns, int tlb4K_nw, int tlbCam_ne> class TLB_PPC {
         t_tlb() : tlbno(sn), assoc(nw), n_sets(ns) {}
     };
 
+
     private:
     t_tlb<tlb4K_ns,  tlb4K_nw, 0>       tlb4K;       // tlb4K_ns sets, tlb4K_nw ways
     t_tlb<       1, tlbCam_ne, 1>       tlbCam;      // 1 set,         tlbCam_nw ways
+
+    // NOTE :
+    //        1. m_tlb_cache stores translation tables in cached form for faster access.
+    //           Once a tlb entry is found in the main table (either in tlb4K or tlbCam),
+    //           it's cached for later access.
+    //        2. sm_pgmask_list is the list of all supported page masks. This is the list
+    //           used to derive page va for all possible page sizes. The generated va is
+    //           then used as a hash key in step 1.
+    //        3. m_need_flush is flag which signifies if the cache has to be flushed. This
+    //           type of need arises, when tlb array is changed (for eg. when a new tlb
+    //           entry is written or some entry is invalidated etc.)
+    lru_cache<uint64_t, uint64_t, uint32_t>     m_tlb_cache;          // [virtual_address] -> real_address cache
+    static const uint64_t                       sm_pgmask_list[];     // page_mask list for all supported pages.
+    bool                                        m_need_flush;         // m_tlb_cache needs flushing
     
     private:
     void init_ppc_tlb_defaults(void);
@@ -117,6 +142,23 @@ template<int tlb4K_ns, int tlb4K_nw, int tlbCam_ne> class TLB_PPC {
     std::pair<uint64_t, uint8_t> xlate(uint64_t ea, bool as, uint8_t pid, uint8_t rwx, bool pr);
 
 };
+
+// All static members.
+
+// Look up table for page masks
+TLB_T const uint64_t TLB_PPC_T::sm_pgmask_list[] = {
+                                                ~(0x0000000000001000ULL - 1),    // TID=1,   4K
+                                                ~(0x0000000000004000ULL - 1),    // TID=2,   16K
+                                                ~(0x0000000000010000ULL - 1),    // TID=3,   64K
+                                                ~(0x0000000000040000ULL - 1),    // TID=4,   256K
+                                                ~(0x0000000000100000ULL - 1),    // TID=5,   1M
+                                                ~(0x0000000000400000ULL - 1),    // TID=6,   4M
+                                                ~(0x0000000001000000ULL - 1),    // TID=7,   16M
+                                                ~(0x0000000004000000ULL - 1),    // TID=8,   64M
+                                                ~(0x0000000010000000ULL - 1),    // TID=9,   256M
+                                                ~(0x0000000040000000ULL - 1),    // TID=10,  1G
+                                                ~(0x0000000100000000ULL - 1),    // TID=11,  4G
+                                            };
 
 // Check if valid page number ( based on tsize )
 #define CHK_VALID_PN(pn, tsize)  ((((pow4(tsize) * 0x400) - 1) & pn) == pn)
@@ -247,6 +289,7 @@ TLB_T TLB_PPC_T::TLB_PPC(){
     LOG("DEBUG4") << MSG_FUNC_START;
     /* Initialize default tlb parameters , based on passed information */
     init_ppc_tlb_defaults();
+    m_tlb_cache.set_size(128);
     LOG("DEBUG4") << MSG_FUNC_END;
 }
 
@@ -578,6 +621,8 @@ TLB_T std::pair<uint64_t, uint8_t> TLB_PPC_T::xlate(uint64_t ea, bool as, uint8_
     uint64_t offset;
     uint8_t wimge;
     t_tlb_entry* entry = NULL;
+    uint64_t va;
+    uint64_t ra;
 
     // Check validity of AS and PID
     LASSERT_THROW((as & 0x1)   == as,  sim_except(SIM_EXCEPT_EINVAL, "Illegal AS"), DEBUG4);
@@ -585,6 +630,24 @@ TLB_T std::pair<uint64_t, uint8_t> TLB_PPC_T::xlate(uint64_t ea, bool as, uint8_
     LASSERT_THROW((rwx & 0x7)  == rwx, sim_except(SIM_EXCEPT_EINVAL, "Illegal permis rwx"), DEBUG4);
 
     uint16_t perm = (rwx << (pr*3));
+
+    static int size_pgm = sizeof(sm_pgmask_list);
+
+    // start searching for the tlb entry in cache first
+    for(int indx=0; indx < size_pgm; indx++){
+        // get va & offset
+        va     = TO_VIRT(u64(pr), u64(rwx), u64(as), u64(pid), (ea & sm_pgmask_list[indx]));
+        
+        ra    = m_tlb_cache[va];
+        offset = ea & ~sm_pgmask_list[indx];
+        wimge = m_tlb_cache.info_at(va);
+        
+        if(m_tlb_cache.error()){
+            continue;
+        }
+
+        return std::pair<uint64_t, uint8_t>((ra + offset), wimge);
+    }
 
     // According to e500v2 CRM , multiple hits are considered programming error and the xlated
     // address may not be valid. An exception ( hardware ) is not generated in this case.
@@ -626,6 +689,9 @@ TLB_T std::pair<uint64_t, uint8_t> TLB_PPC_T::xlate(uint64_t ea, bool as, uint8_
     // Get offset and wimge
     offset = ea & (TSIZE_TO_PSIZE(entry->tflags.tsize) - 1);
     wimge  = entry->wimge;
+
+    // Update the cache
+    m_tlb_cache.insert(TO_VIRT(u64(pr), u64(rwx), u64(as), u64(pid), (ea & ~(entry->ps - 1))), entry->ra, entry->wimge); 
 
     LOG("DEBUG4") << MSG_FUNC_END;
     return std::pair<uint64_t, uint8_t>((entry->ra + offset), wimge);

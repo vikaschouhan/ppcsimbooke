@@ -288,14 +288,11 @@ instr_call DIS_PPC::disasm(uint32_t opcd, uint64_t pc, int endianness)
     else
         insn = opcd;
 
-    try{
-        call_this = m_dis_cache[insn];
-        dinfo     = m_dis_cache.info_at(insn);
-    }catch(sim_except& e){
-        if(e.err_code() == SIM_EXCEPT_EINVAL)
-            goto exit_0;
-        else
-            LTHROW(sim_except_fatal("Something is seriously funcked up !!"), DEBUG4);
+    // search in the cache first
+    call_this = m_dis_cache[insn];
+    dinfo     = m_dis_cache.info_at(insn);
+    if(m_dis_cache.error()){
+        goto exit_0;
     }
 
     // If pc required and current pc == cached pc, return the value

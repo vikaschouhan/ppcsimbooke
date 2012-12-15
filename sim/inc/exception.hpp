@@ -27,6 +27,7 @@
 
 #define SIM_EXCEPT_ENOFILE       50    /* File couldn't be opened */
 #define SIM_EXCEPT_EUNKWN        51    /* Unknown */
+#define SIM_EXCEPT_ELIMIT        52    // Crossing limit
 
 // Exceptions due to some other factors
 #define SIM_EXCEPT_SBKPT        100    // Software breakpoint
