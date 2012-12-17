@@ -5,20 +5,11 @@
 #include "tlb_booke.hpp"             // BookE MMU
 #include "ppc_exception.h"           // Exception tables
 #include "ppc_dis.hpp"               // Disassembler module
-#include "cpu_ppc_regs.h"            // PPC register table
 #include "cpu_host.h"                // Some host definitions
 #include "memory.hpp"                // Memory module
 #include "bm.hpp"                    // Software Breakpoint manager
 #include "cpu_ppc_coverage.hpp"      // Coverage logger
 
-// powerPC register attribute flags
-// if attr=0, this means the register is illegal
-#define REG_READ_SUP        0x00000001UL                         // Register has read access in supervisor mode
-#define REG_WRITE_SUP       0x00000002UL                         // Register has write access in supervisor mode
-#define REG_READ_USR        0x00000004UL                         // Register has read access in user mode
-#define REG_WRITE_USR       0x00000008UL                         // Register has write access in user mode
-#define REG_CLEAR_W1C       0x00000010UL                         // Register can be cleared by writing 1 to the bits
-#define REG_REQ_SYNC        0x00000020UL                         // Register write requires synchronization
 
 // Debug events
 #define DBG_EVENT_IAC       0x00000001UL
@@ -78,7 +69,6 @@ class CPU_PPC {
     uint64_t   get_reg(std::string name) throw(sim_except);    // Get register by name
     void       dump_state(int columns=0, std::ostream &ostr=std::cout, int dump_all_sprs=0);   // Dump Cpu state
     void       print_L2tlbs();                                 // Print L2 tlbs
-    void       init_reg_attrs();                               // Initialize register attributes
 
     // Logging
     void       enable_cov_log();
@@ -126,13 +116,12 @@ class CPU_PPC {
     std::pair<uint64_t, uint8_t>  xlate(uint64_t addr, bool wr=0);  // Translate EA to RA ( return a pair of <xlated addr, wimge> )
 
     // Accessing registers using reghash interface ( for use with ppc code translation unit )
-    inline uint64_t&      reg(int regid);
-    inline uint64_t&      regn(std::string regname);
+    inline uint64_t*      reg(int regid);
+    inline uint64_t*      regn(std::string regname);
 
     private:
     void                  run_b();                               // blocking run
     void                  clear_ctrs();                          // clear counters
-    void                  init_reghash();
     void                  ppc_exception(int exception_nr, uint64_t subtype, uint64_t ea=0xffffffffffffffffULL);
     instr_call            get_instr();                           // Automatically tries to read instr from next NIP(PC)
     void                  check_for_dbg_events(int flags, uint64_t ea=0);   // check for debug events
@@ -177,6 +166,12 @@ class CPU_PPC {
 
     // powerPC register file
     ppc_regs                               m_cpu_regs;            // PPC register file
+#define PPCREG(reg_id)                     (*(m_cpu_regs.m_ireg[reg_id]))
+#define PPCREGN(reg_name)                  (*(m_cpu_regs.m_reg[reg_name]))
+#define PPCREGATTR(reg_id)                 (*(m_cpu_regs.m_ireg_attr[reg_id]))
+#define PPCREGNATTR(reg_name)              (*(m_cpu_regs.m_reg_attr[reg_name]))
+#define PPCREGMASK(reg_id, mask)           EBMASK(PPCREG(reg_id),    mask)
+#define PPCREGNMASK(reg_name, mask)        EBMASK(PPCREGN(reg_name), mask)
     uint64_t                               m_pc;                  // PC  -> program counter ( CIA )
     uint64_t                               m_nip;                 // NIP -> next instruction pointer ( NIA )
 #define PC   m_pc
@@ -193,14 +188,6 @@ class CPU_PPC {
 
     // Logging facilities
     CPU_PPC_COVERAGE                       m_cov_logger;          // coverage logger
-
-    // Pointers to generic registers/stuff hashed by name and numerical identifiers
-    std::map<std::string, ppc_reg64*>      m_reghash;
-    std::map<int, ppc_reg64*>              m_ireghash;
-#define PPCREG(reg_id)                 (m_ireghash[reg_id]->value)
-#define PPCREGN(reg_name)              (m_reghash[reg_name]->value)
-#define PPCREGMASK(reg_id, mask)       EBMASK(PPCREG(reg_id),    mask)
-#define PPCREGNMASK(reg_name, mask)    EBMASK(PPCREGN(reg_name), mask)
 
     DIS_PPC                                m_dis;                  // Disassembler module
     TLB_PPC<tlb4K_ns, tlb4K_nw, tlbCam_ne> m_l2tlb;                // tlb4K_ns = 128, tlb4K_nw = 4, tlbCam_ne = 16
@@ -422,23 +409,23 @@ CPU_T std::pair<uint64_t, uint8_t> CPU_PPC_T::xlate(uint64_t addr, bool wr){
     return std::pair<uint64_t, uint8_t>(res.first, res.second);
 }
 
-// Get register alias using regid
+// Get register pointer using regid
 // TODO : Check Permissions
-CPU_T inline uint64_t& CPU_PPC_T::reg(int regid){
-    LASSERT_THROW(m_ireghash.find(regid) != m_ireghash.end(),
+CPU_T inline uint64_t* CPU_PPC_T::reg(int regid){
+    LASSERT_THROW(m_cpu_regs.m_ireg.find(regid) != m_cpu_regs.m_ireg.end(),
            sim_except(SIM_EXCEPT_EINVAL, "Invalid register id " + boost::lexical_cast<std::string>(regid)), DEBUG4);
-    return m_ireghash[regid]->value;
+    return m_cpu_regs.m_ireg[regid];
 }
 
-// Get register alias using reg name
-CPU_T inline uint64_t& CPU_PPC_T::regn(std::string regname){
-    LASSERT_THROW(m_reghash.find(regname) != m_reghash.end(),
+// Get register pointer using reg name
+CPU_T inline uint64_t* CPU_PPC_T::regn(std::string regname){
+    LASSERT_THROW(m_cpu_regs.m_reg.find(regname) != m_cpu_regs.m_reg.end(),
            sim_except(SIM_EXCEPT_EINVAL, "Invalid register name " + regname), DEBUG4);
     // Do several checks
-    if(!m_reghash[regname]->attr){
-        std::cout << "Warning !! Invalid register " << regname << std::endl;
-    }
-    return m_reghash[regname]->value;
+    //if(!PPCREGNATTR(regname)){
+    //    std::cout << "Warning !! Invalid register " << regname << std::endl;
+    //}
+    return m_cpu_regs.m_reg[regname];
 }
 
 // Memory I/O functions
@@ -515,127 +502,6 @@ CPU_T void CPU_PPC_T::write64(uint64_t addr, uint64_t value){
     LOG("DEBUG4") << MSG_FUNC_END;
 }
 
-// Initialize register attributes
-CPU_T void CPU_PPC_T::init_reg_attrs(){
-    // spr_no[5] denotes priviledge level of SPR
-    // If 1 -> the SPR is supervisor only,
-    // If 0 -> it's accessible from both User and supervisor mode
-#define PPCREGATTR(regtype, regno)  (m_cpu_regs.regtype[regno].attr)
-    int i;
-
-    // Set MSR attributes
-    m_cpu_regs.msr.attr  = REG_READ_SUP  | REG_WRITE_SUP   | REG_READ_USR  ;
-    m_cpu_regs.acc.attr  = REG_READ_SUP  | REG_WRITE_SUP   | REG_READ_USR  | REG_WRITE_USR ;
-
-    // Set GPRs attributes
-    for(i=0; i<PPC_NGPRS; i++){
-        PPCREGATTR(gpr, i)  = REG_READ_SUP  | REG_WRITE_SUP   | REG_READ_USR  | REG_WRITE_USR ;
-    }
-
-    // Set SPRs attributes
-    PPCREGATTR(spr, SPRN_ATBL     )    = REG_READ_SUP  | REG_WRITE_SUP   | REG_READ_USR                         ;
-    PPCREGATTR(spr, SPRN_ATBU     )    = REG_READ_SUP  | REG_WRITE_SUP   | REG_READ_USR                         ;
-    PPCREGATTR(spr, SPRN_CSRR0    )    = REG_READ_SUP  | REG_WRITE_SUP                                          ;
-    PPCREGATTR(spr, SPRN_CSRR1    )    = REG_READ_SUP  | REG_WRITE_SUP                                          ;
-    PPCREGATTR(spr, SPRN_CTR      )    = REG_READ_SUP  | REG_WRITE_SUP   | REG_READ_USR  | REG_WRITE_USR        ;  
-    PPCREGATTR(spr, SPRN_DAC1     )    = REG_READ_SUP  | REG_WRITE_SUP                                          ;
-    PPCREGATTR(spr, SPRN_DAC2     )    = REG_READ_SUP  | REG_WRITE_SUP                                          ;
-    PPCREGATTR(spr, SPRN_DBCR0    )    = REG_READ_SUP  | REG_WRITE_SUP   | REG_REQ_SYNC                         ;
-    PPCREGATTR(spr, SPRN_DBCR1    )    = REG_READ_SUP  | REG_WRITE_SUP   | REG_REQ_SYNC                         ; 
-    PPCREGATTR(spr, SPRN_DBCR2    )    = REG_READ_SUP  | REG_WRITE_SUP   | REG_REQ_SYNC                         ;
-    PPCREGATTR(spr, SPRN_DBSR     )    = REG_READ_SUP  | REG_WRITE_SUP                                          ;
-    PPCREGATTR(spr, SPRN_DEAR     )    = REG_READ_SUP  | REG_WRITE_SUP                                          ;
-    PPCREGATTR(spr, SPRN_DEC      )    = REG_READ_SUP  | REG_WRITE_SUP                                          ;
-    PPCREGATTR(spr, SPRN_DECAR    )    = REG_WRITE_SUP                                                          ;
-    PPCREGATTR(spr, SPRN_ESR      )    = REG_READ_SUP  | REG_WRITE_SUP                                          ;
-    PPCREGATTR(spr, SPRN_IAC1     )    = REG_READ_SUP  | REG_WRITE_SUP                                          ;
-    PPCREGATTR(spr, SPRN_IAC2     )    = REG_READ_SUP  | REG_WRITE_SUP                                          ;
-    PPCREGATTR(spr, SPRN_IVOR0    )    = REG_READ_SUP  | REG_WRITE_SUP                                          ;
-    PPCREGATTR(spr, SPRN_IVOR1    )    = REG_READ_SUP  | REG_WRITE_SUP                                          ;
-    PPCREGATTR(spr, SPRN_IVOR2    )    = REG_READ_SUP  | REG_WRITE_SUP                                          ;
-    PPCREGATTR(spr, SPRN_IVOR3    )    = REG_READ_SUP  | REG_WRITE_SUP                                          ;
-    PPCREGATTR(spr, SPRN_IVOR4    )    = REG_READ_SUP  | REG_WRITE_SUP                                          ;
-    PPCREGATTR(spr, SPRN_IVOR5    )    = REG_READ_SUP  | REG_WRITE_SUP                                          ;
-    PPCREGATTR(spr, SPRN_IVOR6    )    = REG_READ_SUP  | REG_WRITE_SUP                                          ;
-#if CORE_TYPE != e500v2
-    PPCREGATTR(spr, SPRN_IVOR7    )    = REG_READ_SUP  | REG_WRITE_SUP                                          ;
-#endif
-    PPCREGATTR(spr, SPRN_IVOR8    )    = REG_READ_SUP  | REG_WRITE_SUP                                          ;
-#if CORE_TYPE != e500v2
-    PPCREGATTR(spr, SPRN_IVOR9    )    = REG_READ_SUP  | REG_WRITE_SUP                                          ;
-#endif
-    PPCREGATTR(spr, SPRN_IVOR10   )    = REG_READ_SUP  | REG_WRITE_SUP                                          ;
-    PPCREGATTR(spr, SPRN_IVOR11   )    = REG_READ_SUP  | REG_WRITE_SUP                                          ;
-    PPCREGATTR(spr, SPRN_IVOR12   )    = REG_READ_SUP  | REG_WRITE_SUP                                          ;
-    PPCREGATTR(spr, SPRN_IVOR13   )    = REG_READ_SUP  | REG_WRITE_SUP                                          ;
-    PPCREGATTR(spr, SPRN_IVOR14   )    = REG_READ_SUP  | REG_WRITE_SUP                                          ;
-    PPCREGATTR(spr, SPRN_IVOR15   )    = REG_READ_SUP  | REG_WRITE_SUP                                          ;
-    PPCREGATTR(spr, SPRN_IVPR     )    = REG_READ_SUP  | REG_WRITE_SUP                                          ;
-    PPCREGATTR(spr, SPRN_LR       )    = REG_READ_SUP  | REG_WRITE_SUP  | REG_READ_USR | REG_WRITE_USR          ;
-    PPCREGATTR(spr, SPRN_PID      )    = REG_READ_SUP  | REG_WRITE_SUP                                          ;
-    PPCREGATTR(spr, SPRN_PIR      )    = REG_READ_SUP                                                           ;
-    PPCREGATTR(spr, SPRN_PVR      )    = REG_READ_SUP                                                           ;
-    PPCREGATTR(spr, SPRN_SPRG0    )    = REG_READ_SUP  | REG_WRITE_SUP                                          ;
-    PPCREGATTR(spr, SPRN_SPRG1    )    = REG_READ_SUP  | REG_WRITE_SUP                                          ;
-    PPCREGATTR(spr, SPRN_SPRG2    )    = REG_READ_SUP  | REG_WRITE_SUP                                          ;
-    PPCREGATTR(spr, SPRN_SPRG3R   )    = REG_READ_USR                                                           ;
-    PPCREGATTR(spr, SPRN_SPRG3    )    = REG_READ_SUP  | REG_WRITE_SUP                                          ;
-    PPCREGATTR(spr, SPRN_SPRG4R   )    = REG_READ_USR                                                           ;
-    PPCREGATTR(spr, SPRN_SPRG4    )    = REG_READ_SUP  | REG_WRITE_SUP                                          ;
-    PPCREGATTR(spr, SPRN_SPRG5R   )    = REG_READ_USR                                                           ;
-    PPCREGATTR(spr, SPRN_SPRG5    )    = REG_READ_SUP  | REG_WRITE_SUP                                          ;
-    PPCREGATTR(spr, SPRN_SPRG6R   )    = REG_READ_USR                                                           ;
-    PPCREGATTR(spr, SPRN_SPRG6    )    = REG_READ_SUP  | REG_WRITE_SUP                                          ;
-    PPCREGATTR(spr, SPRN_SPRG7R   )    = REG_READ_USR                                                           ;
-    PPCREGATTR(spr, SPRN_SPRG7    )    = REG_READ_SUP  | REG_WRITE_SUP                                          ;
-    PPCREGATTR(spr, SPRN_SRR0     )    = REG_READ_SUP  | REG_WRITE_SUP                                          ;
-    PPCREGATTR(spr, SPRN_SRR1     )    = REG_READ_SUP  | REG_WRITE_SUP                                          ;
-    PPCREGATTR(spr, SPRN_TBRL     )    = REG_READ_USR                                                           ;
-    PPCREGATTR(spr, SPRN_TBWL     )    = REG_WRITE_SUP                                                          ;
-    PPCREGATTR(spr, SPRN_TBRU     )    = REG_READ_USR                                                           ;
-    PPCREGATTR(spr, SPRN_TBWU     )    = REG_WRITE_SUP                                                          ;
-    PPCREGATTR(spr, SPRN_TCR      )    = REG_READ_SUP  | REG_WRITE_SUP                                          ;
-    PPCREGATTR(spr, SPRN_TSR      )    = REG_READ_SUP  | REG_WRITE_SUP                                          ;
-    PPCREGATTR(spr, SPRN_USPRG0   )    = REG_READ_SUP  | REG_WRITE_SUP  | REG_READ_USR  | REG_WRITE_USR         ;
-    PPCREGATTR(spr, SPRN_XER      )    = REG_READ_SUP  | REG_WRITE_SUP  | REG_READ_USR  | REG_WRITE_USR         ;
-
-    PPCREGATTR(spr, SPRN_BBEAR    )    = REG_READ_SUP  | REG_WRITE_SUP  | REG_READ_USR  | REG_WRITE_USR   | REG_REQ_SYNC  ;
-    PPCREGATTR(spr, SPRN_BBTAR    )    = REG_READ_SUP  | REG_WRITE_SUP  | REG_READ_USR  | REG_WRITE_USR   | REG_REQ_SYNC  ;
-    PPCREGATTR(spr, SPRN_BUCSR    )    = REG_READ_SUP  | REG_WRITE_SUP  | REG_REQ_SYNC                                    ;
-    PPCREGATTR(spr, SPRN_HID0     )    = REG_READ_SUP  | REG_WRITE_SUP  | REG_REQ_SYNC                                    ;
-    PPCREGATTR(spr, SPRN_HID1     )    = REG_READ_SUP  | REG_WRITE_SUP  | REG_REQ_SYNC                                    ;
-    PPCREGATTR(spr, SPRN_IVOR32   )    = REG_READ_SUP  | REG_WRITE_SUP                                                    ;
-    PPCREGATTR(spr, SPRN_IVOR33   )    = REG_READ_SUP  | REG_WRITE_SUP                                                    ;
-    PPCREGATTR(spr, SPRN_IVOR34   )    = REG_READ_SUP  | REG_WRITE_SUP                                                    ;
-    PPCREGATTR(spr, SPRN_IVOR35   )    = REG_READ_SUP  | REG_WRITE_SUP                                                    ;
-    PPCREGATTR(spr, SPRN_L1CFG0   )    = REG_READ_SUP                                                                     ;
-    PPCREGATTR(spr, SPRN_L1CFG1   )    = REG_READ_SUP                                                                     ;
-    PPCREGATTR(spr, SPRN_L1CSR0   )    = REG_READ_SUP  | REG_WRITE_SUP  | REG_REQ_SYNC                                    ;
-    PPCREGATTR(spr, SPRN_L1CSR1   )    = REG_READ_SUP  | REG_WRITE_SUP  | REG_REQ_SYNC                                    ;
-    PPCREGATTR(spr, SPRN_MAS0     )    = REG_READ_SUP  | REG_WRITE_SUP  | REG_REQ_SYNC                                    ;
-    PPCREGATTR(spr, SPRN_MAS1     )    = REG_READ_SUP  | REG_WRITE_SUP  | REG_REQ_SYNC                                    ;
-    PPCREGATTR(spr, SPRN_MAS2     )    = REG_READ_SUP  | REG_WRITE_SUP  | REG_REQ_SYNC                                    ;
-    PPCREGATTR(spr, SPRN_MAS3     )    = REG_READ_SUP  | REG_WRITE_SUP  | REG_REQ_SYNC                                    ;
-    PPCREGATTR(spr, SPRN_MAS4     )    = REG_READ_SUP  | REG_WRITE_SUP  | REG_REQ_SYNC                                    ;
-    PPCREGATTR(spr, SPRN_MAS5     )    = REG_READ_SUP  | REG_WRITE_SUP  | REG_REQ_SYNC                                    ;    // Needs to be verified
-    PPCREGATTR(spr, SPRN_MAS6     )    = REG_READ_SUP  | REG_WRITE_SUP  | REG_REQ_SYNC                                    ;
-    PPCREGATTR(spr, SPRN_MAS7     )    = REG_READ_SUP  | REG_WRITE_SUP  | REG_REQ_SYNC                                    ;
-    PPCREGATTR(spr, SPRN_MCAR     )    = REG_READ_SUP                                                                     ;
-    PPCREGATTR(spr, SPRN_MCSR     )    = REG_READ_SUP  | REG_WRITE_SUP                                                    ;
-    PPCREGATTR(spr, SPRN_MCSRR0   )    = REG_READ_SUP  | REG_WRITE_SUP                                                    ;
-    PPCREGATTR(spr, SPRN_MCSRR1   )    = REG_READ_SUP  | REG_WRITE_SUP                                                    ;
-    PPCREGATTR(spr, SPRN_MMUCFG   )    = REG_READ_SUP                                                                     ;
-    PPCREGATTR(spr, SPRN_MMUCSR0  )    = REG_READ_SUP  | REG_WRITE_SUP  | REG_REQ_SYNC                                    ;
-    PPCREGATTR(spr, SPRN_PID0     )    = REG_READ_SUP  | REG_WRITE_SUP  | REG_REQ_SYNC                                    ;
-    PPCREGATTR(spr, SPRN_PID1     )    = REG_READ_SUP  | REG_WRITE_SUP  | REG_REQ_SYNC                                    ;
-    PPCREGATTR(spr, SPRN_PID2     )    = REG_READ_SUP  | REG_WRITE_SUP  | REG_REQ_SYNC                                    ;
-    PPCREGATTR(spr, SPRN_SPEFSCR  )    = REG_READ_SUP  | REG_WRITE_SUP  | REG_REQ_SYNC                                    ;
-    PPCREGATTR(spr, SPRN_SVR      )    = REG_READ_SUP                                                                     ;
-    PPCREGATTR(spr, SPRN_TLB0CFG  )    = REG_READ_SUP                                                                     ;
-    PPCREGATTR(spr, SPRN_TLB1CFG  )    = REG_READ_SUP                                                                     ;
-
-#undef PPCREGATTR
-}
 
 // Interrupt handling routines ( they handle exceptions at hardware level only and redirect control
 //                               to appropriate ISR. ).
@@ -1278,8 +1144,6 @@ CPU_T inline void CPU_PPC_T::run_curr_instr(){
 CPU_T inline void CPU_PPC_T::init_common(){
     LOG("DEBUG4") << MSG_FUNC_START;
     m_cpu_no = sm_ncpus++;                 // Increment global cpu cnt
-    init_reghash();                        // Initialize registers' hash 
-    init_reg_attrs();                      // Initialize registers' attributes
     gen_ppc_opc_func_hash(this);           // Initialize opcode function pointer table
     m_instr_cache.set_size(512);           // LRU cache size = 512 instrs
     m_ctxt_switch = 0;                     // Initialize flag to zero
@@ -1293,154 +1157,6 @@ CPU_T inline void CPU_PPC_T::init_common(){
     LOG("DEBUG4") << MSG_FUNC_END;
 }
 
-/*
- * @func : init_reghash
- * @args : none
- *
- * @brief : Initialize register pointers' hash for easy accessibility
- */
-CPU_T void CPU_PPC_T::init_reghash(){
-     LOG("DEBUG4") << MSG_FUNC_START;
-
-    m_reghash["msr"]        = &(m_cpu_regs.msr);                   m_ireghash[REG_MSR]         = m_reghash["msr"];
-    m_reghash["cr"]         = &(m_cpu_regs.cr);                    m_ireghash[REG_CR]          = m_reghash["cr"];
-    m_reghash["acc"]        = &(m_cpu_regs.acc);                   m_ireghash[REG_ACC]         = m_reghash["acc"];
-
-    m_reghash["atbl"]       = &(m_cpu_regs.spr[SPRN_ATBL]);        m_ireghash[REG_ATBL]        = m_reghash["atbl"];
-    m_reghash["atbu"]       = &(m_cpu_regs.spr[SPRN_ATBU]);        m_ireghash[REG_ATBU]        = m_reghash["atbu"];
-    m_reghash["csrr0"]      = &(m_cpu_regs.spr[SPRN_CSRR0]);       m_ireghash[REG_CSRR0]       = m_reghash["csrr0"];
-    m_reghash["csrr1"]      = &(m_cpu_regs.spr[SPRN_CSRR1]);       m_ireghash[REG_CSRR1]       = m_reghash["csrr1"];
-    m_reghash["ctr"]        = &(m_cpu_regs.spr[SPRN_CTR]);         m_ireghash[REG_CTR]         = m_reghash["ctr"];
-    m_reghash["dac1"]       = &(m_cpu_regs.spr[SPRN_DAC1]);        m_ireghash[REG_DAC1]        = m_reghash["dac1"];
-    m_reghash["dac2"]       = &(m_cpu_regs.spr[SPRN_DAC2]);        m_ireghash[REG_DAC2]        = m_reghash["dac2"];
-    m_reghash["dbcr0"]      = &(m_cpu_regs.spr[SPRN_DBCR0]);       m_ireghash[REG_DBCR0]       = m_reghash["dbcr0"];
-    m_reghash["dbcr1"]      = &(m_cpu_regs.spr[SPRN_DBCR1]);       m_ireghash[REG_DBCR1]       = m_reghash["dbcr1"];
-    m_reghash["dbcr2"]      = &(m_cpu_regs.spr[SPRN_DBCR2]);       m_ireghash[REG_DBCR2]       = m_reghash["dbcr2"];
-    m_reghash["dbsr"]       = &(m_cpu_regs.spr[SPRN_DBSR]);        m_ireghash[REG_DBSR]        = m_reghash["dbsr"];
-    m_reghash["dear"]       = &(m_cpu_regs.spr[SPRN_DEAR]);        m_ireghash[REG_DEAR]        = m_reghash["dear"];
-    m_reghash["dec"]        = &(m_cpu_regs.spr[SPRN_DEC]);         m_ireghash[REG_DEC]         = m_reghash["dec"];
-    m_reghash["decar"]      = &(m_cpu_regs.spr[SPRN_DECAR]);       m_ireghash[REG_DECAR]       = m_reghash["decar"];
-    m_reghash["esr"]        = &(m_cpu_regs.spr[SPRN_ESR]);         m_ireghash[REG_ESR]         = m_reghash["esr"];
-    m_reghash["iac1"]       = &(m_cpu_regs.spr[SPRN_IAC1]);        m_ireghash[REG_IAC1]        = m_reghash["iac1"];
-    m_reghash["iac2"]       = &(m_cpu_regs.spr[SPRN_IAC2]);        m_ireghash[REG_IAC2]        = m_reghash["iac2"];
-    m_reghash["ivor0"]      = &(m_cpu_regs.spr[SPRN_IVOR0]);       m_ireghash[REG_IVOR0]       = m_reghash["ivor0"];
-    m_reghash["ivor1"]      = &(m_cpu_regs.spr[SPRN_IVOR1]);       m_ireghash[REG_IVOR1]       = m_reghash["ivor1"]; 
-    m_reghash["ivor2"]      = &(m_cpu_regs.spr[SPRN_IVOR2]);       m_ireghash[REG_IVOR2]       = m_reghash["ivor2"];
-    m_reghash["ivor3"]      = &(m_cpu_regs.spr[SPRN_IVOR3]);       m_ireghash[REG_IVOR3]       = m_reghash["ivor3"];
-    m_reghash["ivor4"]      = &(m_cpu_regs.spr[SPRN_IVOR4]);       m_ireghash[REG_IVOR4]       = m_reghash["ivor4"];
-    m_reghash["ivor5"]      = &(m_cpu_regs.spr[SPRN_IVOR5]);       m_ireghash[REG_IVOR5]       = m_reghash["ivor5"];
-    m_reghash["ivor6"]      = &(m_cpu_regs.spr[SPRN_IVOR6]);       m_ireghash[REG_IVOR6]       = m_reghash["ivor6"];
-    m_reghash["ivor7"]      = &(m_cpu_regs.spr[SPRN_IVOR7]);       m_ireghash[REG_IVOR7]       = m_reghash["ivor7"];
-    m_reghash["ivor8"]      = &(m_cpu_regs.spr[SPRN_IVOR8]);       m_ireghash[REG_IVOR8]       = m_reghash["ivor8"];
-    m_reghash["ivor9"]      = &(m_cpu_regs.spr[SPRN_IVOR9]);       m_ireghash[REG_IVOR9]       = m_reghash["ivor9"];
-    m_reghash["ivor10"]     = &(m_cpu_regs.spr[SPRN_IVOR10]);      m_ireghash[REG_IVOR10]      = m_reghash["ivor10"];
-    m_reghash["ivor11"]     = &(m_cpu_regs.spr[SPRN_IVOR11]);      m_ireghash[REG_IVOR11]      = m_reghash["ivor11"];
-    m_reghash["ivor12"]     = &(m_cpu_regs.spr[SPRN_IVOR12]);      m_ireghash[REG_IVOR12]      = m_reghash["ivor12"];
-    m_reghash["ivor13"]     = &(m_cpu_regs.spr[SPRN_IVOR13]);      m_ireghash[REG_IVOR13]      = m_reghash["ivor13"];
-    m_reghash["ivor14"]     = &(m_cpu_regs.spr[SPRN_IVOR14]);      m_ireghash[REG_IVOR14]      = m_reghash["ivor14"];
-    m_reghash["ivor15"]     = &(m_cpu_regs.spr[SPRN_IVOR15]);      m_ireghash[REG_IVOR15]      = m_reghash["ivor15"];
-    m_reghash["ivpr"]       = &(m_cpu_regs.spr[SPRN_IVPR]);        m_ireghash[REG_IVPR]        = m_reghash["ivpr"];
-    m_reghash["lr"]         = &(m_cpu_regs.spr[SPRN_LR]);          m_ireghash[REG_LR]          = m_reghash["lr"];
-    m_reghash["pid"]        = &(m_cpu_regs.spr[SPRN_PID]);         m_ireghash[REG_PID]         = m_reghash["pid"];
-    m_reghash["pir"]        = &(m_cpu_regs.spr[SPRN_PIR]);         m_ireghash[REG_PIR]         = m_reghash["pir"];
-    m_reghash["pvr"]        = &(m_cpu_regs.spr[SPRN_PVR]);         m_ireghash[REG_PVR]         = m_reghash["pvr"];
-    m_reghash["sprg0"]      = &(m_cpu_regs.spr[SPRN_SPRG0]);       m_ireghash[REG_SPRG0]       = m_reghash["sprg0"];
-    m_reghash["sprg1"]      = &(m_cpu_regs.spr[SPRN_SPRG1]);       m_ireghash[REG_SPRG1]       = m_reghash["sprg1"];
-    m_reghash["sprg2"]      = &(m_cpu_regs.spr[SPRN_SPRG2]);       m_ireghash[REG_SPRG2]       = m_reghash["sprg2"];
-    m_reghash["sprg3r"]     = &(m_cpu_regs.spr[SPRN_SPRG3R]);      m_ireghash[REG_SPRG3R]      = m_reghash["sprg3r"];
-    m_reghash["sprg3"]      = &(m_cpu_regs.spr[SPRN_SPRG3]);       m_ireghash[REG_SPRG3]       = m_reghash["sprg3"];
-    m_reghash["sprg4r"]     = &(m_cpu_regs.spr[SPRN_SPRG4R]);      m_ireghash[REG_SPRG4R]      = m_reghash["sprg4r"];
-    m_reghash["sprg4"]      = &(m_cpu_regs.spr[SPRN_SPRG4]);       m_ireghash[REG_SPRG4]       = m_reghash["sprg4"];
-    m_reghash["sprg5r"]     = &(m_cpu_regs.spr[SPRN_SPRG5R]);      m_ireghash[REG_SPRG5R]      = m_reghash["sprg5r"];
-    m_reghash["sprg5"]      = &(m_cpu_regs.spr[SPRN_SPRG5]);       m_ireghash[REG_SPRG5]       = m_reghash["sprg5"];
-    m_reghash["sprg6r"]     = &(m_cpu_regs.spr[SPRN_SPRG6R]);      m_ireghash[REG_SPRG6R]      = m_reghash["sprg6r"];
-    m_reghash["sprg6"]      = &(m_cpu_regs.spr[SPRN_SPRG6]);       m_ireghash[REG_SPRG6]       = m_reghash["sprg6"];
-    m_reghash["sprg7r"]     = &(m_cpu_regs.spr[SPRN_SPRG7R]);      m_ireghash[REG_SPRG7R]      = m_reghash["sprg7r"];
-    m_reghash["sprg7"]      = &(m_cpu_regs.spr[SPRN_SPRG7]);       m_ireghash[REG_SPRG7]       = m_reghash["sprg7"];
-    m_reghash["srr0"]       = &(m_cpu_regs.spr[SPRN_SRR0]);        m_ireghash[REG_SRR0]        = m_reghash["srr0"];
-    m_reghash["srr1"]       = &(m_cpu_regs.spr[SPRN_SRR1]);        m_ireghash[REG_SRR1]        = m_reghash["srr1"];
-    m_reghash["tbrl"]       = &(m_cpu_regs.spr[SPRN_TBRL]);        m_ireghash[REG_TBRL]        = m_reghash["tbrl"];
-    m_reghash["tbwl"]       = &(m_cpu_regs.spr[SPRN_TBWL]);        m_ireghash[REG_TBWL]        = m_reghash["tbwl"];
-    m_reghash["tbru"]       = &(m_cpu_regs.spr[SPRN_TBRU]);        m_ireghash[REG_TBRU]        = m_reghash["tbru"];
-    m_reghash["tbwu"]       = &(m_cpu_regs.spr[SPRN_TBWU]);        m_ireghash[REG_TBWU]        = m_reghash["tbwu"];
-    m_reghash["tcr"]        = &(m_cpu_regs.spr[SPRN_TCR]);         m_ireghash[REG_TCR]         = m_reghash["tcr"];
-    m_reghash["tsr"]        = &(m_cpu_regs.spr[SPRN_TSR]);         m_ireghash[REG_TSR]         = m_reghash["tsr"];
-    m_reghash["usprg0"]     = &(m_cpu_regs.spr[SPRN_USPRG0]);      m_ireghash[REG_USPRG0]      = m_reghash["usprg0"];
-    m_reghash["xer"]        = &(m_cpu_regs.spr[SPRN_XER]);         m_ireghash[REG_XER]         = m_reghash["xer"];
-
-    m_reghash["bbear"]      = &(m_cpu_regs.spr[SPRN_BBEAR]);       m_ireghash[REG_BBEAR]       = m_reghash["bbear"];
-    m_reghash["bbtar"]      = &(m_cpu_regs.spr[SPRN_BBTAR]);       m_ireghash[REG_BBTAR]       = m_reghash["bbtar"];
-    m_reghash["bucsr"]      = &(m_cpu_regs.spr[SPRN_BUCSR]);       m_ireghash[REG_BUCSR]       = m_reghash["bucsr"];
-    m_reghash["hid0"]       = &(m_cpu_regs.spr[SPRN_HID0]);        m_ireghash[REG_HID0]        = m_reghash["hid0"];
-    m_reghash["hid1"]       = &(m_cpu_regs.spr[SPRN_HID1]);        m_ireghash[REG_HID1]        = m_reghash["hid1"];
-    m_reghash["ivor32"]     = &(m_cpu_regs.spr[SPRN_IVOR32]);      m_ireghash[REG_IVOR32]      = m_reghash["ivor32"];
-    m_reghash["ivor33"]     = &(m_cpu_regs.spr[SPRN_IVOR33]);      m_ireghash[REG_IVOR33]      = m_reghash["ivor33"];
-    m_reghash["ivor34"]     = &(m_cpu_regs.spr[SPRN_IVOR34]);      m_ireghash[REG_IVOR34]      = m_reghash["ivor34"];
-    m_reghash["ivor35"]     = &(m_cpu_regs.spr[SPRN_IVOR35]);      m_ireghash[REG_IVOR35]      = m_reghash["ivor35"];
-    m_reghash["l1cfg0"]     = &(m_cpu_regs.spr[SPRN_L1CFG0]);      m_ireghash[REG_L1CFG0]      = m_reghash["l1cfg0"];
-    m_reghash["l1cfg1"]     = &(m_cpu_regs.spr[SPRN_L1CFG1]);      m_ireghash[REG_L1CFG1]      = m_reghash["l1cfg1"];
-    m_reghash["l1csr0"]     = &(m_cpu_regs.spr[SPRN_L1CSR0]);      m_ireghash[REG_L1CSR0]      = m_reghash["l1csr0"];
-    m_reghash["l1csr1"]     = &(m_cpu_regs.spr[SPRN_L1CSR1]);      m_ireghash[REG_L1CSR1]      = m_reghash["l1csr1"];
-    m_reghash["mas0"]       = &(m_cpu_regs.spr[SPRN_MAS0]);        m_ireghash[REG_MAS0]        = m_reghash["mas0"];
-    m_reghash["mas1"]       = &(m_cpu_regs.spr[SPRN_MAS1]);        m_ireghash[REG_MAS1]        = m_reghash["mas1"];
-    m_reghash["mas2"]       = &(m_cpu_regs.spr[SPRN_MAS2]);        m_ireghash[REG_MAS2]        = m_reghash["mas2"];
-    m_reghash["mas3"]       = &(m_cpu_regs.spr[SPRN_MAS3]);        m_ireghash[REG_MAS3]        = m_reghash["mas3"];
-    m_reghash["mas4"]       = &(m_cpu_regs.spr[SPRN_MAS4]);        m_ireghash[REG_MAS4]        = m_reghash["mas4"];
-    m_reghash["mas5"]       = &(m_cpu_regs.spr[SPRN_MAS5]);        m_ireghash[REG_MAS5]        = m_reghash["mas5"];
-    m_reghash["mas6"]       = &(m_cpu_regs.spr[SPRN_MAS6]);        m_ireghash[REG_MAS6]        = m_reghash["mas6"];
-    m_reghash["mas7"]       = &(m_cpu_regs.spr[SPRN_MAS7]);        m_ireghash[REG_MAS7]        = m_reghash["mas7"];
-    m_reghash["mcar"]       = &(m_cpu_regs.spr[SPRN_MCAR]);        m_ireghash[REG_MCAR]        = m_reghash["mcar"];
-    m_reghash["mcsr"]       = &(m_cpu_regs.spr[SPRN_MCSR]);        m_ireghash[REG_MCSR]        = m_reghash["mcsr"];
-    m_reghash["mcsrr0"]     = &(m_cpu_regs.spr[SPRN_MCSRR0]);      m_ireghash[REG_MCSRR0]      = m_reghash["mcsrr0"];
-    m_reghash["mcsrr1"]     = &(m_cpu_regs.spr[SPRN_MCSRR1]);      m_ireghash[REG_MCSRR1]      = m_reghash["mcsrr1"];
-    m_reghash["mmucfg"]     = &(m_cpu_regs.spr[SPRN_MMUCFG]);      m_ireghash[REG_MMUCFG]      = m_reghash["mmucfg"];
-    m_reghash["mmucsr0"]    = &(m_cpu_regs.spr[SPRN_MMUCSR0]);     m_ireghash[REG_MMUCSR0]     = m_reghash["mmucsr0"];
-    m_reghash["pid0"]       = &(m_cpu_regs.spr[SPRN_PID0]);        m_ireghash[REG_PID0]        = m_reghash["pid0"];
-    m_reghash["pid1"]       = &(m_cpu_regs.spr[SPRN_PID1]);        m_ireghash[REG_PID1]        = m_reghash["pid1"];
-    m_reghash["pid2"]       = &(m_cpu_regs.spr[SPRN_PID2]);        m_ireghash[REG_PID2]        = m_reghash["pid2"];
-    m_reghash["spefscr"]    = &(m_cpu_regs.spr[SPRN_SPEFSCR]);     m_ireghash[REG_SPEFSCR]     = m_reghash["spefscr"];
-    m_reghash["svr"]        = &(m_cpu_regs.spr[SPRN_SVR]);         m_ireghash[REG_SVR]         = m_reghash["svr"];
-    m_reghash["tlb0cfg"]    = &(m_cpu_regs.spr[SPRN_TLB0CFG]);     m_ireghash[REG_TLB0CFG]     = m_reghash["tlb0cfg"];
-    m_reghash["tlb1cfg"]    = &(m_cpu_regs.spr[SPRN_TLB1CFG]);     m_ireghash[REG_TLB1CFG]     = m_reghash["tlb1cfg"];
-
-    // PMRs
-    m_reghash["pmc0"]       = &(m_cpu_regs.pmr[PMRN_PMC0]);        m_ireghash[REG_PMC0]        = m_reghash["pmc0"];
-    m_reghash["pmc1"]       = &(m_cpu_regs.pmr[PMRN_PMC1]);        m_ireghash[REG_PMC1]        = m_reghash["pmc1"];
-    m_reghash["pmc2"]       = &(m_cpu_regs.pmr[PMRN_PMC2]);        m_ireghash[REG_PMC2]        = m_reghash["pmc2"];
-    m_reghash["pmc3"]       = &(m_cpu_regs.pmr[PMRN_PMC3]);        m_ireghash[REG_PMC3]        = m_reghash["pmc3"];
-    m_reghash["pmlca0"]     = &(m_cpu_regs.pmr[PMRN_PMLCA0]);      m_ireghash[REG_PMLCA0]      = m_reghash["pmlca0"];
-    m_reghash["pmlca1"]     = &(m_cpu_regs.pmr[PMRN_PMLCA1]);      m_ireghash[REG_PMLCA1]      = m_reghash["pmlca1"];
-    m_reghash["pmlca2"]     = &(m_cpu_regs.pmr[PMRN_PMLCA2]);      m_ireghash[REG_PMLCA2]      = m_reghash["pmlca2"];
-    m_reghash["pmlca3"]     = &(m_cpu_regs.pmr[PMRN_PMLCA3]);      m_ireghash[REG_PMLCA3]      = m_reghash["pmlca3"];
-    m_reghash["pmlcb0"]     = &(m_cpu_regs.pmr[PMRN_PMLCB0]);      m_ireghash[REG_PMLCB0]      = m_reghash["pmlcb0"];
-    m_reghash["pmlcb1"]     = &(m_cpu_regs.pmr[PMRN_PMLCB1]);      m_ireghash[REG_PMLCB1]      = m_reghash["pmlcb1"];
-    m_reghash["pmlcb2"]     = &(m_cpu_regs.pmr[PMRN_PMLCB2]);      m_ireghash[REG_PMLCB2]      = m_reghash["pmlcb2"];
-    m_reghash["pmlcb3"]     = &(m_cpu_regs.pmr[PMRN_PMLCB3]);      m_ireghash[REG_PMLCB3]      = m_reghash["pmlcb3"];
-    m_reghash["pmgc0"]      = &(m_cpu_regs.pmr[PMRN_PMGC0]);       m_ireghash[REG_PMGC0]       = m_reghash["pmgc0"];
-    m_reghash["upmc0"]      = &(m_cpu_regs.pmr[PMRN_UPMC0]);       m_ireghash[REG_UPMC0]       = m_reghash["upmc0"];
-    m_reghash["upmc1"]      = &(m_cpu_regs.pmr[PMRN_UPMC1]);       m_ireghash[REG_UPMC1]       = m_reghash["upmc1"];
-    m_reghash["upmc2"]      = &(m_cpu_regs.pmr[PMRN_UPMC2]);       m_ireghash[REG_UPMC2]       = m_reghash["upmc2"];
-    m_reghash["upmc3"]      = &(m_cpu_regs.pmr[PMRN_UPMC3]);       m_ireghash[REG_UPMC3]       = m_reghash["upmc3"];
-    m_reghash["upmlca0"]    = &(m_cpu_regs.pmr[PMRN_UPMLCA0]);     m_ireghash[REG_UPMLCA0]     = m_reghash["upmlca0"];
-    m_reghash["upmlca1"]    = &(m_cpu_regs.pmr[PMRN_UPMLCA1]);     m_ireghash[REG_UPMLCA1]     = m_reghash["upmlca1"];
-    m_reghash["upmlca2"]    = &(m_cpu_regs.pmr[PMRN_UPMLCA2]);     m_ireghash[REG_UPMLCA2]     = m_reghash["upmlca2"];
-    m_reghash["upmlca3"]    = &(m_cpu_regs.pmr[PMRN_UPMLCA3]);     m_ireghash[REG_UPMLCA3]     = m_reghash["upmlca3"];
-    m_reghash["upmlcb0"]    = &(m_cpu_regs.pmr[PMRN_UPMLCB0]);     m_ireghash[REG_UPMLCB0]     = m_reghash["upmlcb0"];
-    m_reghash["upmlcb1"]    = &(m_cpu_regs.pmr[PMRN_UPMLCB1]);     m_ireghash[REG_UPMLCB1]     = m_reghash["upmlcb1"];
-    m_reghash["upmlcb2"]    = &(m_cpu_regs.pmr[PMRN_UPMLCB2]);     m_ireghash[REG_UPMLCB2]     = m_reghash["upmlcb2"];
-    m_reghash["upmlcb3"]    = &(m_cpu_regs.pmr[PMRN_UPMLCB3]);     m_ireghash[REG_UPMLCB3]     = m_reghash["upmlcb3"];
-    m_reghash["upmgc0"]     = &(m_cpu_regs.pmr[PMRN_UPMGC0]);      m_ireghash[REG_UPMGC0]      = m_reghash["upmgc0"];
-
-    // GPRS ad FPRS
-    for (size_t i=0; i<PPC_NGPRS; i++){
-        m_reghash[static_cast<std::ostringstream *>(&(std::ostringstream() << "r" << i))->str()] = &(m_cpu_regs.gpr[i]); 
-        m_reghash[static_cast<std::ostringstream *>(&(std::ostringstream() << "gpr" << i))->str()] = &(m_cpu_regs.gpr[i]);
-        m_ireghash[REG_GPR0 + i] = &(m_cpu_regs.gpr[i]);
-    }
-
-    // Add more later on
-    LOG("DEBUG4") << MSG_FUNC_END;
-}
 
 // set reservation
 CPU_T void CPU_PPC_T::set_resv(uint64_t ea, size_t size){
@@ -1691,7 +1407,7 @@ CPU_T unsigned CPU_PPC_T::get_xer_ca(){
 // Get register value by name
 CPU_T uint64_t CPU_PPC_T::get_reg(std::string reg_name) throw(sim_except) {
     LOG("DEBUG4") << MSG_FUNC_START;
-    if(m_reghash.find(reg_name) == m_reghash.end()) throw sim_except(SIM_EXCEPT_EINVAL, "Illegal register name");
+    if(m_cpu_regs.m_reg.find(reg_name) == m_cpu_regs.m_reg.end()) throw sim_except(SIM_EXCEPT_EINVAL, "Illegal register name");
     LOG("DEBUG4") << MSG_FUNC_END;
     return PPCREGN(reg_name);
 }
@@ -1726,15 +1442,17 @@ CPU_T void CPU_PPC_T::dump_state(int columns, std::ostream &ostr, int dump_all_s
 
     // dump sprs
     if(dump_all_sprs){
-        for(i=0; i<PPC_NSPRS; i++){
-            // TODO: do a check for valid sprs later on
-            strout << "spr[" << std::dec << i << "] = " << std::hex << std::showbase << PPCREG(REG_SPR0 + i);
-            ostr << std::left << std::setw(26) << strout.str() << "    ";
-            strout.str("");
-            if(++colno >= columns){ ostr << std::endl; colno = 0; }
-        }
-        ostr << std::endl;
-        colno = 0;
+        // FIXME: fix this at some point in future.
+        //
+        //for(i=0; i<PPC_NSPRS; i++){
+        //    // TODO: do a check for valid sprs later on
+        //    strout << "spr[" << std::dec << i << "] = " << std::hex << std::showbase << PPCREG(REG_SPR0 + i);
+        //    ostr << std::left << std::setw(26) << strout.str() << "    ";
+        //    strout.str("");
+        //    if(++colno >= columns){ ostr << std::endl; colno = 0; }
+        //}
+        //ostr << std::endl;
+        //colno = 0;
     }else{
         ostr << std::hex << std::showbase;
         ostr << "ctr = " << PPCREG(REG_CTR) << std::endl;

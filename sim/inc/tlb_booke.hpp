@@ -49,7 +49,6 @@ template<int tlb4K_ns, int tlb4K_nw, int tlbCam_ne> class TLB_PPC {
     // Tlb entry
     struct t_tlb_entry {
         uint32_t  tid;     // PID
-        uint64_t  vpn;     // Interim 41 bit virtual page address
         uint64_t  epn;     // Effective page no     --------
         uint64_t  rpn;     // Real Page no          -------- Both page numbers are absolute page numbers
         uint64_t  ea;      // effective address     --------
