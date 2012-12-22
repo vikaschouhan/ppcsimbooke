@@ -136,49 +136,45 @@ int py_sig_callback(){
 }
 
 // Add attributes for GPRs
-#define ADD_GPR(reg_num, reg_alias) \
-    ppc_regs_py.add_property(reg_alias, make_function(&ppc_regs::get_gpr<reg_num>, return_value_policy<reference_existing_object>()))
-#define ADD_SPR(reg_num, reg_alias) \
-    ppc_regs_py.add_property(reg_alias, make_function(&ppc_regs::get_spr<reg_num>, return_value_policy<reference_existing_object>()))
-#define ADD_PMR(reg_num, reg_alias) \
-    ppc_regs_py.add_property(reg_alias, make_function(&ppc_regs::get_pmr<reg_num>, return_value_policy<reference_existing_object>()))
+#define ADD_REG(reg_v, reg_alias) \
+    ppc_regs_py.def_readwrite(reg_alias, &ppc_regs::reg_v)
 
 // Add all registers
 #define ADD_ALL_REGS() \
-       ADD_GPR(0,  "R0"  ); ADD_GPR(1,  "R1"  ); ADD_GPR(2,  "R2"  ); ADD_GPR(3,  "R3"  );  \
-       ADD_GPR(4,  "R4"  ); ADD_GPR(5,  "R5"  ); ADD_GPR(6,  "R6"  ); ADD_GPR(7,  "R7"  );  \
-       ADD_GPR(8,  "R8"  ); ADD_GPR(9,  "R9"  ); ADD_GPR(10, "R10" ); ADD_GPR(11, "R11" );  \
-       ADD_GPR(12, "R12" ); ADD_GPR(13, "R13" ); ADD_GPR(14, "R14" ); ADD_GPR(15, "R15" );  \
-       ADD_GPR(16, "R16" ); ADD_GPR(17, "R17" ); ADD_GPR(18, "R18" ); ADD_GPR(19, "R19" );  \
-       ADD_GPR(20, "R20" ); ADD_GPR(21, "R21" ); ADD_GPR(22, "R22" ); ADD_GPR(23, "R23" );  \
-       ADD_GPR(24, "R24" ); ADD_GPR(25, "R25" ); ADD_GPR(26, "R26" ); ADD_GPR(27, "R27" );  \
-       ADD_GPR(28, "R28" ); ADD_GPR(29, "R29" ); ADD_GPR(30, "R30" ); ADD_GPR(31, "R31" );  \
+       ADD_REG(gpr0,  "R0"  ); ADD_REG(gpr1,  "R1"  ); ADD_REG(gpr2,  "R2"  ); ADD_REG(gpr3,  "R3"  );  \
+       ADD_REG(gpr4,  "R4"  ); ADD_REG(gpr5,  "R5"  ); ADD_REG(gpr6,  "R6"  ); ADD_REG(gpr7,  "R7"  );  \
+       ADD_REG(gpr8,  "R8"  ); ADD_REG(gpr9,  "R9"  ); ADD_REG(gpr10, "R10" ); ADD_REG(gpr11, "R11" );  \
+       ADD_REG(gpr12, "R12" ); ADD_REG(gpr13, "R13" ); ADD_REG(gpr14, "R14" ); ADD_REG(gpr15, "R15" );  \
+       ADD_REG(gpr16, "R16" ); ADD_REG(gpr17, "R17" ); ADD_REG(gpr18, "R18" ); ADD_REG(gpr19, "R19" );  \
+       ADD_REG(gpr20, "R20" ); ADD_REG(gpr21, "R21" ); ADD_REG(gpr22, "R22" ); ADD_REG(gpr23, "R23" );  \
+       ADD_REG(gpr24, "R24" ); ADD_REG(gpr25, "R25" ); ADD_REG(gpr26, "R26" ); ADD_REG(gpr27, "R27" );  \
+       ADD_REG(gpr28, "R28" ); ADD_REG(gpr29, "R29" ); ADD_REG(gpr30, "R30" ); ADD_REG(gpr31, "R31" );  \
                                                                                             \
       /* Add attributes for other registers */                                              \
-      ADD_SPR(SPRN_ATBL,    "ATBL"   ); ADD_SPR(SPRN_ATBU,    "ATBU"    ); ADD_SPR(SPRN_CSRR0,   "CSRR0"  ); ADD_SPR(SPRN_CSRR1,    "CSRR1"  );    \
-      ADD_SPR(SPRN_CTR,     "CTR"    ); ADD_SPR(SPRN_DAC1,    "DAC1"    ); ADD_SPR(SPRN_DAC2,    "DAC2"   ); ADD_SPR(SPRN_DBCR0,    "DBCR0"  );    \
-      ADD_SPR(SPRN_DBCR1,   "DBCR1"  ); ADD_SPR(SPRN_DBCR2,   "DBCR2"   ); ADD_SPR(SPRN_DBSR,    "DBSR"   ); ADD_SPR(SPRN_DEAR,     "DEAR"   );    \
-      ADD_SPR(SPRN_DEC,     "DEC"    ); ADD_SPR(SPRN_DECAR,   "DECAR"   ); ADD_SPR(SPRN_ESR,     "ESR"    ); ADD_SPR(SPRN_IAC1,     "IAC1"   );    \
-      ADD_SPR(SPRN_IAC2,    "IAC2"   ); ADD_SPR(SPRN_IVOR0,   "IVOR0"   ); ADD_SPR(SPRN_IVOR1,   "IVOR1"  ); ADD_SPR(SPRN_IVOR2,    "IVOR2"  );    \
-      ADD_SPR(SPRN_IVOR3,   "IVOR3"  ); ADD_SPR(SPRN_IVOR4,   "IVOR4"   ); ADD_SPR(SPRN_IVOR5,   "IVOR5"  ); ADD_SPR(SPRN_IVOR6,    "IVOR6"  );    \
-      ADD_SPR(SPRN_IVOR8,   "IVOR8"  ); ADD_SPR(SPRN_IVOR10,  "IVOR10"  ); ADD_SPR(SPRN_IVOR11,  "IVOR11" ); ADD_SPR(SPRN_IVOR12,   "IVOR12" );    \
-      ADD_SPR(SPRN_IVOR13,  "IVOR13" ); ADD_SPR(SPRN_IVOR14,  "IVOR14"  ); ADD_SPR(SPRN_IVOR15,  "IVOR15" ); ADD_SPR(SPRN_IVPR,     "IVPR"   );    \
-      ADD_SPR(SPRN_LR,      "LR"     ); ADD_SPR(SPRN_PID,     "PID"     ); ADD_SPR(SPRN_PIR,     "PIR"    ); ADD_SPR(SPRN_PVR,      "PVR"    );    \
-      ADD_SPR(SPRN_SPRG0,   "SPRG0"  ); ADD_SPR(SPRN_SPRG1,   "SPRG1"   ); ADD_SPR(SPRN_SPRG2,   "SPRG2"  ); ADD_SPR(SPRN_SPRG3R,   "SPRG3R" );    \
-      ADD_SPR(SPRN_SPRG3,   "SPRG3"  ); ADD_SPR(SPRN_SPRG4R,  "SPRG4R"  ); ADD_SPR(SPRN_SPRG4,   "SPRG4"  ); ADD_SPR(SPRN_SPRG5R,   "SPRG5R" );    \
-      ADD_SPR(SPRN_SPRG5,   "SPRG5"  ); ADD_SPR(SPRN_SPRG6R,  "SPRG6R"  ); ADD_SPR(SPRN_SPRG6,   "SPRG6"  ); ADD_SPR(SPRN_SPRG7R,   "SPRG7R" );    \
-      ADD_SPR(SPRN_SPRG7,   "SPRG7"  ); ADD_SPR(SPRN_SRR0,    "SRR0"    ); ADD_SPR(SPRN_SRR1,    "SRR1"   ); ADD_SPR(SPRN_TBRL,     "TBRL"   );    \
-      ADD_SPR(SPRN_TBWL,    "TBWL"   ); ADD_SPR(SPRN_TBRU,    "TBRU"    ); ADD_SPR(SPRN_TBWU,    "TBWU"   ); ADD_SPR(SPRN_TCR,      "TCR"    );    \
-      ADD_SPR(SPRN_TSR,     "TSR"    ); ADD_SPR(SPRN_USPRG0,  "USPRG0"  ); ADD_SPR(SPRN_XER,     "XER"    ); ADD_SPR(SPRN_BBEAR,    "BBEAR"  );    \
-      ADD_SPR(SPRN_BBTAR,   "BBTAR"  ); ADD_SPR(SPRN_BUCSR,   "BUCSR"   ); ADD_SPR(SPRN_HID0,    "HID0"   ); ADD_SPR(SPRN_HID1,     "HID1"   );    \
-      ADD_SPR(SPRN_IVOR32,  "IVOR32" ); ADD_SPR(SPRN_IVOR33,  "IVOR33"  ); ADD_SPR(SPRN_IVOR34,  "IVOR34" ); ADD_SPR(SPRN_IVOR35,   "IVOR35" );    \
-      ADD_SPR(SPRN_L1CFG0,  "L1CFG0" ); ADD_SPR(SPRN_L1CFG1,  "L1CFG1"  ); ADD_SPR(SPRN_L1CSR0,  "L1CSR0" ); ADD_SPR(SPRN_L1CSR1,   "L1CSR1" );    \
-      ADD_SPR(SPRN_MAS0,    "MAS0"   ); ADD_SPR(SPRN_MAS1,    "MAS1"    ); ADD_SPR(SPRN_MAS2,    "MAS2"   ); ADD_SPR(SPRN_MAS3,     "MAS3"   );    \
-      ADD_SPR(SPRN_MAS4,    "MAS4"   ); ADD_SPR(SPRN_MAS5,    "MAS5"    ); ADD_SPR(SPRN_MAS6,    "MAS6"   ); ADD_SPR(SPRN_MAS7,     "MAS7"   );    \
-      ADD_SPR(SPRN_MCAR,    "MCAR"   ); ADD_SPR(SPRN_MCSR,    "MCSR"    ); ADD_SPR(SPRN_MCSRR0,  "MCSRR0" ); ADD_SPR(SPRN_MCSRR1,   "MCSRR1" );    \
-      ADD_SPR(SPRN_MMUCFG,  "MMUCFG" ); ADD_SPR(SPRN_MMUCSR0, "MMUCSR0" ); ADD_SPR(SPRN_PID0,    "PID0"   ); ADD_SPR(SPRN_PID1,     "PID1"   );    \
-      ADD_SPR(SPRN_PID2,    "PID2"   ); ADD_SPR(SPRN_SPEFSCR, "SPEFSCR" ); ADD_SPR(SPRN_SVR,     "SVR"    ); ADD_SPR(SPRN_TLB0CFG,  "TLB0CFG");    \
-      ADD_SPR(SPRN_TLB1CFG, "TLB1CFG")
+      ADD_REG(atbl,    "ATBL"   ); ADD_REG(atbu,    "ATBU"    ); ADD_REG(csrr0,   "CSRR0"  ); ADD_REG(csrr1,    "CSRR1"  );    \
+      ADD_REG(ctr,     "CTR"    ); ADD_REG(dac1,    "DAC1"    ); ADD_REG(dac2,    "DAC2"   ); ADD_REG(dbcr0,    "DBCR0"  );    \
+      ADD_REG(dbcr1,   "DBCR1"  ); ADD_REG(dbcr2,   "DBCR2"   ); ADD_REG(dbsr,    "DBSR"   ); ADD_REG(dear,     "DEAR"   );    \
+      ADD_REG(dec,     "DEC"    ); ADD_REG(decar,   "DECAR"   ); ADD_REG(esr,     "ESR"    ); ADD_REG(iac1,     "IAC1"   );    \
+      ADD_REG(iac2,    "IAC2"   ); ADD_REG(ivor0,   "IVOR0"   ); ADD_REG(ivor1,   "IVOR1"  ); ADD_REG(ivor2,    "IVOR2"  );    \
+      ADD_REG(ivor3,   "IVOR3"  ); ADD_REG(ivor4,   "IVOR4"   ); ADD_REG(ivor5,   "IVOR5"  ); ADD_REG(ivor6,    "IVOR6"  );    \
+      ADD_REG(ivor8,   "IVOR8"  ); ADD_REG(ivor10,  "IVOR10"  ); ADD_REG(ivor11,  "IVOR11" ); ADD_REG(ivor12,   "IVOR12" );    \
+      ADD_REG(ivor13,  "IVOR13" ); ADD_REG(ivor14,  "IVOR14"  ); ADD_REG(ivor15,  "IVOR15" ); ADD_REG(ivpr,     "IVPR"   );    \
+      ADD_REG(lr,      "LR"     ); ADD_REG(pid0,    "PID"     ); ADD_REG(pir,     "PIR"    ); ADD_REG(pvr,      "PVR"    );    \
+      ADD_REG(sprg0,   "SPRG0"  ); ADD_REG(sprg1,   "SPRG1"   ); ADD_REG(sprg2,   "SPRG2"  ); ADD_REG(sprg3,    "SPRG3R" );    \
+      ADD_REG(sprg3,   "SPRG3"  ); ADD_REG(sprg4,   "SPRG4R"  ); ADD_REG(sprg4,   "SPRG4"  ); ADD_REG(sprg5,    "SPRG5R" );    \
+      ADD_REG(sprg5,   "SPRG5"  ); ADD_REG(sprg6,   "SPRG6R"  ); ADD_REG(sprg6,   "SPRG6"  ); ADD_REG(sprg7,    "SPRG7R" );    \
+      ADD_REG(sprg7,   "SPRG7"  ); ADD_REG(srr0,    "SRR0"    ); ADD_REG(srr1,    "SRR1"   ); ADD_REG(tbl,      "TBRL"   );    \
+      ADD_REG(tbl,     "TBWL"   ); ADD_REG(tbu,     "TBRU"    ); ADD_REG(tbu,     "TBWU"   ); ADD_REG(tcr,      "TCR"    );    \
+      ADD_REG(tsr,     "TSR"    ); ADD_REG(usprg0,  "USPRG0"  ); ADD_REG(xer,     "XER"    ); ADD_REG(bbear,    "BBEAR"  );    \
+      ADD_REG(bbtar,   "BBTAR"  ); ADD_REG(bucsr,   "BUCSR"   ); ADD_REG(hid0,    "HID0"   ); ADD_REG(hid1,     "HID1"   );    \
+      ADD_REG(ivor32,  "IVOR32" ); ADD_REG(ivor33,  "IVOR33"  ); ADD_REG(ivor34,  "IVOR34" ); ADD_REG(ivor35,   "IVOR35" );    \
+      ADD_REG(l1cfg0,  "L1CFG0" ); ADD_REG(l1cfg1,  "L1CFG1"  ); ADD_REG(l1csr0,  "L1CSR0" ); ADD_REG(l1csr1,   "L1CSR1" );    \
+      ADD_REG(mas0,    "MAS0"   ); ADD_REG(mas1,    "MAS1"    ); ADD_REG(mas2,    "MAS2"   ); ADD_REG(mas3,     "MAS3"   );    \
+      ADD_REG(mas4,    "MAS4"   ); ADD_REG(mas5,    "MAS5"    ); ADD_REG(mas6,    "MAS6"   ); ADD_REG(mas7,     "MAS7"   );    \
+      ADD_REG(mcar,    "MCAR"   ); ADD_REG(mcsr,    "MCSR"    ); ADD_REG(mcsrr0,  "MCSRR0" ); ADD_REG(mcsrr1,   "MCSRR1" );    \
+      ADD_REG(mmucfg,  "MMUCFG" ); ADD_REG(mmucsr0, "MMUCSR0" ); ADD_REG(pid0,    "PID0"   ); ADD_REG(pid1,     "PID1"   );    \
+      ADD_REG(pid2,    "PID2"   ); ADD_REG(spefscr, "SPEFSCR" ); ADD_REG(svr,     "SVR"    ); ADD_REG(tlb0cfg,  "TLB0CFG");    \
+      ADD_REG(tlb1cfg, "TLB1CFG")
 
 // Add bitmask constants
 #define ADD_BMASK(mask, mask_alias)  bitmasks_py.def_readonly(mask_alias, &new_const<mask>::val)
@@ -290,9 +286,11 @@ BOOST_PYTHON_MODULE(ppcsim)
         }
 
         // ppc register type ( 64 bit )
-        class_<ppc_reg64>("ppc_reg64")
+        class_<ppc_reg64>("ppc_reg64", init<uint64_t, uint64_t, int, int>())
             .def_readwrite("value", &ppc_reg64::value)
+            .def_readonly("fvalue", &ppc_reg64::fvalue)
             .def_readonly("attr",   &ppc_reg64::attr)
+            .def_readonly("regno",  &ppc_reg64::indx)
             .def("set_bf",          &ppc_reg64::set_bf)
             .def("get_bf",          &ppc_reg64::get_bf)
             ;
@@ -374,7 +372,6 @@ BOOST_PYTHON_MODULE(ppcsim)
             .def("get_reg",           &cpu_e500v2_t::get_reg)
             .def("dump_state",        &cpu_e500v2_t::dump_state, dump_state_overloads())
             .def("print_L2tlbs",      &cpu_e500v2_t::print_L2tlbs)
-            .def("init_reg_attrs",    &cpu_e500v2_t::init_reg_attrs)
             .def("en_cov",            &cpu_e500v2_t::enable_cov_log)
             .def("dis_cov",           &cpu_e500v2_t::disable_cov_log)
             .def("is_cov_enabled",    &cpu_e500v2_t::is_cov_log_enabled)

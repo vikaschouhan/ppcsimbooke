@@ -101,6 +101,7 @@ struct instr_call {
 
 
 // Some constants
+#define    REG_TYPE_INV     0x0
 #define    REG_TYPE_MSR     0x1
 #define    REG_TYPE_CR      0x2
 #define    REG_TYPE_ACC     0x3
@@ -127,7 +128,7 @@ struct ppc_reg64 {
         attr(attr_),
         indx(regno),
         type(type_)
-    { }
+    {}
 
     // Getter/Setter functions for bit fields. ( Mainly for boost::python )
     uint64_t get_bf(uint64_t mask){
@@ -137,6 +138,9 @@ struct ppc_reg64 {
         value &= ~mask;
         value |= ((bf << rshift(mask)) & mask);
     }
+
+    // This data type can't be copied
+    ppc_reg64& operator=(const ppc_reg64& rreg){ return (*this);}
 };
 
 
@@ -304,8 +308,8 @@ struct ppc_regs {
     std::map<int,         ppc_reg64*>  m_ireg;
 
     // Constructor
-    ppc_regs(uint64_t msr_=0):
-        msr     (msr_, (REG_READ_SUP | REG_WRITE_SUP | REG_READ_USR                                  ), 0            , REG_TYPE_MSR),
+    ppc_regs():
+        msr     (0,    (REG_READ_SUP | REG_WRITE_SUP | REG_READ_USR                                  ), 0            , REG_TYPE_MSR),
         cr      (0,    0                                                                              , 0            , REG_TYPE_CR ),
         acc     (0,    0                                                                              , 0            , REG_TYPE_ACC),
 
