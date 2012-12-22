@@ -116,8 +116,8 @@ class CPU_PPC {
     std::pair<uint64_t, uint8_t>  xlate(uint64_t addr, bool wr=0);  // Translate EA to RA ( return a pair of <xlated addr, wimge> )
 
     // Accessing registers using reghash interface ( for use with ppc code translation unit )
-    inline uint64_t*      reg(int regid);
-    inline uint64_t*      regn(std::string regname);
+    inline ppc_reg64*      reg(int regid);
+    inline ppc_reg64*      regn(std::string regname);
 
     private:
     void                  run_b();                               // blocking run
@@ -166,10 +166,10 @@ class CPU_PPC {
 
     // powerPC register file
     ppc_regs                               m_cpu_regs;            // PPC register file
-#define PPCREG(reg_id)                     (*(m_cpu_regs.m_ireg[reg_id]))
-#define PPCREGN(reg_name)                  (*(m_cpu_regs.m_reg[reg_name]))
-#define PPCREGATTR(reg_id)                 (*(m_cpu_regs.m_ireg_attr[reg_id]))
-#define PPCREGNATTR(reg_name)              (*(m_cpu_regs.m_reg_attr[reg_name]))
+#define PPCREG(reg_id)                     (m_cpu_regs.m_ireg[reg_id]->value)
+#define PPCREGN(reg_name)                  (m_cpu_regs.m_reg[reg_name]->value)
+#define PPCREGATTR(reg_id)                 (m_cpu_regs.m_ireg[reg_id]->attr)
+#define PPCREGNATTR(reg_name)              (m_cpu_regs.m_reg_attr[reg_name]->attr)
 #define PPCREGMASK(reg_id, mask)           EBMASK(PPCREG(reg_id),    mask)
 #define PPCREGNMASK(reg_name, mask)        EBMASK(PPCREGN(reg_name), mask)
     uint64_t                               m_pc;                  // PC  -> program counter ( CIA )
@@ -411,14 +411,14 @@ CPU_T std::pair<uint64_t, uint8_t> CPU_PPC_T::xlate(uint64_t addr, bool wr){
 
 // Get register pointer using regid
 // TODO : Check Permissions
-CPU_T inline uint64_t* CPU_PPC_T::reg(int regid){
+CPU_T inline ppc_reg64* CPU_PPC_T::reg(int regid){
     LASSERT_THROW(m_cpu_regs.m_ireg.find(regid) != m_cpu_regs.m_ireg.end(),
            sim_except(SIM_EXCEPT_EINVAL, "Invalid register id " + boost::lexical_cast<std::string>(regid)), DEBUG4);
     return m_cpu_regs.m_ireg[regid];
 }
 
 // Get register pointer using reg name
-CPU_T inline uint64_t* CPU_PPC_T::regn(std::string regname){
+CPU_T inline ppc_reg64* CPU_PPC_T::regn(std::string regname){
     LASSERT_THROW(m_cpu_regs.m_reg.find(regname) != m_cpu_regs.m_reg.end(),
            sim_except(SIM_EXCEPT_EINVAL, "Invalid register name " + regname), DEBUG4);
     // Do several checks

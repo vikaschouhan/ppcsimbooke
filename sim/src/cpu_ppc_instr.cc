@@ -68,8 +68,8 @@
 //#endif
 
 // Alias to CPU functions
-#define PPCREG(regid)            (*(CPU->reg(regid)))
-#define PPCREGN(reg_name)        (*(CPU->regn(reg_name)))
+#define PPCREG(regid)            (CPU->reg(regid)->value)
+#define PPCREGN(reg_name)        (CPU->regn(reg_name)->value)
 
 // MSR bits
 #define MSR_CM                   ((PPCREG(REG_MSR) & MSR_CM) ? 1 : 0)
