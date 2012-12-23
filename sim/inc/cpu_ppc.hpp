@@ -923,6 +923,14 @@ CPU_T instr_call CPU_PPC_T::get_instr(){
 
     std::pair<uint64_t, uint8_t> res;           // pair of <ra, wimge>
     instr_call call_this;
+
+    call_this = m_instr_cache[m_pc];
+
+    if(!m_instr_cache.error()){
+        LOG("DEBUG4") << MSG_FUNC_END;
+        return call_this;
+    }
+
     uint8_t  perm = TO_RWX(1, 0, 1);            // rx = 0b11
     bool as = EBMASK(PPCREG(REG_MSR), MSR_IS);  // as = MSR[IS]
     bool pr = EBMASK(PPCREG(REG_MSR), MSR_PR);  // pr = MSR[pr]
@@ -942,6 +950,9 @@ CPU_T instr_call CPU_PPC_T::get_instr(){
     LASSERT_THROW(m_mem_ptr != NULL, sim_except_fatal("no memory module registered."), DEBUG4);
     // Disassemble the instr at curr pc
     call_this = m_dis.disasm(m_mem_ptr->read32(res.first, (res.second & 0x1)), m_pc, (res.second & 0x1));
+
+    // Update instruction cache.
+    m_instr_cache[m_pc] = call_this;
 
     LOG("DEBUG4") << MSG_FUNC_END;
     return call_this;
@@ -1145,7 +1156,7 @@ CPU_T inline void CPU_PPC_T::init_common(){
     LOG("DEBUG4") << MSG_FUNC_START;
     m_cpu_no = sm_ncpus++;                 // Increment global cpu cnt
     gen_ppc_opc_func_hash(this);           // Initialize opcode function pointer table
-    m_instr_cache.set_size(512);           // LRU cache size = 512 instrs
+    m_instr_cache.set_size(4096);          // LRU cache size = 4096 instrs
     m_ctxt_switch = 0;                     // Initialize flag to zero
     m_cpu_mode = CPU_MODE_HALTED;
 
@@ -1201,6 +1212,7 @@ CPU_T bool CPU_PPC_T::check_resv(uint64_t ea, size_t size){
 CPU_T void CPU_PPC_T::notify_ctxt_switch(){
     LOG("DEBUG4") << MSG_FUNC_START;
     m_ctxt_switch = 1;
+    m_instr_cache.clear();
     LOG("DEBUG4") << MSG_FUNC_END;
 }
 
