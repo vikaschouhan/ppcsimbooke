@@ -113,9 +113,17 @@ struct instr_call {
 #define    PPC_NSPRS        1024
 #define    PPC_NPMRS        1024
 
-// PPC register ( 64 bit only )
+// PPC register (64 bit only)
 struct ppc_reg64 {
-    uint64_t         value;     // value
+    union u_reg64 {
+        int32_t          s32v[2];     // pair of signed 32 bit values
+        uint32_t         u32v[2];     // pair of unsigned 32 bit values
+        int64_t          s64v;        // singned 64bit value
+        uint64_t         u64v;        // unsigned 64bit value
+
+        u_reg64(uint64_t v): u64v(v) {}
+    } value;
+
     const uint64_t   fvalue;    // fvalue is used in case register is read only
     const uint64_t   attr;      // attribute ( permissions etc. )
     const int        indx;      // register index no
@@ -130,14 +138,21 @@ struct ppc_reg64 {
         type(type_)
     {}
 
-    // Getter/Setter functions for bit fields. ( Mainly for boost::python )
+    // value.u64v's getter/setter for boost::python
+    uint64_t __get_v()       { return value.u64v; }
+    void __set_v(uint64_t v) { value.u64v = v;    }
+
+    // Getter/Setter functions for bit fields. (Mainly for boost::python)
     uint64_t get_bf(uint64_t mask){
-        return ((value & mask) >> rshift(mask));
+        return ((value.u64v & mask) >> rshift(mask));
     }
     void set_bf(uint64_t bf, uint64_t mask){
-        value &= ~mask;
-        value |= ((bf << rshift(mask)) & mask);
+        value.u64v &= ~mask;
+        value.u64v |= ((bf << rshift(mask)) & mask);
     }
+
+    // refreshes value to fixed value
+    void refresh_fval(){ value.u64v = fvalue; }
 
     // This data type can't be copied
     ppc_reg64& operator=(const ppc_reg64& rreg){ return (*this);}

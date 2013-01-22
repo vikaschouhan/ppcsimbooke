@@ -287,12 +287,13 @@ BOOST_PYTHON_MODULE(ppcsim)
 
         // ppc register type ( 64 bit )
         class_<ppc_reg64>("ppc_reg64", init<uint64_t, uint64_t, int, int>())
-            .def_readwrite("value", &ppc_reg64::value)
+            .add_property("value",  &ppc_reg64::__get_v, &ppc_reg64::__set_v)
             .def_readonly("fvalue", &ppc_reg64::fvalue)
             .def_readonly("attr",   &ppc_reg64::attr)
             .def_readonly("regno",  &ppc_reg64::indx)
             .def("set_bf",          &ppc_reg64::set_bf)
             .def("get_bf",          &ppc_reg64::get_bf)
+            .def("refresh_fval",    &ppc_reg64::refresh_fval)
             ;
 
         // PPC register file type ( contains all registers, GPRs, SPRs etc. )

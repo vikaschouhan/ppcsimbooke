@@ -166,8 +166,8 @@ class CPU_PPC {
 
     // powerPC register file
     ppc_regs                               m_cpu_regs;            // PPC register file
-#define PPCREG(reg_id)                     (m_cpu_regs.m_ireg[reg_id]->value)
-#define PPCREGN(reg_name)                  (m_cpu_regs.m_reg[reg_name]->value)
+#define PPCREG(reg_id)                     (m_cpu_regs.m_ireg[reg_id]->value.u64v)
+#define PPCREGN(reg_name)                  (m_cpu_regs.m_reg[reg_name]->value.u64v)
 #define PPCREGATTR(reg_id)                 (m_cpu_regs.m_ireg[reg_id]->attr)
 #define PPCREGNATTR(reg_name)              (m_cpu_regs.m_reg_attr[reg_name]->attr)
 #define PPCREGMASK(reg_id, mask)           EBMASK(PPCREG(reg_id),    mask)
