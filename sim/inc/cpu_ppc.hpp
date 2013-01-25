@@ -170,8 +170,8 @@ class CPU_PPC {
 #define PPCREGN(reg_name)                  (m_cpu_regs.m_reg[reg_name]->value.u64v)
 #define PPCREGATTR(reg_id)                 (m_cpu_regs.m_ireg[reg_id]->attr)
 #define PPCREGNATTR(reg_name)              (m_cpu_regs.m_reg_attr[reg_name]->attr)
-#define PPCREGMASK(reg_id, mask)           EBMASK(PPCREG(reg_id),    mask)
-#define PPCREGNMASK(reg_name, mask)        EBMASK(PPCREGN(reg_name), mask)
+#define PPCREGMASK(reg_id, mask)           EBF(PPCREG(reg_id),    mask)
+#define PPCREGNMASK(reg_name, mask)        EBF(PPCREGN(reg_name), mask)
     uint64_t                               m_pc;                  // PC  -> program counter ( CIA )
     uint64_t                               m_nip;                 // NIP -> next instruction pointer ( NIA )
 #define PC   m_pc
@@ -387,8 +387,8 @@ CPU_T std::pair<uint64_t, uint8_t> CPU_PPC_T::xlate(uint64_t addr, bool wr){
 
     std::pair<uint64_t, uint8_t> res;
     uint8_t  perm = (wr) ? TO_RWX(0, 1, 0) : TO_RWX(1, 0, 0);
-    bool as = EBMASK(PPCREG(REG_MSR), MSR_DS);
-    bool pr = EBMASK(PPCREG(REG_MSR), MSR_PR);
+    bool as = EBF(PPCREG(REG_MSR), MSR_DS);
+    bool pr = EBF(PPCREG(REG_MSR), MSR_PR);
 
     // Try hits with PID0, PID1 and PID2
     res = m_l2tlb.xlate(addr, as, PPCREG(REG_PID0), perm, pr); if(res.first != static_cast<uint64_t>(-1)) goto exit_loop_0;
@@ -932,8 +932,8 @@ CPU_T instr_call CPU_PPC_T::get_instr(){
     }
 
     uint8_t  perm = TO_RWX(1, 0, 1);            // rx = 0b11
-    bool as = EBMASK(PPCREG(REG_MSR), MSR_IS);  // as = MSR[IS]
-    bool pr = EBMASK(PPCREG(REG_MSR), MSR_PR);  // pr = MSR[pr]
+    bool as = EBF(PPCREG(REG_MSR), MSR_IS);  // as = MSR[IS]
+    bool pr = EBF(PPCREG(REG_MSR), MSR_PR);  // pr = MSR[pr]
 
     // Try hits with PID0, PID1 and PID2
     res = m_l2tlb.xlate(m_pc, as, PPCREG(REG_PID0), perm, pr); if(res.first != static_cast<uint64_t>(-1)) goto exit_loop_0;
@@ -1375,7 +1375,7 @@ CPU_T void CPU_PPC_T::update_xer_ca(bool value){
     LOG("DEBUG4") << MSG_FUNC_START;
     int val = (value) ? 1:0;
     PPCREG(REG_XER) &= XER_CA;                    // clear XER[CA]
-    PPCREG(REG_XER) |= val << rshift(XER_CA);     // Insert value into XER[CA]
+    PPCREG(REG_XER) |= val << rshift<uint64_t>(XER_CA);     // Insert value into XER[CA]
     LOG("DEBUG4") << MSG_FUNC_END;
 }
 
@@ -1385,7 +1385,7 @@ CPU_T void CPU_PPC_T::update_xer_ca_host(){
 
     if(host_state.flags & X86_FLAGS_CF){
         PPCREG(REG_XER) &= XER_CA;                    // clear XER[CA]
-        PPCREG(REG_XER) |= 1UL << rshift(XER_CA);     // Insert value into XER[CA]
+        PPCREG(REG_XER) |= 1UL << rshift<uint64_t>(XER_CA);     // Insert value into XER[CA]
     }
 
     LOG("DEBUG4") << MSG_FUNC_END;

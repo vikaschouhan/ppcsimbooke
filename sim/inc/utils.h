@@ -214,15 +214,56 @@ template <> struct RSHIFT<0>{
 };
 
 // Run time variant
-inline int rshift(uint64_t x){
+template<typename T>
+inline int rshift(T x){
     int res = 0;
     while(!(x & 0x1)){ res++; x>>=1; }
     return res;
 }
 
-// bit field extraction / insertion macros
-#define  EBMASK(reg, bmask)             (((reg)  & (bmask)) >> rshift(bmask))
-#define  IBMASK(val, bmask)             (((val) << rshift(bmask))  & (bmask))
+// bitfied insertion
+template<typename T>
+inline T ins_bf(T src, T val, T mask){
+    src |= (val << rshift<T>(mask)) & mask;
+    return src;
+}
+
+// bitfield extraction
+template<typename T>
+inline T extr_bf(T src, T mask){
+    return (src & mask) >> rshift<T>(mask);
+}
+
+// extract bit (Big endian PowerPC notation)
+template<typename T>
+inline bool extr_bit(T src, int bp){
+    return (src >> (sizeof(T)*8 - 1 - bp)) & 0x1;
+}
+
+// generate bitmask starting from bit position bp to last lsb (Big Endian PowerPC notation)
+template<typename T>
+inline T gen_bmask(int bp){
+    bp %= (sizeof(T)*8);
+    if(bp){
+        return (1ULL << (sizeof(T)*8 - bp)) - 1;
+    }else
+        return 0xffffffffffffffffULL;
+}
+
+// generate bitmask from bitpos x to bitpos y (Big Endian PowerPC notation)
+template<typename T>
+inline T gen_bmask_rng(int x, int y){
+    return (x < y) ? (gen_bmask<T>(x) ^ gen_bmask<T>(y+1)) : ~(gen_bmask<T>(x+1) ^ gen_bmask<T>(y));
+}
+
+// typesafe sign extension function
+template<typename T_tgt, typename T_src>
+inline T_tgt sign_exts(T_src x){ return static_cast<T_tgt>(x); }
+
+
+// bit field extraction / insertion macros (64 bit std)
+#define  EBF(src, mask)                  extr_bf<uint64_t>(src, mask)        // extract Bit field
+#define  IBF(src, val, mask)             ins_bf<uint64_t>(src, val, mask)    // Insert Bit field
 
 // Concatenating macros
 #define CAT2(x,y)           x##y

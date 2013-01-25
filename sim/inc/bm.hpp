@@ -26,7 +26,7 @@
 
 #include "config.h"
 
-#define BM     bm
+#define BM     breakpt_mngr
 class BM {
     // key = ea, value = pairof<breakpoint no, no_of_hits>
     typedef std::map<uint64_t, std::pair<int, uint64_t> > bkpt_map;

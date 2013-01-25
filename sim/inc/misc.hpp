@@ -144,11 +144,11 @@ struct ppc_reg64 {
 
     // Getter/Setter functions for bit fields. (Mainly for boost::python)
     uint64_t get_bf(uint64_t mask){
-        return ((value.u64v & mask) >> rshift(mask));
+        return ((value.u64v & mask) >> rshift<uint64_t>(mask));
     }
     void set_bf(uint64_t bf, uint64_t mask){
         value.u64v &= ~mask;
-        value.u64v |= ((bf << rshift(mask)) & mask);
+        value.u64v |= ((bf << rshift<uint64_t>(mask)) & mask);
     }
 
     // refreshes value to fixed value

@@ -384,11 +384,11 @@ TLB_T void TLB_PPC_T::print_tlbs2(){
 TLB_T void TLB_PPC_T::tlbre(uint64_t &mas0, uint64_t &mas1, uint64_t &mas2, uint64_t &mas3, uint64_t &mas7, uint64_t hid0){
     LOG("DEBUG4") << MSG_FUNC_START;
 
-    unsigned tlbsel = EBMASK(mas0,       MAS0_TLBSEL);
-    unsigned esel   = EBMASK(mas0,       MAS0_ESEL);
-    uint64_t epn    = EBMASK(mas2,       MAS2_EPN);
-    //uint64_t rpn    = EBMASK(mas3,       MAS3_RPN);
-    //unsigned tsize  = EBMASK(mas1,       MAS1_TSIZE);
+    unsigned tlbsel = EBF(mas0,       MAS0_TLBSEL);
+    unsigned esel   = EBF(mas0,       MAS0_ESEL);
+    uint64_t epn    = EBF(mas2,       MAS2_EPN);
+    //uint64_t rpn    = EBF(mas3,       MAS3_RPN);
+    //unsigned tsize  = EBF(mas1,       MAS1_TSIZE);
 
     // check validity of page numbers
     //LASSERT_THROW(CHK_VALID_PN(epn, tsize), sim_except(SIM_EXCEPT_EINVAL, "Illegal MAS2[EPN] or MAS1[TSIZE]."), DEBUG4);
@@ -397,24 +397,24 @@ TLB_T void TLB_PPC_T::tlbre(uint64_t &mas0, uint64_t &mas1, uint64_t &mas2, uint
     t_tlb_entry &entry = get_entry(tlbsel, epn << MIN_PGSZ_SHIFT, esel);
 
     /* FIXME: Does the spec. says anything about nv when used with tlbre */
-    mas0  |= IBMASK(0,                                     MAS0_NV);
+    mas0  = IBF(mas0, 0,                                     MAS0_NV);
 
-    mas1  |= IBMASK(entry.tflags.valid,                    MAS1_V);
-    mas1  |= IBMASK(entry.tflags.iprot,                    MAS1_IPROT);
-    mas1  |= IBMASK(entry.tid,                             MAS1_TID);
-    mas1  |= IBMASK(entry.tflags.ts,                       MAS1_TS);
-    mas1  |= IBMASK(entry.tflags.tsize,                    MAS1_TSIZE);
+    mas1  = IBF(mas1, entry.tflags.valid,                    MAS1_V);
+    mas1  = IBF(mas1, entry.tflags.iprot,                    MAS1_IPROT);
+    mas1  = IBF(mas1, entry.tid,                             MAS1_TID);
+    mas1  = IBF(mas1, entry.tflags.ts,                       MAS1_TS);
+    mas1  = IBF(mas1, entry.tflags.tsize,                    MAS1_TSIZE);
    
-    mas2  |= IBMASK((entry.ea >> MIN_PGSZ_SHIFT),          MAS2_EPN);
-    mas2  |= IBMASK(entry.x01,                             MAS2_X01);
-    mas2  |= IBMASK(entry.wimge,                           MAS2_WIMGE);
+    mas2  = IBF(mas2, (entry.ea >> MIN_PGSZ_SHIFT),          MAS2_EPN);
+    mas2  = IBF(mas2, entry.x01,                             MAS2_X01);
+    mas2  = IBF(mas2, entry.wimge,                           MAS2_WIMGE);
 
-    mas3  |= IBMASK((entry.ra >> MIN_PGSZ_SHIFT),          MAS3_RPN);
-    mas3  |= IBMASK(entry.u03,                             MAS3_U03);
-    mas3  |= IBMASK(PERMIS_TO_PPCPERMIS(entry.permis),     MAS3_PERMIS);
+    mas3  = IBF(mas3, (entry.ra >> MIN_PGSZ_SHIFT),          MAS3_RPN);
+    mas3  = IBF(mas3, entry.u03,                             MAS3_U03);
+    mas3  = IBF(mas3, PERMIS_TO_PPCPERMIS(entry.permis),     MAS3_PERMIS);
 
-    if(EBMASK(hid0, HID0_EN_MAS7_UPDATE))
-        mas7  |= IBMASK((entry.ra >> 32) & 0xf, MAS7_RPN);    /* Upper 4 bits of rpn */
+    if(EBF(hid0, HID0_EN_MAS7_UPDATE))
+        mas7  = IBF(mas7, (entry.ra >> 32) & 0xf, MAS7_RPN);    /* Upper 4 bits of rpn */
 
     LOG("DEBUG4") << MSG_FUNC_END;
 }
@@ -427,11 +427,11 @@ TLB_T void TLB_PPC_T::tlbre(uint64_t &mas0, uint64_t &mas1, uint64_t &mas2, uint
 TLB_T void TLB_PPC_T::tlbwe(uint64_t mas0, uint64_t mas1, uint64_t mas2, uint64_t mas3, uint64_t mas7, uint64_t hid0){
     LOG("DEBUG4") << MSG_FUNC_START;
 
-    unsigned tlbsel = EBMASK(mas0,    MAS0_TLBSEL);
-    unsigned esel   = EBMASK(mas0,    MAS0_ESEL);
-    uint64_t epn    = EBMASK(mas2,    MAS2_EPN);
-    uint64_t rpn    = EBMASK(mas3,    MAS3_RPN);      // We only require lower 20 bits of rpn for validity check
-    unsigned tsize  = EBMASK(mas1,    MAS1_TSIZE);
+    unsigned tlbsel = EBF(mas0,    MAS0_TLBSEL);
+    unsigned esel   = EBF(mas0,    MAS0_ESEL);
+    uint64_t epn    = EBF(mas2,    MAS2_EPN);
+    uint64_t rpn    = EBF(mas3,    MAS3_RPN);      // We only require lower 20 bits of rpn for validity check
+    unsigned tsize  = EBF(mas1,    MAS1_TSIZE);
     uint64_t psize  = TSIZE_TO_PSIZE(tsize);          // Get absolute page size
 
     // check validity of page numbers
@@ -441,25 +441,25 @@ TLB_T void TLB_PPC_T::tlbwe(uint64_t mas0, uint64_t mas1, uint64_t mas2, uint64_
     t_tlb_entry &entry = get_entry(tlbsel, epn << MIN_PGSZ_SHIFT, esel);
 
     /*FIXME : Need to check, if valid bit is passed as part of MAS1 or set implicitly */
-    entry.tflags.valid = EBMASK(mas1,   MAS1_V);
-    entry.tflags.iprot = EBMASK(mas1,   MAS1_IPROT); 
-    entry.tid          = EBMASK(mas1,   MAS1_TID);
-    entry.tflags.ts    = EBMASK(mas1,   MAS1_TS);
+    entry.tflags.valid = EBF(mas1,   MAS1_V);
+    entry.tflags.iprot = EBF(mas1,   MAS1_IPROT); 
+    entry.tid          = EBF(mas1,   MAS1_TID);
+    entry.tflags.ts    = EBF(mas1,   MAS1_TS);
     entry.tflags.tsize = tsize;
    
     entry.ea           = epn << MIN_PGSZ_SHIFT;
-    entry.epn          = entry.ea >> rshift(psize);
-    entry.x01          = EBMASK(mas2,   MAS2_X01);
-    entry.wimge        = EBMASK(mas2,   MAS2_WIMGE);
+    entry.epn          = entry.ea >> rshift<uint64_t>(psize);
+    entry.x01          = EBF(mas2,   MAS2_X01);
+    entry.wimge        = EBF(mas2,   MAS2_WIMGE);
 
     entry.ra           = rpn << MIN_PGSZ_SHIFT;
-    entry.rpn          = entry.ra >> rshift(psize);
-    entry.u03          = EBMASK(mas3,   MAS3_U03);
-    entry.permis       = PPCPERMIS_TO_PERMIS(EBMASK(mas3,   MAS3_PERMIS));
+    entry.rpn          = entry.ra >> rshift<uint64_t>(psize);
+    entry.u03          = EBF(mas3,   MAS3_U03);
+    entry.permis       = PPCPERMIS_TO_PERMIS(EBF(mas3,   MAS3_PERMIS));
 
-    if(EBMASK(hid0, HID0_EN_MAS7_UPDATE)){
-        entry.ra |= EBMASK(mas7, MAS7_RPN) << 32;    /* Upper 4 bits of rpn */
-        entry.rpn = entry.ra >> rshift(psize);
+    if(EBF(hid0, HID0_EN_MAS7_UPDATE)){
+        entry.ra |= EBF(mas7, MAS7_RPN) << 32;    /* Upper 4 bits of rpn */
+        entry.rpn = entry.ra >> rshift<uint64_t>(psize);
     }
 
     entry.ps           = psize;
@@ -479,8 +479,8 @@ TLB_T void TLB_PPC_T::tlbwe(uint64_t mas0, uint64_t mas1, uint64_t mas2, uint64_
 TLB_T void TLB_PPC_T::tlbse(uint64_t ea, uint64_t &mas0, uint64_t &mas1, uint64_t &mas2, uint64_t &mas3, uint64_t &mas6, uint64_t &mas7, uint64_t hid0){
     LOG("DEBUG4") << MSG_FUNC_START;
 
-    uint32_t  as  = EBMASK(mas6,  MAS6_SAS);
-    uint32_t pid  = EBMASK(mas6,  MAS6_SPID0);
+    uint32_t  as  = EBF(mas6,  MAS6_SAS);
+    uint32_t pid  = EBF(mas6,  MAS6_SPID0);
     size_t   tsel = -1;
     //size_t   ssel = -1;
     size_t   wsel = -1;
@@ -507,33 +507,33 @@ TLB_T void TLB_PPC_T::tlbse(uint64_t ea, uint64_t &mas0, uint64_t &mas1, uint64_
 
     exit_loop_0:
     /* Valid bit set means, search was successful */
-    mas1  |= IBMASK((entry)?1:0, MAS1_V);
+    mas1  = IBF(mas1, (entry)?1:0, MAS1_V);
 
     /* Now return if the search was unsuccessful */
     if(entry == NULL){
         RETURNVOID(DEBUG4);
     }
 
-    mas0  |= IBMASK(tsel,                                 MAS0_TLBSEL);
-    mas0  |= IBMASK(wsel,                                 MAS0_ESEL);
+    mas0  = IBF(mas0, tsel,                                 MAS0_TLBSEL);
+    mas0  = IBF(mas0, wsel,                                 MAS0_ESEL);
     /* FIXME : need to check the behaviour of MAS0[NV] on tlbsx */
-    mas0  |= IBMASK(0,                                    MAS0_NV);
+    mas0  = IBF(mas0, 0,                                    MAS0_NV);
 
-    mas1  |= IBMASK(entry->tflags.iprot,                  MAS1_IPROT);
-    mas1  |= IBMASK(entry->tid,                           MAS1_TID);
-    mas1  |= IBMASK(entry->tflags.ts,                     MAS1_TS);
-    mas1  |= IBMASK(entry->tflags.tsize,                  MAS1_TSIZE);
+    mas1  = IBF(mas1, entry->tflags.iprot,                  MAS1_IPROT);
+    mas1  = IBF(mas1, entry->tid,                           MAS1_TID);
+    mas1  = IBF(mas1, entry->tflags.ts,                     MAS1_TS);
+    mas1  = IBF(mas1, entry->tflags.tsize,                  MAS1_TSIZE);
    
-    mas2  |= IBMASK(entry->ea >> MIN_PGSZ_SHIFT,          MAS2_EPN);
-    mas2  |= IBMASK(entry->x01,                           MAS2_EPN);
-    mas2  |= IBMASK(entry->wimge,                         MAS2_WIMGE);
+    mas2  = IBF(mas2, entry->ea >> MIN_PGSZ_SHIFT,          MAS2_EPN);
+    mas2  = IBF(mas2, entry->x01,                           MAS2_EPN);
+    mas2  = IBF(mas2, entry->wimge,                         MAS2_WIMGE);
 
-    mas3  |= IBMASK(entry->ra >> MIN_PGSZ_SHIFT,          MAS3_RPN);
-    mas3  |= IBMASK(entry->u03,                           MAS3_U03);
-    mas3  |= IBMASK(PERMIS_TO_PPCPERMIS(entry->permis),   MAS3_PERMIS);
+    mas3  = IBF(mas3, entry->ra >> MIN_PGSZ_SHIFT,          MAS3_RPN);
+    mas3  = IBF(mas3, entry->u03,                           MAS3_U03);
+    mas3  = IBF(mas3, PERMIS_TO_PPCPERMIS(entry->permis),   MAS3_PERMIS);
 
-    if(EBMASK(hid0, HID0_EN_MAS7_UPDATE))
-        mas7 |= IBMASK((entry->ra >> 32) & 0xf,  MAS7_RPN);    /* Upper 4 bits of rpn */
+    if(EBF(hid0, HID0_EN_MAS7_UPDATE))
+        mas7 = IBF(mas7, (entry->ra >> 32) & 0xf,  MAS7_RPN);    /* Upper 4 bits of rpn */
 
     LOG("DEBUG4") << MSG_FUNC_END;
 }

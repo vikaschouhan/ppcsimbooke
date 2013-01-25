@@ -177,46 +177,36 @@
 // endif    
 #define UT(arg)   ((UMODE)(arg))
 #define ST(arg)   ((SMODE)(arg))
-#define U64(arg)  ((uint64_t)(arg))
-#define S64(arg)  ((int64_t)(arg))
-#define U32(arg)  ((uint32_t)(arg))
-#define S32(arg)  ((int32_t)(arg))
-#define U16(arg)  ((uint16_t)(arg))
-#define S16(arg)  ((int16_t)(arg))
-#define U8(arg)   ((uint8_t)(arg))
-#define S8(arg)   ((int8_t)(arg))
+#define U64(arg)  (static_cast<uint64_t>(arg))
+#define S64(arg)  (static_cast<int64_t>(arg))
+#define U32(arg)  (static_cast<uint32_t>(arg))
+#define S32(arg)  (static_cast<int32_t>(arg))
+#define U16(arg)  (static_cast<uint16_t>(arg))
+#define S16(arg)  (static_cast<int16_t>(arg))
+#define U8(arg)   (static_cast<uint8_t>(arg))
+#define S8(arg)   (static_cast<int8_t>(arg))
 
 // for sign extension ( extending sign bits from source type to destination type )
-#define EXTS(t_tgt, t_src, val)    ((t_tgt)((t_src)(val)))
+// sign_exts<> function comes from utils.h
+#define EXTS_B2N(val)              sign_exts<SMODE, int8_t >(val)               // sign extension : byte to native
+#define EXTS_H2N(val)              sign_exts<SMODE, int16_t>(val)               // sign extension : half word to native
+#define EXTS_W2N(val)              sign_exts<SMODE, int32_t>(val)               // sign extension : word to native
 
-#define EXTS_2N(t_src, val)        EXTS(SMODE, t_src, val)                // sign extension to native type
-#define EXTS_B2N(val)              EXTS(SMODE, int8_t, val)               // sign extension : byte to native
-#define EXTS_H2N(val)              EXTS(SMODE, int16_t, val)              // sign extension : half word to native
-#define EXTS_W2N(val)              EXTS(SMODE, int32_t, val)              // sign extension : word to native
+#define EXTS_H2W(val)              sign_exts<int32_t, int16_t>(val)             // sign extension : half to word
+#define EXTS_B2W(val)              sign_exts<int32_t, int8_t >(val)             // sign extension : byte to word
+#define EXTS_B2H(val)              sign_exts<int16_t, int8_t >(val)             // sign extension : byte to half-word
 
-#define EXTS_H2W(val)              EXTS(int32_t, int16_t, val)            // sign extension : half to word
-#define EXTS_B2W(val)              EXTS(int32_t, int8_t, val)             // sign extension : byte to word
-#define EXTS_B2H(val)              EXTS(int16_t, int8_t, val)             // sign extension : byte to half-word
-
-#define EXTS_B2D(val)              EXTS(int64_t, int8_t, val)             // sign extension : byte to double-word
-#define EXTS_H2D(val)              EXTS(int64_t, int16_t, val)            // sign extension : half-word to double-word
-#define EXTS_W2D(val)              EXTS(int64_t, int32_t, val)            // sign extension : word to double-word
+#define EXTS_B2D(val)              sign_exts<int64_t, int8_t >(val)             // sign extension : byte to double-word
+#define EXTS_H2D(val)              sign_exts<int64_t, int16_t>(val)             // sign extension : half-word to double-word
+#define EXTS_W2D(val)              sign_exts<int64_t, int32_t>(val)             // sign extension : word to double-word
 
 // rotation macros
 #define ROTL64(x, y)               ((uint64_t)(((x) << (y)) | ((x) >> (64 - (y)))))                           // x=64bit, y=64bit
 #define ROTL32(x, y)               ROTL64((((x) & 0xffffffff) | (((x) & 0xffffffff) << 32)), (y))             // x=32bit, y=64bit
 
 // mask
-typedef struct BITMASK_TYPE {
-    inline static uint64_t BITMASK_FN(uint64_t x){
-        if(x){
-            return (1ULL << (64 - (x))) - 1;
-        }else
-            return 0xffffffffffffffffULL;
-    }
-} BITMASK_TYPE;
-#define BITMASK(x)                 BITMASK_TYPE::BITMASK_FN(x)                                                      // 64 bit bitmask for bitpos x
-#define MASK(x, y)                 (((x) < (y)) ? (BITMASK(x) ^ BITMASK(y+1)) : ~(BITMASK(x+1) ^ BITMASK(y)))       // Generate mask of 1's from x to y
+#define BITMASK(x)                 gen_bmask<uint64_t>(x)             // 64 bit bitmask for bitpos x
+#define MASK(x, y)                 gen_bmask_rng<uint64_t>(x, y)      // Generate mask of 1's from x to y
 
 // 32_63 (x should be 64 bits)
 #define B_32_63(x)                 ((x) & 0xffffffff)                    // get bits 32:63
