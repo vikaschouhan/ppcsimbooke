@@ -241,9 +241,10 @@ inline bool extr_bit(T src, int bp){
 }
 
 // generate bitmask starting from bit position bp to last lsb (Big Endian PowerPC notation)
+// NOTE : As a special case, this function can take bp=sizeof(T)*8
+//        (remember gen_bmask_rng calling this fn with args (x+1)/(y+1) !!!)
 template<typename T>
 inline T gen_bmask(int bp){
-    bp %= (sizeof(T)*8);
     if(bp){
         return (1ULL << (sizeof(T)*8 - bp)) - 1;
     }else
