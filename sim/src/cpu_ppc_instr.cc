@@ -2269,6 +2269,12 @@ typedef struct SFF {
 #define SF(a, b)                                                 SFF::SF(U16(a), U16(b))
 #define GSF(a, b)                                                SFF::GSF(U16(a), U16(b))
 
+#define UPDATE_SPEFSCR_OV(ovh, ovl)                                          \
+    do {                                                                     \
+        SPEFSCR &= ~(SPEFSCR_OVH | SPEFSCR_OV);                              \
+        SPEFSCR |= ((ovh) ? SPEFSCR_OVH:0) | ((ovl) ? SPEFSCR_OV:0) |        \
+                   ((ovh) ? SPEFSCR_SOVH:0) | ((ovl) ? SPEFSCR_SOV:0);       \
+    }while(0)
 
 // ----------------------------------------------------------------------------------
 
@@ -2320,8 +2326,7 @@ X(evaddssiaaw)
     ACC   = REG0;
 
     // Update SPEFSCR
-    SPEFSCR &= ~(SPEFSCR_OVH | SPEFSCR_OV);
-    SPEFSCR |= ((ovh) ? SPEFSCR_OVH:0) | ((ovl) ? SPEFSCR_OV:0) | ((ovh) ? SPEFSCR_SOVH:0) | ((ovl) ? SPEFSCR_SOV:0);
+    UPDATE_SPEFSCR_OV(ovh, ovl);
 }
 
 X(evaddusiaaw)
@@ -2344,8 +2349,7 @@ X(evaddusiaaw)
     ACC   = REG0;
 
     // Update SPEFSCR
-    SPEFSCR &= ~(SPEFSCR_OVH | SPEFSCR_OV);
-    SPEFSCR |= ((ovh) ? SPEFSCR_OVH:0) | ((ovl) ? SPEFSCR_OV:0) | ((ovh) ? SPEFSCR_SOVH:0) | ((ovl) ? SPEFSCR_SOV:0);
+    UPDATE_SPEFSCR_OV(ovh, ovl);
 }
 
 X(evaddumiaaw)
@@ -2897,6 +2901,253 @@ X(evmhesmianw)
     REG0 = (U64(u) << 32) | U64(v);
     ACC  = REG0;
 }
+
+X(evmhessf)
+{
+    uint32_t tmp;
+    uint32_t u, v;
+    bool movh, movl;
+
+    tmp = SF(B_0_15(REG1), B_0_15(REG2));
+    if((B_0_15(REG1) == 0x8000) && (B_0_15(REG2) == 0x8000))  { u = 0x7fffffff; movh = 1; }
+    else                                                      { u = tmp; movh = 0;        }
+
+    tmp = SF(B_32_47(REG1), B_32_47(REG2));
+    if((B_32_47(REG1) == 0x8000) && (B_32_47(REG2) == 0x8000))  { v = 0x7fffffff; movl = 1; }
+    else                                                        { v = tmp; movl = 0;        }
+
+    REG0 = (U64(u) << 32) | U64(v);
+
+    UPDATE_SPEFSCR_OV(movh, movl);
+}
+
+X(evmhessfa)
+{
+    uint32_t tmp;
+    uint32_t u, v;
+    bool movh, movl;
+
+    tmp = SF(B_0_15(REG1), B_0_15(REG2));
+    if((B_0_15(REG1) == 0x8000) && (B_0_15(REG2) == 0x8000))  { u = 0x7fffffff; movh = 1; }
+    else                                                      { u = tmp; movh = 0;        }
+
+    tmp = SF(B_32_47(REG1), B_32_47(REG2));
+    if((B_32_47(REG1) == 0x8000) && (B_32_47(REG2) == 0x8000))  { v = 0x7fffffff; movl = 1; }
+    else                                                        { v = tmp; movl = 0;        }
+
+    REG0 = (U64(u) << 32) | U64(v);
+    ACC  = REG0;
+
+    UPDATE_SPEFSCR_OV(movh, movl);
+}
+
+X(evmhessfaaw)
+{
+    uint32_t tmp, u, v;
+    uint64_t tmp64;
+    bool movh, movl, ovh, ovl;
+
+    tmp = SF(B_0_15(REG1), B_0_15(REG2));
+    if((B_0_15(REG1) == 0x8000) && (B_0_15(REG2) == 0x8000))  { tmp = 0x7fffffff; movh = 1; }
+    else                                                      { movh = 0;                   }
+
+    tmp64 = EXTS_W2D(B_0_31(ACC)) + EXTS_W2D(tmp);
+    ovh   = B_N(tmp64, 31) ^ B_N(tmp64, 32);
+
+    u = SATURATE(ovh, B_N(tmp64, 31), 0x80000000UL, 0x7fffffffUL, B_32_63(tmp64));
+
+    tmp = SF(B_32_47(REG1), B_32_47(REG2));
+    if((B_32_47(REG1) == 0x8000) && (B_32_47(REG2) == 0x8000))  { tmp = 0x7fffffff; movl = 1; }
+    else                                                        { movl = 0;                   }
+
+    tmp64 = EXTS_W2D(B_32_63(ACC)) + EXTS_W2D(tmp);
+    ovl   = B_N(tmp64, 31) ^ B_N(tmp64, 32);
+
+    v = SATURATE(ovl, B_N(tmp64, 31), 0x80000000UL, 0x7fffffffUL, B_32_63(tmp64));
+
+    REG0 = (U64(u) << 32) | U64(v);
+    ACC  = REG0;
+
+    UPDATE_SPEFSCR_OV(movh, movl);
+}
+
+X(evmhessfanw)
+{
+    uint32_t tmp, u, v;
+    uint64_t tmp64;
+    bool movh, movl, ovh, ovl;
+
+    tmp = SF(B_0_15(REG1), B_0_15(REG2));
+    if((B_0_15(REG1) == 0x8000) && (B_0_15(REG2) == 0x8000))  { tmp = 0x7fffffff; movh = 1; }
+    else                                                      { movh = 0;                   }
+
+    tmp64 = EXTS_W2D(B_0_31(ACC)) - EXTS_W2D(tmp);
+    ovh   = B_N(tmp64, 31) ^ B_N(tmp64, 32);
+
+    u = SATURATE(ovh, B_N(tmp64, 31), 0x80000000UL, 0x7fffffffUL, B_32_63(tmp64));
+
+    tmp = SF(B_32_47(REG1), B_32_47(REG2));
+    if((B_32_47(REG1) == 0x8000) && (B_32_47(REG2) == 0x8000))  { tmp = 0x7fffffff; movl = 1; }
+    else                                                        { movl = 0;                   }
+
+    tmp64 = EXTS_W2D(B_32_63(ACC)) - EXTS_W2D(tmp);
+    ovl   = B_N(tmp64, 31) ^ B_N(tmp64, 32);
+
+    v = SATURATE(ovl, B_N(tmp64, 31), 0x80000000UL, 0x7fffffffUL, B_32_63(tmp64));
+
+    REG0 = (U64(u) << 32) | U64(v);
+    ACC  = REG0;
+
+    UPDATE_SPEFSCR_OV(movh, movl);
+}
+
+#if 0
+
+X(evmhessiaaw)
+{
+    uint32_t tmp;
+    uint64_t tmp64;
+    uint32_t u, v;
+    bool ovh, ovl;
+
+    tmp   = mulw(B_0_15(REG1), B_0_15(REG2));
+    tmp64 = EXTS_W2D(B_0_31(ACC)) + EXTS_W2D(tmp);
+    ovh   = B_N(tmp64, 31) ^ B_N(tmp64, 32);
+    u     = SATURATE(ovh, B_N(tmp64, 31), 0x80000000UL, 0x7fffffffUL, B_32_63(tmp64));
+
+    tmp   = mulw(B_32_47(REG1), B_32_47(REG1));
+    tmp64 = EXTS_W2D(B_32_63(ACC)) + EXTS_W2D(tmp);
+    ovl   = B_N(tmp64, 31) ^ B_N(tmp64, 32);
+    v     = SATURATE(ovl, B_N(tmp64, 31), 0x80000000UL, 0x7fffffffUL, B_32_63(tmp64));
+
+    REG0  = (U64(u) << 32) | U64(v);
+    ACC   = REG0;
+
+    UPDATE_SPEFSCR_OV(ovh, ovl);
+}
+
+X(evmhessianw)
+{
+    uint32_t tmp;
+    uint64_t tmp64;
+    uint32_t u, v;
+    bool ovh, ovl;
+
+    tmp   = mulw(B_0_15(REG1), B_0_15(REG2));
+    tmp64 = EXTS_W2D(B_0_31(ACC)) - EXTS_W2D(tmp);
+    ovh   = B_N(tmp64, 31) ^ B_N(tmp64, 32);
+    u     = SATURATE(ovh, B_N(tmp64, 31), 0x80000000UL, 0x7fffffffUL, B_32_63(tmp64));
+
+    tmp   = mulw(B_32_47(REG1), B_32_47(REG1));
+    tmp64 = EXTS_W2D(B_32_63(ACC)) - EXTS_W2D(tmp);
+    ovl   = B_N(tmp64, 31) ^ B_N(tmp64, 32);
+    v     = SATURATE(ovl, B_N(tmp64, 31), 0x80000000UL, 0x7fffffffUL, B_32_63(tmp64));
+
+    REG0  = (U64(u) << 32) | U64(v);
+    ACC   = REG0;
+
+    UPDATE_SPEFSCR_OV(ovh, ovl);
+}
+
+X(evmheumi)
+{
+    uint32_t u, v;
+
+    u  = muluw(B_0_15(REG1), B_0_15(REG2));
+    v  = muluw(B_32_47(REG1), B_32_47(REG2));
+
+    REG0 = (U64(u) << 32) | U64(v);
+}
+
+X(evmheumia)
+{
+    uint32_t u, v;
+
+    u  = muluw(B_0_15(REG1), B_0_15(REG2));
+    v  = muluw(B_32_47(REG1), B_32_47(REG2));
+
+    REG0 = (U64(u) << 32) | U64(v);
+    ACC  = REG0;
+}
+
+X(evmheumiaaw)
+{
+    uint32_t tmp;
+    uint32_t u, v;
+
+    tmp = muluw(B_0_15(REG1), B_0_15(REG2));
+    u   = B_0_31(ACC) + tmp;
+
+    tmp = muluw(B_32_47(REG1), B_32_47(REG2));
+    v   = B_32_63(ACC) + tmp;
+
+    REG0 = (U64(u) << 32) | U64(v);
+    ACC  = REG0;
+}
+
+X(evmheumianw)
+{
+    uint32_t tmp;
+    uint32_t u, v;
+
+    tmp = muluw(B_0_15(REG1), B_0_15(REG2));
+    u   = B_0_31(ACC) - tmp;
+
+    tmp = muluw(B_32_47(REG1), B_32_47(REG2));
+    v   = B_32_63(ACC) - tmp;
+
+    REG0 = (U64(u) << 32) | U64(v);
+    ACC  = REG0;
+}
+
+X(evmheusiaaw)
+{
+    uint32_t tmp;
+    uint64_t tmp64;
+    bool     ovh, ovl;
+    uint32_t u, v;
+
+    tmp   = muluw(B_0_15(REG1), B_0_15(REG2));
+    tmp64 = EXTZ_W2D(B_0_31(ACC)) + EXTZ_W2D(tmp);
+    ovh   = B_N(tmp64, 31);
+    u     = SATURATE(ovh, 0, 0xffffffffUL, 0xffffffffUL, B_32_63(tmp64));
+
+    tmp   = muluw(B_32_47(REG1), B_32_47(REG2));
+    tmp64 = EXTZ_W2D(B_32_63(ACC)) + EXTZ_W2D(tmp);
+    ovl   = B_N(tmp64, 31);
+    v     = SATURATE(ovl, 0, 0xffffffffUL, 0xffffffffUL, B_32_63(tmp64));
+
+    REG0  = (U64(u) << 32) | U64(v);
+    ACC   = REG0;
+
+    UPDATE_SPEFSCR_OV(ovh, ovl);
+}
+
+X(evmheusianw)
+{
+    uint32_t tmp;
+    uint64_t tmp64;
+    bool     ovh, ovl;
+    uint32_t u, v;
+
+    tmp   = muluw(B_0_15(REG1), B_0_15(REG2));
+    tmp64 = EXTZ_W2D(B_0_31(ACC)) - EXTZ_W2D(tmp);
+    ovh   = B_N(tmp64, 31);
+    u     = SATURATE(ovh, 0, 0x0UL, 0x0UL, B_32_63(tmp64));
+
+    tmp   = muluw(B_32_47(REG1), B_32_47(REG2));
+    tmp64 = EXTZ_W2D(B_32_63(ACC)) - EXTZ_W2D(tmp);
+    ovl   = B_N(tmp64, 31);
+    v     = SATURATE(ovl, 0, 0x0UL, 0x0UL, B_32_63(tmp64));
+
+    REG0  = (U64(u) << 32) | U64(v);
+    ACC   = REG0;
+
+    UPDATE_SPEFSCR_OV(ovh, ovl);
+}
+
+#endif
+
 
 // ----------------- SPE FP ---------------------------------------------------------------------------
 
