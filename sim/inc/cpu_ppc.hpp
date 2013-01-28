@@ -5,7 +5,6 @@
 #include "tlb_booke.hpp"             // BookE MMU
 #include "ppc_exception.h"           // Exception tables
 #include "ppc_dis.hpp"               // Disassembler module
-#include "cpu_host.h"                // Some host definitions
 #include "memory.hpp"                // Memory module
 #include "bm.hpp"                    // Software Breakpoint manager
 #include "cpu_ppc_coverage.hpp"      // Coverage logger
@@ -196,11 +195,7 @@ class CPU_PPC {
     
 
     /* Host specific stuff */
-#if HOST_ARCH == x86_64
-    struct x64_cpu_state host_state;
-#elif HOST_ARCH == i686
-    struct x86_cpu_state host_state;
-#endif
+    x86_flags host_flags;
 
     // A Cache of recently called instrs.
     lru_cache<uint64_t, instr_call>        m_instr_cache;     // Cache of recently used instrs
@@ -1250,9 +1245,9 @@ CPU_T void CPU_PPC_T::update_cr0_host(){
     LOG("DEBUG4") << MSG_FUNC_START;
     int c = 0;
 
-    if(host_state.flags & X86_FLAGS_SF){ c = 8;  }          // If sign flag, set cr0[lt] flag
-    else                               { c |= 4; }          // else set cr0[gt] flag
-    if(host_state.flags & X86_FLAGS_ZF){ c |= 2; }          // if zero flag, set cr0[eq] flag
+    if(host_flags.sf){ c = 8;  }          // If sign flag, set cr0[lt] flag
+    else             { c |= 4; }          // else set cr0[gt] flag
+    if(host_flags.zf){ c |= 2; }          // if zero flag, set cr0[eq] flag
 
     /*  SO bit, copied from XER:  */
     c |= ((PPCREG(REG_XER) >> 31) & 1);
@@ -1334,7 +1329,7 @@ CPU_T void CPU_PPC_T::update_xer_host(){
     uint32_t c = 0;
 
     // Update OV
-    if(host_state.flags & X86_FLAGS_OF){
+    if(host_flags.of){
         c |= 4;
         //if(curr_instr != "mtspr"){   /* If current instruction is not "mtspr", set SO bit also */
         //    c |= 8;
@@ -1383,7 +1378,7 @@ CPU_T void CPU_PPC_T::update_xer_ca(bool value){
 CPU_T void CPU_PPC_T::update_xer_ca_host(){
     LOG("DEBUG4") << MSG_FUNC_START;
 
-    if(host_state.flags & X86_FLAGS_CF){
+    if(host_flags.cf){
         PPCREG(REG_XER) &= XER_CA;                    // clear XER[CA]
         PPCREG(REG_XER) |= 1UL << rshift<uint64_t>(XER_CA);     // Insert value into XER[CA]
     }

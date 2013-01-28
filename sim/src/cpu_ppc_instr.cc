@@ -108,8 +108,7 @@
 #define get_xerf                 CPU->get_xerf
 #define get_xer_so               CPU->get_xer_so
 #define get_xer_ca               CPU->get_xer_ca
-#define HOST_FLAGS               CPU->host_state.flags
-#define dummy_flags              CPU->host_state.dummy
+#define HOST_FLAGS               CPU->host_flags
 
 // Generic macros
 #define UPDATE_CA()               update_xer_ca_host()
@@ -230,151 +229,17 @@
 // PPC Exceptions
 #define  PPC_EXCEPT         sim_except_ppc
 
-/*----------------------------------------------------------------------------
- * x86/x86_64 assembly.
- * Instead of calculating Overflow, carry bits etc, we are leveraging host flag
- * register directly.
- * ---------------------------------------------------------------------------*/
-#if HOST_ARCH == x86_64
-
-#define EBX       "%rbx"
-#define ECX       "%rcx"
-#define POP_ECX   "pop %%rcx\n"
-
-#elif HOST_ARCH == i686
-
-#define EBX       "%ebx"
-#define ECX       "%ecx"
-#define POP_ECX   "pop %%ecx\n"
-
-#endif
-
-// NOTE: 1. Division routines don't check for divide by zero conditions. We will
-//          catch a SIGFPE signal, if this isn't handled in advanced.
-#define addw(arg0, arg1, arg2)                                                   \
-    asm volatile(                                                                \
-            "mov %3, %%ebx\n"                                                    \
-            "add %2, %%ebx\n"                                                    \
-            "mov %%ebx, %0\n"                                                    \
-            "pushf\n"                                                            \
-            POP_ECX                                                              \
-            "movl %%ecx, %1\n"                                                   \
-            : "=m"(arg0), "=m"(HOST_FLAGS) : "m"(arg1), "m"(arg2) : EBX, ECX     \
-       )
-#define subw(arg0, arg1, arg2)                                                   \
-    asm volatile(                                                                \
-            "mov %2, %%ebx\n"                                                    \
-            "sub %3, %%ebx\n"                                                    \
-            "mov %%ebx, %0\n"                                                    \
-            "pushf\n"                                                            \
-            POP_ECX                                                              \
-            "movl %%ecx, %1\n"                                                   \
-            : "=m"(arg0), "=m"(HOST_FLAGS) : "m"(arg1), "m"(arg2) : EBX, ECX     \
-       )
-// mulw/muluw takes two destination operands
-//     arg0h -> higer 32 bits of result
-//     arg0l -> lower 32 bits of result
-// NOTE : 1. all other arguments ( arg1 & arg2 ) are 32 bits each.
-//        2. x86 "imul"/"mul" doesn't set SF or ZF, hence there is no way of determining
-//           CR0 from host_flags. It sets OF and CF flags though, so XER can be
-//           determined.
-#define mulw(arg0h, arg0l, arg1, arg2)                                           \
-    asm volatile(                                                                \
-            "mov %4, %%ebx\n"                                                    \
-            "mov %3, %%eax\n"                                                    \
-            "imul %%ebx\n"                                                       \
-            "mov %%eax, %1\n"                                                    \
-            "mov %%edx, %0\n"                                                    \
-            "pushf\n"                                                            \
-            POP_ECX                                                              \
-            "movl %%ecx, %2\n"                                                   \
-            : "=m"(arg0h), "=m"(arg0l), "=m"(HOST_FLAGS)                         \
-            : "m"(arg1), "m"(arg2) : EBX, ECX                                    \
-       )
-#define muluw(arg0h, arg0l, arg1, arg2)                                          \
-    asm volatile(                                                                \
-            "mov %4, %%ebx\n"                                                    \
-            "mov %3, %%eax\n"                                                    \
-            "mul %%ebx\n"                                                        \
-            "mov %%eax, %1\n"                                                    \
-            "mov %%edx, %0\n"                                                    \
-            "pushf\n"                                                            \
-            POP_ECX                                                              \
-            "movl %%ecx, %2\n"                                                   \
-            : "=m"(arg0h), "=m"(arg0l), "=m"(HOST_FLAGS)                         \
-            : "m"(arg1), "m"(arg2) : EBX, ECX                                    \
-       )
-// NOTE : All required flags ( CF, OF, SF & ZF ) are all undefined after x86 "idiv"
-//        and "div". So we have to take care of these explicitly.
-#define divw(arg0, arg1, arg2)                                                   \
-    asm volatile(                                                                \
-            "mov %3, %%ebx\n"                                                    \
-            "mov %2, %%eax\n"                                                    \
-            "cdq\n"                                                              \
-            "idiv %%ebx\n"                                                       \
-            "mov %%eax, %0\n"                                                    \
-            "pushf\n"                                                            \
-            POP_ECX                                                              \
-            "movl %%ecx, %1\n"                                                   \
-            : "=m"(arg0), "=m"(HOST_FLAGS) : "m"(arg1), "m"(arg2) : EBX, ECX     \
-       )
-#define divuw(arg0, arg1, arg2)                                                  \
-    asm volatile(                                                                \
-            "mov %3, %%ebx\n"                                                    \
-            "mov %2, %%eax\n"                                                    \
-            "xor %%edx, %%edx\n"                                                 \
-            "div %%ebx\n"                                                        \
-            "mov %%eax, %0\n"                                                    \
-            "pushf\n"                                                            \
-            POP_ECX                                                              \
-            "movl %%ecx, %1\n"                                                   \
-            : "=m"(arg0), "=m"(HOST_FLAGS) : "m"(arg1), "m"(arg2) : EBX, ECX     \
-       )
-// NOTE : flags status for "and" ,"or" and "xor"
-//        OF, CF -> cleared
-//        SF, ZF -> altered according to result
-#define andw(arg0, arg1, arg2)                                                   \
-    asm volatile(                                                                \
-            "mov %3, %%ebx\n"                                                    \
-            "and %2, %%ebx\n"                                                    \
-            "mov %%ebx, %0\n"                                                    \
-            "pushf\n"                                                            \
-            POP_ECX                                                              \
-            "movl %%ecx, %1\n"                                                   \
-            : "=m"(arg0), "=m"(HOST_FLAGS) : "m"(arg1), "m"(arg2) : EBX, ECX     \
-       )
-#define orw(arg0, arg1, arg2)                                                    \
-    asm volatile(                                                                \
-            "mov %3, %%ebx\n"                                                    \
-            "or %2, %%ebx\n"                                                     \
-            "mov %%ebx, %0\n"                                                    \
-            "pushf\n"                                                            \
-            POP_ECX                                                              \
-            "movl %%ecx, %1\n"                                                   \
-            : "=m"(arg0), "=m"(HOST_FLAGS) : "m"(arg1), "m"(arg2) : EBX, ECX     \
-       )
-#define xorw(arg0, arg1, arg2)                                                   \
-    asm volatile(                                                                \
-            "mov %3, %%ebx\n"                                                    \
-            "xor %2, %%ebx\n"                                                    \
-            "mov %%ebx, %0\n"                                                    \
-            "pushf\n"                                                            \
-            POP_ECX                                                              \
-            "movl %%ecx, %1\n"                                                   \
-            : "=m"(arg0), "=m"(HOST_FLAGS) : "m"(arg1), "m"(arg2) : EBX, ECX     \
-       )
-// NOTE : flag status
-//        All flags (CF, OF, ZF and SF) altered.
-#define negw(arg0, arg1)                                                         \
-    asm volatile(                                                                \
-            "mov %2, %%ebx\n"                                                    \
-            "neg %%ebx\n"                                                        \
-            "mov %%ebx, %0\n"                                                    \
-            "pushf\n"                                                            \
-            POP_ECX                                                              \
-            "movl %%ecx, %1\n"                                                   \
-            : "=m"(arg0), "=m"(HOST_FLAGS) : "m"(arg1) : EBX, ECX                \
-       )
+// These functions are defined in utils.h
+#define X86_ADDW(arg0, arg1, arg2)                        arg0 = ADDW(arg1, arg2, HOST_FLAGS)
+#define X86_SUBW(arg0, arg1, arg2)                        arg0 = ADDW(arg1, arg2, HOST_FLAGS)
+#define X86_ANDW(arg0, arg1, arg2)                        arg0 = ANDW(arg1, arg2, HOST_FLAGS)
+#define X86_ORW(arg0, arg1, arg2)                         arg0 =  ORW(arg1, arg2, HOST_FLAGS)
+#define X86_XORW(arg0, arg1, arg2)                        arg0 = XORW(arg1, arg2, HOST_FLAGS)
+#define X86_NEGW(arg0, arg1)                              arg0 = NEGW(arg1, HOST_FLAGS)
+#define X86_DIVW(arg0, arg1, arg2)                        arg0 = DIVW(arg1, arg2)
+#define X86_DIVUW(arg0, arg1, arg2)                       arg0 = DIVUW(arg1, arg2)
+#define X86_MULW(arg0, arg1, arg2, hi)                    arg0 = MULW(arg1, arg2, HOST_FLAGS, hi)
+#define X86_MULUW(arg0, arg1, arg2, hi)                   arg0 = MULUW(arg1, arg2, HOST_FLAGS, hi)
 
 // START
 // ------------------------------------- INTEGER ARITHMETIC -------------------------
@@ -403,7 +268,7 @@
 X(add)
 {
 #define add_code(rD, rA, rB)           \
-    addw(rD, rA, rB);
+    X86_ADDW(rD, rA, rB);
 
     add_code(REG0, REG1, REG2);
 }
@@ -712,7 +577,7 @@ X(subfzeo.)
 X(divw)
 {
 #define divw_code(rD, rA, rB)          \
-    if(rB){ divw(rD, rA, rB); }
+    if(rB){ X86_DIVW(rD, rA, rB); }
 
     divw_code(REG0, REG1, REG2);
 }
@@ -738,7 +603,7 @@ X(divwo.)
 X(divwu)
 {
 #define divwu_code(rD, rA, rB)         \
-    if(rB){ divuw(rD, rA, rB); }
+    if(rB){ X86_DIVUW(rD, rA, rB); }
 
     divwu_code(REG0, REG1, REG2);
 }
@@ -764,8 +629,7 @@ X(divwuo.)
 X(mulhw)
 {
 #define mulhw_code(rD, rA, rB)            \
-    uint32_t dest_l;                      \
-    mulw(rD, dest_l, rA, rB)
+    X86_MULW(rD, rA, rB, 1)
 
     mulhw_code(REG0, REG1, REG2);
 }
@@ -777,16 +641,14 @@ X(mulhw.)
 
 X(mulli)
 {
-    uint32_t dest_h;
     uint32_t imm_val = EXTS_H2W(ARG2);          // Sign extend 16 bit IMM to 32 bit
-    mulw(dest_h, REG0, REG1, imm_val);
+    X86_MULW(REG0, REG1, imm_val, 0);
 }
 
 X(mulhwu)
 {
 #define mulhwu_code(rD, rA, rB)           \
-    uint32_t dest_l;                      \
-    muluw(rD, dest_l, rA, rB)
+    X86_MULUW(rD, rA, rB, 1)
 
     mulhwu_code(REG0, REG1, REG2);
 }
@@ -799,8 +661,7 @@ X(mulhwu.)
 X(mullw)
 {
 #define mullw_code(rD, rA, rB)            \
-    uint32_t dest_h;                      \
-    mulw(dest_h, rD, rA, rB)
+    X86_MULW(rD, rA, rB, 0)
 
     mullw_code(REG0, REG1, REG2);
 }
@@ -848,7 +709,7 @@ X(mullwo.)
 X(and)
 {
 #define and_code(rA, rS, rB)             \
-    andw(rA, rS, rB)
+    X86_ANDW(rA, rS, rB)
 
     and_code(REG0, REG1, REG2);
 }
@@ -953,7 +814,7 @@ X(nand.)
 X(neg)
 {
 #define neg_code(rD, rA)                        \
-    negw(rD, rA);
+    X86_NEGW(rD, rA);
 
     neg_code(REG0, REG1);
 }
@@ -991,7 +852,7 @@ X(nor.)
 X(or)
 {
 #define or_code(rA, rS, rB)                     \
-    orw(rA, rS, rB)
+    X86_ORW(rA, rS, rB)
 
     or_code(REG0, REG1, REG2);
 }
@@ -1005,7 +866,7 @@ X(orc)
 {
 #define orc_code(rA, rS, rB)                     \
     UMODE tmp = ~rB;                             \
-    orw(rA, rS, tmp)
+    X86_ORW(rA, rS, tmp)
 
     orc_code(REG0, REG1, REG2);
 }
@@ -1031,7 +892,7 @@ X(oris)
 X(xor)
 {
 #define xor_code(rA, rS, rB)      \
-    xorw(rA, rS, rB)
+    X86_XORW(rA, rS, rB)
 
     xor_code(REG0, REG1, REG2);
 }

@@ -271,4 +271,107 @@ inline T_tgt sign_exts(T_src x){ return static_cast<T_tgt>(x); }
 #define CAT3(x,y,z)         x##y##z
 #define CAT(x,y)            CAT2(x,y)
 
+// ----------------------------------------- x86 fncs ----------------------------------------
+// x86 functions
+struct x86_flags {
+    bool cf;   // carry flag
+    bool zf;   // zero flag
+    bool sf;   // sign
+    bool of;   // overflow
+};
+std::ostream& operator<<(std::ostream& ostr, x86_flags f){
+    ostr << ": cf=" << f.cf << ", zf=" << f.zf << ", sf=" << f.sf << ", of=" << f.of << " ";
+    return ostr;
+}
+
+#define def_x86_alu_op1(name, x86_op, zaps, oc)                          \
+template<typename T>                                                     \
+inline T name(T ra, x86_flags& f){                                       \
+    x86_flags f0;                                                        \
+    asm(                                                                 \
+            #x86_op " %[ra]; setc %[cf]; seto %[of];"                    \
+            "sets %[sf]; setz %[zf];"                                    \
+            : [ra] "+a" (ra), [cf] "=q" (f0.cf), [of] "=q" (f0.of),      \
+              [zf] "=q" (f0.zf), [sf] "=q" (f0.sf)                       \
+            :                                                            \
+            :                                                            \
+       );                                                                \
+    if(zaps & oc) { f=f0; }                                              \
+    else if(zaps) { f.zf=f0.zf; f.sf=f0.sf; }                            \
+    else if(oc)   { f.cf=f0.cf; f.of=f0.of; }                            \
+    return ra;                                                           \
+}
+
+#define def_x86_alu_op2(name, x86_op, zaps, oc)                          \
+template<typename T>                                                     \
+inline T name(T ra, T rb, x86_flags& f){                                 \
+    x86_flags f0;                                                        \
+    asm(                                                                 \
+            #x86_op " %[rb], %[ra]; setc %[cf]; seto %[of];"             \
+            "sets %[sf]; setz %[zf];"                                    \
+            : [ra] "+q" (ra), [cf] "=q" (f0.cf), [of] "=q" (f0.of),      \
+              [zf] "=q" (f0.zf), [sf] "=q" (f0.sf)                       \
+            : [rb] "q" (rb)                                              \
+            :                                                            \
+       );                                                                \
+    if(zaps & oc) { f=f0; }                                              \
+    else if(zaps) { f.zf=f0.zf; f.sf=f0.sf; }                            \
+    else if(oc)   { f.cf=f0.cf; f.of=f0.of; }                            \
+    return ra;                                                           \
+}
+
+// All flags are set for neg, add & sub (i.e zaps=oc=true)
+// only zaps are set for logical instrs (and, or, xor etc)
+def_x86_alu_op1(x86_neg, neg, true, true)
+def_x86_alu_op2(x86_add, add, true, true)
+def_x86_alu_op2(x86_sub, sub, true, true)
+def_x86_alu_op2(x86_and, and, true, false)
+def_x86_alu_op2(x86_or,  or,  true, false)
+def_x86_alu_op2(x86_xor, xor, true, false)
+
+
+#define def_x86_mul_op(name, x86_op)                                    \
+template<typename T>                                                    \
+inline T name(T ra, T rb, x86_flags& f, bool high=0){                   \
+    register T rd = 0;                                                  \
+    asm(                                                                \
+            #x86_op " %[rb]; setc %[cf]; seto %[of];"                   \
+            : "+a" (ra), "=d" (rd), [cf] "=q" (f.cf), [of] "=q" (f.of)  \
+            : [rb] "q" (rb)                                             \
+            :                                                           \
+       );                                                               \
+    return (high) ? rd:ra;                                              \
+}
+
+def_x86_mul_op(x86_mul, mul)
+def_x86_mul_op(x86_imul, imul)
+
+#define def_x86_div_op(name, x86_op)                                    \
+template<typename T>                                                    \
+inline T name(T ra, T rb, bool rem=0){                                  \
+    register T rd = 0;                                                  \
+    asm(                                                                \
+            #x86_op " %[rb];"                                           \
+            : "+a" (ra), "=d" (rd)                                      \
+            : [rb] "q" (rb)                                             \
+            :                                                           \
+       );                                                               \
+    return (rem) ? rd:ra;                                               \
+}
+
+def_x86_div_op(x86_div, div)
+def_x86_div_op(x86_idiv, idiv)
+
+#define NEGW              x86_neg<uint32_t>
+#define ADDW              x86_add<int32_t>
+#define SUBW              x86_sub<int32_t>
+#define MULW              x86_imul<int32_t>
+#define MULUW             x86_mul<uint32_t>
+#define DIVW              x86_idiv<int32_t>
+#define DIVUW             x86_div<uint32_t>
+#define ANDW              x86_and<uint32_t>
+#define ORW               x86_or<uint32_t>
+#define XORW              x86_xor<uint32_t>
+
+
 #endif
