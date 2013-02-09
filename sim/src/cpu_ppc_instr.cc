@@ -3,12 +3,13 @@
  *  PowerPC BookE RTL description.
  * ------------------------------------------------------------------------------------
  *
- *  NOTE: This file format was taken from a similar file from "gxemu" project by
- *        Anders Gavare, but it doesn't contain any of the code in any of those files.
+ *  Acknowledgement :
+ *  This file format was taken from a similar file from "gxemu" project by
+ *  Anders Gavare, but it doesn't contain any of the code in that file.
  *
  *  -----------------------------------------------------------------------------------
- *  Author : Vikas Chouhan ( presentisgood@gmail.com )
- *  copyright (C) 2012.
+ *  Author : Vikas Chouhan (presentisgood@gmail.com)
+ *  Copyright (C) 2012.
  *  
  *  e500v2 is taken as a reference, but the code is generic and can be used for higher
  *  booke 64 bit cores.
@@ -16,8 +17,8 @@
  *  NOTE:
  *  This file is not a regular C/C++ file ( although it looks like it :) ).
  *  It's just a template for defining instructions'
- *  pseudocode implementation. An external utility uses this template to generate a new
- *  header/C++ file before direct use.
+ *  RTL(register transfer logic) implementation. An external utility parses
+ *  this template to generate a new header/C++ file before direct use.
  *
  *  RTL is written in accordance with Power ISA 2.06 provided by power.org and
  *  PowerPC e500 core ref. manual provided by Freescale.
@@ -199,6 +200,19 @@
 #define EXTS_H2D(val)              sign_exts<int64_t, int16_t>(val)             // sign extension : half-word to double-word
 #define EXTS_W2D(val)              sign_exts<int64_t, int32_t>(val)             // sign extension : word to double-word
 
+// zero extension
+#define EXTZ_B2N(val)              sign_exts<UMODE, uint8_t >(val)
+#define EXTZ_H2N(val)              sign_exts<UMODE, uint16_t>(val)
+#define EXTZ_W2N(val)              sign_exts<UMODE, uint32_t>(val)
+
+#define EXTZ_H2W(val)              sign_exts<uint32_t, uint16_t>(val)
+#define EXTZ_B2W(val)              sign_exts<uint32_t, uint8_t >(val)
+#define EXTZ_B2H(val)              sign_exts<uint16_t, uint8_t >(val)
+
+#define EXTZ_B2D(val)              sign_exts<uint64_t, uint8_t >(val)
+#define EXTZ_H2D(val)              sign_exts<uint64_t, uint16_t>(val)
+#define EXTZ_W2D(val)              sign_exts<uint64_t, uint32_t>(val)
+
 // rotation macros
 #define ROTL64(x, y)               ((uint64_t)(((x) << (y)) | ((x) >> (64 - (y)))))                           // x=64bit, y=64bit
 #define ROTL32(x, y)               ROTL64((((x) & 0xffffffff) | (((x) & 0xffffffff) << 32)), (y))             // x=32bit, y=64bit
@@ -230,16 +244,18 @@
 #define  PPC_EXCEPT         sim_except_ppc
 
 // These functions are defined in utils.h
-#define X86_ADDW(arg0, arg1, arg2)                        arg0 = ADDW(arg1, arg2, HOST_FLAGS)
-#define X86_SUBW(arg0, arg1, arg2)                        arg0 = ADDW(arg1, arg2, HOST_FLAGS)
-#define X86_ANDW(arg0, arg1, arg2)                        arg0 = ANDW(arg1, arg2, HOST_FLAGS)
-#define X86_ORW(arg0, arg1, arg2)                         arg0 =  ORW(arg1, arg2, HOST_FLAGS)
-#define X86_XORW(arg0, arg1, arg2)                        arg0 = XORW(arg1, arg2, HOST_FLAGS)
-#define X86_NEGW(arg0, arg1)                              arg0 = NEGW(arg1, HOST_FLAGS)
-#define X86_DIVW(arg0, arg1, arg2)                        arg0 = DIVW(arg1, arg2)
-#define X86_DIVUW(arg0, arg1, arg2)                       arg0 = DIVUW(arg1, arg2)
-#define X86_MULW(arg0, arg1, arg2, hi)                    arg0 = MULW(arg1, arg2, HOST_FLAGS, hi)
-#define X86_MULUW(arg0, arg1, arg2, hi)                   arg0 = MULUW(arg1, arg2, HOST_FLAGS, hi)
+#define X86_ADDW(arg1,    arg2)                      ADDW(arg1,  arg2, HOST_FLAGS)
+#define X86_SUBW(arg1,    arg2)                      ADDW(arg1,  arg2, HOST_FLAGS)
+#define X86_ANDW(arg1,    arg2)                      ANDW(arg1,  arg2, HOST_FLAGS)
+#define X86_ORW(arg1,     arg2)                       ORW(arg1,  arg2, HOST_FLAGS)
+#define X86_XORW(arg1,    arg2)                      XORW(arg1,  arg2, HOST_FLAGS)
+#define X86_NEGW(arg1         )                      NEGW(arg1,  HOST_FLAGS)
+#define X86_DIVW(arg1,    arg2)                      DIVW(arg1,  arg2)
+#define X86_DIVUW(arg1,   arg2)                      DIVUW(arg1, arg2)
+#define X86_MULW_L(arg1,  arg2)                      MULW(arg1,  arg2, HOST_FLAGS, 0)
+#define X86_MULW_H(arg1,  arg2)                      MULW(arg1,  arg2, HOST_FLAGS, 1)
+#define X86_MULUW_L(arg1, arg2)                      MULUW(arg1, arg2, HOST_FLAGS, 0)
+#define X86_MULUW_H(arg1, arg2)                      MULUW(arg1, arg2, HOST_FLAGS, 1)
 
 // START
 // ------------------------------------- INTEGER ARITHMETIC -------------------------
@@ -268,7 +284,7 @@
 X(add)
 {
 #define add_code(rD, rA, rB)           \
-    X86_ADDW(rD, rA, rB);
+    rD = X86_ADDW(rA, rB);
 
     add_code(REG0, REG1, REG2);
 }
@@ -577,7 +593,7 @@ X(subfzeo.)
 X(divw)
 {
 #define divw_code(rD, rA, rB)          \
-    if(rB){ X86_DIVW(rD, rA, rB); }
+    if(rB){ rD = X86_DIVW(rA, rB); }
 
     divw_code(REG0, REG1, REG2);
 }
@@ -603,7 +619,7 @@ X(divwo.)
 X(divwu)
 {
 #define divwu_code(rD, rA, rB)         \
-    if(rB){ X86_DIVUW(rD, rA, rB); }
+    if(rB){ rD = X86_DIVUW(rA, rB); }
 
     divwu_code(REG0, REG1, REG2);
 }
@@ -629,7 +645,7 @@ X(divwuo.)
 X(mulhw)
 {
 #define mulhw_code(rD, rA, rB)            \
-    X86_MULW(rD, rA, rB, 1)
+    rD = X86_MULW_H(rA, rB)
 
     mulhw_code(REG0, REG1, REG2);
 }
@@ -642,13 +658,13 @@ X(mulhw.)
 X(mulli)
 {
     uint32_t imm_val = EXTS_H2W(ARG2);          // Sign extend 16 bit IMM to 32 bit
-    X86_MULW(REG0, REG1, imm_val, 0);
+    REG0 = X86_MULW_L(REG1, imm_val);
 }
 
 X(mulhwu)
 {
 #define mulhwu_code(rD, rA, rB)           \
-    X86_MULUW(rD, rA, rB, 1)
+    rD = X86_MULUW_H(rA, rB)
 
     mulhwu_code(REG0, REG1, REG2);
 }
@@ -661,7 +677,7 @@ X(mulhwu.)
 X(mullw)
 {
 #define mullw_code(rD, rA, rB)            \
-    X86_MULW(rD, rA, rB, 0)
+    rD = X86_MULW_L(rA, rB)
 
     mullw_code(REG0, REG1, REG2);
 }
@@ -709,7 +725,7 @@ X(mullwo.)
 X(and)
 {
 #define and_code(rA, rS, rB)             \
-    X86_ANDW(rA, rS, rB)
+    rA = X86_ANDW(rS, rB)
 
     and_code(REG0, REG1, REG2);
 }
@@ -814,7 +830,7 @@ X(nand.)
 X(neg)
 {
 #define neg_code(rD, rA)                        \
-    X86_NEGW(rD, rA);
+    rD = X86_NEGW(rA);
 
     neg_code(REG0, REG1);
 }
@@ -852,7 +868,7 @@ X(nor.)
 X(or)
 {
 #define or_code(rA, rS, rB)                     \
-    X86_ORW(rA, rS, rB)
+    rA = X86_ORW(rS, rB)
 
     or_code(REG0, REG1, REG2);
 }
@@ -866,7 +882,7 @@ X(orc)
 {
 #define orc_code(rA, rS, rB)                     \
     UMODE tmp = ~rB;                             \
-    X86_ORW(rA, rS, tmp)
+    rA = X86_ORW(rS, tmp)
 
     orc_code(REG0, REG1, REG2);
 }
@@ -892,7 +908,7 @@ X(oris)
 X(xor)
 {
 #define xor_code(rA, rS, rB)      \
-    X86_XORW(rA, rS, rB)
+    rA = X86_XORW(rS, rB)
 
     xor_code(REG0, REG1, REG2);
 }
@@ -2862,8 +2878,6 @@ X(evmhessfanw)
     UPDATE_SPEFSCR_OV(movh, movl);
 }
 
-#if 0
-
 X(evmhessiaaw)
 {
     uint32_t tmp;
@@ -2871,12 +2885,12 @@ X(evmhessiaaw)
     uint32_t u, v;
     bool ovh, ovl;
 
-    tmp   = mulw(B_0_15(REG1), B_0_15(REG2));
+    tmp   = X86_MULW_L(B_0_15(REG1), B_0_15(REG2));
     tmp64 = EXTS_W2D(B_0_31(ACC)) + EXTS_W2D(tmp);
     ovh   = B_N(tmp64, 31) ^ B_N(tmp64, 32);
     u     = SATURATE(ovh, B_N(tmp64, 31), 0x80000000UL, 0x7fffffffUL, B_32_63(tmp64));
 
-    tmp   = mulw(B_32_47(REG1), B_32_47(REG1));
+    tmp   = X86_MULW_L(B_32_47(REG1), B_32_47(REG1));
     tmp64 = EXTS_W2D(B_32_63(ACC)) + EXTS_W2D(tmp);
     ovl   = B_N(tmp64, 31) ^ B_N(tmp64, 32);
     v     = SATURATE(ovl, B_N(tmp64, 31), 0x80000000UL, 0x7fffffffUL, B_32_63(tmp64));
@@ -2894,12 +2908,12 @@ X(evmhessianw)
     uint32_t u, v;
     bool ovh, ovl;
 
-    tmp   = mulw(B_0_15(REG1), B_0_15(REG2));
+    tmp   = X86_MULW_L(B_0_15(REG1), B_0_15(REG2));
     tmp64 = EXTS_W2D(B_0_31(ACC)) - EXTS_W2D(tmp);
     ovh   = B_N(tmp64, 31) ^ B_N(tmp64, 32);
     u     = SATURATE(ovh, B_N(tmp64, 31), 0x80000000UL, 0x7fffffffUL, B_32_63(tmp64));
 
-    tmp   = mulw(B_32_47(REG1), B_32_47(REG1));
+    tmp   = X86_MULW_L(B_32_47(REG1), B_32_47(REG1));
     tmp64 = EXTS_W2D(B_32_63(ACC)) - EXTS_W2D(tmp);
     ovl   = B_N(tmp64, 31) ^ B_N(tmp64, 32);
     v     = SATURATE(ovl, B_N(tmp64, 31), 0x80000000UL, 0x7fffffffUL, B_32_63(tmp64));
@@ -2914,8 +2928,8 @@ X(evmheumi)
 {
     uint32_t u, v;
 
-    u  = muluw(B_0_15(REG1), B_0_15(REG2));
-    v  = muluw(B_32_47(REG1), B_32_47(REG2));
+    u  = X86_MULUW_L(B_0_15(REG1), B_0_15(REG2));
+    v  = X86_MULUW_L(B_32_47(REG1), B_32_47(REG2));
 
     REG0 = (U64(u) << 32) | U64(v);
 }
@@ -2924,8 +2938,8 @@ X(evmheumia)
 {
     uint32_t u, v;
 
-    u  = muluw(B_0_15(REG1), B_0_15(REG2));
-    v  = muluw(B_32_47(REG1), B_32_47(REG2));
+    u  = X86_MULUW_L(B_0_15(REG1), B_0_15(REG2));
+    v  = X86_MULUW_L(B_32_47(REG1), B_32_47(REG2));
 
     REG0 = (U64(u) << 32) | U64(v);
     ACC  = REG0;
@@ -2936,10 +2950,10 @@ X(evmheumiaaw)
     uint32_t tmp;
     uint32_t u, v;
 
-    tmp = muluw(B_0_15(REG1), B_0_15(REG2));
+    tmp = X86_MULUW_L(B_0_15(REG1), B_0_15(REG2));
     u   = B_0_31(ACC) + tmp;
 
-    tmp = muluw(B_32_47(REG1), B_32_47(REG2));
+    tmp = X86_MULUW_L(B_32_47(REG1), B_32_47(REG2));
     v   = B_32_63(ACC) + tmp;
 
     REG0 = (U64(u) << 32) | U64(v);
@@ -2951,10 +2965,10 @@ X(evmheumianw)
     uint32_t tmp;
     uint32_t u, v;
 
-    tmp = muluw(B_0_15(REG1), B_0_15(REG2));
+    tmp = X86_MULUW_L(B_0_15(REG1), B_0_15(REG2));
     u   = B_0_31(ACC) - tmp;
 
-    tmp = muluw(B_32_47(REG1), B_32_47(REG2));
+    tmp = X86_MULUW_L(B_32_47(REG1), B_32_47(REG2));
     v   = B_32_63(ACC) - tmp;
 
     REG0 = (U64(u) << 32) | U64(v);
@@ -2968,12 +2982,12 @@ X(evmheusiaaw)
     bool     ovh, ovl;
     uint32_t u, v;
 
-    tmp   = muluw(B_0_15(REG1), B_0_15(REG2));
+    tmp   = X86_MULUW_L(B_0_15(REG1), B_0_15(REG2));
     tmp64 = EXTZ_W2D(B_0_31(ACC)) + EXTZ_W2D(tmp);
     ovh   = B_N(tmp64, 31);
     u     = SATURATE(ovh, 0, 0xffffffffUL, 0xffffffffUL, B_32_63(tmp64));
 
-    tmp   = muluw(B_32_47(REG1), B_32_47(REG2));
+    tmp   = X86_MULUW_L(B_32_47(REG1), B_32_47(REG2));
     tmp64 = EXTZ_W2D(B_32_63(ACC)) + EXTZ_W2D(tmp);
     ovl   = B_N(tmp64, 31);
     v     = SATURATE(ovl, 0, 0xffffffffUL, 0xffffffffUL, B_32_63(tmp64));
@@ -2991,12 +3005,12 @@ X(evmheusianw)
     bool     ovh, ovl;
     uint32_t u, v;
 
-    tmp   = muluw(B_0_15(REG1), B_0_15(REG2));
+    tmp   = X86_MULUW_L(B_0_15(REG1), B_0_15(REG2));
     tmp64 = EXTZ_W2D(B_0_31(ACC)) - EXTZ_W2D(tmp);
     ovh   = B_N(tmp64, 31);
     u     = SATURATE(ovh, 0, 0x0UL, 0x0UL, B_32_63(tmp64));
 
-    tmp   = muluw(B_32_47(REG1), B_32_47(REG2));
+    tmp   = X86_MULUW_L(B_32_47(REG1), B_32_47(REG2));
     tmp64 = EXTZ_W2D(B_32_63(ACC)) - EXTZ_W2D(tmp);
     ovl   = B_N(tmp64, 31);
     v     = SATURATE(ovl, 0, 0x0UL, 0x0UL, B_32_63(tmp64));
@@ -3007,7 +3021,6 @@ X(evmheusianw)
     UPDATE_SPEFSCR_OV(ovh, ovl);
 }
 
-#endif
 
 
 // ----------------- SPE FP ---------------------------------------------------------------------------
