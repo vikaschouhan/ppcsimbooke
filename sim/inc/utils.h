@@ -346,6 +346,22 @@ inline T name(T ra, T rb, x86_flags& f, bool high=0){                   \
 def_x86_mul_op(x86_mul, mul)
 def_x86_mul_op(x86_imul, imul)
 
+#define def_x86_mulf_op(name, x86_op)                                   \
+template<typename D, typename S>                                        \
+inline D name(S ra, S rb, x86_flags& f){                                \
+    register S rd = 0;                                                  \
+    asm(                                                                \
+            #x86_op " %[rb]; setc %[cf]; seto %[of];"                   \
+            : "+a" (ra), "=d" (rd), [cf] "=q" (f.cf), [of] "=q" (f.of)  \
+            : [rb] "q" (rb)                                             \
+            :                                                           \
+       );                                                               \
+    return (D(rd) << sizeof(S)*8) | D(ra);                              \
+}
+
+def_x86_mulf_op(x86_mulf, mul)
+def_x86_mulf_op(x86_imulf, imul)
+
 #define def_x86_div_op(name, x86_op)                                    \
 template<typename T>                                                    \
 inline T name(T ra, T rb, bool rem=0){                                  \
@@ -367,6 +383,8 @@ def_x86_div_op(x86_idiv, idiv)
 #define SUBW              x86_sub<int32_t>
 #define MULW              x86_imul<int32_t>
 #define MULUW             x86_mul<uint32_t>
+#define MULWF             x86_imulf<int64_t, int32_t>
+#define MULUWF            x86_mulf<uint64_t, uint32_t>
 #define DIVW              x86_idiv<int32_t>
 #define DIVUW             x86_div<uint32_t>
 #define ANDW              x86_and<uint32_t>

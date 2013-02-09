@@ -244,18 +244,20 @@
 #define  PPC_EXCEPT         sim_except_ppc
 
 // These functions are defined in utils.h
-#define X86_ADDW(arg1,    arg2)                      ADDW(arg1,  arg2, HOST_FLAGS)
-#define X86_SUBW(arg1,    arg2)                      ADDW(arg1,  arg2, HOST_FLAGS)
-#define X86_ANDW(arg1,    arg2)                      ANDW(arg1,  arg2, HOST_FLAGS)
-#define X86_ORW(arg1,     arg2)                       ORW(arg1,  arg2, HOST_FLAGS)
-#define X86_XORW(arg1,    arg2)                      XORW(arg1,  arg2, HOST_FLAGS)
-#define X86_NEGW(arg1         )                      NEGW(arg1,  HOST_FLAGS)
-#define X86_DIVW(arg1,    arg2)                      DIVW(arg1,  arg2)
-#define X86_DIVUW(arg1,   arg2)                      DIVUW(arg1, arg2)
-#define X86_MULW_L(arg1,  arg2)                      MULW(arg1,  arg2, HOST_FLAGS, 0)
-#define X86_MULW_H(arg1,  arg2)                      MULW(arg1,  arg2, HOST_FLAGS, 1)
-#define X86_MULUW_L(arg1, arg2)                      MULUW(arg1, arg2, HOST_FLAGS, 0)
-#define X86_MULUW_H(arg1, arg2)                      MULUW(arg1, arg2, HOST_FLAGS, 1)
+#define X86_ADDW(arg1,    arg2)                      ADDW(arg1,   arg2, HOST_FLAGS)
+#define X86_SUBW(arg1,    arg2)                      ADDW(arg1,   arg2, HOST_FLAGS)
+#define X86_ANDW(arg1,    arg2)                      ANDW(arg1,   arg2, HOST_FLAGS)
+#define X86_ORW(arg1,     arg2)                       ORW(arg1,   arg2, HOST_FLAGS)
+#define X86_XORW(arg1,    arg2)                      XORW(arg1,   arg2, HOST_FLAGS)
+#define X86_NEGW(arg1         )                      NEGW(arg1,   HOST_FLAGS)
+#define X86_DIVW(arg1,    arg2)                      DIVW(arg1,   arg2)
+#define X86_DIVUW(arg1,   arg2)                      DIVUW(arg1,  arg2)
+#define X86_MULW_L(arg1,  arg2)                      MULW(arg1,   arg2, HOST_FLAGS, 0)
+#define X86_MULW_H(arg1,  arg2)                      MULW(arg1,   arg2, HOST_FLAGS, 1)
+#define X86_MULUW_L(arg1, arg2)                      MULUW(arg1,  arg2, HOST_FLAGS, 0)
+#define X86_MULUW_H(arg1, arg2)                      MULUW(arg1,  arg2, HOST_FLAGS, 1)
+#define X86_MULWF(arg1,   arg2)                      MULWF(arg1,  arg2, HOST_FLAGS)
+#define X86_MULUWF(arg1,  arg2)                      MULUWF(arg1, arg2, HOST_FLAGS)
 
 // START
 // ------------------------------------- INTEGER ARITHMETIC -------------------------
@@ -2113,6 +2115,10 @@ typedef struct BITREV {
     }
 } BITREV;
 
+// Pack/unpack macros
+// Pack 2 words into a double word (u & v should be 32 bit)
+#define PACK_2W(u, v)                                            ((U64(u) << 32) | U64(v))
+
 // SPE macros
 #define SATURATE(ov, carry, sat_ovn, sat_ov, val)                ((ov) ? ((carry) ? (sat_ovn) : (sat_ov)) : val)
 #define SL(value, cnt)                                           (((cnt) > 31) ? 0 : ((value) << (cnt)))
@@ -3021,6 +3027,644 @@ X(evmheusianw)
     UPDATE_SPEFSCR_OV(ovh, ovl);
 }
 
+
+X(evmhogsmfaa)
+{
+    uint64_t tmp64;
+    tmp64 = GSF(B_48_63(REG1), B_48_63(REG2));
+    REG0  = ACC + tmp64;
+    ACC   = REG0;
+}
+
+X(evmhogsmfan)
+{
+    uint64_t tmp64;
+    tmp64 = GSF(B_48_63(REG1), B_48_63(REG2));
+    REG0  = ACC - tmp64;
+    ACC   = REG0;
+}
+
+X(evmhogsmiaa)
+{
+    uint32_t tmp;
+    uint64_t tmp64;
+    tmp   = X86_MULW_L(B_48_63(REG1), B_48_63(REG2));
+    tmp64 = EXTS_W2D(tmp);
+    REG0  = ACC + tmp64;
+    ACC   = REG0;
+}
+
+X(evmhogsmian)
+{
+    uint32_t tmp;
+    uint64_t tmp64;
+    tmp   = X86_MULW_L(B_48_63(REG1), B_48_63(REG2));
+    tmp64 = EXTS_W2D(tmp);
+    REG0  = ACC - tmp64;
+    ACC   = REG0;
+}
+
+X(evmhogumiaa)
+{
+    uint32_t tmp;
+    uint64_t tmp64;
+    tmp   = X86_MULUW_L(B_48_63(REG1), B_48_63(REG2));
+    tmp64 = EXTZ_W2D(tmp);
+    REG0  = ACC + tmp64;
+    ACC   = REG0;
+}
+
+X(evmhogumian)
+{
+    uint32_t tmp;
+    uint64_t tmp64;
+    tmp   = X86_MULUW_L(B_48_63(REG1), B_48_63(REG2));
+    tmp64 = EXTZ_W2D(tmp);
+    REG0  = ACC - tmp64;
+    ACC   = REG0;
+}
+
+X(evmhosmf)
+{
+    uint32_t u, v;
+    u    = SF(B_16_31(REG1), B_16_31(REG2));
+    v    = SF(B_48_63(REG1), B_48_63(REG2));
+    REG0 = (U64(u) << 32) | U64(v);
+}
+
+X(evmhosmfa)
+{
+    uint32_t u, v;
+    u    = SF(B_16_31(REG1), B_16_31(REG2));
+    v    = SF(B_48_63(REG1), B_48_63(REG2));
+    REG0 = (U64(u) << 32) | U64(v);
+    ACC  = REG0;
+}
+
+X(evmhosmfaaw)
+{
+    uint32_t tmp, u, v;
+
+    tmp = SF(B_16_31(REG1), B_16_31(REG2));
+    u   = B_0_31(ACC) + tmp;
+
+    tmp = SF(B_48_63(REG1), B_48_63(REG2));
+    v   = B_32_63(ACC) + tmp;
+
+    REG0 = (U64(u) << 32) | U64(v);
+    ACC  = REG0;
+}
+
+X(evmhosmfanw)
+{
+    uint32_t tmp, u, v;
+
+    tmp = SF(B_16_31(REG1), B_16_31(REG2));
+    u   = B_0_31(ACC) - tmp;
+
+    tmp = SF(B_48_63(REG1), B_48_63(REG2));
+    v   = B_32_63(ACC) - tmp;
+
+    REG0 = (U64(u) << 32) | U64(v);
+    ACC  = REG0;
+}
+
+X(evmhosmi)
+{
+    uint32_t u, v;
+    u    = X86_MULW_L(B_16_31(REG1), B_16_31(REG2));
+    v    = X86_MULW_L(B_48_63(REG1), B_48_63(REG2));
+    REG0 = (U64(u) << 32) | U64(v);
+}
+
+X(evmhosmia)
+{
+    uint32_t u, v;
+    u    = X86_MULW_L(B_16_31(REG1), B_16_31(REG2));
+    v    = X86_MULW_L(B_48_63(REG1), B_48_63(REG2));
+    REG0 = (U64(u) << 32) | U64(v);
+    ACC  = REG0;
+}
+
+X(evmhosmiaaw)
+{
+    uint32_t tmp, u, v;
+
+    tmp = X86_MULW_L(B_16_31(REG1), B_16_31(REG2));
+    u   = B_0_31(ACC) + tmp;
+
+    tmp = X86_MULW_L(B_48_63(REG1), B_48_63(REG2));
+    v   = B_32_63(ACC) + tmp;
+
+    REG0 = (U64(u) << 32) | U64(v);
+    ACC  = REG0;
+}
+
+X(evmhosmianw)
+{
+    uint32_t tmp, u, v;
+
+    tmp = X86_MULW_L(B_16_31(REG1), B_16_31(REG2));
+    u   = B_0_31(ACC) - tmp;
+
+    tmp = X86_MULW_L(B_48_63(REG1), B_48_63(REG2));
+    v   = B_32_63(ACC) - tmp;
+
+    REG0 = (U64(u) << 32) | U64(v);
+    ACC  = REG0;
+}
+
+X(evmhossf)
+{
+    uint32_t tmp, u, v;
+    bool movh, movl;
+
+    tmp = SF(B_16_31(REG1), B_16_31(REG1));
+    if((B_16_31(REG1) == 0x8000) && (B_16_31(REG2) == 0x8000))  { u = 0x7fffffff; movh = 1; }
+    else                                                        { u = tmp; movh = 0;        }
+
+    tmp = SF(B_48_63(REG1), B_48_63(REG2));
+    if((B_48_63(REG1) == 0x8000) && (B_48_63(REG2) == 0x8000))  { v = 0x7fffffff; movl = 1; }
+    else                                                        { v = tmp; movl = 0;        }
+
+    REG0 = (U64(u) << 32) | U64(v);
+    UPDATE_SPEFSCR_OV(movh, movl);
+}
+
+X(evmhossfa)
+{
+    uint32_t tmp, u, v;
+    bool movh, movl;
+
+    tmp = SF(B_16_31(REG1), B_16_31(REG1));
+    if((B_16_31(REG1) == 0x8000) && (B_16_31(REG2) == 0x8000))  { u = 0x7fffffff; movh = 1; }
+    else                                                        { u = tmp; movh = 0;        }
+
+    tmp = SF(B_48_63(REG1), B_48_63(REG2));
+    if((B_48_63(REG1) == 0x8000) && (B_48_63(REG2) == 0x8000))  { v = 0x7fffffff; movl = 1; }
+    else                                                        { v = tmp; movl = 0;        }
+
+    REG0 = (U64(u) << 32) | U64(v);
+    ACC  = REG0;
+    UPDATE_SPEFSCR_OV(movh, movl);
+}
+
+X(evmhossfaaw)
+{
+    uint32_t tmp, u, v;
+    uint64_t tmp64;
+    bool movh, movl, ovh, ovl;
+
+    tmp   = SF(B_16_31(REG1), B_16_31(REG2));
+    if((B_16_31(REG1) == 0x8000) && (B_16_31(REG2) == 0x8000))  { tmp = 0x7fffffff; movh = 1; }
+    else                                                        { movh = 0;                   }
+    tmp64 = EXTS_W2D(B_0_31(ACC)) + EXTS_W2D(tmp);
+    ovh   = B_N(tmp64, 31) ^ B_N(tmp64, 32);
+    u     = SATURATE(ovh, B_N(tmp64, 31), 0x80000000, 0x7fffffff, B_32_63(tmp64));
+
+    tmp   = SF(B_48_63(REG1), B_48_63(REG2));
+    if((B_48_63(REG1) == 0x8000) && (B_48_63(REG2) == 0x8000))  { tmp = 0x7fffffff; movl = 1; }
+    else                                                        { movl = 0;                   }
+    tmp64 = EXTS_W2D(B_32_63(ACC)) + EXTS_W2D(tmp);
+    ovl   = B_N(tmp64, 31) ^ B_N(tmp64, 32);
+    v     = SATURATE(ovl, B_N(tmp64, 31), 0x80000000, 0x7fffffff, B_32_63(tmp64));
+
+    REG0  = (U64(u) << 32) | U64(v);
+    ACC   = REG0;
+
+    UPDATE_SPEFSCR_OV(ovh | movh, ovl | movl);
+}
+
+X(evmhossfanw)
+{
+    uint32_t tmp, u, v;
+    uint64_t tmp64;
+    bool movh, movl, ovh, ovl;
+
+    tmp   = SF(B_16_31(REG1), B_16_31(REG2));
+    if((B_16_31(REG1) == 0x8000) && (B_16_31(REG2) == 0x8000))  { tmp = 0x7fffffff; movh = 1; }
+    else                                                        { movh = 0;                   }
+    tmp64 = EXTS_W2D(B_0_31(ACC)) - EXTS_W2D(tmp);
+    ovh   = B_N(tmp64, 31) ^ B_N(tmp64, 32);
+    u     = SATURATE(ovh, B_N(tmp64, 31), 0x80000000, 0x7fffffff, B_32_63(tmp64));
+
+    tmp   = SF(B_48_63(REG1), B_48_63(REG2));
+    if((B_48_63(REG1) == 0x8000) && (B_48_63(REG2) == 0x8000))  { tmp = 0x7fffffff; movl = 1; }
+    else                                                        { movl = 0;                   }
+    tmp64 = EXTS_W2D(B_32_63(ACC)) - EXTS_W2D(tmp);
+    ovl   = B_N(tmp64, 31) ^ B_N(tmp64, 32);
+    v     = SATURATE(ovl, B_N(tmp64, 31), 0x80000000, 0x7fffffff, B_32_63(tmp64));
+
+    REG0  = (U64(u) << 32) | U64(v);
+    ACC   = REG0;
+
+    UPDATE_SPEFSCR_OV(ovh | movh, ovl | movl);
+}
+
+X(evmhossiaaw)
+{
+    uint32_t tmp, u, v;
+    uint64_t tmp64;
+    bool ovh, ovl;
+
+    tmp   = X86_MULW_L(B_16_31(REG1), B_16_31(REG2));
+    tmp64 = EXTS_W2D(B_0_31(ACC)) + EXTS_W2D(tmp);
+    ovh   = B_N(tmp64, 31) ^ B_N(tmp64, 32);
+    u     = SATURATE(ovh, B_N(tmp64, 31), 0x80000000, 0x7fffffff, B_32_63(tmp64));
+
+    tmp   = X86_MULW_L(B_48_63(REG1), B_48_63(REG2));
+    tmp64 = EXTS_W2D(B_32_63(ACC)) + EXTS_W2D(tmp);
+    ovl   = B_N(tmp64, 31) ^ B_N(tmp64, 32);
+    v     = SATURATE(ovl, B_N(tmp64, 31), 0x80000000, 0x7fffffff, B_32_63(tmp64));
+
+    REG0  = (U64(u) << 32) | U64(v);
+    ACC   = REG0;
+
+    UPDATE_SPEFSCR_OV(ovh, ovl);
+}
+
+X(evmhossianw)
+{
+    uint32_t tmp, u, v;
+    uint64_t tmp64;
+    bool ovh, ovl;
+
+    tmp   = X86_MULW_L(B_16_31(REG1), B_16_31(REG2));
+    tmp64 = EXTS_W2D(B_0_31(ACC)) - EXTS_W2D(tmp);
+    ovh   = B_N(tmp64, 31) ^ B_N(tmp64, 32);
+    u     = SATURATE(ovh, B_N(tmp64, 31), 0x80000000, 0x7fffffff, B_32_63(tmp64));
+
+    tmp   = X86_MULW_L(B_48_63(REG1), B_48_63(REG2));
+    tmp64 = EXTS_W2D(B_32_63(ACC)) - EXTS_W2D(tmp);
+    ovl   = B_N(tmp64, 31) ^ B_N(tmp64, 32);
+    v     = SATURATE(ovl, B_N(tmp64, 31), 0x80000000, 0x7fffffff, B_32_63(tmp64));
+
+    REG0  = (U64(u) << 32) | U64(v);
+    ACC   = REG0;
+
+    UPDATE_SPEFSCR_OV(ovh, ovl);
+}
+
+X(evmhoumi)
+{
+    uint32_t u, v;
+    u    = X86_MULUW_L(B_16_31(REG1), B_16_31(REG2));
+    v    = X86_MULUW_L(B_48_63(REG1), B_48_63(REG2));
+    REG0 = (U64(u) << 32) | U64(v);
+}
+
+X(evmhoumia)
+{
+    uint32_t u, v;
+    u    = X86_MULUW_L(B_16_31(REG1), B_16_31(REG2));
+    v    = X86_MULUW_L(B_48_63(REG1), B_48_63(REG2));
+    REG0 = (U64(u) << 32) | U64(v);
+    ACC  = REG0;
+}
+
+X(evmhoumiaaw)
+{
+    uint32_t tmp, u, v;
+
+    tmp  = X86_MULUW_L(B_16_31(REG1), B_16_31(REG2));
+    u    = B_0_31(ACC) + tmp;
+
+    tmp  = X86_MULUW_L(B_48_63(REG1), B_48_63(REG2));
+    v    = B_32_63(ACC) + tmp;
+
+    REG0 = (U64(u) << 32) | U64(v);
+    ACC  = REG0;
+}
+
+X(evmhoumianw)
+{
+    uint32_t tmp, u, v;
+
+    tmp  = X86_MULUW_L(B_16_31(REG1), B_16_31(REG2));
+    u    = B_0_31(ACC) - tmp;
+
+    tmp  = X86_MULUW_L(B_48_63(REG1), B_48_63(REG2));
+    v    = B_32_63(ACC) - tmp;
+
+    REG0 = (U64(u) << 32) | U64(v);
+    ACC  = REG0;
+}
+
+X(evmhousiaaw)
+{
+    uint32_t tmp, u, v;
+    uint64_t tmp64;
+    bool ovh, ovl;
+
+    tmp   = X86_MULUW_L(B_16_31(REG1), B_16_31(REG2));
+    tmp64 = EXTZ_W2D(B_0_31(ACC)) + EXTZ_W2D(tmp);
+    ovh   = B_N(tmp64, 31);
+    u     = SATURATE(ovh, 0, 0xfffffff, 0xffffffff, B_32_63(tmp64));
+
+    tmp   = X86_MULUW_L(B_48_63(REG1), B_48_63(REG2));
+    tmp64 = EXTZ_W2D(B_32_63(ACC)) + EXTZ_W2D(tmp);
+    ovl   = B_N(tmp64, 31);
+    v     = SATURATE(ovl, 0, 0xffffffff, 0xffffffff, B_32_63(tmp64));
+
+    REG0  = (U64(u) << 32) | U64(v);
+    ACC   = REG0;
+
+    UPDATE_SPEFSCR_OV(ovh, ovl);
+}
+
+X(evmhousianw)
+{
+    uint32_t tmp, u, v;
+    uint64_t tmp64;
+    bool ovh, ovl;
+
+    tmp   = X86_MULUW_L(B_16_31(REG1), B_16_31(REG2));
+    tmp64 = EXTZ_W2D(B_0_31(ACC)) - EXTZ_W2D(tmp);
+    ovh   = B_N(tmp64, 31);
+    u     = SATURATE(ovh, 0, 0x0000000, 0x00000000, B_32_63(tmp64));
+
+    tmp   = X86_MULUW_L(B_48_63(REG1), B_48_63(REG2));
+    tmp64 = EXTZ_W2D(B_32_63(ACC)) - EXTZ_W2D(tmp);
+    ovl   = B_N(tmp64, 31);
+    v     = SATURATE(ovl, 0, 0x00000000, 0x00000000, B_32_63(tmp64));
+
+    REG0  = (U64(u) << 32) | U64(v);
+    ACC   = REG0;
+
+    UPDATE_SPEFSCR_OV(ovh, ovl);
+}
+
+X(evmra)
+{
+    ACC  = REG1;
+    REG0 = REG1;
+}
+
+X(evmwhsmf)
+{
+    uint32_t u, v;
+
+    u = B_0_31(SF(B_0_31(REG1), B_0_31(REG2)));
+    v = B_0_31(SF(B_32_63(REG1), B_32_63(REG2)));
+
+    REG0 = (U64(u) << 32) | U64(v);
+}
+
+X(evmwhsmfa)
+{
+    uint32_t u, v;
+
+    u = B_0_31(SF(B_0_31(REG1), B_0_31(REG2)));
+    v = B_0_31(SF(B_32_63(REG1), B_32_63(REG2)));
+
+    REG0 = (U64(u) << 32) | U64(v);
+    ACC  = REG0;
+}
+
+X(evmwhssf)
+{
+    uint64_t tmp64;
+    uint32_t u, v;
+    bool movh, movl;
+
+    tmp64 = SF(B_0_31(REG1), B_0_31(REG2));
+    if((B_0_31(REG1) == 0x80000000) && (B_0_31(REG2) == 0x80000000))  { u = 0x7fffffff; movh = 1;    }
+    else                                                              { u = B_0_31(tmp64); movh = 0; }
+
+    tmp64 = SF(B_32_63(REG1), B_32_63(REG2));
+    if((B_32_63(REG1) == 0x80000000) && (B_32_63(REG2) == 0x80000000)) { v = 0x7fffffff; movl = 1;    }
+    else                                                               { v = B_0_31(tmp64); movl = 0; }
+
+    REG0 = (U64(u) << 32) | U64(v);
+    UPDATE_SPEFSCR_OV(movh, movl);
+}
+
+X(evmwhssfa)
+{
+    uint64_t tmp64;
+    uint32_t u, v;
+    bool movh, movl;
+
+    tmp64 = SF(B_0_31(REG1), B_0_31(REG2));
+    if((B_0_31(REG1) == 0x80000000) && (B_0_31(REG2) == 0x80000000))  { u = 0x7fffffff; movh = 1;    }
+    else                                                              { u = B_0_31(tmp64); movh = 0; }
+
+    tmp64 = SF(B_32_63(REG1), B_32_63(REG2));
+    if((B_32_63(REG1) == 0x80000000) && (B_32_63(REG2) == 0x80000000)) { v = 0x7fffffff; movl = 1;    }
+    else                                                               { v = B_0_31(tmp64); movl = 0; }
+
+    REG0 = (U64(u) << 32) | U64(v);
+    ACC = REG0;
+    UPDATE_SPEFSCR_OV(movh, movl);
+}
+
+X(evmwhumi)
+{
+    uint32_t u, v;
+    u    = X86_MULUW_H(B_0_31(REG1), B_0_31(REG2));      // get high word
+    v    = X86_MULUW_H(B_32_63(REG1), B_32_63(REG2));    // get high word
+    REG0 = (U64(u) << 32) | U64(v);
+}
+
+X(evmwhumia)
+{
+    uint32_t u, v;
+    u    = X86_MULUW_H(B_0_31(REG1), B_0_31(REG2));      // get high word
+    v    = X86_MULUW_H(B_32_63(REG1), B_32_63(REG2));    // get high word
+    REG0 = (U64(u) << 32) | U64(v);
+    ACC  = REG0;
+}
+
+X(evmwlsmiaaw)
+{
+    uint32_t u, v;
+    u    = B_0_31(ACC)  + X86_MULW_L(B_0_31(REG1), B_0_31(REG2));
+    v    = B_32_63(ACC) + X86_MULW_L(B_32_63(REG1), B_32_63(REG2));
+    REG0 = (U64(u) << 32) | U64(v);
+    ACC  = REG0;
+}
+
+X(evmwlsmianw)
+{
+    uint32_t u, v;
+    u    = B_0_31(ACC)  - X86_MULW_L(B_0_31(REG1), B_0_31(REG2));
+    v    = B_32_63(ACC) - X86_MULW_L(B_32_63(REG1), B_32_63(REG2));
+    REG0 = (U64(u) << 32) | U64(v);
+    ACC  = REG0;
+}
+
+X(evmwlssiaaw)
+{
+    uint64_t tmp64;
+    uint32_t u, v;
+    bool ovh, ovl;
+
+    tmp64 = X86_MULWF(B_0_31(REG1), B_0_31(REG2));
+    tmp64 = EXTS_W2D(B_0_31(ACC)) + EXTS_W2D(B_32_63(tmp64));
+    ovh   = B_N(tmp64, 31) ^ B_N(tmp64, 32);
+    u     = SATURATE(ovh, B_N(tmp64, 31), 0x80000000, 0x7fffffff, B_32_63(tmp64));
+
+    tmp64 = X86_MULWF(B_32_63(REG1), B_32_63(REG2));
+    tmp64 = EXTS_W2D(B_32_63(ACC)) + EXTS_W2D(B_32_63(tmp64));
+    ovl   = B_N(tmp64, 31) ^ B_N(tmp64, 32);
+    v     = SATURATE(ovl, B_N(tmp64, 31), 0x8000000, 0x7fffffff, B_32_63(tmp64));
+
+    REG0  = PACK_2W(u, v);
+    ACC   = REG0;
+
+    UPDATE_SPEFSCR_OV(ovh, ovl);
+}
+
+X(evmwlssianw)
+{
+    uint64_t tmp64;
+    uint32_t u, v;
+    bool ovh, ovl;
+
+    tmp64 = X86_MULWF(B_0_31(REG1), B_0_31(REG2));
+    tmp64 = EXTS_W2D(B_0_31(ACC)) - EXTS_W2D(B_32_63(tmp64));
+    ovh   = B_N(tmp64, 31) ^ B_N(tmp64, 32);
+    u     = SATURATE(ovh, B_N(tmp64, 31), 0x80000000, 0x7fffffff, B_32_63(tmp64));
+
+    tmp64 = X86_MULWF(B_32_63(REG1), B_32_63(REG2));
+    tmp64 = EXTS_W2D(B_32_63(ACC)) - EXTS_W2D(B_32_63(tmp64));
+    ovl   = B_N(tmp64, 31) ^ B_N(tmp64, 32);
+    v     = SATURATE(ovl, B_N(tmp64, 31), 0x8000000, 0x7fffffff, B_32_63(tmp64));
+
+    REG0  = PACK_2W(u, v);
+    ACC   = REG0;
+
+    UPDATE_SPEFSCR_OV(ovh, ovl);
+}
+
+X(evmwlumi)
+{
+    uint32_t u, v;
+    u    = X86_MULUW_L(B_0_31(REG1), B_0_31(REG2));
+    v    = X86_MULUW_L(B_32_63(REG1), B_32_63(REG2));
+    REG0 = PACK_2W(u, v);
+}
+
+X(evmwlumia)
+{
+    uint32_t u, v;
+    u    = X86_MULUW_L(B_0_31(REG1), B_0_31(REG2));
+    v    = X86_MULUW_L(B_32_63(REG1), B_32_63(REG2));
+    REG0 = PACK_2W(u, v);
+    ACC  = REG0;
+}
+
+X(evmwlumiaaw)
+{
+    uint32_t u, v;
+    u    = B_0_31(ACC)  + X86_MULW_L(B_0_31(REG1), B_0_31(REG2));
+    v    = B_32_63(ACC) + X86_MULW_L(B_32_63(REG1), B_32_63(REG2));
+    REG0 = PACK_2W(u, v);
+    ACC  = REG0;
+}
+
+X(evmwlumianw)
+{
+    uint32_t u, v;
+    u    = B_0_31(ACC)  - X86_MULW_L(B_0_31(REG1), B_0_31(REG2));
+    v    = B_32_63(ACC) - X86_MULW_L(B_32_63(REG1), B_32_63(REG2));
+    REG0 = PACK_2W(u, v);
+    ACC  = REG0;
+}
+
+X(evmwlusiaaw)
+{
+    uint64_t tmp64;
+    uint32_t u, v;
+    bool ovh, ovl;
+
+    tmp64 = X86_MULUWF(B_0_31(REG1), B_0_31(REG2));
+    tmp64 = EXTZ_W2D(B_0_31(ACC)) + EXTZ_W2D(B_32_63(tmp64));
+    ovh   = B_N(tmp64, 31);
+    u     = SATURATE(ovh, 0, 0xffffffff, 0xffffffff, B_32_63(tmp64));
+
+    tmp64 = X86_MULUWF(B_32_63(REG1), B_32_63(REG2));
+    tmp64 = EXTZ_W2D(B_32_63(ACC)) + EXTZ_W2D(B_32_63(tmp64));
+    ovl   = B_N(tmp64, 31);
+    v     = SATURATE(ovl, 0, 0xffffffff, 0xffffffff, B_32_63(tmp64));
+
+    REG0  = PACK_2W(u, v);
+    ACC   = REG0;
+
+    UPDATE_SPEFSCR_OV(ovh, ovl);
+}
+
+X(evmwlusianw)
+{
+    uint64_t tmp64;
+    uint32_t u, v;
+    bool ovh, ovl;
+
+    tmp64 = X86_MULUWF(B_0_31(REG1), B_0_31(REG2));
+    tmp64 = EXTZ_W2D(B_0_31(ACC)) - EXTZ_W2D(B_32_63(tmp64));
+    ovh   = B_N(tmp64, 31);
+    u     = SATURATE(ovh, 0, 0x00000000, 0x00000000, B_32_63(tmp64));
+
+    tmp64 = X86_MULUWF(B_32_63(REG1), B_32_63(REG2));
+    tmp64 = EXTZ_W2D(B_32_63(ACC)) - EXTZ_W2D(B_32_63(tmp64));
+    ovl   = B_N(tmp64, 31);
+    v     = SATURATE(ovl, 0, 0x00000000, 0x00000000, B_32_63(tmp64));
+
+    REG0  = PACK_2W(u, v);
+    ACC   = REG0;
+
+    UPDATE_SPEFSCR_OV(ovh, ovl);
+}
+
+X(evmwsmf)
+{
+    REG0 = SF(B_32_63(REG1), B_32_63(REG2));
+}
+
+X(evmwsmfa)
+{
+    REG0 = SF(B_32_63(REG1), B_32_63(REG2));
+    ACC  = REG0;
+}
+
+X(evmwsmfaa)
+{
+    uint64_t tmp64;
+    tmp64 = SF(B_32_63(REG1), B_32_63(REG2));
+    REG0  = ACC + tmp64;
+    ACC   = REG0;
+}
+
+X(evmwsmfan)
+{
+    uint64_t tmp64;
+    tmp64 = SF(B_32_63(REG1), B_32_63(REG2));
+    REG0  = ACC - tmp64;
+    ACC   = REG0;
+}
+
+X(evmwsmi)
+{
+    REG0 = X86_MULWF(B_32_63(REG1), B_32_63(REG2));
+}
+
+X(evmwsmia)
+{
+    REG0 = X86_MULWF(B_32_63(REG1), B_32_63(REG2));
+    ACC  = REG0;
+}
+
+X(evmwsmiaa)
+{
+    REG0 = ACC + X86_MULWF(B_32_63(REG1), B_32_63(REG2));
+    ACC  = REG0;
+}
+
+X(evmwsmian)
+{
+    REG0 = ACC - X86_MULWF(B_32_63(REG1), B_32_63(REG2));
+    ACC  = REG0;
+}
 
 
 // ----------------- SPE FP ---------------------------------------------------------------------------

@@ -99,6 +99,7 @@ int main(int argc, char** argv){
     std::string ofilename_tmp;
     std::string ofilename;
     std::string gcc_cmdline;
+    int         nops = 0;              // no of opcodes compiled
 
     namespace po = boost::program_options;
     po::options_description desc("Allowed options.");
@@ -256,6 +257,8 @@ int main(int argc, char** argv){
             ostr << "    pcpu->m_ppc_func_hash[" << std::hex << std::showbase
                  << get_opcode_hash(opcode_org) << "] = " << opcode_n << "::" << opcode_fun << ";" << std::endl;
             ostr << std::endl;
+
+            nops++;
         }else{
             // Add comments and blank lines
             ostr << *curr_ptr;
@@ -266,6 +269,9 @@ int main(int argc, char** argv){
     // Close output file handle and free the buffer
     ostr.close();
     delete[] buff;
+
+    // to bypass Makefile
+    std::cerr << "Compiled " << nops << " opcodes." << std::endl;
 
     return 0;
 }
