@@ -111,6 +111,10 @@
 #define get_xer_ca               CPU->get_xer_ca
 #define HOST_FLAGS               CPU->host_flags
 
+// Host flags
+#define GET_CF_H()               CPU->host_flags.cf       // x86 carry flag
+#define GET_OF_H()               CPU->host_flags.of       // x86 overflow flag
+
 // Generic macros
 #define UPDATE_CA()               update_xer_ca_host()
 #define UPDATE_SO_OV()            update_xer_host()
@@ -200,6 +204,15 @@
 #define EXTS_H2D(val)              sign_exts<int64_t, int16_t>(val)             // sign extension : half-word to double-word
 #define EXTS_W2D(val)              sign_exts<int64_t, int32_t>(val)             // sign extension : word to double-word
 
+// special case
+#define EXTS_5B_2_32B(val)         (((val) & 0x10) ? ((val) | 0xffffffe0):(val))           // sign extension : 5 bits -> 32 bits
+#define EXTS_5B_2_64B(val)         (((val) & 0x10) ? ((val) | 0xffffffffffffffe0):(val))   // sign extension : 5 bits -> 64 bits
+
+#define EXTS_BF2D                  sign_exts_f<uint64_t, 1>
+#define EXTS_BF2W                  sign_exts_f<uint32_t, 1>
+#define EXTZ_BF2D                  sign_exts_f<uint64_t, 0>
+#define EXTZ_BF2W                  sign_exts_f<uint32_t, 0>
+
 // zero extension
 #define EXTZ_B2N(val)              sign_exts<UMODE, uint8_t >(val)
 #define EXTZ_H2N(val)              sign_exts<UMODE, uint16_t>(val)
@@ -214,8 +227,8 @@
 #define EXTZ_W2D(val)              sign_exts<uint64_t, uint32_t>(val)
 
 // rotation macros
-#define ROTL64(x, y)               ((uint64_t)(((x) << (y)) | ((x) >> (64 - (y)))))                           // x=64bit, y=64bit
-#define ROTL32(x, y)               ROTL64((((x) & 0xffffffff) | (((x) & 0xffffffff) << 32)), (y))             // x=32bit, y=64bit
+#define ROTL64(x, y)               rotl<uint64_t>(x, y)             // x=64bit, y=int
+#define ROTL32(x, y)               rotl<uint32_t>(x, y)             // x=32bit, y=int
 
 // mask
 #define BITMASK(x)                 gen_bmask<uint64_t>(x)             // 64 bit bitmask for bitpos x
@@ -231,6 +244,12 @@
 #define B_32_47(x)                 ((x >> 16)   & 0xffff    )            // get bits 32:47
 #define B_0_15(x)                  ((x >> 48)   & 0xffff    )            // get bits 0:15
 #define B_N(x, n)                  (((x) >> (63 - (n))) & 0x1)           // get bit n
+
+// special cases
+#define B_26_31(x)                 (((x) >> 32) & 0x3f)
+#define B_27_31(x)                 (((x) >> 32) & 0x1f)
+#define B_58_63(x)                 ((x) & 0x3f)
+#define B_59_63(x)                 ((x) & 0x1f)
 
 // Byte reversing macros
 #define SWAPB32(data)              ((((data >> 24) & 0xff) <<  0) ||  \
@@ -258,6 +277,9 @@
 #define X86_MULUW_H(arg1, arg2)                      MULUW(arg1,  arg2, HOST_FLAGS, 1)
 #define X86_MULWF(arg1,   arg2)                      MULWF(arg1,  arg2, HOST_FLAGS)
 #define X86_MULUWF(arg1,  arg2)                      MULUWF(arg1, arg2, HOST_FLAGS)
+
+#define X86_ADD64(arg1,   arg2)                      ADD64(arg1,  arg2, HOST_FLAGS)           // 64bit ADD
+#define X86_SUB64(arg1,   arg2)                      SUB64(arg1,  arg2, HOST_FLAGS)           // 64bit SUB
 
 // START
 // ------------------------------------- INTEGER ARITHMETIC -------------------------
@@ -2116,8 +2138,8 @@ typedef struct BITREV {
 } BITREV;
 
 // Pack/unpack macros
-// Pack 2 words into a double word (u & v should be 32 bit)
-#define PACK_2W(u, v)                                            ((U64(u) << 32) | U64(v))
+// Pack 2 words into a double word (u & v should be 32 bit) : u = higher word, v = lower word
+#define PACK_2W(u, v)                                            ((U64((u)) << 32) | U64((v)))
 
 // SPE macros
 #define SATURATE(ov, carry, sat_ovn, sat_ov, val)                ((ov) ? ((carry) ? (sat_ovn) : (sat_ov)) : val)
@@ -3664,6 +3686,390 @@ X(evmwsmian)
 {
     REG0 = ACC - X86_MULWF(B_32_63(REG1), B_32_63(REG2));
     ACC  = REG0;
+}
+
+X(evmwssf)
+{
+    uint64_t tmp64;
+    bool mov;
+
+    tmp64 = SF(B_32_63(REG1), B_32_63(REG2));
+    if((B_32_63(REG1) == 0x80000000) && (B_32_63(REG2) == 0x80000000)) { REG0 = 0x7fffffffffffffffULL; mov = 1; }
+    else                                                               { REG0 = tmp64; mov = 0;                 }
+
+    UPDATE_SPEFSCR_OV(0, mov);
+}
+
+X(evmwssfa)
+{
+    uint64_t tmp64;
+    bool mov;
+
+    tmp64 = SF(B_32_63(REG1), B_32_63(REG2));
+    if((B_32_63(REG1) == 0x80000000) && (B_32_63(REG2) == 0x80000000)) { REG0 = 0x7fffffffffffffffULL; mov = 1; }
+    else                                                               { REG0 = tmp64; mov = 0;                 }
+    ACC = REG0;
+
+    UPDATE_SPEFSCR_OV(0, mov);
+}
+
+X(evmwssfaa)
+{
+    uint64_t tmp64;
+    bool mov, ov;
+
+    tmp64 = SF(B_32_63(REG1), B_32_63(REG2));
+    if((B_32_63(REG1) == 0x80000000) && (B_32_63(REG2) == 0x80000000)) { tmp64 = 0x7fffffffffffffffULL; mov = 1; }
+    else                                                               { mov = 0;                                }
+    REG0 = X86_ADD64(ACC, tmp64);
+    ov   = GET_CF_H() ^ B_N(REG0, 0);
+    ACC  = REG0;
+
+    UPDATE_SPEFSCR_OV(0, ov | mov);
+}
+
+X(evmwssfan)
+{
+    uint64_t tmp64;
+    bool mov, ov;
+
+    tmp64 = SF(B_32_63(REG1), B_32_63(REG2));
+    if((B_32_63(REG1) == 0x80000000) && (B_32_63(REG2) == 0x80000000)) { tmp64 = 0x7fffffffffffffffULL; mov = 1; }
+    else                                                               { mov = 0;                                }
+    REG0 = X86_SUB64(ACC, tmp64);
+    ov   = GET_CF_H() ^ B_N(REG0, 0);
+    ACC  = REG0;
+
+    UPDATE_SPEFSCR_OV(0, ov | mov);
+}
+
+X(evmwumi)
+{
+    REG0 = X86_MULUWF(B_32_63(REG1), B_32_63(REG2));
+}
+
+X(evmwumia)
+{
+    REG0 = X86_MULUWF(B_32_63(REG1), B_32_63(REG2));
+    ACC  = REG0;
+}
+
+X(evmwumiaa)
+{
+    REG0 = ACC + X86_MULUWF(B_32_63(REG1), B_32_63(REG2));
+    ACC  = REG0;
+}
+
+X(evmwumian)
+{
+    REG0 = ACC - X86_MULUWF(B_32_63(REG1), B_32_63(REG2));
+    ACC  = REG0;
+}
+
+X(evnand)
+{
+    REG0 = ~(REG1 & REG2);
+}
+
+X(evneg)
+{
+    REG0 = PACK_2W(X86_NEGW(B_0_31(REG1)), X86_NEGW(B_32_63(REG1)));
+}
+
+X(evnor)
+{
+    REG0 = ~(REG1 | REG2);
+}
+
+X(evor)
+{
+    REG0 = REG1 | REG2;
+}
+
+X(evorc)
+{
+    REG0 = REG1 | ~REG2;
+}
+
+X(evrlw)
+{
+    int nh, nl;
+    uint32_t u, v;
+
+    nh   = B_27_31(REG2);
+    nl   = B_59_63(REG2);
+    u    = ROTL32(B_0_31(REG1), nh);
+    v    = ROTL32(B_32_63(REG1), nl);
+    REG0 = PACK_2W(u, v);
+}
+
+X(evrlwi)
+{
+    uint32_t u, v;
+    int n = ARG2;
+    u     = ROTL32(B_0_31(REG1), n);
+    v     = ROTL32(B_32_63(REG1), n);
+    REG0  = PACK_2W(u, v);
+}
+
+X(evrndw)
+{
+    uint32_t u, v;
+    u    = (B_0_31(REG1)  + 0x8000) & 0xffff0000;
+    v    = (B_32_63(REG1) + 0x8000) & 0xffff0000;
+    REG0 = PACK_2W(u, v);
+}
+
+X(evsel)
+{
+    bool ch = 0;
+    bool cl = 0;
+    uint32_t u, v;
+
+    ch = get_crf(4*ARG3);
+    cl = get_crf(4*ARG3 + 1);
+
+    if(ch) { u = B_0_31(REG1);  }
+    else   { u = B_0_31(REG2);  }
+    if(cl) { v = B_32_63(REG1); }
+    else   { v = B_32_63(REG2); }
+
+    REG0 = PACK_2W(u, v);
+}
+
+
+X(evslw)
+{
+    int nh, nl;
+
+    nh   = B_26_31(REG2);
+    nl   = B_58_63(REG2);
+    REG0 = PACK_2W(SL(B_0_31(REG1), nh), SL(B_32_63(REG1), nl));
+}
+
+X(evslwi)
+{
+    int n = ARG2;
+    REG0  = PACK_2W(SL(B_0_31(REG1), n), SL(B_32_63(REG2), n));
+}
+
+X(evsplatfi)
+{
+    uint32_t u;
+    u    = ((ARG1 & 0x1f) << 27);
+    REG0 = PACK_2W(u, u);
+}
+
+X(evsplati)
+{
+    uint32_t u = EXTS_5B_2_32B(ARG1);
+    REG0       = PACK_2W(u, u);
+}
+
+X(evsrwis)
+{
+    int n = ARG2;
+    uint32_t u, v;
+
+    u     = U32(EXTS_BF2D(REG0, 0, 31-n));
+    v     = U32(EXTS_BF2D(REG0, 32, 63-n));
+    REG0  = PACK_2W(u, v);
+}
+
+X(evsrwiu)
+{
+    int n = ARG2;
+    uint32_t u, v;
+
+    u    = U32(EXTZ_BF2D(REG0, 0, 31-n));
+    v    = U32(EXTZ_BF2D(REG0, 32, 63-n));
+    REG0 = PACK_2W(u, v);
+}
+
+X(evsrws)
+{
+    int nh, nl;
+    uint32_t u, v;
+
+    nh   = B_26_31(REG2);
+    nl   = B_58_63(REG2);
+    u    = U32(EXTS_BF2D((REG1), 0, 31-nh));
+    v    = U32(EXTS_BF2D((REG1), 32, 63-nl));
+    REG0 = PACK_2W(u, v);
+}
+
+X(evsrwu)
+{
+    int nh, nl;
+    uint32_t u, v;
+
+    nh   = B_26_31(REG2);
+    nl   = B_58_63(REG2);
+    u    = U32(EXTZ_BF2D((REG1), 0, 31-nh));
+    v    = U32(EXTZ_BF2D((REG1), 32, 63-nl));
+    REG0 = PACK_2W(u, v);
+}
+
+X(evstdd)
+{
+    UMODE b = 0, ea;
+
+    if(ARG2){ b = REG2; }
+    ea   = b + ARG1;
+    REG0 = LOAD64(ea);
+}
+
+X(evstddx)
+{
+    UMODE b = 0, ea;
+
+    if(ARG1){ b = REG1; }
+    ea   = b + REG2;
+    REG0 = LOAD64(ea);
+}
+
+X(evstdh)
+{
+    UMODE b = 0, ea;
+    uint16_t u, v, w, x;
+
+    if(ARG2){ b = REG2; }
+    ea   = b + ARG1;
+    u    = LOAD16(ea);
+    v    = LOAD16(ea+2);
+    w    = LOAD16(ea+4);
+    x    = LOAD16(ea+6);
+    REG0 = (U64(u) << 48) | (U64(v) << 32) | (U64(w) << 16) | U64(x);
+}
+
+X(evstdhx)
+{
+    UMODE b = 0, ea;
+    uint16_t u, v, w, x;
+
+    if(ARG1){ b = REG1; }
+    ea   = b + REG2;
+    u    = LOAD16(ea);
+    v    = LOAD16(ea+2);
+    w    = LOAD16(ea+4);
+    x    = LOAD16(ea+6);
+    REG0 = (U64(u) << 48) | (U64(v) << 32) | (U64(w) << 16) | U64(x);
+}
+
+X(evstdw)
+{
+    UMODE b = 0, ea;
+    uint32_t u, v;
+
+    if(ARG2){ b = REG2; }
+    ea   = b + ARG1;
+    u    = LOAD32(ea);
+    v    = LOAD32(ea+4);
+    REG0 = PACK_2W(u, v);
+}
+
+X(evstdwx)
+{
+    UMODE b = 0, ea;
+    uint32_t u, v;
+
+    if(ARG1){ b = REG1; }
+    ea   = b + REG2;
+    u    = LOAD32(ea);
+    v    = LOAD32(ea+4);
+    REG0 = PACK_2W(u, v);
+}
+
+X(evstwhe)
+{
+    UMODE b = 0, ea;
+    uint16_t u, v;
+
+    if(ARG2){ b = REG2; }
+    ea   = b + ARG1;
+    u    = LOAD16(ea);
+    v    = LOAD16(ea+2);
+    REG0 = (U64(u) << 48) | (U64(v) << 16);
+}
+
+X(evstwhex)
+{
+    UMODE b = 0, ea;
+    uint16_t u, v;
+
+    if(ARG1){ b = REG1; }
+    ea   = b + REG2;
+    u    = LOAD16(ea);
+    v    = LOAD16(ea+2);
+    REG0 = (U64(u) << 48) | (U64(v) << 16);
+}
+
+X(evstwho)
+{
+    UMODE b = 0, ea;
+    uint16_t u, v;
+
+    if(ARG2){ b = REG2; }
+    ea   = b + ARG1;
+    u    = LOAD16(ea);
+    v    = LOAD16(ea+2);
+    REG0 = (U64(u) << 32) | U64(v);
+}
+
+X(evstwhox)
+{
+    UMODE b = 0, ea;
+    uint16_t u, v;
+
+    if(ARG1){ b = REG1; }
+    ea   = b + REG2;
+    u    = LOAD16(ea);
+    v    = LOAD16(ea+2);
+    REG0 = (U64(u) << 32) | U64(v);
+}
+
+X(evstwwe)
+{
+    UMODE b = 0, ea;
+    uint32_t u;
+
+    if(ARG2){ b = REG2; }
+    ea   = b + ARG1;
+    u    = LOAD32(ea);
+    REG0 = (U64(u) << 32);
+}
+
+X(evstwwex)
+{
+    UMODE b = 0, ea;
+    uint32_t u;
+
+    if(ARG1){ b = REG1; }
+    ea   = b + REG2;
+    u    = LOAD32(ea);
+    REG0 = (U64(u) << 32);
+}
+
+X(evstwwo)
+{
+    UMODE b = 0, ea;
+    uint32_t u;
+
+    if(ARG2){ b = REG2; }
+    ea   = b + ARG1;
+    u    = LOAD32(ea);
+    REG0 = U64(u);
+}
+
+X(evstwwox)
+{
+    UMODE b = 0, ea;
+    uint32_t u;
+
+    if(ARG1){ b = REG1; }
+    ea   = b + REG2;
+    u    = LOAD32(ea);
+    REG0 = U64(u);
 }
 
 

@@ -261,6 +261,31 @@ inline T gen_bmask_rng(int x, int y){
 template<typename T_tgt, typename T_src>
 inline T_tgt sign_exts(T_src x){ return static_cast<T_tgt>(x); }
 
+// sign extension of a subfield of passed number with MSB=x, LSB=y to a T type
+// sgn = 1 for sign extension
+// sgn = 0 for zero extension
+template<typename T, bool sgn=1>
+inline T sign_exts_f(T n, int x, int y){
+    T mask     = gen_bmask_rng<T>(x, y);
+    bool sgn_b = extr_bit<T>(n, x);
+    int rshft  = rshift<T>(mask);
+    T mask_s   = ~((1ULL << (y - x + 1)) - 1);
+    T val      = ((n & mask) >> rshft);
+    val        = (sgn_b & sgn) ? (val | mask_s):val;
+    return val;
+}
+
+// rotate left
+// NOTE : In Power ISA , rotl64 is defined as rotation of 64 bit "n" by x bits
+//        & rotl32 is defined as rotation of (n | n) where "n" is a 32 bit no
+//        by x bits ( | is concatenation operator). In my opinion, below generic
+//        function works exactly the same.
+template<typename T>
+inline T rotl(T n, int x){
+    n = (n << x) | (n >> (sizeof(T)*8 - x));
+    return n;
+}
+
 
 // bit field extraction / insertion macros (64 bit std)
 #define  EBF(src, mask)                  extr_bf<uint64_t>(src, mask)        // extract Bit field
@@ -391,5 +416,7 @@ def_x86_div_op(x86_idiv, idiv)
 #define ORW               x86_or<uint32_t>
 #define XORW              x86_xor<uint32_t>
 
+#define ADD64             x86_add<int64_t>   // 64 bit ADD
+#define SUB64             x86_sub<int64_t>   // 64 bit SUB
 
 #endif
