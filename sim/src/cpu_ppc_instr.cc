@@ -179,16 +179,17 @@
 //     UMODE -> uint64_t
 //     SMODE -> int64_t
 // endif    
-#define UT(arg)   ((UMODE)(arg))
-#define ST(arg)   ((SMODE)(arg))
-#define U64(arg)  (static_cast<uint64_t>(arg))
-#define S64(arg)  (static_cast<int64_t>(arg))
-#define U32(arg)  (static_cast<uint32_t>(arg))
-#define S32(arg)  (static_cast<int32_t>(arg))
-#define U16(arg)  (static_cast<uint16_t>(arg))
-#define S16(arg)  (static_cast<int16_t>(arg))
-#define U8(arg)   (static_cast<uint8_t>(arg))
-#define S8(arg)   (static_cast<int8_t>(arg))
+#define UT(arg)   static_cast<UMODE>((arg))
+#define ST(arg)   static_cast<SMODE>((arg))
+#define U64(arg)  static_cast<uint64_t>((arg))
+#define S64(arg)  static_cast<int64_t>((arg))
+#define U32(arg)  static_cast<uint32_t>((arg))
+#define S32(arg)  static_cast<int32_t>((arg))
+#define U16(arg)  static_cast<uint16_t>((arg))
+#define S16(arg)  static_cast<int16_t>((arg))
+#define U8(arg)   static_cast<uint8_t>((arg))
+#define S8(arg)   static_cast<int8_t>((arg))
+#define BOOL(arg) static_cast<bool>((arg))
 
 // for sign extension ( extending sign bits from source type to destination type )
 // sign_exts<> function comes from utils.h
@@ -235,15 +236,16 @@
 #define MASK(x, y)                 gen_bmask_rng<uint64_t>(x, y)      // Generate mask of 1's from x to y
 
 // 32_63 (x should be 64 bits)
-#define B_32_63(x)                 ((x) & 0xffffffff)                    // get bits 32:63
-#define B_48_63(x)                 ((x) & 0xffff    )                    // get bits 48:63
-#define B_56_63(x)                 ((x) & 0xff      )                    // get bits 56:63
-#define B_0_31(x)                  (((x) >> 32) & 0xffffffff)            // get bits 0:31
-#define B_16_31(x)                 (((x) >> 32) & 0xffff    )            // get bits 16:31
-#define B_24_31(x)                 (((x) >> 32) & 0xff      )            // get bits 24:31
-#define B_32_47(x)                 ((x >> 16)   & 0xffff    )            // get bits 32:47
-#define B_0_15(x)                  ((x >> 48)   & 0xffff    )            // get bits 0:15
-#define B_N(x, n)                  (((x) >> (63 - (n))) & 0x1)           // get bit n
+// extracted bits would be casted to appropriate data type
+#define B_32_63(x)                 U32((x) & 0xffffffff)                    // get bits 32:63
+#define B_48_63(x)                 U16((x) & 0xffff)                        // get bits 48:63
+#define B_56_63(x)                 U8((x) & 0xff)                           // get bits 56:63
+#define B_0_31(x)                  U32(((x) >> 32) & 0xffffffff)            // get bits 0:31
+#define B_16_31(x)                 U16(((x) >> 32) & 0xffff)                // get bits 16:31
+#define B_24_31(x)                 U8(((x) >> 32) & 0xff)                   // get bits 24:31
+#define B_32_47(x)                 U16((x >> 16)   & 0xffff)                // get bits 32:47
+#define B_0_15(x)                  U16((x >> 48)   & 0xffff)                // get bits 0:15
+#define B_N(x, n)                  BOOL(((x) >> (63 - (n))) & 0x1)          // get bit n
 
 // special cases
 #define B_26_31(x)                 (((x) >> 32) & 0x3f)
@@ -2196,18 +2198,27 @@ X(brinc)
 
 X(evabs)
 {
-    REG0 = (ABS_32(B_0_31(REG1)) << 32) | ABS_32(B_32_63(REG1));
+    uint32_t u, v;
+    u    = ABS_32(B_0_31(REG1));
+    v    = ABS_32(B_32_63(REG1));
+    REG0 = PACK_2W(u, v);
 }
 
 X(evaddiw)
 {
+    uint32_t u, v;
+    u    = B_32_63(B_0_31(REG1) + (ARG2 & 0xfffff));
+    v    = B_32_63(B_32_63(REG1) +(ARG2 & 0xfffff));
     // ARG2 is zero extended and added to each of lower & upper halves of REG1
-    REG0 = (B_32_63(B_0_31(REG1) + (ARG2 & 0xfffff)) << 32) | B_32_63(B_32_63(REG1) +(ARG2 & 0xfffff));
+    REG0 = PACK_2W(u, v);
 }
 
 X(evaddsmiaaw)
 {
-    REG0 = (B_32_63(B_0_31(ACC) + B_0_31(REG1)) << 32) | B_32_63(B_32_63(ACC) + B_32_63(REG1));
+    uint32_t u, v;
+    u    = B_32_63(B_0_31(ACC) + B_0_31(REG1));
+    v    = B_32_63(B_32_63(ACC) + B_32_63(REG1));
+    REG0 = PACK_2W(u, v);
     ACC  = REG0;
 }
 
@@ -2259,23 +2270,29 @@ X(evaddusiaaw)
 
 X(evaddumiaaw)
 {
-    REG0  = (B_32_63(B_0_31(ACC) + B_0_31(REG1)) << 32) | B_32_63(B_32_63(ACC) + B_32_63(REG1));
+    uint32_t u, v;
+    u     = B_32_63(B_0_31(ACC) + B_0_31(REG1));
+    v     = B_32_63(B_32_63(ACC) + B_32_63(REG1));
+    REG0  = PACK_2W(u, v);
     ACC   = REG0;
 }
 
 X(evaddw)
 {
-    REG0  = (B_32_63(B_0_31(REG1) + B_0_31(REG2)) << 32) | B_32_63(B_32_63(REG1) + B_32_63(REG2));
+    uint32_t u, v;
+    u     = B_32_63(B_0_31(REG1) + B_0_31(REG2));
+    v     = B_32_63(B_32_63(REG1) + B_32_63(REG2));
+    REG0  = PACK_2W(u, v);
 }
 
 X(evand)
 {
-    REG0  = (B_32_63(B_0_31(REG1) & B_0_31(REG2)) << 32) | B_32_63(B_32_63(REG1) & B_32_63(REG2));
+    REG0  = REG1 & REG2;
 }
 
 X(evandc)
 {
-    REG0  = (B_32_63(B_0_31(REG1) & ~B_0_31(REG2)) << 32) | B_32_63(B_32_63(REG1) & ~B_32_63(REG2));
+    REG0  = REG1 & ~REG2;
 }
 
 X(evcmpeq)
@@ -2427,12 +2444,18 @@ X(eveqv)
 
 X(evextsb)
 {
-    REG0 = (B_32_63(EXTS_B2D(B_24_31(REG1))) << 32) | B_32_63(EXTS_B2D(B_56_63(REG1)));
+    uint32_t u, v;
+    u    = B_32_63(EXTS_B2D(B_24_31(REG1)));
+    v    = B_32_63(EXTS_B2D(B_56_63(REG1)));
+    REG0 = PACK_2W(u, v);
 }
 
 X(evextsh)
 {
-    REG0 = (B_32_63(EXTS_H2D(B_16_31(REG1))) << 32) | B_32_63(EXTS_H2D(B_48_63(REG1)));
+    uint32_t u, v;
+    u    = B_32_63(EXTS_H2D(B_16_31(REG1)));
+    v    = B_32_63(EXTS_H2D(B_48_63(REG1)));
+    REG0 = PACK_2W(u, v);
 }
 
 X(evldd)
@@ -2522,23 +2545,25 @@ X(evlhhesplatx)
 X(evlhhossplat)
 {
     UMODE b = 0, ea;
+    uint32_t u;
 
     if(ARG2){ b = REG2; }
     ea = b + ARG1;
 
-    uint16_t v = LOAD16(ea);
-    REG0 = (B_32_63(EXTS_H2D(v)) << 32) | B_32_63(EXTS_H2D(v));
+    u    = B_32_63(EXTS_H2W(LOAD16(ea)));
+    REG0 = PACK_2W(u, u);
 }
 
 X(evlhhossplatx)
 {
     UMODE b = 0, ea;
+    uint32_t u;
 
     if(ARG1){ b = REG1;  }
     ea = b + REG2;
 
-    uint16_t v = LOAD16(ea);
-    REG0 = (B_32_63(EXTS_H2D(v)) << 32) | B_32_63(EXTS_H2D(v));
+    u    = B_32_63(EXTS_H2W(LOAD16(ea)));
+    REG0 = PACK_2W(u, u);
 }
 
 X(evlhhousplat)
@@ -2586,41 +2611,53 @@ X(evlwhex)
 X(evlwhos)
 {
     UMODE b = 0, ea;
+    uint32_t u, v;
 
     if(ARG2){ b = REG2; }
     ea = b + ARG1;
-
-    REG0 = (B_32_63(EXTS_H2D(LOAD16(ea))) << 32) | B_32_63(EXTS_H2D(LOAD16(ea+2)));
+    
+    u    = B_32_63(EXTS_H2D(LOAD16(ea)));
+    v    = B_32_63(EXTS_H2D(LOAD16(ea+2)));
+    REG0 = PACK_2W(u, v);
 }
 
 X(evlwhosx)
 {
     UMODE b = 0, ea;
+    uint32_t u, v;
 
     if(ARG1){ b = REG1; }
     ea = b + REG2;
 
-    REG0 = (B_32_63(EXTS_H2D(LOAD16(ea))) << 32) | B_32_63(EXTS_H2D(LOAD16(ea+2)));
+    u    = B_32_63(EXTS_H2D(LOAD16(ea)));
+    v    = B_32_63(EXTS_H2D(LOAD16(ea+2)));
+    REG0 = PACK_2W(u, v);
 }
 
 X(evlwhou)
 {
     UMODE b = 0, ea;
+    uint32_t u, v;
 
     if(ARG2){ b = REG2; }
     ea = b + ARG1;
 
-    REG0 = (B_32_63(U64(LOAD16(ea))) << 32) | B_32_63(U64(LOAD16(ea+2)));
+    u    = B_32_63(U64(LOAD16(ea)));
+    v    = B_32_63(U64(LOAD16(ea+2)));
+    REG0 = PACK_2W(u, v);
 }
 
 X(evlwhoux)
 {
     UMODE b = 0, ea;
+    uint32_t u, v;
 
     if(ARG1){ b = REG1; }
     ea = b + REG2;
 
-    REG0 = (B_32_63(U64(LOAD16(ea))) << 32) | B_32_63(U64(LOAD16(ea+2)));
+    u    = B_32_63(U64(LOAD16(ea)));
+    v    = B_32_63(U64(LOAD16(ea+2)));
+    REG0 = PACK_2W(u, v);
 }
 
 X(evlwhsplat)
@@ -2675,22 +2712,34 @@ X(evlwwsplatx)
 
 X(evmergehi)
 {
-    REG0 = (B_0_31(REG1) << 32) | B_0_31(REG2);
+    uint32_t u, v;
+    u    = B_0_31(REG1);
+    v    = B_0_31(REG2);
+    REG0 = PACK_2W(u, v);
 }
 
 X(evmergelo)
 {
-    REG0 = (B_32_63(REG1) << 32) | B_32_63(REG2);
+    uint32_t u, v;
+    u    = B_32_63(REG1);
+    v    = B_32_63(REG2);
+    REG0 = PACK_2W(u, v);
 }
 
 X(evmergehilo)
 {
-    REG0 = (B_0_31(REG1) << 32) | B_32_63(REG2);
+    uint32_t u, v;
+    u    = B_0_31(REG1);
+    v    = B_32_63(REG2);
+    REG0 = PACK_2W(u, v);
 }
 
 X(evmergelohi)
 {
-    REG0 = (B_32_63(REG1) << 32) | B_0_31(REG2);
+    uint32_t u, v;
+    u    = B_32_63(REG1);
+    v    = B_0_31(REG2);
+    REG0 = PACK_2W(u, v);
 }
 
 X(evmhegsmfaa)
@@ -2739,12 +2788,18 @@ X(evmhegumian)
 
 X(evmhesmf)
 {
-    REG0 = (B_32_63(SF(B_0_15(REG1), B_0_15(REG2))) << 32) | B_32_63(SF(B_32_47(REG1), B_32_47(REG2)));
+    uint32_t u, v;
+    u    = B_32_63(SF(B_0_15(REG1), B_0_15(REG2)));
+    v    = B_32_63(SF(B_32_47(REG1), B_32_47(REG2)));
+    REG0 = PACK_2W(u, v);
 }
 
 X(evmhesmfa)
 {
-    REG0 = (B_32_63(SF(B_0_15(REG1), B_0_15(REG2))) << 32) | B_32_63(SF(B_32_47(REG1), B_32_47(REG2)));
+    uint32_t u, v;
+    u    = B_32_63(SF(B_0_15(REG1), B_0_15(REG2)));
+    v    = B_32_63(SF(B_32_47(REG1), B_32_47(REG2)));
+    REG0 = PACK_2W(u, v);
     ACC  = REG0;
 }
 
