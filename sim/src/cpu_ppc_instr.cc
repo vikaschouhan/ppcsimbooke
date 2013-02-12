@@ -4127,6 +4127,88 @@ X(evstwwox)
     REG0 = U64(u);
 }
 
+X(evsubfsmiaaw)
+{
+    uint32_t u, v;
+    u    = B_0_31(ACC)  - B_0_31(REG1);
+    v    = B_32_63(ACC) - B_32_63(REG1);
+    REG0 = PACK_2W(u, v);
+    ACC  = REG0;
+}
+
+X(evsubfssiaaw)
+{
+    uint32_t u, v;
+    uint64_t tmp64;
+    bool ovh, ovl;
+
+    tmp64 = EXTS_W2D(B_0_31(ACC)) - EXTS_W2D(B_0_31(REG1));
+    ovh   = B_N(tmp64, 31) ^ B_N(tmp64, 32);
+    u     = SATURATE(ovh, B_N(tmp64, 31), 0x80000000, 0x7fffffff, B_32_63(tmp64));
+
+    tmp64 = EXTS_W2D(B_32_63(ACC)) - EXTS_W2D(B_32_63(REG1));
+    ovl   = B_N(tmp64, 31) ^ B_N(tmp64, 32);
+    v     = SATURATE(ovl, B_N(tmp64, 31), 0x80000000, 0x7fffffff, B_32_63(tmp64));
+
+    REG0  = PACK_2W(u, v);
+    ACC   = REG0;
+
+    UPDATE_SPEFSCR_OV(ovh, ovl);
+}
+
+// NOTE: don't know what's the actual difference between evsubfsmiaaw & evsubfumiaaw
+//       Techically signed subtraction & unsigned subtraction return the same final
+//       value according to rules of 2's complement arithmetic. The diff lies only in
+//       interpretation of final result.
+X(evsubfumiaaw)
+{
+    uint32_t u, v;
+    u    = B_0_31(ACC)  - B_0_31(REG1);
+    v    = B_32_63(ACC) - B_32_63(REG1);
+    REG0 = PACK_2W(u, v);
+    ACC  = REG0;
+}
+
+X(evsubfw)
+{
+    uint32_t u, v;
+    u    = B_0_31(REG2)  - B_0_31(REG1);
+    v    = B_32_63(REG2) - B_32_63(REG1);
+    REG0 = PACK_2W(u, v);
+}
+
+X(evsubfusiaaw)
+{
+    uint32_t u, v;
+    uint64_t tmp64;
+    bool ovh, ovl;
+
+    tmp64 = EXTZ_W2D(B_0_31(ACC)) - EXTZ_W2D(B_0_31(REG1));
+    ovh   = B_N(tmp64, 31);
+    u     = SATURATE(ovh, ovh, 0x00000000, 0x00000000, B_32_63(tmp64));
+
+    tmp64 = EXTZ_W2D(B_32_63(ACC)) - EXTZ_W2D(B_32_63(REG1));
+    ovl   = B_N(tmp64, 31);
+    v     = SATURATE(ovl, ovl, 0x00000000, 0x00000000, B_32_63(tmp64));
+
+    REG0  = PACK_2W(u, v);
+    ACC   = REG0;
+
+    UPDATE_SPEFSCR_OV(ovh, ovl);
+}
+
+X(evsubifw)
+{
+    uint32_t u, v;
+    u    = B_0_31(REG2)  - (ARG1 & 0x1f);
+    v    = B_32_63(REG2) - (ARG1 & 0x1f);
+    REG0 = PACK_2W(u, v);
+}
+
+X(evxor)
+{
+    REG0 = REG1 ^ REG2;
+}
 
 // ----------------- SPE FP ---------------------------------------------------------------------------
 
@@ -4142,10 +4224,4 @@ X(efdneg)
 {
     REG0 = (REG1 & 0x7fffffffffffffffULL) | ((REG1 ^ 0x8000000000000000ULL) & 0x8000000000000000ULL);
 }
-
-X(evxor)
-{
-    REG0 = REG1 ^ REG2;
-}
-
 
