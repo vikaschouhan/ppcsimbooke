@@ -5,14 +5,13 @@
 //  This file contains logging facilities for ppcsim.
 //
 //  Copyright 2012.
-//  Author : Vikas Chouhan ( presentisgood@gmail.com )
+//  Author : Vikas Chouhan (presentisgood@gmail.com)
 //
 //  This file is part of ppc-sim.
 //
 //  This library is free software; you can redistribute it and/or modify
-//  it under the terms of the GNU General Public License as published by
-//  the Free Software Foundation; either version 3, or (at your option)
-//  any later version.
+//  it under the terms of the GNU General Public License Version 2 as
+//  published by the Free Software Foundation.
 //
 //  It is distributed in the hope that it will be useful, but WITHOUT
 //  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY

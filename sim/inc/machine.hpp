@@ -1,3 +1,24 @@
+// machine.hpp (top level machine wrapper)
+// 
+// Author : Vikas Chouhan (presentisgood@gmail.com)
+// Copyright 2012.
+// 
+// This file is part of ppc-sim library.
+// 
+// This library is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License Version 2 as
+// published by the Free Software Foundation.
+// 
+// It is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
+// License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this file; see the file COPYING.  If not, write to the
+// Free Software Foundation, 51 Franklin Street - Fifth Floor, Boston,
+// MA 02110-1301, USA.
+
 #ifndef _MACHINE_HPP
 #define _MACHINE_HPP
 

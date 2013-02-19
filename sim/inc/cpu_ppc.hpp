@@ -1,3 +1,25 @@
+// cpu_ppc.hpp (core powerPC cpu module)
+// This file contains cpu class & corresponding member functions.
+// 
+// Author : Vikas Chouhan (presentisgood@gmail.com)
+// Copyright 2012.
+// 
+// This file is part of ppc-sim library.
+// 
+// This library is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License Version 2 as
+// published by the Free Software Foundation.
+// 
+// It is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
+// License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this file; see the file COPYING.  If not, write to the
+// Free Software Foundation, 51 Franklin Street - Fifth Floor, Boston,
+// MA 02110-1301, USA.
+
 #ifndef    _CPU_PPC_HPP_
 #define    _CPU_PPC_HPP_
 
@@ -148,7 +170,6 @@ class CPU_PPC {
 #define CPU_MODE_HALTED             (0x3)
 #define CPU_MODE_STOPPED            (0x4)
     int                                    m_cpu_bits;            // 32 or 64
-    struct timeval                         m_cpu_start_time;
     bool                                   m_cpu_running;         // If CPU is in run mode
 
     // cache attributes
@@ -182,6 +203,7 @@ class CPU_PPC {
     static size_t                          sm_ncpus;              // Total cpus
     size_t                                 m_ninstrs;             // Number of instrs (total)
     size_t                                 m_ninstrs_last;        // Number of instrs in last run
+    size_t                                 m_ncycles;             // number of cycles
     instr_call                             m_instr_this;          // Current instr
     instr_call                             m_instr_next;          // next instr
 
@@ -1154,6 +1176,7 @@ CPU_T inline void CPU_PPC_T::init_common(){
     m_instr_cache.set_size(4096);          // LRU cache size = 4096 instrs
     m_ctxt_switch = 0;                     // Initialize flag to zero
     m_cpu_mode = CPU_MODE_HALTED;
+    m_ncycles = 0;
 
     // Init logging facilities
     std::ostringstream ostr;

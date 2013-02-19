@@ -1,19 +1,19 @@
-ppc_sim_booke
+ppc_sim_booke (codename : Rhea)
 ---------------------------------------------
 The purpose of this project is to explore an experimental instruction set simulator for booke powerpc architectures in C++.
 The reference core is freescale e500v2.
 
 Features :-
-    1. ISS is being designed in C++ as a shared library with a python frontend ( developed using boost::python ).
+    1. ISS is being designed in C++ as a shared library with a python frontend (developed using boost::python).
     3. The simulator can only be compiled with GCC, since it uses x86/x86_64 inline assembly at some places 
        to map some of the ppc instructions directly to x86 instructions.
-    4. It's not portable across platforms ( for the same reason mentioned above ) and would only work on an x86[_64] host.
+    4. It's not portable across platforms (for the same reason mentioned above) and would only work on an x86[_64] host.
     5. To facilitate loading of elf files directly into memory, the memory interface now supports an elf-loader.
 
 Dependencies :-
-    1. boost C++ library     ( www.boost.org )
-    2. ipython/python.       ( www.python.org )
-    3. elfio C++ library     ( http://sourceforge.net/projects/elfio )       
+    1. boost C++ library     (www.boost.org)
+    2. ipython/python.       (www.python.org)
+    3. elfio C++ library     (http://sourceforge.net/projects/elfio)
 
 Simulator sanity tests are there in sim/tests/sim directory, which exercise various functionalities for different simulator modules.
 DUT(design under test) tests are there in sim/tests/dut.
@@ -25,16 +25,16 @@ How to Compile :-
     To compile the simulator model, issue "make ppcsim".
 
 Running dut tests :-
-    After doing "make" in sim/build, we get the simulator module ( with name ppcsim.so ), some dut tests ( elf files ) and a python script called
+    After doing "make" in sim/build, we get the simulator module (with name ppcsim.so), some dut tests (elf files) and a python script called
     run_and_check.py. It loads the elf file into simulator's memory, runs it and checks back the result.
     Eg.
-        To run palindrome test 0 ( test_palindrome_0.elf ), just run "./run_and_check.py --file test_palindrome_0.elf"
+        To run palindrome test 0 (test_palindrome_0.elf), just run "./run_and_check.py --file test_palindrome_0.elf"
  
 NOTE: 
     1. There is no dependency checking during build process, since it's a simple makefile based build process.
     2. The cross compiler for building dut tests should have newlib C library compiled in.
-       Preferable choice is CodeSourcery C++ suite ( http://www.mentor.com/embedded-software/sourcery-tools/sourcery-codebench/editions/lite-edition )
+       Preferable choice is CodeSourcery C++ suite (http://www.mentor.com/embedded-software/sourcery-tools/sourcery-codebench/editions/lite-edition)
 
 NOTICE:    
     This work is distributed under the terms of GNU GPL v2. Detailed license agreements are there in COPYING file.
-    Copyright : Vikas Chouhan ( presentisgood@gmail.com ) 2012. 
+    Copyright : Vikas Chouhan (presentisgood@gmail.com) 2012. 

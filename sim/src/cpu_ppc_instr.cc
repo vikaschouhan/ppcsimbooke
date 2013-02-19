@@ -124,6 +124,8 @@
 #define GET_SO()                  get_xer_so()
 #define UPDATE_CR0_V              update_cr0
 
+#define UPDATE_CYCLES(n)         CPU->m_ncycles += n
+
 // load/store macros
 //
 #define LOAD8(addr)              CPU->read8(addr)
