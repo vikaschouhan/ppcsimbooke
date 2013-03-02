@@ -670,16 +670,8 @@ MEM_T void MEM_PPC_T::write8(uint64_t addr, uint8_t value, int endianness){
 MEM_T uint16_t MEM_PPC_T::read16(uint64_t addr, int endianness){
     LOG("DEBUG4") << MSG_FUNC_START;
     uint8_t *hostptr = paddr_to_hostaddr(addr);
-    uint16_t value = 0;
-    if(endianness == EMUL_BIG_ENDIAN){
-        value = (static_cast<uint16_t>(hostptr[0]) << 8) |
-                (static_cast<uint16_t>(hostptr[1]) << 0) ;
-    }else{
-        value = (static_cast<uint16_t>(hostptr[1]) << 8) |
-                (static_cast<uint16_t>(hostptr[0]) << 0) ;
-    }
     LOG("DEBUG4") << MSG_FUNC_END;
-    return value;
+    return read_buff<uint16_t>(hostptr, endianness);
 }
 
 /* @func : write16
@@ -690,13 +682,7 @@ MEM_T uint16_t MEM_PPC_T::read16(uint64_t addr, int endianness){
 MEM_T void MEM_PPC_T::write16(uint64_t addr, uint16_t value, int endianness){
     LOG("DEBUG4") << MSG_FUNC_START;
     uint8_t *hostptr = paddr_to_hostaddr(addr);
-    if(endianness == EMUL_BIG_ENDIAN){
-        hostptr[0] = (value >> 8);
-        hostptr[1] = (value >> 0);
-    }else{
-        hostptr[1] = (value >> 8);
-        hostptr[0] = (value >> 0);
-    }
+    write_buff<uint16_t>(hostptr, value, endianness);
     LOG("DEBUG4") << MSG_FUNC_END;
 }
 
@@ -709,20 +695,8 @@ MEM_T void MEM_PPC_T::write16(uint64_t addr, uint16_t value, int endianness){
 MEM_T uint32_t MEM_PPC_T::read32(uint64_t addr, int endianness){
     LOG("DEBUG4") << MSG_FUNC_START;
     uint8_t *hostptr = paddr_to_hostaddr(addr);
-    uint32_t value = 0;
-    if(endianness == EMUL_BIG_ENDIAN){
-        value = (static_cast<uint32_t>(hostptr[0]) << 24) |
-                (static_cast<uint32_t>(hostptr[1]) << 16) |
-                (static_cast<uint32_t>(hostptr[2]) <<  8) |
-                (static_cast<uint32_t>(hostptr[3]) <<  0) ;
-    }else{
-        value = (static_cast<uint32_t>(hostptr[3]) << 24) |
-                (static_cast<uint32_t>(hostptr[2]) << 16) |
-                (static_cast<uint32_t>(hostptr[1]) <<  8) |
-                (static_cast<uint32_t>(hostptr[0]) <<  0) ;
-    }
     LOG("DEBUG4") << MSG_FUNC_END;
-    return value;
+    return read_buff<uint32_t>(hostptr, endianness);
 }
 
 /* @func : write32
@@ -733,17 +707,7 @@ MEM_T uint32_t MEM_PPC_T::read32(uint64_t addr, int endianness){
 MEM_T void MEM_PPC_T::write32(uint64_t addr, uint32_t value, int endianness){
     LOG("DEBUG4") << MSG_FUNC_START;
     uint8_t *hostptr = paddr_to_hostaddr(addr);
-    if(endianness == EMUL_BIG_ENDIAN){
-        hostptr[0] = (value >> 24);
-        hostptr[1] = (value >> 16);
-        hostptr[2] = (value >>  8);
-        hostptr[3] = (value >>  0);
-    }else{
-        hostptr[3] = (value >> 24);
-        hostptr[2] = (value >> 16);
-        hostptr[1] = (value >>  8);
-        hostptr[0] = (value >>  0);
-    }
+    write_buff<uint32_t>(hostptr, value, endianness);
     LOG("DEBUG4") << MSG_FUNC_END;
 }
 
@@ -754,28 +718,8 @@ MEM_T void MEM_PPC_T::write32(uint64_t addr, uint32_t value, int endianness){
 MEM_T uint64_t MEM_PPC_T::read64(uint64_t addr, int endianness){
     LOG("DEBUG4") << MSG_FUNC_START;
     uint8_t *hostptr = paddr_to_hostaddr(addr);
-    uint64_t value = 0;
-    if(endianness == EMUL_BIG_ENDIAN){
-        value = (static_cast<uint64_t>(hostptr[0]) << 56) |
-                (static_cast<uint64_t>(hostptr[1]) << 48) |
-                (static_cast<uint64_t>(hostptr[2]) << 40) |
-                (static_cast<uint64_t>(hostptr[3]) << 32) |
-                (static_cast<uint64_t>(hostptr[4]) << 24) |
-                (static_cast<uint64_t>(hostptr[5]) << 16) |
-                (static_cast<uint64_t>(hostptr[6]) <<  8) |
-                (static_cast<uint64_t>(hostptr[7]) <<  0) ;
-    }else{
-        value = (static_cast<uint64_t>(hostptr[7]) << 56) |
-                (static_cast<uint64_t>(hostptr[6]) << 48) |
-                (static_cast<uint64_t>(hostptr[5]) << 40) |
-                (static_cast<uint64_t>(hostptr[4]) << 32) |
-                (static_cast<uint64_t>(hostptr[3]) << 24) |
-                (static_cast<uint64_t>(hostptr[2]) << 16) |
-                (static_cast<uint64_t>(hostptr[1]) <<  8) |
-                (static_cast<uint64_t>(hostptr[0]) <<  0) ;
-    }
     LOG("DEBUG4") << MSG_FUNC_END;
-    return value;
+    return read_buff<uint64_t>(hostptr, endianness);
 }
 
 /*
@@ -785,25 +729,7 @@ MEM_T uint64_t MEM_PPC_T::read64(uint64_t addr, int endianness){
 MEM_T void MEM_PPC_T::write64(uint64_t addr, uint64_t value, int endianness){
     LOG("DEBUG4") << MSG_FUNC_START;
     uint8_t *hostptr = paddr_to_hostaddr(addr);
-    if(endianness == EMUL_BIG_ENDIAN){
-        hostptr[0] = (value >> 56);
-        hostptr[1] = (value >> 48);
-        hostptr[2] = (value >> 40);
-        hostptr[3] = (value >> 32);
-        hostptr[4] = (value >> 24);
-        hostptr[5] = (value >> 16);
-        hostptr[6] = (value >>  8);
-        hostptr[7] = (value >>  0);
-    }else{
-        hostptr[7] = (value >> 56);
-        hostptr[6] = (value >> 48);
-        hostptr[5] = (value >> 40);
-        hostptr[4] = (value >> 32);
-        hostptr[3] = (value >> 24);
-        hostptr[2] = (value >> 16);
-        hostptr[1] = (value >>  8);
-        hostptr[0] = (value >>  0);
-    }
+    write_buff<uint64_t>(hostptr, value, endianness);
     LOG("DEBUG4") << MSG_FUNC_END;
 }
 

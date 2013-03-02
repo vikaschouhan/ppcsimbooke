@@ -1,6 +1,7 @@
 #ifndef _MISC_HPP
 #define _MISC_HPP
 
+#include "config.h"
 #include "cpu_ppc_regs.h"            // PPC register table
 #include "utils.h"
 
@@ -87,6 +88,11 @@ struct instr_call {
         return arg[ARG_NUM];
     }
 };
+
+std::ostream& operator<<(std::ostream& ostr,  instr_call &i){
+    ostr << i.get_instr_str() << " ";
+    return ostr;
+}
 
 //------------------ register file definitions --------------------------------------------
 //

@@ -10,6 +10,7 @@
 #include <vector>
 #include <list>
 #include <map>
+#include <unordered_map>
 #include <bitset>
 #include <string>
 #include <cstdint>
@@ -40,6 +41,11 @@
 #include "utils.h"
 
 #include "misc.hpp"
+
+// check for little endianness & x86
+#if !(defined __ORDER_LITTLE_ENDIAN__ && (defined __x86_64__ || defined __x86__))
+#error "PPCSIMBOOKE only compiles on Little Endian x86/x86_64 machines."
+#endif
 
 // Define misc macros.
 // For debug couts, printfs etc..

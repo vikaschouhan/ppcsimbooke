@@ -1,14 +1,14 @@
 /*
-  utils.h ( utility functions/macros )
+  utils.h (utility functions/macros)
   This file contains utility functions/macros which are very general
   in nature and can be used anywhere.
 
   NOTE: All functions are inline functions
 
-  Author : Vikas Chouhan ( presentisgood@gmail.com )
+  Author : Vikas Chouhan (presentisgood@gmail.com)
   Copyright 2012.
 
-  This file is part of ppc-sim library bundled with test_gen_ppc.
+  This file is part of ppc-sim-booke simulator library.
 
   This library is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -296,13 +296,82 @@ inline T rotl(T n, int x){
 #define CAT3(x,y,z)         x##y##z
 #define CAT(x,y)            CAT2(x,y)
 
-// ----------------------------------------- x86 fncs ----------------------------------------
+//---- would only work on little endian x86 machines
+#if defined __ORDER_LITTLE_ENDIAN__
+template<typename T>
+inline T read_buff(uint8_t *buff, int endianness){
+    T n = *(reinterpret_cast<T *>(buff));
+    if(endianness == EMUL_BIG_ENDIAN)  asm("bswap %[n]" : [n] "+q" (n)::);
+    return n;
+}
+template<typename T>
+inline void write_buff(uint8_t *buff, T value, int endianness){
+    if(endianness == EMUL_BIG_ENDIAN)
+        asm("bswap %[value]" : [value] "+q" (value)::);
+    *(reinterpret_cast<T *>(buff)) = value;
+}
+#ifndef __x86_64__
+template<>
+inline uint64_t read_buff<uint64_t>(uint8_t *buff, int endianness){
+    if(endianness == EMUL_BIG_ENDIAN)
+        return  (static_cast<uint64_t>(buff[0]) << 56) |
+                (static_cast<uint64_t>(buff[1]) << 48) |
+                (static_cast<uint64_t>(buff[2]) << 40) |
+                (static_cast<uint64_t>(buff[3]) << 32) |
+                (static_cast<uint64_t>(buff[4]) << 24) |
+                (static_cast<uint64_t>(buff[5]) << 16) |
+                (static_cast<uint64_t>(buff[6]) <<  8) |
+                (static_cast<uint64_t>(buff[7]) <<  0) ;
+    else
+        return *(reinterpret_cast<uint64_t *>(buff));
+}
+template<>
+inline void write_buff<uint64_t>(uint8_t *buff, uint64_t value, int endianness){
+    if(endianness == EMUL_BUG_ENDIAN){
+        buff[0] = (value >> 56);
+        buff[1] = (value >> 48);
+        buff[2] = (value >> 40);
+        buff[3] = (value >> 32);
+        buff[4] = (value >> 24);
+        buff[5] = (value >> 16);
+        buff[6] = (value >>  8);
+        buff[7] = (value >>  0);
+    }else{
+        *(reinterpret_cast<uint64_t *>(buff)) = value;
+    }
+}
+#endif
+template<>
+inline uint16_t read_buff<uint16_t>(uint8_t *buff, int endianness){
+    if(endianness == EMUL_BIG_ENDIAN)
+        return (static_cast<uint16_t>(buff[0]) << 8) |
+               (static_cast<uint16_t>(buff[1]) << 0) ;
+    else
+        return *(reinterpret_cast<uint16_t *>(buff));
+}
+template<>
+void write_buff<uint16_t>(uint8_t* buff, uint16_t value, int endianness){
+    if(endianness == EMUL_BIG_ENDIAN){
+        buff[0] = (value >> 8);
+        buff[1] = (value >> 0);
+    }else{
+        *(reinterpret_cast<uint16_t *>(buff)) = value;
+    }
+}
+#else
+#error "Machine should be Little Endian x86/x86_64"
+#endif
+
+
+// ----------------------------------------- x86 fncs returning flags----------------------------------------
 // x86 functions
 struct x86_flags {
     bool cf;   // carry flag
     bool zf;   // zero flag
     bool sf;   // sign
     bool of;   // overflow
+
+    x86_flags() : cf(false), zf(false), sf(false), of(false) {}
 };
 std::ostream& operator<<(std::ostream& ostr, x86_flags f){
     ostr << ": cf=" << f.cf << ", zf=" << f.zf << ", sf=" << f.sf << ", of=" << f.of << " ";
