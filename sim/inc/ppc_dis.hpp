@@ -107,6 +107,11 @@ class DIS_PPC{
     // if valid
     instr_call disasm(std::string instr, uint64_t pc = 0);
 
+    // static functions
+    static int get_num_opcodes(){
+        return powerpc_num_opcodes;
+    }
+
 };
 
 // Static members

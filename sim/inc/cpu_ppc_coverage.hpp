@@ -46,6 +46,8 @@ class CPU_PPC_COVERAGE {
     void        generate_log();                        // Generate logs
     void        add_ext_info(std::string info);        // Add extra information to log ( headers for eg. )
 
+    static int  get_num_opcodes(){ return sm_instr_list.size(); }
+
     CPU_PPC_COVERAGE();
     CPU_PPC_COVERAGE(const CPU_PPC_COVERAGE& c);
     CPU_PPC_COVERAGE(std::string filename, std::string header="");
@@ -239,7 +241,7 @@ std::vector<std::string> CPU_PPC_COVERAGE::sm_instr_list = {
    
    "or", "or.", "orc", "orc.", "ori", "oris",
    
-   "rfci", "rfi", "rfmci", "rlwimi", "rlwimi.", "rlwinm", "rlwinm.", "rlwnm", "rlwnm."
+   "rfci", "rfi", "rfmci", "rlwimi", "rlwimi.", "rlwinm", "rlwinm.", "rlwnm", "rlwnm.",
    
    "sc", "slw", "slw.", "sraw", "sraw.", "srawi", "srawi.", "srw", "srw.", "stb", "stbu",
    "stbux", "stbx", "sth", "sthbrx", "sthu", "sthux", "sthx", "stmw", "stw", "stwbrx", "stwcx.",
