@@ -40,76 +40,171 @@
 //       2. half-word means 16 bits.
 //       3. word means 32 bits.
 //       4. double/double-word means 64 bits.
-
-// Global defines for this template file
 //
+
+#ifndef __CPU_PPC_INSTR_RTL
+#define __CPU_PPC_INSTR_RTL
+
+// Alias to lambada function parameters ------------------------------------------------------
+// Global defines for this template file
+#define CPU                      pcpu
+#define IC                       ic
+#define UMODE                    uint32_t
+#define SMODE                    int32_t
+
+// Alias to CPU functions ----------------------------------------------------------------------
+#pragma push_macro("PPCREG")
 #undef  PPCREG
-#undef  PPCREGATTR
-#undef  PPCREGN
-#undef  PPCREGNATTR
-
-#undef  SPR
-#undef  XER 
-#undef  MSR
-#undef  PMR 
-#undef  CR 
-#undef  update_cr0
-#undef  update_crF  
-#undef  update_crf  
-#undef  update_xer  
-#undef  get_xer_so  
-#undef  get_crf     
-#undef  get_crF     
-#undef  host_flags  
-#undef  dummy_flags 
-
-//#define Rshift(bmask)            ({int res=0; while(!(bmask & 0x1)){ res++; bmask>>=1; } res;})
-//#ifndef EBMASK
-//#define EBMASK(reg, bmask)       (((reg)  & (bmask)) >> Rshift(bmask))
-//#endif
-
-// Alias to CPU functions
 #define PPCREG(regid)            (CPU->reg(regid)->value.u64v)
+
+#pragma push_macro("PPCREGN")
+#undef  PPCREGN
 #define PPCREGN(reg_name)        (CPU->regn(reg_name)->value.u64v)
 
+// Alias to Registers --------------------------------------------------------------------------
 // MSR bits
-#define MSR_CM                   ((PPCREG(REG_MSR) & MSR_CM) ? 1 : 0)
+#pragma push_macro("MSR_CM")
+#undef  MSR_CM
+#define MSR_CM                   ((PPCREG(REG_MSR) & 0x80000000) ? 1 : 0)
 
+#pragma push_macro("GPR")
+#undef  GPR
 #define GPR(gprno)               PPCREG(REG_GPR0 + gprno)
+
+#pragma push_macro("SPR")
+#undef  SPR
 #define SPR(sprno)               PPCREG(REG_SPR0 + sprno)
+
+#pragma push_macro("XER")
+#undef  XER
 #define XER                      SPR(SPRN_XER) 
+
+#pragma push_macro("MSR")
+#undef  MSR
 #define MSR                      PPCREG(REG_MSR)
+
+#pragma push_macro("ACC")
+#undef  ACC
 #define ACC                      PPCREG(REG_ACC)
+
+#pragma push_macro("SPEFSCR")
+#undef  SPEFSCR
 #define SPEFSCR                  PPCREG(REG_SPEFSCR)
-#define PMR(pmrno)               PPCREG(REG_PMR0 + pmrno) 
+
+#pragma push_macro("PMR")
+#undef  PMR
+#define PMR(pmrno)               PPCREG(REG_PMR0 + pmrno)
+
+#pragma push_macro("CR")
+#undef  CR
 #define CR                       PPCREG(REG_CR)
+
+#pragma push_macro("LR")
+#undef  LR
 #define LR                       PPCREG(REG_LR)
+
+#pragma push_macro("CTR")
+#undef  CTR
 #define CTR                      PPCREG(REG_CTR)
+
+#pragma push_macro("SRR0")
+#undef  SRR0
 #define SRR0                     PPCREG(REG_SRR0)
+
+#pragma push_macro("SRR1")
+#undef  SRR1
 #define SRR1                     PPCREG(REG_SRR1)
+
+#pragma push_macro("CSRR0")
+#undef  CSRR0
 #define CSRR0                    PPCREG(REG_CSRR0)
+
+#pragma push_macro("CSRR1")
+#undef  CSRR1
 #define CSRR1                    PPCREG(REG_CSRR1)
+
+#pragma push_macro("MCSRR0")
+#undef  MCSRR0
 #define MCSRR0                   PPCREG(REG_MCSRR0)
+
+#pragma push_macro("MCSRR1")
+#undef  MCSRR1
 #define MCSRR1                   PPCREG(REG_MCSRR1)
+
+#pragma push_macro("PC")
+#undef  PC
 #define PC                       CPU->m_pc
+
+#pragma push_macro("NIP")
+#undef  NIP
 #define NIP                      CPU->m_nip
+
+// Alias to some cpu functions ----------------------------------------------------------------
+#pragma push_macro("update_cr0")
+#undef  update_cr0
 #define update_cr0               CPU->update_cr0
+
+#pragma push_macro("update_cr0_host")
+#undef  update_cr0_host
 #define update_cr0_host          CPU->update_cr0_host
+
+#pragma push_macro("update_crF")
+#undef  update_crF
 #define update_crF               CPU->update_crF
+
+#pragma push_macro("update_crf")
+#undef  update_crf
 #define update_crf               CPU->update_crf
+
+#pragma push_macro("update_xer")
+#undef  update_xer
 #define update_xer               CPU->update_xer
+
+#pragma push_macro("update_xer_host")
+#undef  update_xer_host
 #define update_xer_host          CPU->update_xer_host
+
+#pragma push_macro("update_xer_so_ov")
+#undef  update_xer_so_ov
 #define update_xer_so_ov         CPU->update_xer_so_ov
+
+#pragma push_macro("update_xer_ca")
+#undef  update_xer_ca
 #define update_xer_ca            CPU->update_xer_ca
+
+#pragma push_macro("update_xer_ca_host")
+#undef  update_xer_ca_host
 #define update_xer_ca_host       CPU->update_xer_ca_host
+
+#pragma push_macro("get_xer_so")
+#undef  get_xer_so
 #define get_xer_so               CPU->get_xer_so
+
+#pragma push_macro("get_crf")
+#undef  get_crf
 #define get_crf                  CPU->get_crf
+
+#pragma push_macro("get_crF")
+#undef  get_crF
 #define get_crF                  CPU->get_crF
+
+#pragma push_macro("get_xerF")
+#undef  get_xerF
 #define get_xerF                 CPU->get_xerF
+
+#pragma push_macro("get_xerf")
+#undef  get_xerf
 #define get_xerf                 CPU->get_xerf
-#define get_xer_so               CPU->get_xer_so
+
+#pragma push_macro("get_xer_ca")
+#undef  get_xer_ca
 #define get_xer_ca               CPU->get_xer_ca
+
+#pragma push_macro("HOST_FLAGS")
+#undef  HOST_FLAGS
 #define HOST_FLAGS               CPU->host_flags
+
+//---------------------------------- ??? -----------------------------------------------------
 
 // Host flags
 #define GET_CF_H()               CPU->host_flags.cf       // x86 carry flag
@@ -284,6 +379,13 @@
 
 #define X86_ADD64(arg1,   arg2)                      ADD64(arg1,  arg2, HOST_FLAGS)           // 64bit ADD
 #define X86_SUB64(arg1,   arg2)                      SUB64(arg1,  arg2, HOST_FLAGS)           // 64bit SUB
+
+#define X(opc_name, func_name)     CPU->m_ppc_func_hash[CPU->m_dis.get_opc_hash(opc_name)] = [](CPU_PPC_T *CPU, instr_call *IC) -> void
+#define RTL_BEGIN                  {
+#define RTL_END                    };
+
+
+typedef void (*lambda_fn_type)(CPU_PPC_T*, instr_call*);
 
 // START
 // ------------------------------------- INTEGER ARITHMETIC -------------------------
@@ -2139,7 +2241,7 @@ typedef struct BITREV {
         }
         return result;
     }
-RTL_END BITREV;
+} BITREV;
 
 // Pack/unpack macros
 // Pack 2 words into a double word (u & v should be 32 bit) : u = higher word, v = lower word
@@ -2172,7 +2274,7 @@ typedef struct SFF {
         p = (p << 1) & 0xfffffffffffffffeULL;
         return p;
     }
-RTL_END SF_F;
+} SF_F;
 
 // Guarded fraction multiplications
 #define SF(a, b)                                                 SFF::SF(U16(a), U16(b))
@@ -4227,3 +4329,44 @@ RTL_BEGIN
     REG0 = (REG1 & 0x7fffffffffffffffULL) | ((REG1 ^ 0x8000000000000000ULL) & 0x8000000000000000ULL);
 RTL_END
 
+
+// Restore all saved macros
+#pragma pop_macro("PPCREG")
+#pragma pop_macro("PPCREGN")
+#pragma pop_macro("MSR_CM")
+#pragma pop_macro("GPR")
+#pragma pop_macro("SPR")
+#pragma pop_macro("XER")
+#pragma pop_macro("MSR")
+#pragma pop_macro("ACC")
+#pragma pop_macro("SPEFSCR")
+#pragma pop_macro("PMR")
+#pragma pop_macro("CR")
+#pragma pop_macro("LR")
+#pragma pop_macro("CTR")
+#pragma pop_macro("SRR0")
+#pragma pop_macro("SRR1")
+#pragma pop_macro("CSRR0")
+#pragma pop_macro("CSRR1")
+#pragma pop_macro("MCSRR0")
+#pragma pop_macro("MCSRR1")
+#pragma pop_macro("PC")
+#pragma pop_macro("NIP")
+#pragma pop_macro("update_cr0")
+#pragma pop_macro("update_cr0_host")
+#pragma pop_macro("update_crF")
+#pragma pop_macro("update_crf")
+#pragma pop_macro("update_xer")
+#pragma pop_macro("update_xer_host")
+#pragma pop_macro("update_xer_so_ov")
+#pragma pop_macro("update_xer_ca")
+#pragma pop_macro("update_xer_ca_host")
+#pragma pop_macro("get_xer_so")
+#pragma pop_macro("get_crf")
+#pragma pop_macro("get_crF")
+#pragma pop_macro("get_xerF")
+#pragma pop_macro("get_xerf")
+#pragma pop_macro("get_xer_ca")
+#pragma pop_macro("HOST_FLAGS")
+
+#endif

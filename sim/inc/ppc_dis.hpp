@@ -108,6 +108,8 @@ class DIS_PPC{
     instr_call disasm(std::string instr, uint64_t pc = 0);
     // Return opcode's index in LUT (used for indexing to apppropriate function ptr)
     int get_opc_index(std::string opcname);
+    // Returns a hashed value of opcode
+    uint64_t get_opc_hash(std::string opcname);
 
     // static functions
     static int get_num_opcodes(){
@@ -629,6 +631,7 @@ instr_call DIS_PPC::disasm(std::string instr, uint64_t pc)
 
 }
 
+// Get opcode's index in disassembler LUT
 int DIS_PPC::get_opc_index(std::string opcname){
     for (int indx = 0; indx < powerpc_num_opcodes; indx++){
         if(!strcmp(opcname.c_str(), powerpc_opcodes[indx].name)){
@@ -644,6 +647,24 @@ int DIS_PPC::get_opc_index(std::string opcname){
     //        not to generate extended opcodes.
     std::cerr << "Warning !!! Undefined opcode " << opcname << std::endl;
     return 0xffffffff;
+}
+
+// Get binary opcode as a hashed value
+uint64_t DIS_PPC::get_opc_hash(std::string opcname){
+    for (int indx = 0; indx < powerpc_num_opcodes; indx++){
+        if(!strcmp(opcname.c_str(), powerpc_opcodes[indx].name)){
+            if (!(m_dialect != (ppc_cpu_t)(-1) &&
+                       ((powerpc_opcodes[indx].flags & m_dialect) == 0 || (powerpc_opcodes[indx].deprecated & m_dialect) != 0)))
+                return (powerpc_opcodes[indx].opcode << 32 | indx);
+        }
+    }
+    // Throw a warning on undefined opcodes
+    // NOTE : If an opcode was not found in the opcode table,
+    //        this merely means that the extended opcode was not there.
+    //        In that case, the disassembler module will automatically take care
+    //        not to generate extended opcodes.
+    std::cerr << "Warning !!! Undefined opcode " << opcname << std::endl;
+    return 0x0;
 }
 
 // show instruction format

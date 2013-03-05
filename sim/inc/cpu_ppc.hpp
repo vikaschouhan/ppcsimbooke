@@ -1546,7 +1546,7 @@ CPU_T void CPU_PPC_T::log_cov_to_file(std::string filename){
 
 // friend function
 CPU_T void gen_ppc_opc_func_hash(CPU_PPC_T *pcpu){
-    #include "cpu_ppc_instr.inc"
+    #include "cpu_ppc_instr.cc"
 }
 
 #endif    /*  CPU_PPC_H  */

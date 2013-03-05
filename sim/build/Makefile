@@ -47,16 +47,10 @@ SIM_TESTS_ROOT := ../tests/sim
 DUT_TESTS_ROOT := ../tests/dut
 SIM_PY_ROOT    := ../wrapper/python
 
-# header files' and libraries' paths
-CXXINCLUDES := $(SIM_ROOT)/inc
-CINCLUDES   := $(SIM_ROOT)/inc
-#CXXLIBS     := $(SIM_ROOT)/lib
-#CLIBS       := $(SIM_ROOT)/lib
-
 #============================= HOST FLAGS ==========================================================
 # Include current directory for dynamically generated headers
-HOST_CFLAGS                 := -I${CINCLUDES} -I.
-HOST_CXXFLAGS               := -I${CXXINCLUDES} -I. -I/usr/include/boost
+HOST_CFLAGS                 := -I$(SIM_ROOT)/inc -I. -I$(SIM_ROOT)/src
+HOST_CXXFLAGS               := -I$(SIM_ROOT)/inc -I. -I/usr/include/boost -I$(SIM_ROOT)/src
 HOST_LDFLAGS                := -L/usr/lib64 -lboost_thread
 
 HOST_BOOST_PYTHON_CXXFLAGS  := -I`python-config --includes` -DCONFIG_BOOST_PYTHON
@@ -93,14 +87,9 @@ else
 	CROSS_EXTFLAGS   += -msoft-float
 endif
 
-#============================ BUILD formatting UTILITY =============================================
-# Buid formatting utility ( only once )
-ifeq ($(BUILD_FMT_UTIL), 1)
-    EXEC_PPC_INSTR_RES := $(shell g++ $(HOST_CXXFLAGS) $(HOST_EXTFLAGS) -lboost_program_options -o format_instrs $(SIM_ROOT)/utils/format_instrs.cpp ; \
-                       ./format_instrs --ifile $(SIM_ROOT)/src/cpu_ppc_instr.cc --ofile cpu_ppc_instr.inc)
-endif
+#============================ Necessary tasks to be executed before main build ====================
 # Copy run_and_check.py
-    EXEC_CP_RUN_PY := $(shell cp $(DUT_TESTS_ROOT)/run_and_check.py .)
+EXEC_CP_RUN_PY := $(shell cp $(DUT_TESTS_ROOT)/run_and_check.py .)
 
 #============================ Start build ==========================================================
 all: $(EXES)
