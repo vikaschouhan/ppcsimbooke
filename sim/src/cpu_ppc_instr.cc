@@ -15,10 +15,10 @@
  *  booke 64 bit cores.
  *
  *  NOTE:
- *  This file is not a regular C/C++ file ( although it looks like it :) ).
- *  It's just a template for defining instructions'
- *  RTL(register transfer logic) implementation. An external utility parses
- *  this template to generate a new header/C++ file before direct use.
+ *  This file is a regular C/C++ file (although it doesn't look like it :)).
+ *  Technically it's a form of template for defining instructions'
+ *  RTL(register transfer logic) implementation, trying to be very very generic
+ *  by making heavy use of preprocesor macros.
  *
  *  RTL is written in accordance with Power ISA 2.06 provided by power.org and
  *  PowerPC e500 core ref. manual provided by Freescale.
@@ -49,6 +49,7 @@
 // Global defines for this template file
 #define CPU                      pcpu
 #define IC                       ic
+// specific to e500v2 (e500v2 is a 32 bit core hence, native type is 32bits only)
 #define UMODE                    uint32_t
 #define SMODE                    int32_t
 
@@ -380,12 +381,10 @@
 #define X86_ADD64(arg1,   arg2)                      ADD64(arg1,  arg2, HOST_FLAGS)           // 64bit ADD
 #define X86_SUB64(arg1,   arg2)                      SUB64(arg1,  arg2, HOST_FLAGS)           // 64bit SUB
 
-#define X(opc_name, func_name)     CPU->m_ppc_func_hash[CPU->m_dis.get_opc_hash(opc_name)] = [](CPU_PPC_T *CPU, instr_call *IC) -> void
-#define RTL_BEGIN                  {
-#define RTL_END                    };
+// define building blocks for lambda syntax (GCC compiler must support -std=c++11)
+#define RTL_BEGIN(opc_name, func_name)     CPU->m_ppc_func_hash[CPU->m_dis.get_opc_hash(opc_name)] = [](CPU_PPC_T *CPU, instr_call *IC) -> void {
+#define RTL_END                            };
 
-
-typedef void (*lambda_fn_type)(CPU_PPC_T*, instr_call*);
 
 // START
 // ------------------------------------- INTEGER ARITHMETIC -------------------------
@@ -411,50 +410,42 @@ typedef void (*lambda_fn_type)(CPU_PPC_T*, instr_call*);
 //             mulli
 //             mullw  ( mullw., mullwo, mullwo. )
 
-X("add", ___add___)
-RTL_BEGIN
+RTL_BEGIN("add", ___add___)
 #define add_code(rD, rA, rB)           \
     rD = X86_ADDW(rA, rB);
 
     add_code(REG0, REG1, REG2);
 RTL_END
-X("add.", ___add_dot___)
-RTL_BEGIN
+RTL_BEGIN("add.", ___add_dot___)
     add_code(REG0, REG1, REG2);
     UPDATE_CR0();
 RTL_END
-X("addo", ___addo___)
-RTL_BEGIN
+RTL_BEGIN("addo", ___addo___)
     add_code(REG0, REG1, REG2);
     UPDATE_SO_OV();
 RTL_END
-X("addo.", ___addo_dot___)
-RTL_BEGIN
+RTL_BEGIN("addo.", ___addo_dot___)
     add_code(REG0, REG1, REG2);
     UPDATE_SO_OV();
     UPDATE_CR0();
 RTL_END
 
 // These instrs always update XER[CA] flag
-X("addc", ___addc___)
-RTL_BEGIN
+RTL_BEGIN("addc", ___addc___)
     add_code(REG0, REG1, REG2);
     UPDATE_CA();
 RTL_END
-X("addc.", ___addc_dot___)
-RTL_BEGIN
+RTL_BEGIN("addc.", ___addc_dot___)
     add_code(REG0, REG1, REG2);
     UPDATE_CA();
     UPDATE_CR0();
 RTL_END
-X("addco", ___addco___)
-RTL_BEGIN
+RTL_BEGIN("addco", ___addco___)
     add_code(REG0, REG1, REG2);
     UPDATE_CA();
     UPDATE_SO_OV();
 RTL_END
-X("addco.", ___addco_dot___)
-RTL_BEGIN
+RTL_BEGIN("addco.", ___addco_dot___)
     add_code(REG0, REG1, REG2);
     UPDATE_CA();
     UPDATE_SO_OV();
@@ -462,28 +453,24 @@ RTL_BEGIN
 RTL_END
 
 /* Add extended : rA + rB + CA */
-X("adde", ___adde___)
-RTL_BEGIN
+RTL_BEGIN("adde", ___adde___)
     UMODE tmp = REG2 + GET_CA();
     add_code(REG0, REG1, tmp);
     UPDATE_CA();
 RTL_END
-X("adde.", ___adde_dot___)
-RTL_BEGIN
+RTL_BEGIN("adde.", ___adde_dot___)
     UMODE tmp = REG2 + GET_CA();
     add_code(REG0, REG1, tmp);
     UPDATE_CA();
     UPDATE_CR0();
 RTL_END
-X("addeo", ___addeo___)
-RTL_BEGIN
+RTL_BEGIN("addeo", ___addeo___)
     UMODE tmp = REG2 + GET_CA();
     add_code(REG0, REG1, tmp);
     UPDATE_CA();
     UPDATE_SO_OV();
 RTL_END
-X("addeo.", ___addeo_dot___)
-RTL_BEGIN
+RTL_BEGIN("addeo.", ___addeo_dot___)
     UMODE tmp = REG2 + GET_CA();
     add_code(REG0, REG1, tmp);
     UPDATE_CA();
@@ -491,57 +478,49 @@ RTL_BEGIN
     UPDATE_CR0();
 RTL_END
 
-X("addi", ___addi___)
-RTL_BEGIN
+RTL_BEGIN("addi", ___addi___)
     SMODE tmp = (int16_t)ARG2;
     if(ARG1){ add_code(REG0, REG1, tmp);        }
     else    { REG0 = (int16_t)ARG2;             }
 RTL_END
 
-X("addic", ___addic___)
-RTL_BEGIN
+RTL_BEGIN("addic", ___addic___)
     SMODE tmp = (int16_t)ARG2;
     add_code(REG0, REG1, tmp);
     UPDATE_CA();
 RTL_END
-X("addic.", ___addic_dot___)
-RTL_BEGIN
+RTL_BEGIN("addic.", ___addic_dot___)
     SMODE tmp = (int16_t)ARG2;
     add_code(REG0, REG1, tmp);
     UPDATE_CA();
     UPDATE_CR0();
 RTL_END
 
-X("addis", ___addis___)
-RTL_BEGIN
+RTL_BEGIN("addis", ___addis___)
     SMODE tmp = (((int16_t)ARG2) << 16);
     if(ARG1){ add_code(REG0, REG1, tmp);        }
     else    { REG0 = ((int16_t)ARG2) << 16;     }
 RTL_END
 
 // XER[CA] is always altered
-X("addme", ___addme___)
-RTL_BEGIN
+RTL_BEGIN("addme", ___addme___)
     SMODE tmp = GET_CA() - 1;
     add_code(REG0, REG1, tmp);
     UPDATE_CA();
 RTL_END
-X("addme.", ___addme_dot___)
-RTL_BEGIN
+RTL_BEGIN("addme.", ___addme_dot___)
     SMODE tmp = GET_CA() - 1;
     add_code(REG0, REG1, tmp);
     UPDATE_CA();
     UPDATE_CR0();
 RTL_END
-X("addmeo", ___addmeo___)
-RTL_BEGIN
+RTL_BEGIN("addmeo", ___addmeo___)
     SMODE tmp = GET_CA() - 1;
     add_code(REG0, REG1, tmp);
     UPDATE_CA();
     UPDATE_SO_OV();
 RTL_END
-X("addmeo.", ___addmeo_dot___)
-RTL_BEGIN
+RTL_BEGIN("addmeo.", ___addmeo_dot___)
     SMODE tmp = GET_CA() - 1;
     add_code(REG0, REG1, tmp);
     UPDATE_CA();
@@ -550,28 +529,24 @@ RTL_BEGIN
 RTL_END
 
 // XER[CA] is always altered
-X("addze", ___addze___)
-RTL_BEGIN
+RTL_BEGIN("addze", ___addze___)
     UMODE tmp = GET_CA();
     add_code(REG0, REG1, tmp);
     UPDATE_CA();
 RTL_END
-X("addze.", ___addze_dot___)
-RTL_BEGIN
+RTL_BEGIN("addze.", ___addze_dot___)
     UMODE tmp = GET_CA();
     add_code(REG0, REG1, tmp);
     UPDATE_CA();
     UPDATE_CR0();
 RTL_END
-X("addzeo", ___addzeo___)
-RTL_BEGIN
+RTL_BEGIN("addzeo", ___addzeo___)
     UMODE tmp = GET_CA();
     add_code(REG0, REG1, tmp);
     UPDATE_CA();
     UPDATE_SO_OV();
 RTL_END
-X("addzeo.", ___addzeo_dot___)
-RTL_BEGIN
+RTL_BEGIN("addzeo.", ___addzeo_dot___)
     UMODE tmp = GET_CA();
     add_code(REG0, REG1, tmp);
     UPDATE_CA();
@@ -579,8 +554,7 @@ RTL_BEGIN
     UPDATE_CR0();
 RTL_END
 
-X("subf", ___subf___)
-RTL_BEGIN
+RTL_BEGIN("subf", ___subf___)
 #define subf_code(rD, rA, rB)            \
     uint64_t subf_tmp = rB + 1;          \
     uint64_t inva = ~rA;                 \
@@ -588,59 +562,50 @@ RTL_BEGIN
 
     subf_code(REG0, REG1, REG2);
 RTL_END
-X("subf.", ___subf_dot___)
-RTL_BEGIN
+RTL_BEGIN("subf.", ___subf_dot___)
     subf_code(REG0, REG1, REG2);
     UPDATE_CR0();
 RTL_END
-X("subfo", ___subfo___)
-RTL_BEGIN
+RTL_BEGIN("subfo", ___subfo___)
     subf_code(REG0, REG1, REG2);
     UPDATE_SO_OV();
 RTL_END
-X("subfo.", ___subfo_dot___)
-RTL_BEGIN
+RTL_BEGIN("subfo.", ___subfo_dot___)
     subf_code(REG0, REG1, REG2);
     UPDATE_SO_OV();
     UPDATE_CR0();
 RTL_END
 
 // XER[CA] is altered
-X("subfic", ___subfic___)
-RTL_BEGIN
+RTL_BEGIN("subfic", ___subfic___)
     uint64_t tmp = EXTS_H2N(ARG2);
     subf_code(REG0, REG1, tmp);
     UPDATE_CA();
 RTL_END
 
 // XER[CA] is always altered
-X("subfc", ___subfc___)
-RTL_BEGIN
+RTL_BEGIN("subfc", ___subfc___)
     subf_code(REG0, REG1, REG2);
     UPDATE_CA();
 RTL_END
-X("subfc.", ___subfc_dot___)
-RTL_BEGIN
+RTL_BEGIN("subfc.", ___subfc_dot___)
     subf_code(REG0, REG1, REG2);
     UPDATE_CA();
     UPDATE_CR0();
 RTL_END
-X("subfco", ___subfco___)
-RTL_BEGIN
+RTL_BEGIN("subfco", ___subfco___)
     subf_code(REG0, REG1, REG2);
     UPDATE_CA();
     UPDATE_SO_OV();
 RTL_END
-X("subfco.", ___subfco_dot___)
-RTL_BEGIN
+RTL_BEGIN("subfco.", ___subfco_dot___)
     subf_code(REG0, REG1, REG2);
     UPDATE_CA();
     UPDATE_SO_OV();
     UPDATE_CR0();
 RTL_END
 
-X("subfe", ___subfe___)
-RTL_BEGIN
+RTL_BEGIN("subfe", ___subfe___)
 #define subfe_code(rD, rA, rB)          \
     UMODE tmp = GET_CA() + rB;          \
     UMODE inva = ~rA;                   \
@@ -649,25 +614,21 @@ RTL_BEGIN
 
     subfe_code(REG0, REG1, REG2);
 RTL_END
-X("subfe.", ___subfe_dot___)
-RTL_BEGIN
+RTL_BEGIN("subfe.", ___subfe_dot___)
     subfe_code(REG0, REG1, REG2);
     UPDATE_CR0();
 RTL_END
-X("subfeo", ___subfeo___)
-RTL_BEGIN
+RTL_BEGIN("subfeo", ___subfeo___)
     subfe_code(REG0, REG1, REG2);
     UPDATE_SO_OV();
 RTL_END
-X("subfeo.", ___subfeo_dot___)
-RTL_BEGIN
+RTL_BEGIN("subfeo.", ___subfeo_dot___)
     subfe_code(REG0, REG1, REG2);
     UPDATE_SO_OV();
     UPDATE_CR0();
 RTL_END
 
-X("subfme", ___subfme___)
-RTL_BEGIN
+RTL_BEGIN("subfme", ___subfme___)
 #define subfme_code(rD, rA)             \
     SMODE tmp = GET_CA() - 1;           \
     UMODE inva = ~rA;                   \
@@ -676,25 +637,21 @@ RTL_BEGIN
 
     subfme_code(REG0, REG1);
 RTL_END
-X("subfme.", ___subfme_dot___)
-RTL_BEGIN
+RTL_BEGIN("subfme.", ___subfme_dot___)
     subfme_code(REG0, REG1);
     UPDATE_CR0();
 RTL_END
-X("subfmeo", ___subfmeo___)
-RTL_BEGIN
+RTL_BEGIN("subfmeo", ___subfmeo___)
     subfme_code(REG0, REG1);
     UPDATE_SO_OV();
 RTL_END
-X("subfmeo.", ___subfmeo_dot___)
-RTL_BEGIN
+RTL_BEGIN("subfmeo.", ___subfmeo_dot___)
     subfme_code(REG0, REG1);
     UPDATE_SO_OV();
     UPDATE_CR0();
 RTL_END
 
-X("subfze", ___subfze___)
-RTL_BEGIN
+RTL_BEGIN("subfze", ___subfze___)
 #define subfze_code(rD, rA)             \
     UMODE tmp = GET_CA();               \
     UMODE inva = ~rA;                   \
@@ -703,126 +660,106 @@ RTL_BEGIN
 
     subfze_code(REG0, REG1);
 RTL_END
-X("subfze.", ___subfze_dot___)
-RTL_BEGIN
+RTL_BEGIN("subfze.", ___subfze_dot___)
     subfze_code(REG0, REG1);
     UPDATE_CR0();
 RTL_END
-X("subfzeo", ___subfzeo___)
-RTL_BEGIN
+RTL_BEGIN("subfzeo", ___subfzeo___)
     subfze_code(REG0, REG1);
     UPDATE_SO_OV();
 RTL_END
-X("subfzeo.", ___subfzeo_dot___)
-RTL_BEGIN
+RTL_BEGIN("subfzeo.", ___subfzeo_dot___)
     subfze_code(REG0, REG1);
     UPDATE_SO_OV();
     UPDATE_CR0();
 RTL_END
 
-X("divw", ___divw___)
-RTL_BEGIN
+RTL_BEGIN("divw", ___divw___)
 #define divw_code(rD, rA, rB)          \
     if(rB){ rD = X86_DIVW(rA, rB); }
 
     divw_code(REG0, REG1, REG2);
 RTL_END
-X("divw.", ___divw_dot___)
-RTL_BEGIN
+RTL_BEGIN("divw.", ___divw_dot___)
     divw_code(REG0, REG1, REG2);
     UPDATE_CR0_V(REG0);
 RTL_END
-X("divwo", ___divwo___)
-RTL_BEGIN
+RTL_BEGIN("divwo", ___divwo___)
     divw_code(REG0, REG1, REG2);
     UPDATE_SO_OV_V(0);
     if(REG2 == 0 || (((REG1 & 0xffffffff) == 0x80000000) && REG2 == 0xffffffff)){ UPDATE_SO_OV_V(1); }
 RTL_END
-X("divwo.", ___divwo_dot___)
-RTL_BEGIN
+RTL_BEGIN("divwo.", ___divwo_dot___)
     divw_code(REG0, REG1, REG2);
     UPDATE_SO_OV_V(0);
     UPDATE_CR0_V(REG0);
     if(REG2 == 0 || (((REG1 & 0xffffffff) == 0x80000000) && REG2 == 0xffffffff)){ UPDATE_SO_OV_V(1); }
 RTL_END
 
-X("divwu", ___divwu___)
-RTL_BEGIN
+RTL_BEGIN("divwu", ___divwu___)
 #define divwu_code(rD, rA, rB)         \
     if(rB){ rD = X86_DIVUW(rA, rB); }
 
     divwu_code(REG0, REG1, REG2);
 RTL_END
-X("divwu.", ___divwu_dot___)
-RTL_BEGIN
+RTL_BEGIN("divwu.", ___divwu_dot___)
     divwu_code(REG0, REG1, REG2);
     UPDATE_CR0_V(REG0);
 RTL_END
-X("divwuo", ___divwuo___)
-RTL_BEGIN
+RTL_BEGIN("divwuo", ___divwuo___)
     divwu_code(REG0, REG1, REG2);
     UPDATE_SO_OV_V(0);
     if(REG2 == 0){ UPDATE_SO_OV_V(1); }   // Set OV=1 if division by zero
 RTL_END
-X("divwuo.", ___divwuo_dot___)
-RTL_BEGIN
+RTL_BEGIN("divwuo.", ___divwuo_dot___)
     divwu_code(REG0, REG1, REG2);
     UPDATE_SO_OV_V(0);
     UPDATE_CR0_V(REG0);
     if(REG2 == 0){ UPDATE_SO_OV_V(1); }
 RTL_END
 
-X("mulhw", ___mulhw___)
-RTL_BEGIN
+RTL_BEGIN("mulhw", ___mulhw___)
 #define mulhw_code(rD, rA, rB)            \
     rD = X86_MULW_H(rA, rB)
 
     mulhw_code(REG0, REG1, REG2);
 RTL_END
-X("mulhw.", ___mulhw_dot___)
-RTL_BEGIN
+RTL_BEGIN("mulhw.", ___mulhw_dot___)
     mulhw_code(REG0, REG1, REG2);
     UPDATE_CR0_V(REG0);
 RTL_END
 
-X("mulli", ___mulli___)
-RTL_BEGIN
+RTL_BEGIN("mulli", ___mulli___)
     uint32_t imm_val = EXTS_H2W(ARG2);          // Sign extend 16 bit IMM to 32 bit
     REG0 = X86_MULW_L(REG1, imm_val);
 RTL_END
 
-X("mulhwu", ___mulhwu___)
-RTL_BEGIN
+RTL_BEGIN("mulhwu", ___mulhwu___)
 #define mulhwu_code(rD, rA, rB)           \
     rD = X86_MULUW_H(rA, rB)
 
     mulhwu_code(REG0, REG1, REG2);
 RTL_END
-X("mulhwu.", ___mulhwu_dot___)
-RTL_BEGIN
+RTL_BEGIN("mulhwu.", ___mulhwu_dot___)
     mulhwu_code(REG0, REG1, REG2);
     UPDATE_CR0_V(REG0);                 // muluw doesn't set SF or ZF, hence we have to set CR0 by value
 RTL_END
 
-X("mullw", ___mullw___)
-RTL_BEGIN
+RTL_BEGIN("mullw", ___mullw___)
 #define mullw_code(rD, rA, rB)            \
     rD = X86_MULW_L(rA, rB)
 
     mullw_code(REG0, REG1, REG2);
 RTL_END
-X("mullw.", ___mullw_dot___)
-RTL_BEGIN
+RTL_BEGIN("mullw.", ___mullw_dot___)
     mullw_code(REG0, REG1, REG2);
     UPDATE_CR0_V(REG0);
 RTL_END
-X("mullwo", ___mullwo___)
-RTL_BEGIN
+RTL_BEGIN("mullwo", ___mullwo___)
     mullw_code(REG0, REG1, REG2);
     UPDATE_SO_OV();
 RTL_END
-X("mullwo.", ___mullwo_dot___)
-RTL_BEGIN
+RTL_BEGIN("mullwo.", ___mullwo_dot___)
     mullw_code(REG0, REG1, REG2);
     UPDATE_SO_OV();
     UPDATE_CR0_V(REG0);
@@ -852,70 +789,59 @@ RTL_END
 //
 
 /* and variants */
-X("and", ___and___)
-RTL_BEGIN
+RTL_BEGIN("and", ___and___)
 #define and_code(rA, rS, rB)             \
     rA = X86_ANDW(rS, rB)
 
     and_code(REG0, REG1, REG2);
 RTL_END
-X("and.", ___and_dot___)
-RTL_BEGIN
+RTL_BEGIN("and.", ___and_dot___)
     and_code(REG0, REG1, REG2);
     UPDATE_CR0();
 RTL_END
 
-X("andc", ___andc___)
-RTL_BEGIN
+RTL_BEGIN("andc", ___andc___)
     UMODE tmp = ~REG2;
     and_code(REG0, REG1, tmp);
 RTL_END
-X("andc.", ___andc_dot___)
-RTL_BEGIN
+RTL_BEGIN("andc.", ___andc_dot___)
     UMODE tmp = ~REG2;
     and_code(REG0, REG1, tmp);
     UPDATE_CR0();
 RTL_END
 
-X("andi.", ___andi_dot___)
-RTL_BEGIN
+RTL_BEGIN("andi.", ___andi_dot___)
     UMODE tmp = (uint16_t)ARG2;
     and_code(REG0, REG1, tmp);
     UPDATE_CR0();
 RTL_END
 
-X("andis.", ___andis_dot___)
-RTL_BEGIN
+RTL_BEGIN("andis.", ___andis_dot___)
     UMODE tmp = (((uint16_t)ARG2) << 16);
     and_code(REG0, REG1, tmp);
     UPDATE_CR0();
 RTL_END
 
 // Byte extend
-X("extsb", ___extsb___)
-RTL_BEGIN
+RTL_BEGIN("extsb", ___extsb___)
     REG0 = EXTS_B2N(REG1);
 RTL_END
-X("extsb.", ___extsb_dot___)
-RTL_BEGIN
+RTL_BEGIN("extsb.", ___extsb_dot___)
     REG0 = EXTS_B2N(REG1);
     UPDATE_CR0_V(REG0);
 RTL_END
 
 // Halfword extend
-X("extsh", ___extsh___)
-RTL_BEGIN
+RTL_BEGIN("extsh", ___extsh___)
     REG0 = EXTS_H2N(REG1);
 RTL_END
-X("extsh.", ___extsh_dot___)
-RTL_BEGIN
+RTL_BEGIN("extsh.", ___extsh_dot___)
     REG0 = EXTS_H2N(REG1);
     UPDATE_CR0_V(REG0);
 RTL_END
 
 // cntlzw:  Count leading zeroes (32-bit word).
-X("cntlzw", ___cntlzw___)
-RTL_BEGIN
+RTL_BEGIN("cntlzw", ___cntlzw___)
 #define cntlzw_code(rA, rS)                     \
     uint64_t n = 32;                            \
     while(n < 64){                              \
@@ -926,136 +852,115 @@ RTL_BEGIN
 
     cntlzw_code(REG0, REG1);
 RTL_END
-X("cntlzw.", ___cntlzw_dot___)
-RTL_BEGIN
+RTL_BEGIN("cntlzw.", ___cntlzw_dot___)
     cntlzw_code(REG0, REG1);
     UPDATE_CR0_V(REG0);
 RTL_END
 
-X("eqv", ___eqv___)
-RTL_BEGIN
+RTL_BEGIN("eqv", ___eqv___)
 #define eqv_code(rD, rA, rB)                   \
     rD = ~(rA ^ rB)
 
     eqv_code(REG0, REG1, REG2);
 RTL_END
-X("eqv.", ___eqv_dot___)
-RTL_BEGIN
+RTL_BEGIN("eqv.", ___eqv_dot___)
     eqv_code(REG0, REG1, REG2);
     UPDATE_CR0_V(REG0);
 RTL_END
 
-X("nand", ___nand___)
-RTL_BEGIN
+RTL_BEGIN("nand", ___nand___)
 #define nand_code(rA, rS, rB)                  \
     rA = ~(rS & rB)
 
     nand_code(REG0, REG1, REG2);
 RTL_END
-X("nand.", ___nand_dot___)
-RTL_BEGIN
+RTL_BEGIN("nand.", ___nand_dot___)
     nand_code(REG0, REG1, REG2);
     UPDATE_CR0_V(REG0);
 RTL_END
-X("neg", ___neg___)
-RTL_BEGIN
+RTL_BEGIN("neg", ___neg___)
 #define neg_code(rD, rA)                        \
     rD = X86_NEGW(rA);
 
     neg_code(REG0, REG1);
 RTL_END
-X("neg.", ___neg_dot___)
-RTL_BEGIN
+RTL_BEGIN("neg.", ___neg_dot___)
     neg_code(REG0, REG1);
     UPDATE_CR0();
 RTL_END
-X("nego", ___nego___)
-RTL_BEGIN
+RTL_BEGIN("nego", ___nego___)
     neg_code(REG0, REG1);
     UPDATE_SO_OV();
 RTL_END
-X("nego.", ___nego_dot___)
-RTL_BEGIN
+RTL_BEGIN("nego.", ___nego_dot___)
     neg_code(REG0, REG1);
     UPDATE_SO_OV();
     UPDATE_CR0();
 RTL_END
 
 //
-X("nor", ___nor___)
-RTL_BEGIN
+RTL_BEGIN("nor", ___nor___)
 #define nor_code(rA, rS, rB)                    \
     rA = ~(rS | rB)
 
     nor_code(REG0, REG1, REG2);
 RTL_END
-X("nor.", ___nor_dot___)
-RTL_BEGIN
+RTL_BEGIN("nor.", ___nor_dot___)
     nor_code(REG0, REG1, REG2);
     UPDATE_CR0_V(REG0);
 RTL_END
 
-X("or", ___or___)
-RTL_BEGIN
+RTL_BEGIN("or", ___or___)
 #define or_code(rA, rS, rB)                     \
     rA = X86_ORW(rS, rB)
 
     or_code(REG0, REG1, REG2);
 RTL_END
-X("or.", ___or_dot___)
-RTL_BEGIN
+RTL_BEGIN("or.", ___or_dot___)
     or_code(REG0, REG1, REG2);
     UPDATE_CR0();
 RTL_END
 
-X("orc", ___orc___)
-RTL_BEGIN
+RTL_BEGIN("orc", ___orc___)
 #define orc_code(rA, rS, rB)                     \
     UMODE tmp = ~rB;                             \
     rA = X86_ORW(rS, tmp)
 
     orc_code(REG0, REG1, REG2);
 RTL_END
-X("orc.", ___orc_dot___)
-RTL_BEGIN
+RTL_BEGIN("orc.", ___orc_dot___)
     orc_code(REG0, REG1, REG2);
     UPDATE_CR0();
 RTL_END
 
-X("ori", ___ori___)
-RTL_BEGIN
+RTL_BEGIN("ori", ___ori___)
     UMODE tmp = (uint16_t)(ARG2);
     or_code(REG0, REG1, tmp);
 RTL_END
 
-X("oris", ___oris___)
-RTL_BEGIN
+RTL_BEGIN("oris", ___oris___)
     UMODE tmp = (((uint16_t)ARG2) << 16);
     or_code(REG0, REG1, tmp);
 RTL_END
 
 // xor variants
-X("xor", ___xor___)
-RTL_BEGIN
+RTL_BEGIN("xor", ___xor___)
 #define xor_code(rA, rS, rB)      \
     rA = X86_XORW(rS, rB)
 
     xor_code(REG0, REG1, REG2);
 RTL_END
-X("xor.", ___xor_dot___)
-RTL_BEGIN
+RTL_BEGIN("xor.", ___xor_dot___)
     xor_code(REG0, REG1, REG2);
     UPDATE_CR0();
 RTL_END
 
-X("xori", ___xori___)
-RTL_BEGIN
+RTL_BEGIN("xori", ___xori___)
     UMODE tmp = ((uint16_t)ARG2);
     xor_code(REG0, REG1, tmp);
 RTL_END
 
-X("xoris", ___xoris___)
-RTL_BEGIN
+RTL_BEGIN("xoris", ___xoris___)
     UMODE tmp = (((uint16_t)ARG2) << 16);
     xor_code(REG0, REG1, tmp);
 RTL_END
@@ -1063,12 +968,10 @@ RTL_END
 // START
 // ------------------------------- BPU ---------------------------------------------
 // BTB instrs
-X("bbelr", ___bbelr___)
-RTL_BEGIN
+RTL_BEGIN("bbelr", ___bbelr___)
     // Not implemented
 RTL_END
-X("bblels", ___bblels___)
-RTL_BEGIN
+RTL_BEGIN("bblels", ___bblels___)
     // Not implemented
 RTL_END
 
@@ -1085,31 +988,26 @@ RTL_END
 // branch unconditional
 // NOTE : LI is already decoded by the disassembler module into proper target addr ( ARG0 ),
 //        hence "b" and "ba" are same. 
-X("b", ___b___)
-RTL_BEGIN
+RTL_BEGIN("b", ___b___)
 #define b_code(tgtaddr)      \
     NIP = tgtaddr
 
     b_code(ARG0);
 RTL_END
-X("ba", ___ba___)
-RTL_BEGIN
+RTL_BEGIN("ba", ___ba___)
     b_code(ARG0);
 RTL_END
-X("bl", ___bl___)
-RTL_BEGIN
+RTL_BEGIN("bl", ___bl___)
     b_code(ARG0);
     LR = (PC + 4);
 RTL_END
-X("bla", ___bla___)
-RTL_BEGIN
+RTL_BEGIN("bla", ___bla___)
     b_code(ARG0);
     LR = (PC + 4);
 RTL_END
 
 // branch conditional
-X("bc", ___bc___)
-RTL_BEGIN
+RTL_BEGIN("bc", ___bc___)
 #define  BO3(BO)    ((BO >> 1) & 0x1)
 #define  BO2(BO)    ((BO >> 2) & 0x1)
 #define  BO1(BO)    ((BO >> 3) & 0x1)
@@ -1123,26 +1021,22 @@ RTL_BEGIN
 
     bc_code(ARG0, ARG1, ARG2);
 RTL_END
-X("bca", ___bca___)
-RTL_BEGIN
+RTL_BEGIN("bca", ___bca___)
     bc_code(ARG0, ARG1, ARG2)
 RTL_END
-X("bcl", ___bcl___)
-RTL_BEGIN
+RTL_BEGIN("bcl", ___bcl___)
 #define bcl_code(BO, BI, tgtaddr)                   \
     bc_code(BO, BI, tgtaddr);                       \
     LR = (PC + 4);
 
     bcl_code(ARG0, ARG1, ARG2);
 RTL_END
-X("bcla", ___bcla___)
-RTL_BEGIN
+RTL_BEGIN("bcla", ___bcla___)
     bcl_code(ARG0, ARG1, ARG2);
 RTL_END
 
 // branch conditional to LR
-X("bclr", ___bclr___)
-RTL_BEGIN
+RTL_BEGIN("bclr", ___bclr___)
 #define bclr_code(BO, BI, BH)                                                       \
     if(!BO2(BO)) CTR = CTR - 1;                                                     \
     int ctr_ok = BO2(BO) | ((((MSR_CM) ? CTR: (CTR & 0xffffffff)) != 0) ^ BO3(BO)); \
@@ -1151,8 +1045,7 @@ RTL_BEGIN
 
     bclr_code(ARG0, ARG1, ARG2);
 RTL_END
-X("bclrl", ___bclrl___)
-RTL_BEGIN
+RTL_BEGIN("bclrl", ___bclrl___)
 #define bclrl_code(BO, BI, BH)                       \
     bclr_code(BO, BI, BH);                           \
     LR = (PC + 4);
@@ -1161,15 +1054,13 @@ RTL_BEGIN
 RTL_END
 
 // branch conditional to CTR
-X("bcctr", ___bcctr___)
-RTL_BEGIN
+RTL_BEGIN("bcctr", ___bcctr___)
 #define bcctr_code(BO, BI, BH)                                                       \
     if(BO0(BO) | (get_crf(BI) == BO1(BO))) NIP = CTR & ~0x3;
     
     bcctr_code(ARG0, ARG1, ARG2);
 RTL_END
-X("bcctrl", ___bcctrl___)
-RTL_BEGIN
+RTL_BEGIN("bcctrl", ___bcctrl___)
 #define bcctrl_code(BO, BI, BH)                \
     bcctr_code(BO, BI, BH);                    \
     LR = (PC + 4);
@@ -1188,8 +1079,7 @@ RTL_END
 //
 
 // cmp crD, L, rA, rB 
-X("cmp", ___cmp___)
-RTL_BEGIN
+RTL_BEGIN("cmp", ___cmp___)
 #define cmp_code(crD, L, rA, rB)                                       \
     int64_t a, b, c;                                                   \
     uint64_t crX;                                                      \
@@ -1208,8 +1098,7 @@ RTL_BEGIN
 
     cmp_code(ARG0, ARG1, REG2, REG3);
 RTL_END
-X("cmpi", ___cmpi___)
-RTL_BEGIN
+RTL_BEGIN("cmpi", ___cmpi___)
 #define cmpi_code(crD, L, rA, SIMM)                                    \
     int64_t a, b, c;                                                   \
     uint64_t crX;                                                      \
@@ -1227,8 +1116,7 @@ RTL_BEGIN
 
     cmpi_code(ARG0, ARG1, REG2, ARG3);
 RTL_END
-X("cmpl", ___cmpl___)
-RTL_BEGIN
+RTL_BEGIN("cmpl", ___cmpl___)
 #define cmpl_code(crD, L, rA, rB)                                      \
     uint64_t a, b, c;                                                  \
     uint64_t crX;                                                      \
@@ -1247,8 +1135,7 @@ RTL_BEGIN
 
     cmpl_code(ARG0, ARG1, REG2, REG3);
 RTL_END
-X("cmpli", ___cmpli___)
-RTL_BEGIN
+RTL_BEGIN("cmpli", ___cmpli___)
 #define cmpli_code(crD, L, rA, UIMM)                                   \
     uint64_t a, b, c;                                                  \
     uint64_t crX;                                                      \
@@ -1283,64 +1170,55 @@ RTL_END
 //               mcrf
 //
 
-X("crand", ___crand___)
-RTL_BEGIN
+RTL_BEGIN("crand", ___crand___)
 #define crand_code(crD, crA, crB)                       \
     update_crf(crD, get_crf(crA) & get_crf(crB));
 
     crand_code(ARG0, ARG1, ARG2);
 RTL_END
-X("crandc", ___crandc___)
-RTL_BEGIN
+RTL_BEGIN("crandc", ___crandc___)
 #define crandc_code(crD, crA, crB)                      \
     update_crf(crD, get_crf(crA) & ~(get_crf(crB)));
 
     crandc_code(ARG0, ARG1, ARG2);
 RTL_END
-X("creqv", ___creqv___)
-RTL_BEGIN
+RTL_BEGIN("creqv", ___creqv___)
 #define creqv_code(crD, crA, crB)                      \
     update_crf(crD, ~(get_crf(crA) ^ get_crf(crB)));
 
     creqv_code(ARG0, ARG1, ARG2);
 RTL_END
-X("crnand", ___crnand___)
-RTL_BEGIN
+RTL_BEGIN("crnand", ___crnand___)
 #define crnand_code(crD, crA, crB)                      \
     update_crf(crD, ~(get_crf(crA) & get_crf(crB)));
 
     crnand_code(ARG0, ARG1, ARG2);
 RTL_END
-X("crnor", ___crnor___)
-RTL_BEGIN
+RTL_BEGIN("crnor", ___crnor___)
 #define crnor_code(crD, crA, crB)                       \
     update_crf(crD, ~(get_crf(crA) | get_crf(crB)));
 
     crnor_code(ARG0, ARG1, ARG2);
 RTL_END
-X("cror", ___cror___)
-RTL_BEGIN
+RTL_BEGIN("cror", ___cror___)
 #define cror_code(crD, crA, crB)                        \
     update_crf(crD, (get_crf(crA) | get_crf(crB)));
 
     cror_code(ARG0, ARG1, ARG2);
 RTL_END
-X("crorc", ___crorc___)
-RTL_BEGIN
+RTL_BEGIN("crorc", ___crorc___)
 #define crorc_code(crD, crA, crB)                       \
     update_crf(crD, (get_crf(crA) | ~(get_crf(crB))));
 
     crorc_code(ARG0, ARG1, ARG2);
 RTL_END
-X("crxor", ___crxor___)
-RTL_BEGIN
+RTL_BEGIN("crxor", ___crxor___)
 #define crxor_code(crD, crA, crB)                        \
     update_crf(crD, (get_crf(crA) ^ get_crf(crB)));
 
     crxor_code(ARG0, ARG1, ARG2);
 RTL_END
-X("mcrf", ___mcrf___)
-RTL_BEGIN
+RTL_BEGIN("mcrf", ___mcrf___)
 #define mcrf_code(crfD, crfS)            \
     update_crF(crfD, get_crF(crfS));
 
@@ -1358,8 +1236,7 @@ RTL_END
 //               srw     ( srw. )
 //               srawi   ( srawi. )
 //               sraw    ( sraw. )
-X("rlwimi", ___rlwimi___)
-RTL_BEGIN
+RTL_BEGIN("rlwimi", ___rlwimi___)
 #define rlwimi_code(rA, rS, SH, MB, ME)                                            \
     uint64_t n = (SH & 0x1f);                                                      \
     uint64_t r = ROTL32(B_32_63(rS), n);                                           \
@@ -1368,13 +1245,11 @@ RTL_BEGIN
 
     rlwimi_code(REG0, REG1, ARG2, ARG3, ARG4);
 RTL_END
-X("rlwimi.", ___rlwimi_dot___)
-RTL_BEGIN
+RTL_BEGIN("rlwimi.", ___rlwimi_dot___)
     rlwimi_code(REG0, REG1, ARG2, ARG3, ARG4);
     UPDATE_CR0_V(UT(REG0));
 RTL_END
-X("rlwinm", ___rlwinm___)
-RTL_BEGIN
+RTL_BEGIN("rlwinm", ___rlwinm___)
 #define rlwinm_code(rA, rS, SH, MB, ME)                                            \
     uint64_t n = (SH & 0x1f);                                                      \
     uint64_t r = ROTL32(B_32_63(rS), n);                                           \
@@ -1383,13 +1258,11 @@ RTL_BEGIN
 
     rlwinm_code(REG0, REG1, ARG2, ARG3, ARG4);
 RTL_END
-X("rlwinm.", ___rlwinm_dot___)
-RTL_BEGIN
+RTL_BEGIN("rlwinm.", ___rlwinm_dot___)
     rlwinm_code(REG0, REG1, ARG2, ARG3, ARG4);
     UPDATE_CR0_V(UT(REG0));
 RTL_END
-X("rlwnm", ___rlwnm___)
-RTL_BEGIN
+RTL_BEGIN("rlwnm", ___rlwnm___)
 #define rlwnm_code(rA, rS, rB, MB, ME)                                             \
     uint64_t n = (rB & 0x1f);                                                      \
     uint64_t r = ROTL32(B_32_63(rS), n);                                           \
@@ -1398,15 +1271,13 @@ RTL_BEGIN
 
     rlwnm_code(REG0, REG1, REG2, ARG3, ARG4);
 RTL_END
-X("rlwnm.", ___rlwnm_dot___)
-RTL_BEGIN
+RTL_BEGIN("rlwnm.", ___rlwnm_dot___)
     rlwnm_code(REG0, REG1, REG2, ARG3, ARG4);
     UPDATE_CR0_V(UT(REG0));
 RTL_END
 
 // Shift instrs
-X("slw", ___slw___)
-RTL_BEGIN
+RTL_BEGIN("slw", ___slw___)
 #define slw_code(rA, rS, rB)                                                       \
     uint64_t n = (rB & 0x1f);                                                      \
     uint64_t r = ROTL32(B_32_63(rS), n);                                           \
@@ -1418,13 +1289,11 @@ RTL_BEGIN
 
     slw_code(REG0, REG1, REG2);
 RTL_END
-X("slw.", ___slw_dot___)
-RTL_BEGIN
+RTL_BEGIN("slw.", ___slw_dot___)
     slw_code(REG0, REG1, REG2);
     UPDATE_CR0_V(UT(REG0));
 RTL_END
-X("sraw", ___sraw___)
-RTL_BEGIN
+RTL_BEGIN("sraw", ___sraw___)
 #define sraw_code(rA, rS, rB)                                                            \
     uint64_t n = (rB & 0x1f);                                                            \
     uint64_t r = ROTL32(B_32_63(rS), (64 - n));                                          \
@@ -1438,13 +1307,11 @@ RTL_BEGIN
 
     sraw_code(REG0, REG1, REG2);
 RTL_END
-X("sraw.", ___sraw_dot___)
-RTL_BEGIN
+RTL_BEGIN("sraw.", ___sraw_dot___)
     sraw_code(REG0, REG1, REG2);
     UPDATE_CR0_V(UT(REG0));
 RTL_END
-X("srawi", ___srawi___)
-RTL_BEGIN
+RTL_BEGIN("srawi", ___srawi___)
 #define srawi_code(rA, rS, SH)                                                           \
     uint64_t n = (SH & 0x1f);                                                            \
     uint64_t r = ROTL32(B_32_63(rS), (64 - n));                                          \
@@ -1455,13 +1322,11 @@ RTL_BEGIN
 
     srawi_code(REG0, REG1, ARG2);
 RTL_END
-X("srawi.", ___srawi_dot___)
-RTL_BEGIN
+RTL_BEGIN("srawi.", ___srawi_dot___)
     srawi_code(REG0, REG1, ARG2);
     UPDATE_CR0_V(UT(REG0));
 RTL_END
-X("srw", ___srw___)
-RTL_BEGIN
+RTL_BEGIN("srw", ___srw___)
 #define srw_code(rA, rS, rB)                                                             \
     uint64_t n = (rB & 0x1f);                                                            \
     uint64_t r = ROTL32(B_32_63(rS), (64 - n));                                          \
@@ -1473,8 +1338,7 @@ RTL_BEGIN
 
     srw_code(REG0, REG1, REG2);
 RTL_END
-X("srw.", ___srw_dot___)
-RTL_BEGIN
+RTL_BEGIN("srw.", ___srw_dot___)
     srw_code(REG0, REG1, REG2);
     UPDATE_CR0_V(UT(REG0));
 RTL_END
@@ -1506,24 +1370,21 @@ RTL_END
 //              
 
 // byte loads
-X("lbz", ___lbz___)
-RTL_BEGIN
+RTL_BEGIN("lbz", ___lbz___)
     UMODE tmp = 0;
     UMODE ea;
     if(ARG2){ tmp = REG2; }
     ea = tmp + EXTS_H2N(ARG1);
     REG0 = LOAD8(ea);    
 RTL_END
-X("lbzx", ___lbzx___)
-RTL_BEGIN
+RTL_BEGIN("lbzx", ___lbzx___)
     UMODE tmp = 0;
     UMODE ea;
     if(ARG1){ tmp = REG1; }
     ea = tmp + REG2;
     REG0 = LOAD8(ea);
 RTL_END
-X("lbzu", ___lbzu___)
-RTL_BEGIN
+RTL_BEGIN("lbzu", ___lbzu___)
     if(ARG2 == 0 || ARG0 == ARG2)
         throw PPC_EXCEPT(PPC_EXCEPTION_PRG, PPC_EXCEPT_PRG_ILG, "Illegal opcode");
     UMODE ea;
@@ -1531,8 +1392,7 @@ RTL_BEGIN
     REG0 = LOAD8(ea);
     REG2 = ea;
 RTL_END
-X("lbzux", ___lbzux___)
-RTL_BEGIN
+RTL_BEGIN("lbzux", ___lbzux___)
     if(ARG1 == 0 || ARG0 == ARG1)
         throw PPC_EXCEPT(PPC_EXCEPTION_PRG, PPC_EXCEPT_PRG_ILG, "Illegal opcode");
     UMODE ea;
@@ -1542,24 +1402,21 @@ RTL_BEGIN
 RTL_END
 
 // Halfword algebraic loads
-X("lha", ___lha___)
-RTL_BEGIN
+RTL_BEGIN("lha", ___lha___)
     UMODE tmp = 0;
     UMODE ea;
     if(ARG2){ tmp = REG2; }
     ea = tmp + EXTS_H2N(ARG1);
     REG0 = EXTS_H2N(LOAD16(ea));
 RTL_END
-X("lhax", ___lhax___)
-RTL_BEGIN
+RTL_BEGIN("lhax", ___lhax___)
     UMODE tmp = 0;
     UMODE ea;
     if(ARG1){ tmp = REG1; }
     ea = tmp + REG2;
     REG0 = EXTS_H2N(LOAD16(ea));
 RTL_END
-X("lhau", ___lhau___)
-RTL_BEGIN
+RTL_BEGIN("lhau", ___lhau___)
     if(ARG2 == 0 || ARG0 == ARG2)
         throw PPC_EXCEPT(PPC_EXCEPTION_PRG, PPC_EXCEPT_PRG_ILG, "Illegal opcode");
     UMODE ea;
@@ -1567,8 +1424,7 @@ RTL_BEGIN
     REG0 = EXTS_H2N(LOAD16(ea));
     REG2 = ea;
 RTL_END
-X("lhaux", ___lhaux___)
-RTL_BEGIN
+RTL_BEGIN("lhaux", ___lhaux___)
     if(ARG1 == 0 || ARG0 == ARG1)
         throw PPC_EXCEPT(PPC_EXCEPTION_PRG, PPC_EXCEPT_PRG_ILG, "Illegal opcode");
     UMODE ea;
@@ -1578,24 +1434,21 @@ RTL_BEGIN
 RTL_END
 
 // Half word loads
-X("lhz", ___lhz___)
-RTL_BEGIN
+RTL_BEGIN("lhz", ___lhz___)
     UMODE tmp = 0;
     UMODE ea;
     if(ARG2){ tmp = REG2; }
     ea = tmp + EXTS_H2N(ARG1);
     REG0 = LOAD16(ea);
 RTL_END
-X("lhzx", ___lhzx___)
-RTL_BEGIN
+RTL_BEGIN("lhzx", ___lhzx___)
     UMODE tmp = 0;
     UMODE ea;
     if(ARG1){ tmp = REG1; }
     ea = tmp + REG2;
     REG0 = LOAD16(ea);
 RTL_END
-X("lhzu", ___lhzu___)
-RTL_BEGIN
+RTL_BEGIN("lhzu", ___lhzu___)
     if(ARG2 == 0 || ARG0 == ARG2)
         throw PPC_EXCEPT(PPC_EXCEPTION_PRG, PPC_EXCEPT_PRG_ILG, "Illegal opcode");
     UMODE ea;
@@ -1603,8 +1456,7 @@ RTL_BEGIN
     REG0 = LOAD16(ea);
     REG2 = ea;
 RTL_END
-X("lhzux", ___lhzux___)
-RTL_BEGIN
+RTL_BEGIN("lhzux", ___lhzux___)
     if(ARG1 == 0 || ARG0 == ARG1)
         throw PPC_EXCEPT(PPC_EXCEPTION_PRG, PPC_EXCEPT_PRG_ILG, "Illegal opcode");
     UMODE ea;
@@ -1615,8 +1467,7 @@ RTL_END
 
 // word loads
 // lwz rD,D(rA)
-X("lwz", ___lwz___)
-RTL_BEGIN
+RTL_BEGIN("lwz", ___lwz___)
     UMODE tmp = 0;
     UMODE ea;
     if(ARG2){ tmp = REG2; }
@@ -1624,8 +1475,7 @@ RTL_BEGIN
     REG0 = LOAD32(ea);
 RTL_END
 // lwzx rD,rA,rB
-X("lwzx", ___lwzx___)
-RTL_BEGIN
+RTL_BEGIN("lwzx", ___lwzx___)
     UMODE tmp = 0;
     UMODE ea;
     if(ARG1){ tmp = REG1; }
@@ -1633,8 +1483,7 @@ RTL_BEGIN
     REG0 = LOAD32(ea);
 RTL_END
 //  lwzu rD,D(rA)
-X("lwzu", ___lwzu___)
-RTL_BEGIN
+RTL_BEGIN("lwzu", ___lwzu___)
     if(ARG2 == 0 || ARG0 == ARG2)
         throw PPC_EXCEPT(PPC_EXCEPTION_PRG, PPC_EXCEPT_PRG_ILG, "Illegal opcode");
     UMODE ea;
@@ -1642,8 +1491,7 @@ RTL_BEGIN
     REG0 = LOAD32(ea);
     REG2 = ea;
 RTL_END
-X("lwzux", ___lwzux___)
-RTL_BEGIN
+RTL_BEGIN("lwzux", ___lwzux___)
     if(ARG1 == 0 || ARG0 == ARG1)
         throw PPC_EXCEPT(PPC_EXCEPTION_PRG, PPC_EXCEPT_PRG_ILG, "Illegal opcode");
     UMODE ea;
@@ -1653,8 +1501,7 @@ RTL_BEGIN
 RTL_END
 
 // Byte reversed indexed loads
-X("lhbrx", ___lhbrx___)
-RTL_BEGIN
+RTL_BEGIN("lhbrx", ___lhbrx___)
     UMODE tmp = 0;
     UMODE ea;
     uint16_t data;
@@ -1663,8 +1510,7 @@ RTL_BEGIN
     data = LOAD16(ea);
     REG0 = SWAPB16(data);
 RTL_END
-X("lwbrx", ___lwbrx___)
-RTL_BEGIN
+RTL_BEGIN("lwbrx", ___lwbrx___)
     UMODE tmp = 0;
     UMODE ea;
     uint32_t data;
@@ -1675,8 +1521,7 @@ RTL_BEGIN
 RTL_END
 
 // load multiple words
-X("lmw", ___lmw___)
-RTL_BEGIN
+RTL_BEGIN("lmw", ___lmw___)
     UMODE tmp = 0;
     UMODE ea;
     int r;
@@ -1691,24 +1536,21 @@ RTL_BEGIN
 RTL_END
 
 // byte stores
-X("stb", ___stb___)
-RTL_BEGIN
+RTL_BEGIN("stb", ___stb___)
     UMODE tmp = 0;
     UMODE ea;
     if(ARG2){ tmp = REG2; }
     ea = tmp + EXTS_H2N(ARG1);
     STORE8(ea, REG0);
 RTL_END
-X("stbx", ___stbx___)
-RTL_BEGIN
+RTL_BEGIN("stbx", ___stbx___)
     UMODE tmp = 0;
     UMODE ea;
     if(ARG1){ tmp = REG1; }
     ea = tmp + REG2;
     STORE8(ea, REG0);
 RTL_END
-X("stbu", ___stbu___)
-RTL_BEGIN
+RTL_BEGIN("stbu", ___stbu___)
     if(ARG2 == 0)
         throw PPC_EXCEPT(PPC_EXCEPTION_PRG, PPC_EXCEPT_PRG_ILG, "Illegal opcode");
     UMODE ea;
@@ -1716,8 +1558,7 @@ RTL_BEGIN
     STORE8(ea, REG0);
     REG2 = ea;
 RTL_END
-X("stbux", ___stbux___)
-RTL_BEGIN
+RTL_BEGIN("stbux", ___stbux___)
     if(ARG1 == 0)
         throw PPC_EXCEPT(PPC_EXCEPTION_PRG, PPC_EXCEPT_PRG_ILG, "Illegal opcode");
     UMODE ea;
@@ -1727,24 +1568,21 @@ RTL_BEGIN
 RTL_END
 
 // half word stores
-X("sth", ___sth___)
-RTL_BEGIN
+RTL_BEGIN("sth", ___sth___)
     UMODE tmp = 0;
     UMODE ea;
     if(ARG2){ tmp = REG2; }
     ea = tmp + EXTS_H2N(ARG1);
     STORE16(ea, REG0);
 RTL_END
-X("sthx", ___sthx___)
-RTL_BEGIN
+RTL_BEGIN("sthx", ___sthx___)
     UMODE tmp = 0;
     UMODE ea;
     if(ARG1){ tmp = REG1; }
     ea = tmp + REG2;
     STORE16(ea, REG0);
 RTL_END
-X("sthu", ___sthu___)
-RTL_BEGIN
+RTL_BEGIN("sthu", ___sthu___)
     if(ARG2 == 0)
         throw PPC_EXCEPT(PPC_EXCEPTION_PRG, PPC_EXCEPT_PRG_ILG, "Illegal opcode");
     UMODE ea;
@@ -1752,8 +1590,7 @@ RTL_BEGIN
     STORE16(ea, REG0);
     REG2 = ea;
 RTL_END
-X("sthux", ___sthux___)
-RTL_BEGIN
+RTL_BEGIN("sthux", ___sthux___)
     if(ARG1 == 0)
         throw PPC_EXCEPT(PPC_EXCEPTION_PRG, PPC_EXCEPT_PRG_ILG, "Illegal opcode");
     UMODE ea;
@@ -1763,24 +1600,21 @@ RTL_BEGIN
 RTL_END
 
 // word stores
-X("stw", ___stw___)
-RTL_BEGIN
+RTL_BEGIN("stw", ___stw___)
     UMODE tmp = 0;
     UMODE ea;
     if(ARG2){ tmp = REG2; }
     ea = tmp + EXTS_H2N(ARG1);
     STORE32(ea, REG0);
 RTL_END
-X("stwx", ___stwx___)
-RTL_BEGIN
+RTL_BEGIN("stwx", ___stwx___)
     UMODE tmp = 0;
     UMODE ea;
     if(ARG1){ tmp = REG1; }
     ea = tmp + REG2;
     STORE32(ea, REG0);
 RTL_END
-X("stwu", ___stwu___)
-RTL_BEGIN
+RTL_BEGIN("stwu", ___stwu___)
     if(ARG2 == 0)
         throw PPC_EXCEPT(PPC_EXCEPTION_PRG, PPC_EXCEPT_PRG_ILG, "Illegal opcode");
     UMODE ea;
@@ -1788,8 +1622,7 @@ RTL_BEGIN
     STORE32(ea, REG0);
     REG2 = ea;
 RTL_END
-X("stwux", ___stwux___)
-RTL_BEGIN
+RTL_BEGIN("stwux", ___stwux___)
     if(ARG1 == 0)
         throw PPC_EXCEPT(PPC_EXCEPTION_PRG, PPC_EXCEPT_PRG_ILG, "Illegal opcode");
     UMODE ea;
@@ -1799,8 +1632,7 @@ RTL_BEGIN
 RTL_END
 
 // byte reversed stores
-X("sthbrx", ___sthbrx___)
-RTL_BEGIN
+RTL_BEGIN("sthbrx", ___sthbrx___)
     UMODE tmp = 0;
     UMODE ea;
     uint16_t data;
@@ -1809,8 +1641,7 @@ RTL_BEGIN
     data = REG0;
     STORE16(ea, SWAPB16(data));
 RTL_END
-X("stwbrx", ___stwbrx___)
-RTL_BEGIN
+RTL_BEGIN("stwbrx", ___stwbrx___)
     UMODE tmp = 0;
     UMODE ea;
     uint32_t data;
@@ -1821,8 +1652,7 @@ RTL_BEGIN
 RTL_END
 
 // multiple word store
-X("stmw", ___stmw___)
-RTL_BEGIN
+RTL_BEGIN("stmw", ___stmw___)
     UMODE tmp = 0;
     UMODE ea;
     int r;
@@ -1847,32 +1677,27 @@ RTL_END
 //              tlbsync
 //              tlbwe
 
-X("tlbwe", ___tlbwe___)
-RTL_BEGIN
+RTL_BEGIN("tlbwe", ___tlbwe___)
     TLBWE();
 RTL_END
 
-X("tlbre", ___tlbre___)
-RTL_BEGIN
+RTL_BEGIN("tlbre", ___tlbre___)
     TLBRE();
 RTL_END
 
-X("tlbsx", ___tlbsx___)
-RTL_BEGIN
+RTL_BEGIN("tlbsx", ___tlbsx___)
     uint64_t ea = REG1;
     if(ARG0){ ea += REG0; }
     TLBSX(ea);
 RTL_END
 
-X("tlbivax", ___tlbivax___)
-RTL_BEGIN
+RTL_BEGIN("tlbivax", ___tlbivax___)
     uint64_t ea = REG1;
     if(ARG0){ ea += REG0; }
     TLBIVAX(ea);
 RTL_END
 
-X("tlbsync", ___tlbsync___)
-RTL_BEGIN
+RTL_BEGIN("tlbsync", ___tlbsync___)
     //dummy
 RTL_END
 
@@ -1895,68 +1720,55 @@ RTL_END
 //
 // TODO  : Right now, no cache is implemented, hence cache instructions are all dummy.
 
-X("dcba", ___dcba___)
-RTL_BEGIN
+RTL_BEGIN("dcba", ___dcba___)
     // dummy
 RTL_END
 
-X("dcbf", ___dcbf___)
-RTL_BEGIN
+RTL_BEGIN("dcbf", ___dcbf___)
     // dummy
 RTL_END
 
-X("dcbi", ___dcbi___)
-RTL_BEGIN
+RTL_BEGIN("dcbi", ___dcbi___)
     // dummy
 RTL_END
 
-X("dcblc", ___dcblc___)
-RTL_BEGIN
+RTL_BEGIN("dcblc", ___dcblc___)
     // dummy
 RTL_END
 
-X("dcbz", ___dcbz___)
-RTL_BEGIN
+RTL_BEGIN("dcbz", ___dcbz___)
     // dummy
 RTL_END
 
-X("dcbst", ___dcbst___)
-RTL_BEGIN
+RTL_BEGIN("dcbst", ___dcbst___)
     // dummy
 RTL_END
 
-X("dcbt", ___dcbt___)
-RTL_BEGIN
+RTL_BEGIN("dcbt", ___dcbt___)
     // dummy
 RTL_END
 
-X("dcbtst", ___dcbtst___)
-RTL_BEGIN
+RTL_BEGIN("dcbtst", ___dcbtst___)
     // dummy
 RTL_END
 
-X("dcbtstls", ___dcbtstls___)
-RTL_BEGIN
+RTL_BEGIN("dcbtstls", ___dcbtstls___)
     // dummy
 RTL_END
 
-X("icbi", ___icbi___)
-RTL_BEGIN
+RTL_BEGIN("icbi", ___icbi___)
     // dummy
 RTL_END
 
-X("icblc", ___icblc___)
-RTL_BEGIN
+RTL_BEGIN("icblc", ___icblc___)
     // dummy
 RTL_END
 
-X("icbt", ___icbt___)
-RTL_BEGIN
+RTL_BEGIN("icbt", ___icbt___)
     // dummy
 RTL_END
 
-X("icbtls", ___icbtls___)
-RTL_BEGIN
+RTL_BEGIN("icbtls", ___icbtls___)
     // dummy
 RTL_END
 
@@ -1972,31 +1784,26 @@ RTL_END
 //             wrtee
 //             wrteei
 
-X("rfi", ___rfi___)
-RTL_BEGIN
+RTL_BEGIN("rfi", ___rfi___)
     MSR = SRR1;
     NIP = ((UMODE)SRR0) & ~0x3ULL;       // Mask Lower 2 bits to zero
 RTL_END
 
-X("rfmci", ___rfmci___)
-RTL_BEGIN
+RTL_BEGIN("rfmci", ___rfmci___)
     MSR = MCSRR1;
     NIP = ((UMODE)MCSRR0) & ~0x3ULL;
 RTL_END
 
-X("rfci", ___rfci___)
-RTL_BEGIN
+RTL_BEGIN("rfci", ___rfci___)
     MSR = CSRR1;
     NIP = ((UMODE)CSRR0) & ~0x3ULL;
 RTL_END
 
-X("sc", ___sc___)
-RTL_BEGIN
+RTL_BEGIN("sc", ___sc___)
     throw PPC_EXCEPT(PPC_EXCEPT_SC, "system call");     // raise a system call exception
 RTL_END
 
-X("mfmsr", ___mfmsr___)
-RTL_BEGIN
+RTL_BEGIN("mfmsr", ___mfmsr___)
     uint64_t newmsr = B_32_63(REG0);
     uint8_t newmsr_cm = ((newmsr & MSR_CM) ? 1:0);
     if((MSR_CM == 0) && (newmsr_cm == 1)) { NIP &= 0xffffffff; }
@@ -2006,21 +1813,18 @@ RTL_BEGIN
     MSR = newmsr;
 RTL_END
 
-X("mtmsr", ___mtmsr___)
-RTL_BEGIN
+RTL_BEGIN("mtmsr", ___mtmsr___)
     REG0 = B_32_63(MSR);
 RTL_END
 
-X("wrtee", ___wrtee___)
-RTL_BEGIN
+RTL_BEGIN("wrtee", ___wrtee___)
 #define wrtee_code(rS)            \
     MSR &= ~(1L << 15);           \
     MSR |= rS & (1L << 15);
 
     wrtee_code(REG0);
 RTL_END
-X("wrteei", ___wrteei___)
-RTL_BEGIN
+RTL_BEGIN("wrteei", ___wrteei___)
 #define wrteei_code(E)            \
     MSR &= ~(1 << 15);            \
     MSR |= ((E & 0x1) << 15);
@@ -2034,8 +1838,7 @@ RTL_END
 //             twi
 //             tw
 
-X("twi", ___twi___)
-RTL_BEGIN
+RTL_BEGIN("twi", ___twi___)
 #define twi_code(TO, rA, SI)                                                           \
     int64_t a = EXTS_W2D(B_32_63(rA));                                                 \
     int64_t b = EXTS_H2D(SI);                                                          \
@@ -2054,8 +1857,7 @@ RTL_BEGIN
     twi_code(ARG0, REG1, ARG2);
 RTL_END
 
-X("tw", ___tw___)
-RTL_BEGIN
+RTL_BEGIN("tw", ___tw___)
 #define tw_code(TO, rA, rB)                                                            \
     int64_t a = EXTS_W2D(B_32_63(rA));                                                 \
     int64_t b = EXTS_W2D(B_32_63(rB));                                                 \
@@ -2083,8 +1885,7 @@ RTL_END
 //              mtspr
 //              mfspr
 
-X("mtcrf", ___mtcrf___)
-RTL_BEGIN
+RTL_BEGIN("mtcrf", ___mtcrf___)
 #define mtcrf_code(CRM, rS)                         \
     uint64_t mask = 0, i;                           \
     uint8_t tmp = CRM;                              \
@@ -2097,8 +1898,7 @@ RTL_BEGIN
     mtcrf_code(ARG0, REG1);
 RTL_END
 
-X("mcrxr", ___mcrxr___)
-RTL_BEGIN
+RTL_BEGIN("mcrxr", ___mcrxr___)
 #define mcrxr_code(crfD)                 \
     update_crF(crfD, get_xerF(0));       \
     /* clear XER[32:35] */               \
@@ -2107,24 +1907,21 @@ RTL_BEGIN
     mcrxr_code(ARG0);
 RTL_END
 
-X("mfcr", ___mfcr___)
-RTL_BEGIN
+RTL_BEGIN("mfcr", ___mfcr___)
 #define mfcr_code(rD)                               \
     rD = B_32_63(CR)
 
     mfcr_code(ARG0);
 RTL_END
 
-X("mfspr", ___mfspr___)
-RTL_BEGIN
+RTL_BEGIN("mfspr", ___mfspr___)
 #define mfspr_code(rD, SPRN)                   \
     rD = SPR(SPRN);
 
     mfspr_code(REG0, ARG1);
 RTL_END
 
-X("mtspr", ___mtspr___)
-RTL_BEGIN
+RTL_BEGIN("mtspr", ___mtspr___)
 #define mtspr_code(SPRN, rS)                  \
     SPR(SPRN) = rS;
 
@@ -2140,25 +1937,21 @@ RTL_END
 //             msync
 //             stwcx.
 
-X("isync", ___isync___)
-RTL_BEGIN
+RTL_BEGIN("isync", ___isync___)
     // Do nothing
 RTL_END
 
 // Barrier
-X("mbar", ___mbar___)
-RTL_BEGIN
+RTL_BEGIN("mbar", ___mbar___)
     //Do nothing
 RTL_END
 
-X("msync", ___msync___)
-RTL_BEGIN
+RTL_BEGIN("msync", ___msync___)
     // Do nothing
 RTL_END
 
 // Reservation load
-X("lwarx", ___lwarx___)
-RTL_BEGIN
+RTL_BEGIN("lwarx", ___lwarx___)
     UMODE tmp = 0;
     UMODE ea;
     if(ARG1){ tmp = REG1; }
@@ -2168,8 +1961,7 @@ RTL_BEGIN
 RTL_END
 
 // Reservation store
-X("stwcx.", ___stwcx_dot___)
-RTL_BEGIN
+RTL_BEGIN("stwcx.", ___stwcx_dot___)
     UMODE tmp = 0;
     UMODE ea;
     if(ARG1){ tmp = REG1; }
@@ -2189,16 +1981,14 @@ RTL_END
 //             mfpmr
 //             mtpmr
 
-X("mtpmr", ___mtpmr___)
-RTL_BEGIN
+RTL_BEGIN("mtpmr", ___mtpmr___)
 #define mtpmr_code(PMRN, rS)                  \
     PMR(PMRN) = rS;
 
     mtpmr_code(ARG0, REG1);
 RTL_END
 
-X("mfpmr", ___mfpmr___)
-RTL_BEGIN
+RTL_BEGIN("mfpmr", ___mfpmr___)
 #define mfpmr_code(rD, PMRN)                  \
     rD = PMR(PMRN);
 
@@ -2210,8 +2000,7 @@ RTL_END
 // mnemonics :
 //              isel
 
-X("isel", ___isel___)
-RTL_BEGIN
+RTL_BEGIN("isel", ___isel___)
     uint64_t a = 0;
     if(ARG1) { a = REG1; }
     if(B_N(CR, (32 + ARG3)) == 0){ REG0 = a;    }
@@ -2289,8 +2078,7 @@ typedef struct SFF {
 
 // ----------------------------------------------------------------------------------
 
-X("brinc", ___brinc___)
-RTL_BEGIN
+RTL_BEGIN("brinc", ___brinc___)
     // FIXME : Verify value of n for e500v2
     int n         = 32;  // Implementation dependant
     uint64_t mask = (MASK(64-n, 63) & REG2);
@@ -2300,16 +2088,14 @@ RTL_BEGIN
     REG0          = (MASK(0, 63-n) & REG1) | (d & mask);
 RTL_END
 
-X("evabs", ___evabs___)
-RTL_BEGIN
+RTL_BEGIN("evabs", ___evabs___)
     uint32_t u, v;
     u    = ABS_32(B_0_31(REG1));
     v    = ABS_32(B_32_63(REG1));
     REG0 = PACK_2W(u, v);
 RTL_END
 
-X("evaddiw", ___evaddiw___)
-RTL_BEGIN
+RTL_BEGIN("evaddiw", ___evaddiw___)
     uint32_t u, v;
     u    = B_32_63(B_0_31(REG1) + (ARG2 & 0xfffff));
     v    = B_32_63(B_32_63(REG1) +(ARG2 & 0xfffff));
@@ -2317,8 +2103,7 @@ RTL_BEGIN
     REG0 = PACK_2W(u, v);
 RTL_END
 
-X("evaddsmiaaw", ___evaddsmiaaw___)
-RTL_BEGIN
+RTL_BEGIN("evaddsmiaaw", ___evaddsmiaaw___)
     uint32_t u, v;
     u    = B_32_63(B_0_31(ACC) + B_0_31(REG1));
     v    = B_32_63(B_32_63(ACC) + B_32_63(REG1));
@@ -2326,8 +2111,7 @@ RTL_BEGIN
     ACC  = REG0;
 RTL_END
 
-X("evaddssiaaw", ___evaddssiaaw___)
-RTL_BEGIN
+RTL_BEGIN("evaddssiaaw", ___evaddssiaaw___)
     int64_t tmp;
     int ovh, ovl, tmp31;
     uint64_t h=0, l=0;
@@ -2349,8 +2133,7 @@ RTL_BEGIN
     UPDATE_SPEFSCR_OV(ovh, ovl);
 RTL_END
 
-X("evaddusiaaw", ___evaddusiaaw___)
-RTL_BEGIN
+RTL_BEGIN("evaddusiaaw", ___evaddusiaaw___)
     uint64_t tmp;
     int ovh, ovl, tmp31;
     uint64_t h=0, l=0;
@@ -2372,8 +2155,7 @@ RTL_BEGIN
     UPDATE_SPEFSCR_OV(ovh, ovl);
 RTL_END
 
-X("evaddumiaaw", ___evaddumiaaw___)
-RTL_BEGIN
+RTL_BEGIN("evaddumiaaw", ___evaddumiaaw___)
     uint32_t u, v;
     u     = B_32_63(B_0_31(ACC) + B_0_31(REG1));
     v     = B_32_63(B_32_63(ACC) + B_32_63(REG1));
@@ -2381,26 +2163,22 @@ RTL_BEGIN
     ACC   = REG0;
 RTL_END
 
-X("evaddw", ___evaddw___)
-RTL_BEGIN
+RTL_BEGIN("evaddw", ___evaddw___)
     uint32_t u, v;
     u     = B_32_63(B_0_31(REG1) + B_0_31(REG2));
     v     = B_32_63(B_32_63(REG1) + B_32_63(REG2));
     REG0  = PACK_2W(u, v);
 RTL_END
 
-X("evand", ___evand___)
-RTL_BEGIN
+RTL_BEGIN("evand", ___evand___)
     REG0  = REG1 & REG2;
 RTL_END
 
-X("evandc", ___evandc___)
-RTL_BEGIN
+RTL_BEGIN("evandc", ___evandc___)
     REG0  = REG1 & ~REG2;
 RTL_END
 
-X("evcmpeq", ___evcmpeq___)
-RTL_BEGIN
+RTL_BEGIN("evcmpeq", ___evcmpeq___)
     uint32_t ah, al, bh, bl;
     int ch=0, cl=0;
 
@@ -2416,8 +2194,7 @@ RTL_BEGIN
     update_crF(ARG0, ((ch << 3) | (cl << 2) | ((ch | cl) << 1) | (ch & cl)));
 RTL_END
 
-X("evcmpgts", ___evcmpgts___)
-RTL_BEGIN
+RTL_BEGIN("evcmpgts", ___evcmpgts___)
     int32_t ah, al, bh, bl;
     int ch=0, cl=0;
 
@@ -2433,8 +2210,7 @@ RTL_BEGIN
     update_crF(ARG0, ((ch << 3) | (cl << 2) | ((ch | cl) << 1) | (ch & cl)));
 RTL_END
 
-X("evcmpgtu", ___evcmpgtu___)
-RTL_BEGIN
+RTL_BEGIN("evcmpgtu", ___evcmpgtu___)
     uint32_t ah, al, bh, bl;
     int ch=0, cl=0;
 
@@ -2450,8 +2226,7 @@ RTL_BEGIN
     update_crF(ARG0, ((ch << 3) | (cl << 2) | ((ch | cl) << 1) | (ch & cl)));
 RTL_END
 
-X("evcmplts", ___evcmplts___)
-RTL_BEGIN
+RTL_BEGIN("evcmplts", ___evcmplts___)
     int32_t ah, al, bh, bl;
     int ch=0, cl=0;
 
@@ -2467,8 +2242,7 @@ RTL_BEGIN
     update_crF(ARG0, ((ch << 3) | (cl << 2) | ((ch | cl) << 1) | (ch & cl)));
 RTL_END
 
-X("evcmpltu", ___evcmpltu___)
-RTL_BEGIN
+RTL_BEGIN("evcmpltu", ___evcmpltu___)
     uint32_t ah, al, bh, bl;
     int ch=0, cl=0;
 
@@ -2484,8 +2258,7 @@ RTL_BEGIN
     update_crF(ARG0, ((ch << 3) | (cl << 2) | ((ch | cl) << 1) | (ch & cl)));
 RTL_END
 
-X("evcntlsw", ___evcntlsw___)
-RTL_BEGIN
+RTL_BEGIN("evcntlsw", ___evcntlsw___)
     int n = 0;
     uint64_t s = B_N(REG1, n);
     uint64_t h, l;
@@ -2508,8 +2281,7 @@ RTL_BEGIN
     REG0 = (h << 32) | l;
 RTL_END
 
-X("evcntlzw", ___evcntlzw___)
-RTL_BEGIN
+RTL_BEGIN("evcntlzw", ___evcntlzw___)
     int n = 0;
     uint64_t h, l;
 
@@ -2529,41 +2301,35 @@ RTL_BEGIN
     REG0 = (h << 32) | l;
 RTL_END
 
-X("evdivws", ___evdivws___)
-RTL_BEGIN
+RTL_BEGIN("evdivws", ___evdivws___)
     // TODO : Implement this
     throw sim_except_fatal("Not implemented !!");
 RTL_END
 
-X("evdivwu", ___evdivwu___)
-RTL_BEGIN
+RTL_BEGIN("evdivwu", ___evdivwu___)
     // TODO : Implement this
     throw sim_except_fatal("Not implemented !!");
 RTL_END
 
-X("eveqv", ___eveqv___)
-RTL_BEGIN
+RTL_BEGIN("eveqv", ___eveqv___)
     REG0 = REG1 ^ REG2;  // xor to compare
 RTL_END
 
-X("evextsb", ___evextsb___)
-RTL_BEGIN
+RTL_BEGIN("evextsb", ___evextsb___)
     uint32_t u, v;
     u    = B_32_63(EXTS_B2D(B_24_31(REG1)));
     v    = B_32_63(EXTS_B2D(B_56_63(REG1)));
     REG0 = PACK_2W(u, v);
 RTL_END
 
-X("evextsh", ___evextsh___)
-RTL_BEGIN
+RTL_BEGIN("evextsh", ___evextsh___)
     uint32_t u, v;
     u    = B_32_63(EXTS_H2D(B_16_31(REG1)));
     v    = B_32_63(EXTS_H2D(B_48_63(REG1)));
     REG0 = PACK_2W(u, v);
 RTL_END
 
-X("evldd", ___evldd___)
-RTL_BEGIN
+RTL_BEGIN("evldd", ___evldd___)
     UMODE b = 0;
     UMODE ea;
 
@@ -2573,8 +2339,7 @@ RTL_BEGIN
     REG0 = LOAD64(ea);
 RTL_END
 
-X("evlddx", ___evlddx___)
-RTL_BEGIN
+RTL_BEGIN("evlddx", ___evlddx___)
     UMODE b = 0;
     UMODE ea;
 
@@ -2584,8 +2349,7 @@ RTL_BEGIN
     REG0 = LOAD64(ea);
 RTL_END
 
-X("evldh", ___evldh___)
-RTL_BEGIN
+RTL_BEGIN("evldh", ___evldh___)
     UMODE b = 0, ea;
 
     if(ARG2){ b = REG2; }
@@ -2594,8 +2358,7 @@ RTL_BEGIN
     REG0 = (U64(LOAD16(ea)) << 48) | (U64(LOAD16(ea + 2)) << 32) | (U64(LOAD16(ea + 4)) << 16) | U64(LOAD16(ea + 6));
 RTL_END
 
-X("evldhx", ___evldhx___)
-RTL_BEGIN
+RTL_BEGIN("evldhx", ___evldhx___)
     UMODE b = 0, ea;
 
     if(ARG1){ b = REG1; }
@@ -2604,8 +2367,7 @@ RTL_BEGIN
     REG0 = (U64(LOAD16(ea)) << 48) | (U64(LOAD16(ea + 2)) << 32) | (U64(LOAD16(ea + 4)) << 16) | U64(LOAD16(ea + 6));
 RTL_END
 
-X("evldw", ___evldw___)
-RTL_BEGIN
+RTL_BEGIN("evldw", ___evldw___)
     UMODE b = 0, ea;
 
     if(ARG2){ b = REG2; }
@@ -2614,8 +2376,7 @@ RTL_BEGIN
     REG0 = (U64(LOAD32(ea)) << 32) | U64(LOAD32(ea + 4));
 RTL_END
 
-X("evldwx", ___evldwx___)
-RTL_BEGIN
+RTL_BEGIN("evldwx", ___evldwx___)
     UMODE b = 0, ea;
 
     if(ARG1){ b = REG1;  }
@@ -2624,8 +2385,7 @@ RTL_BEGIN
     REG0 = (U64(LOAD32(ea)) << 32) | U64(LOAD32(ea + 4));
 RTL_END
 
-X("evlhhesplat", ___evlhhesplat___)
-RTL_BEGIN
+RTL_BEGIN("evlhhesplat", ___evlhhesplat___)
     UMODE b = 0, ea;
 
     if(ARG2){ b = REG2; }
@@ -2635,8 +2395,7 @@ RTL_BEGIN
     REG0 = ((U64(v) << 48) | (U64(v) << 16)) & 0xffff0000ffff0000ULL;
 RTL_END
 
-X("evlhhesplatx", ___evlhhesplatx___)
-RTL_BEGIN
+RTL_BEGIN("evlhhesplatx", ___evlhhesplatx___)
     UMODE b = 0, ea;
 
     if(ARG1){ b = REG1;  }
@@ -2646,8 +2405,7 @@ RTL_BEGIN
     REG0 = ((U64(v) << 48) | (U64(v) << 16)) & 0xffff0000ffff0000ULL;
 RTL_END
 
-X("evlhhossplat", ___evlhhossplat___)
-RTL_BEGIN
+RTL_BEGIN("evlhhossplat", ___evlhhossplat___)
     UMODE b = 0, ea;
     uint32_t u;
 
@@ -2658,8 +2416,7 @@ RTL_BEGIN
     REG0 = PACK_2W(u, u);
 RTL_END
 
-X("evlhhossplatx", ___evlhhossplatx___)
-RTL_BEGIN
+RTL_BEGIN("evlhhossplatx", ___evlhhossplatx___)
     UMODE b = 0, ea;
     uint32_t u;
 
@@ -2670,8 +2427,7 @@ RTL_BEGIN
     REG0 = PACK_2W(u, u);
 RTL_END
 
-X("evlhhousplat", ___evlhhousplat___)
-RTL_BEGIN
+RTL_BEGIN("evlhhousplat", ___evlhhousplat___)
     UMODE b = 0, ea;
 
     if(ARG2){ b = REG2; }
@@ -2681,8 +2437,7 @@ RTL_BEGIN
     REG0 = (U64(v) << 32) | U64(v);
 RTL_END
 
-X("evlhhousplatx", ___evlhhousplatx___)
-RTL_BEGIN
+RTL_BEGIN("evlhhousplatx", ___evlhhousplatx___)
     UMODE b = 0, ea;
 
     if(ARG1){ b = REG1;  }
@@ -2692,8 +2447,7 @@ RTL_BEGIN
     REG0 = (U64(v) << 32) | U64(v);
 RTL_END
 
-X("evlwhe", ___evlwhe___)
-RTL_BEGIN
+RTL_BEGIN("evlwhe", ___evlwhe___)
     UMODE b = 0, ea;
 
     if(ARG2){ b = REG2; }
@@ -2702,8 +2456,7 @@ RTL_BEGIN
     REG0 = (U64(LOAD16(ea)) << 48) | (U64(LOAD16(ea+2)) << 16);
 RTL_END
 
-X("evlwhex", ___evlwhex___)
-RTL_BEGIN
+RTL_BEGIN("evlwhex", ___evlwhex___)
     UMODE b = 0, ea;
 
     if(ARG1){ b = REG1; }
@@ -2712,8 +2465,7 @@ RTL_BEGIN
     REG0 = (U64(LOAD16(ea)) << 48) | (U64(LOAD16(ea+2)) << 16);
 RTL_END
 
-X("evlwhos", ___evlwhos___)
-RTL_BEGIN
+RTL_BEGIN("evlwhos", ___evlwhos___)
     UMODE b = 0, ea;
     uint32_t u, v;
 
@@ -2725,8 +2477,7 @@ RTL_BEGIN
     REG0 = PACK_2W(u, v);
 RTL_END
 
-X("evlwhosx", ___evlwhosx___)
-RTL_BEGIN
+RTL_BEGIN("evlwhosx", ___evlwhosx___)
     UMODE b = 0, ea;
     uint32_t u, v;
 
@@ -2738,8 +2489,7 @@ RTL_BEGIN
     REG0 = PACK_2W(u, v);
 RTL_END
 
-X("evlwhou", ___evlwhou___)
-RTL_BEGIN
+RTL_BEGIN("evlwhou", ___evlwhou___)
     UMODE b = 0, ea;
     uint32_t u, v;
 
@@ -2751,8 +2501,7 @@ RTL_BEGIN
     REG0 = PACK_2W(u, v);
 RTL_END
 
-X("evlwhoux", ___evlwhoux___)
-RTL_BEGIN
+RTL_BEGIN("evlwhoux", ___evlwhoux___)
     UMODE b = 0, ea;
     uint32_t u, v;
 
@@ -2764,8 +2513,7 @@ RTL_BEGIN
     REG0 = PACK_2W(u, v);
 RTL_END
 
-X("evlwhsplat", ___evlwhsplat___)
-RTL_BEGIN
+RTL_BEGIN("evlwhsplat", ___evlwhsplat___)
     UMODE b = 0, ea;
 
     if(ARG2){ b = REG2; }
@@ -2777,8 +2525,7 @@ RTL_BEGIN
     REG0 = (U64(u) << 48) | (U64(u) << 32) | (U64(v) << 16) | U64(v);
 RTL_END
 
-X("evlwhsplatx", ___evlwhsplatx___)
-RTL_BEGIN
+RTL_BEGIN("evlwhsplatx", ___evlwhsplatx___)
     UMODE b = 0, ea;
 
     if(ARG1){ b = REG1; }
@@ -2790,8 +2537,7 @@ RTL_BEGIN
     REG0 = (U64(u) << 48) | (U64(u) << 32) | (U64(v) << 16) | U64(v);
 RTL_END
 
-X("evlwwsplat", ___evlwwsplat___)
-RTL_BEGIN
+RTL_BEGIN("evlwwsplat", ___evlwwsplat___)
     UMODE b = 0, ea;
 
     if(ARG2){ b = REG2; }
@@ -2802,8 +2548,7 @@ RTL_BEGIN
     REG0 = (U64(u) << 32) | U64(u);
 RTL_END
 
-X("evlwwsplatx", ___evlwwsplatx___)
-RTL_BEGIN
+RTL_BEGIN("evlwwsplatx", ___evlwwsplatx___)
     UMODE b = 0, ea;
 
     if(ARG1){ b = REG1; }
@@ -2814,92 +2559,80 @@ RTL_BEGIN
     REG0 = (U64(u) << 32) | U64(u);
 RTL_END
 
-X("evmergehi", ___evmergehi___)
-RTL_BEGIN
+RTL_BEGIN("evmergehi", ___evmergehi___)
     uint32_t u, v;
     u    = B_0_31(REG1);
     v    = B_0_31(REG2);
     REG0 = PACK_2W(u, v);
 RTL_END
 
-X("evmergelo", ___evmergelo___)
-RTL_BEGIN
+RTL_BEGIN("evmergelo", ___evmergelo___)
     uint32_t u, v;
     u    = B_32_63(REG1);
     v    = B_32_63(REG2);
     REG0 = PACK_2W(u, v);
 RTL_END
 
-X("evmergehilo", ___evmergehilo___)
-RTL_BEGIN
+RTL_BEGIN("evmergehilo", ___evmergehilo___)
     uint32_t u, v;
     u    = B_0_31(REG1);
     v    = B_32_63(REG2);
     REG0 = PACK_2W(u, v);
 RTL_END
 
-X("evmergelohi", ___evmergelohi___)
-RTL_BEGIN
+RTL_BEGIN("evmergelohi", ___evmergelohi___)
     uint32_t u, v;
     u    = B_32_63(REG1);
     v    = B_0_31(REG2);
     REG0 = PACK_2W(u, v);
 RTL_END
 
-X("evmhegsmfaa", ___evmhegsmfaa___)
-RTL_BEGIN
+RTL_BEGIN("evmhegsmfaa", ___evmhegsmfaa___)
     uint64_t tmp = GSF(B_32_47(REG1), B_32_47(REG2));
     REG0 = ACC + tmp;
     ACC  = REG0;
 RTL_END
 
-X("evmhegsmfan", ___evmhegsmfan___)
-RTL_BEGIN
+RTL_BEGIN("evmhegsmfan", ___evmhegsmfan___)
     uint64_t tmp = GSF(B_32_47(REG1), B_32_47(REG2));
     REG0 = ACC - tmp;
     ACC  = REG0;
 RTL_END
 
-X("evmhegsmiaa", ___evmhegsmiaa___)
-RTL_BEGIN
+RTL_BEGIN("evmhegsmiaa", ___evmhegsmiaa___)
     uint64_t tmp = B_32_63(EXTS_H2W(B_32_47(REG1)) * EXTS_H2W(B_32_47(REG2)));
     tmp = EXTS_W2D(tmp);
     REG0 = ACC + tmp;
     ACC  = REG0;
 RTL_END
 
-X("evmhegsmian", ___evmhegsmian___)
-RTL_BEGIN
+RTL_BEGIN("evmhegsmian", ___evmhegsmian___)
     uint64_t tmp = B_32_63(EXTS_H2W(B_32_47(REG1)) * EXTS_H2W(B_32_47(REG2)));
     tmp = EXTS_W2D(tmp);
     REG0 = ACC + tmp;
     ACC  = REG0;
 RTL_END
 
-X("evmhegumiaa", ___evmhegumiaa___)
-RTL_BEGIN
+RTL_BEGIN("evmhegumiaa", ___evmhegumiaa___)
     uint64_t tmp = B_32_63(B_32_47(REG1) * B_32_47(REG2));
     REG0 = ACC + tmp;
     ACC  = REG0;
 RTL_END
 
-X("evmhegumian", ___evmhegumian___)
-RTL_BEGIN
+RTL_BEGIN("evmhegumian", ___evmhegumian___)
     uint64_t tmp = B_32_63(B_32_47(REG1) * B_32_47(REG2));
     REG0 = ACC - tmp;
     ACC  = REG0;
 RTL_END
 
-X("evmhesmf", ___evmhesmf___)
-RTL_BEGIN
+RTL_BEGIN("evmhesmf", ___evmhesmf___)
     uint32_t u, v;
     u    = B_32_63(SF(B_0_15(REG1), B_0_15(REG2)));
     v    = B_32_63(SF(B_32_47(REG1), B_32_47(REG2)));
     REG0 = PACK_2W(u, v);
 RTL_END
 
-X("evmhesmfa", ___evmhesmfa___)
-RTL_BEGIN
+RTL_BEGIN("evmhesmfa", ___evmhesmfa___)
     uint32_t u, v;
     u    = B_32_63(SF(B_0_15(REG1), B_0_15(REG2)));
     v    = B_32_63(SF(B_32_47(REG1), B_32_47(REG2)));
@@ -2907,8 +2640,7 @@ RTL_BEGIN
     ACC  = REG0;
 RTL_END
 
-X("evmhesmfaaw", ___evmhesmfaaw___)
-RTL_BEGIN
+RTL_BEGIN("evmhesmfaaw", ___evmhesmfaaw___)
     uint32_t u = B_32_63(B_0_31(ACC)  + SF(B_0_15(REG1), B_0_15(REG2)));
     uint32_t v = B_32_63(B_32_63(ACC) + SF(B_32_47(REG1), B_32_47(REG2)));
 
@@ -2916,8 +2648,7 @@ RTL_BEGIN
     ACC  = REG0;
 RTL_END
 
-X("evmhesmfanw", ___evmhesmfanw___)
-RTL_BEGIN
+RTL_BEGIN("evmhesmfanw", ___evmhesmfanw___)
     uint32_t u = B_32_63(B_0_31(ACC)  - SF(B_0_15(REG1), B_0_15(REG2)));
     uint32_t v = B_32_63(B_32_63(ACC) - SF(B_32_47(REG1), B_32_47(REG2)));
 
@@ -2925,16 +2656,14 @@ RTL_BEGIN
     ACC  = REG0;
 RTL_END
 
-X("evmhesmi", ___evmhesmi___)
-RTL_BEGIN
+RTL_BEGIN("evmhesmi", ___evmhesmi___)
     uint32_t u = B_32_63(EXTS_H2W(B_0_15(REG1)) * EXTS_H2W(B_0_15(REG2)));
     uint32_t v = B_32_63(EXTS_H2W(B_32_47(REG1)) * EXTS_H2W(B_32_47(REG2)));
 
     REG0 = (U64(u) << 32) | U64(v);
 RTL_END
 
-X("evmhesmia", ___evmhesmia___)
-RTL_BEGIN
+RTL_BEGIN("evmhesmia", ___evmhesmia___)
     uint32_t u = B_32_63(EXTS_H2W(B_0_15(REG1)) * EXTS_H2W(B_0_15(REG2)));
     uint32_t v = B_32_63(EXTS_H2W(B_32_47(REG1)) * EXTS_H2W(B_32_47(REG2)));
 
@@ -2942,8 +2671,7 @@ RTL_BEGIN
     ACC  = REG0;
 RTL_END
 
-X("evmhesmiaaw", ___evmhesmiaaw___)
-RTL_BEGIN
+RTL_BEGIN("evmhesmiaaw", ___evmhesmiaaw___)
     uint32_t u = B_32_63(EXTS_H2W(B_0_15(REG1)) * EXTS_H2W(B_0_15(REG2)));
     uint32_t v = B_32_63(EXTS_H2W(B_32_47(REG1)) * EXTS_H2W(B_32_47(REG2)));
 
@@ -2954,8 +2682,7 @@ RTL_BEGIN
     ACC  = REG0;
 RTL_END
 
-X("evmhesmianw", ___evmhesmianw___)
-RTL_BEGIN
+RTL_BEGIN("evmhesmianw", ___evmhesmianw___)
     uint32_t u = B_32_63(EXTS_H2W(B_0_15(REG1)) * EXTS_H2W(B_0_15(REG2)));
     uint32_t v = B_32_63(EXTS_H2W(B_32_47(REG1)) * EXTS_H2W(B_32_47(REG2)));
 
@@ -2966,8 +2693,7 @@ RTL_BEGIN
     ACC  = REG0;
 RTL_END
 
-X("evmhessf", ___evmhessf___)
-RTL_BEGIN
+RTL_BEGIN("evmhessf", ___evmhessf___)
     uint32_t tmp;
     uint32_t u, v;
     bool movh, movl;
@@ -2985,8 +2711,7 @@ RTL_BEGIN
     UPDATE_SPEFSCR_OV(movh, movl);
 RTL_END
 
-X("evmhessfa", ___evmhessfa___)
-RTL_BEGIN
+RTL_BEGIN("evmhessfa", ___evmhessfa___)
     uint32_t tmp;
     uint32_t u, v;
     bool movh, movl;
@@ -3005,8 +2730,7 @@ RTL_BEGIN
     UPDATE_SPEFSCR_OV(movh, movl);
 RTL_END
 
-X("evmhessfaaw", ___evmhessfaaw___)
-RTL_BEGIN
+RTL_BEGIN("evmhessfaaw", ___evmhessfaaw___)
     uint32_t tmp, u, v;
     uint64_t tmp64;
     bool movh, movl, ovh, ovl;
@@ -3035,8 +2759,7 @@ RTL_BEGIN
     UPDATE_SPEFSCR_OV(movh, movl);
 RTL_END
 
-X("evmhessfanw", ___evmhessfanw___)
-RTL_BEGIN
+RTL_BEGIN("evmhessfanw", ___evmhessfanw___)
     uint32_t tmp, u, v;
     uint64_t tmp64;
     bool movh, movl, ovh, ovl;
@@ -3065,8 +2788,7 @@ RTL_BEGIN
     UPDATE_SPEFSCR_OV(movh, movl);
 RTL_END
 
-X("evmhessiaaw", ___evmhessiaaw___)
-RTL_BEGIN
+RTL_BEGIN("evmhessiaaw", ___evmhessiaaw___)
     uint32_t tmp;
     uint64_t tmp64;
     uint32_t u, v;
@@ -3088,8 +2810,7 @@ RTL_BEGIN
     UPDATE_SPEFSCR_OV(ovh, ovl);
 RTL_END
 
-X("evmhessianw", ___evmhessianw___)
-RTL_BEGIN
+RTL_BEGIN("evmhessianw", ___evmhessianw___)
     uint32_t tmp;
     uint64_t tmp64;
     uint32_t u, v;
@@ -3111,8 +2832,7 @@ RTL_BEGIN
     UPDATE_SPEFSCR_OV(ovh, ovl);
 RTL_END
 
-X("evmheumi", ___evmheumi___)
-RTL_BEGIN
+RTL_BEGIN("evmheumi", ___evmheumi___)
     uint32_t u, v;
 
     u  = X86_MULUW_L(B_0_15(REG1), B_0_15(REG2));
@@ -3121,8 +2841,7 @@ RTL_BEGIN
     REG0 = (U64(u) << 32) | U64(v);
 RTL_END
 
-X("evmheumia", ___evmheumia___)
-RTL_BEGIN
+RTL_BEGIN("evmheumia", ___evmheumia___)
     uint32_t u, v;
 
     u  = X86_MULUW_L(B_0_15(REG1), B_0_15(REG2));
@@ -3132,8 +2851,7 @@ RTL_BEGIN
     ACC  = REG0;
 RTL_END
 
-X("evmheumiaaw", ___evmheumiaaw___)
-RTL_BEGIN
+RTL_BEGIN("evmheumiaaw", ___evmheumiaaw___)
     uint32_t tmp;
     uint32_t u, v;
 
@@ -3147,8 +2865,7 @@ RTL_BEGIN
     ACC  = REG0;
 RTL_END
 
-X("evmheumianw", ___evmheumianw___)
-RTL_BEGIN
+RTL_BEGIN("evmheumianw", ___evmheumianw___)
     uint32_t tmp;
     uint32_t u, v;
 
@@ -3162,8 +2879,7 @@ RTL_BEGIN
     ACC  = REG0;
 RTL_END
 
-X("evmheusiaaw", ___evmheusiaaw___)
-RTL_BEGIN
+RTL_BEGIN("evmheusiaaw", ___evmheusiaaw___)
     uint32_t tmp;
     uint64_t tmp64;
     bool     ovh, ovl;
@@ -3185,8 +2901,7 @@ RTL_BEGIN
     UPDATE_SPEFSCR_OV(ovh, ovl);
 RTL_END
 
-X("evmheusianw", ___evmheusianw___)
-RTL_BEGIN
+RTL_BEGIN("evmheusianw", ___evmheusianw___)
     uint32_t tmp;
     uint64_t tmp64;
     bool     ovh, ovl;
@@ -3209,24 +2924,21 @@ RTL_BEGIN
 RTL_END
 
 
-X("evmhogsmfaa", ___evmhogsmfaa___)
-RTL_BEGIN
+RTL_BEGIN("evmhogsmfaa", ___evmhogsmfaa___)
     uint64_t tmp64;
     tmp64 = GSF(B_48_63(REG1), B_48_63(REG2));
     REG0  = ACC + tmp64;
     ACC   = REG0;
 RTL_END
 
-X("evmhogsmfan", ___evmhogsmfan___)
-RTL_BEGIN
+RTL_BEGIN("evmhogsmfan", ___evmhogsmfan___)
     uint64_t tmp64;
     tmp64 = GSF(B_48_63(REG1), B_48_63(REG2));
     REG0  = ACC - tmp64;
     ACC   = REG0;
 RTL_END
 
-X("evmhogsmiaa", ___evmhogsmiaa___)
-RTL_BEGIN
+RTL_BEGIN("evmhogsmiaa", ___evmhogsmiaa___)
     uint32_t tmp;
     uint64_t tmp64;
     tmp   = X86_MULW_L(B_48_63(REG1), B_48_63(REG2));
@@ -3235,8 +2947,7 @@ RTL_BEGIN
     ACC   = REG0;
 RTL_END
 
-X("evmhogsmian", ___evmhogsmian___)
-RTL_BEGIN
+RTL_BEGIN("evmhogsmian", ___evmhogsmian___)
     uint32_t tmp;
     uint64_t tmp64;
     tmp   = X86_MULW_L(B_48_63(REG1), B_48_63(REG2));
@@ -3245,8 +2956,7 @@ RTL_BEGIN
     ACC   = REG0;
 RTL_END
 
-X("evmhogumiaa", ___evmhogumiaa___)
-RTL_BEGIN
+RTL_BEGIN("evmhogumiaa", ___evmhogumiaa___)
     uint32_t tmp;
     uint64_t tmp64;
     tmp   = X86_MULUW_L(B_48_63(REG1), B_48_63(REG2));
@@ -3255,8 +2965,7 @@ RTL_BEGIN
     ACC   = REG0;
 RTL_END
 
-X("evmhogumian", ___evmhogumian___)
-RTL_BEGIN
+RTL_BEGIN("evmhogumian", ___evmhogumian___)
     uint32_t tmp;
     uint64_t tmp64;
     tmp   = X86_MULUW_L(B_48_63(REG1), B_48_63(REG2));
@@ -3265,16 +2974,14 @@ RTL_BEGIN
     ACC   = REG0;
 RTL_END
 
-X("evmhosmf", ___evmhosmf___)
-RTL_BEGIN
+RTL_BEGIN("evmhosmf", ___evmhosmf___)
     uint32_t u, v;
     u    = SF(B_16_31(REG1), B_16_31(REG2));
     v    = SF(B_48_63(REG1), B_48_63(REG2));
     REG0 = (U64(u) << 32) | U64(v);
 RTL_END
 
-X("evmhosmfa", ___evmhosmfa___)
-RTL_BEGIN
+RTL_BEGIN("evmhosmfa", ___evmhosmfa___)
     uint32_t u, v;
     u    = SF(B_16_31(REG1), B_16_31(REG2));
     v    = SF(B_48_63(REG1), B_48_63(REG2));
@@ -3282,8 +2989,7 @@ RTL_BEGIN
     ACC  = REG0;
 RTL_END
 
-X("evmhosmfaaw", ___evmhosmfaaw___)
-RTL_BEGIN
+RTL_BEGIN("evmhosmfaaw", ___evmhosmfaaw___)
     uint32_t tmp, u, v;
 
     tmp = SF(B_16_31(REG1), B_16_31(REG2));
@@ -3296,8 +3002,7 @@ RTL_BEGIN
     ACC  = REG0;
 RTL_END
 
-X("evmhosmfanw", ___evmhosmfanw___)
-RTL_BEGIN
+RTL_BEGIN("evmhosmfanw", ___evmhosmfanw___)
     uint32_t tmp, u, v;
 
     tmp = SF(B_16_31(REG1), B_16_31(REG2));
@@ -3310,16 +3015,14 @@ RTL_BEGIN
     ACC  = REG0;
 RTL_END
 
-X("evmhosmi", ___evmhosmi___)
-RTL_BEGIN
+RTL_BEGIN("evmhosmi", ___evmhosmi___)
     uint32_t u, v;
     u    = X86_MULW_L(B_16_31(REG1), B_16_31(REG2));
     v    = X86_MULW_L(B_48_63(REG1), B_48_63(REG2));
     REG0 = (U64(u) << 32) | U64(v);
 RTL_END
 
-X("evmhosmia", ___evmhosmia___)
-RTL_BEGIN
+RTL_BEGIN("evmhosmia", ___evmhosmia___)
     uint32_t u, v;
     u    = X86_MULW_L(B_16_31(REG1), B_16_31(REG2));
     v    = X86_MULW_L(B_48_63(REG1), B_48_63(REG2));
@@ -3327,8 +3030,7 @@ RTL_BEGIN
     ACC  = REG0;
 RTL_END
 
-X("evmhosmiaaw", ___evmhosmiaaw___)
-RTL_BEGIN
+RTL_BEGIN("evmhosmiaaw", ___evmhosmiaaw___)
     uint32_t tmp, u, v;
 
     tmp = X86_MULW_L(B_16_31(REG1), B_16_31(REG2));
@@ -3341,8 +3043,7 @@ RTL_BEGIN
     ACC  = REG0;
 RTL_END
 
-X("evmhosmianw", ___evmhosmianw___)
-RTL_BEGIN
+RTL_BEGIN("evmhosmianw", ___evmhosmianw___)
     uint32_t tmp, u, v;
 
     tmp = X86_MULW_L(B_16_31(REG1), B_16_31(REG2));
@@ -3355,8 +3056,7 @@ RTL_BEGIN
     ACC  = REG0;
 RTL_END
 
-X("evmhossf", ___evmhossf___)
-RTL_BEGIN
+RTL_BEGIN("evmhossf", ___evmhossf___)
     uint32_t tmp, u, v;
     bool movh, movl;
 
@@ -3372,8 +3072,7 @@ RTL_BEGIN
     UPDATE_SPEFSCR_OV(movh, movl);
 RTL_END
 
-X("evmhossfa", ___evmhossfa___)
-RTL_BEGIN
+RTL_BEGIN("evmhossfa", ___evmhossfa___)
     uint32_t tmp, u, v;
     bool movh, movl;
 
@@ -3390,8 +3089,7 @@ RTL_BEGIN
     UPDATE_SPEFSCR_OV(movh, movl);
 RTL_END
 
-X("evmhossfaaw", ___evmhossfaaw___)
-RTL_BEGIN
+RTL_BEGIN("evmhossfaaw", ___evmhossfaaw___)
     uint32_t tmp, u, v;
     uint64_t tmp64;
     bool movh, movl, ovh, ovl;
@@ -3416,8 +3114,7 @@ RTL_BEGIN
     UPDATE_SPEFSCR_OV(ovh | movh, ovl | movl);
 RTL_END
 
-X("evmhossfanw", ___evmhossfanw___)
-RTL_BEGIN
+RTL_BEGIN("evmhossfanw", ___evmhossfanw___)
     uint32_t tmp, u, v;
     uint64_t tmp64;
     bool movh, movl, ovh, ovl;
@@ -3442,8 +3139,7 @@ RTL_BEGIN
     UPDATE_SPEFSCR_OV(ovh | movh, ovl | movl);
 RTL_END
 
-X("evmhossiaaw", ___evmhossiaaw___)
-RTL_BEGIN
+RTL_BEGIN("evmhossiaaw", ___evmhossiaaw___)
     uint32_t tmp, u, v;
     uint64_t tmp64;
     bool ovh, ovl;
@@ -3464,8 +3160,7 @@ RTL_BEGIN
     UPDATE_SPEFSCR_OV(ovh, ovl);
 RTL_END
 
-X("evmhossianw", ___evmhossianw___)
-RTL_BEGIN
+RTL_BEGIN("evmhossianw", ___evmhossianw___)
     uint32_t tmp, u, v;
     uint64_t tmp64;
     bool ovh, ovl;
@@ -3486,16 +3181,14 @@ RTL_BEGIN
     UPDATE_SPEFSCR_OV(ovh, ovl);
 RTL_END
 
-X("evmhoumi", ___evmhoumi___)
-RTL_BEGIN
+RTL_BEGIN("evmhoumi", ___evmhoumi___)
     uint32_t u, v;
     u    = X86_MULUW_L(B_16_31(REG1), B_16_31(REG2));
     v    = X86_MULUW_L(B_48_63(REG1), B_48_63(REG2));
     REG0 = (U64(u) << 32) | U64(v);
 RTL_END
 
-X("evmhoumia", ___evmhoumia___)
-RTL_BEGIN
+RTL_BEGIN("evmhoumia", ___evmhoumia___)
     uint32_t u, v;
     u    = X86_MULUW_L(B_16_31(REG1), B_16_31(REG2));
     v    = X86_MULUW_L(B_48_63(REG1), B_48_63(REG2));
@@ -3503,8 +3196,7 @@ RTL_BEGIN
     ACC  = REG0;
 RTL_END
 
-X("evmhoumiaaw", ___evmhoumiaaw___)
-RTL_BEGIN
+RTL_BEGIN("evmhoumiaaw", ___evmhoumiaaw___)
     uint32_t tmp, u, v;
 
     tmp  = X86_MULUW_L(B_16_31(REG1), B_16_31(REG2));
@@ -3517,8 +3209,7 @@ RTL_BEGIN
     ACC  = REG0;
 RTL_END
 
-X("evmhoumianw", ___evmhoumianw___)
-RTL_BEGIN
+RTL_BEGIN("evmhoumianw", ___evmhoumianw___)
     uint32_t tmp, u, v;
 
     tmp  = X86_MULUW_L(B_16_31(REG1), B_16_31(REG2));
@@ -3531,8 +3222,7 @@ RTL_BEGIN
     ACC  = REG0;
 RTL_END
 
-X("evmhousiaaw", ___evmhousiaaw___)
-RTL_BEGIN
+RTL_BEGIN("evmhousiaaw", ___evmhousiaaw___)
     uint32_t tmp, u, v;
     uint64_t tmp64;
     bool ovh, ovl;
@@ -3553,8 +3243,7 @@ RTL_BEGIN
     UPDATE_SPEFSCR_OV(ovh, ovl);
 RTL_END
 
-X("evmhousianw", ___evmhousianw___)
-RTL_BEGIN
+RTL_BEGIN("evmhousianw", ___evmhousianw___)
     uint32_t tmp, u, v;
     uint64_t tmp64;
     bool ovh, ovl;
@@ -3575,14 +3264,12 @@ RTL_BEGIN
     UPDATE_SPEFSCR_OV(ovh, ovl);
 RTL_END
 
-X("evmra", ___evmra___)
-RTL_BEGIN
+RTL_BEGIN("evmra", ___evmra___)
     ACC  = REG1;
     REG0 = REG1;
 RTL_END
 
-X("evmwhsmf", ___evmwhsmf___)
-RTL_BEGIN
+RTL_BEGIN("evmwhsmf", ___evmwhsmf___)
     uint32_t u, v;
 
     u = B_0_31(SF(B_0_31(REG1), B_0_31(REG2)));
@@ -3591,8 +3278,7 @@ RTL_BEGIN
     REG0 = (U64(u) << 32) | U64(v);
 RTL_END
 
-X("evmwhsmfa", ___evmwhsmfa___)
-RTL_BEGIN
+RTL_BEGIN("evmwhsmfa", ___evmwhsmfa___)
     uint32_t u, v;
 
     u = B_0_31(SF(B_0_31(REG1), B_0_31(REG2)));
@@ -3602,8 +3288,7 @@ RTL_BEGIN
     ACC  = REG0;
 RTL_END
 
-X("evmwhssf", ___evmwhssf___)
-RTL_BEGIN
+RTL_BEGIN("evmwhssf", ___evmwhssf___)
     uint64_t tmp64;
     uint32_t u, v;
     bool movh, movl;
@@ -3620,8 +3305,7 @@ RTL_BEGIN
     UPDATE_SPEFSCR_OV(movh, movl);
 RTL_END
 
-X("evmwhssfa", ___evmwhssfa___)
-RTL_BEGIN
+RTL_BEGIN("evmwhssfa", ___evmwhssfa___)
     uint64_t tmp64;
     uint32_t u, v;
     bool movh, movl;
@@ -3639,16 +3323,14 @@ RTL_BEGIN
     UPDATE_SPEFSCR_OV(movh, movl);
 RTL_END
 
-X("evmwhumi", ___evmwhumi___)
-RTL_BEGIN
+RTL_BEGIN("evmwhumi", ___evmwhumi___)
     uint32_t u, v;
     u    = X86_MULUW_H(B_0_31(REG1), B_0_31(REG2));      // get high word
     v    = X86_MULUW_H(B_32_63(REG1), B_32_63(REG2));    // get high word
     REG0 = (U64(u) << 32) | U64(v);
 RTL_END
 
-X("evmwhumia", ___evmwhumia___)
-RTL_BEGIN
+RTL_BEGIN("evmwhumia", ___evmwhumia___)
     uint32_t u, v;
     u    = X86_MULUW_H(B_0_31(REG1), B_0_31(REG2));      // get high word
     v    = X86_MULUW_H(B_32_63(REG1), B_32_63(REG2));    // get high word
@@ -3656,8 +3338,7 @@ RTL_BEGIN
     ACC  = REG0;
 RTL_END
 
-X("evmwlsmiaaw", ___evmwlsmiaaw___)
-RTL_BEGIN
+RTL_BEGIN("evmwlsmiaaw", ___evmwlsmiaaw___)
     uint32_t u, v;
     u    = B_0_31(ACC)  + X86_MULW_L(B_0_31(REG1), B_0_31(REG2));
     v    = B_32_63(ACC) + X86_MULW_L(B_32_63(REG1), B_32_63(REG2));
@@ -3665,8 +3346,7 @@ RTL_BEGIN
     ACC  = REG0;
 RTL_END
 
-X("evmwlsmianw", ___evmwlsmianw___)
-RTL_BEGIN
+RTL_BEGIN("evmwlsmianw", ___evmwlsmianw___)
     uint32_t u, v;
     u    = B_0_31(ACC)  - X86_MULW_L(B_0_31(REG1), B_0_31(REG2));
     v    = B_32_63(ACC) - X86_MULW_L(B_32_63(REG1), B_32_63(REG2));
@@ -3674,8 +3354,7 @@ RTL_BEGIN
     ACC  = REG0;
 RTL_END
 
-X("evmwlssiaaw", ___evmwlssiaaw___)
-RTL_BEGIN
+RTL_BEGIN("evmwlssiaaw", ___evmwlssiaaw___)
     uint64_t tmp64;
     uint32_t u, v;
     bool ovh, ovl;
@@ -3696,8 +3375,7 @@ RTL_BEGIN
     UPDATE_SPEFSCR_OV(ovh, ovl);
 RTL_END
 
-X("evmwlssianw", ___evmwlssianw___)
-RTL_BEGIN
+RTL_BEGIN("evmwlssianw", ___evmwlssianw___)
     uint64_t tmp64;
     uint32_t u, v;
     bool ovh, ovl;
@@ -3718,16 +3396,14 @@ RTL_BEGIN
     UPDATE_SPEFSCR_OV(ovh, ovl);
 RTL_END
 
-X("evmwlumi", ___evmwlumi___)
-RTL_BEGIN
+RTL_BEGIN("evmwlumi", ___evmwlumi___)
     uint32_t u, v;
     u    = X86_MULUW_L(B_0_31(REG1), B_0_31(REG2));
     v    = X86_MULUW_L(B_32_63(REG1), B_32_63(REG2));
     REG0 = PACK_2W(u, v);
 RTL_END
 
-X("evmwlumia", ___evmwlumia___)
-RTL_BEGIN
+RTL_BEGIN("evmwlumia", ___evmwlumia___)
     uint32_t u, v;
     u    = X86_MULUW_L(B_0_31(REG1), B_0_31(REG2));
     v    = X86_MULUW_L(B_32_63(REG1), B_32_63(REG2));
@@ -3735,8 +3411,7 @@ RTL_BEGIN
     ACC  = REG0;
 RTL_END
 
-X("evmwlumiaaw", ___evmwlumiaaw___)
-RTL_BEGIN
+RTL_BEGIN("evmwlumiaaw", ___evmwlumiaaw___)
     uint32_t u, v;
     u    = B_0_31(ACC)  + X86_MULW_L(B_0_31(REG1), B_0_31(REG2));
     v    = B_32_63(ACC) + X86_MULW_L(B_32_63(REG1), B_32_63(REG2));
@@ -3744,8 +3419,7 @@ RTL_BEGIN
     ACC  = REG0;
 RTL_END
 
-X("evmwlumianw", ___evmwlumianw___)
-RTL_BEGIN
+RTL_BEGIN("evmwlumianw", ___evmwlumianw___)
     uint32_t u, v;
     u    = B_0_31(ACC)  - X86_MULW_L(B_0_31(REG1), B_0_31(REG2));
     v    = B_32_63(ACC) - X86_MULW_L(B_32_63(REG1), B_32_63(REG2));
@@ -3753,8 +3427,7 @@ RTL_BEGIN
     ACC  = REG0;
 RTL_END
 
-X("evmwlusiaaw", ___evmwlusiaaw___)
-RTL_BEGIN
+RTL_BEGIN("evmwlusiaaw", ___evmwlusiaaw___)
     uint64_t tmp64;
     uint32_t u, v;
     bool ovh, ovl;
@@ -3775,8 +3448,7 @@ RTL_BEGIN
     UPDATE_SPEFSCR_OV(ovh, ovl);
 RTL_END
 
-X("evmwlusianw", ___evmwlusianw___)
-RTL_BEGIN
+RTL_BEGIN("evmwlusianw", ___evmwlusianw___)
     uint64_t tmp64;
     uint32_t u, v;
     bool ovh, ovl;
@@ -3797,58 +3469,49 @@ RTL_BEGIN
     UPDATE_SPEFSCR_OV(ovh, ovl);
 RTL_END
 
-X("evmwsmf", ___evmwsmf___)
-RTL_BEGIN
+RTL_BEGIN("evmwsmf", ___evmwsmf___)
     REG0 = SF(B_32_63(REG1), B_32_63(REG2));
 RTL_END
 
-X("evmwsmfa", ___evmwsmfa___)
-RTL_BEGIN
+RTL_BEGIN("evmwsmfa", ___evmwsmfa___)
     REG0 = SF(B_32_63(REG1), B_32_63(REG2));
     ACC  = REG0;
 RTL_END
 
-X("evmwsmfaa", ___evmwsmfaa___)
-RTL_BEGIN
+RTL_BEGIN("evmwsmfaa", ___evmwsmfaa___)
     uint64_t tmp64;
     tmp64 = SF(B_32_63(REG1), B_32_63(REG2));
     REG0  = ACC + tmp64;
     ACC   = REG0;
 RTL_END
 
-X("evmwsmfan", ___evmwsmfan___)
-RTL_BEGIN
+RTL_BEGIN("evmwsmfan", ___evmwsmfan___)
     uint64_t tmp64;
     tmp64 = SF(B_32_63(REG1), B_32_63(REG2));
     REG0  = ACC - tmp64;
     ACC   = REG0;
 RTL_END
 
-X("evmwsmi", ___evmwsmi___)
-RTL_BEGIN
+RTL_BEGIN("evmwsmi", ___evmwsmi___)
     REG0 = X86_MULWF(B_32_63(REG1), B_32_63(REG2));
 RTL_END
 
-X("evmwsmia", ___evmwsmia___)
-RTL_BEGIN
+RTL_BEGIN("evmwsmia", ___evmwsmia___)
     REG0 = X86_MULWF(B_32_63(REG1), B_32_63(REG2));
     ACC  = REG0;
 RTL_END
 
-X("evmwsmiaa", ___evmwsmiaa___)
-RTL_BEGIN
+RTL_BEGIN("evmwsmiaa", ___evmwsmiaa___)
     REG0 = ACC + X86_MULWF(B_32_63(REG1), B_32_63(REG2));
     ACC  = REG0;
 RTL_END
 
-X("evmwsmian", ___evmwsmian___)
-RTL_BEGIN
+RTL_BEGIN("evmwsmian", ___evmwsmian___)
     REG0 = ACC - X86_MULWF(B_32_63(REG1), B_32_63(REG2));
     ACC  = REG0;
 RTL_END
 
-X("evmwssf", ___evmwssf___)
-RTL_BEGIN
+RTL_BEGIN("evmwssf", ___evmwssf___)
     uint64_t tmp64;
     bool mov;
 
@@ -3859,8 +3522,7 @@ RTL_BEGIN
     UPDATE_SPEFSCR_OV(0, mov);
 RTL_END
 
-X("evmwssfa", ___evmwssfa___)
-RTL_BEGIN
+RTL_BEGIN("evmwssfa", ___evmwssfa___)
     uint64_t tmp64;
     bool mov;
 
@@ -3872,8 +3534,7 @@ RTL_BEGIN
     UPDATE_SPEFSCR_OV(0, mov);
 RTL_END
 
-X("evmwssfaa", ___evmwssfaa___)
-RTL_BEGIN
+RTL_BEGIN("evmwssfaa", ___evmwssfaa___)
     uint64_t tmp64;
     bool mov, ov;
 
@@ -3887,8 +3548,7 @@ RTL_BEGIN
     UPDATE_SPEFSCR_OV(0, ov | mov);
 RTL_END
 
-X("evmwssfan", ___evmwssfan___)
-RTL_BEGIN
+RTL_BEGIN("evmwssfan", ___evmwssfan___)
     uint64_t tmp64;
     bool mov, ov;
 
@@ -3902,56 +3562,46 @@ RTL_BEGIN
     UPDATE_SPEFSCR_OV(0, ov | mov);
 RTL_END
 
-X("evmwumi", ___evmwumi___)
-RTL_BEGIN
+RTL_BEGIN("evmwumi", ___evmwumi___)
     REG0 = X86_MULUWF(B_32_63(REG1), B_32_63(REG2));
 RTL_END
 
-X("evmwumia", ___evmwumia___)
-RTL_BEGIN
+RTL_BEGIN("evmwumia", ___evmwumia___)
     REG0 = X86_MULUWF(B_32_63(REG1), B_32_63(REG2));
     ACC  = REG0;
 RTL_END
 
-X("evmwumiaa", ___evmwumiaa___)
-RTL_BEGIN
+RTL_BEGIN("evmwumiaa", ___evmwumiaa___)
     REG0 = ACC + X86_MULUWF(B_32_63(REG1), B_32_63(REG2));
     ACC  = REG0;
 RTL_END
 
-X("evmwumian", ___evmwumian___)
-RTL_BEGIN
+RTL_BEGIN("evmwumian", ___evmwumian___)
     REG0 = ACC - X86_MULUWF(B_32_63(REG1), B_32_63(REG2));
     ACC  = REG0;
 RTL_END
 
-X("evnand", ___evnand___)
-RTL_BEGIN
+RTL_BEGIN("evnand", ___evnand___)
     REG0 = ~(REG1 & REG2);
 RTL_END
 
-X("evneg", ___evneg___)
-RTL_BEGIN
+RTL_BEGIN("evneg", ___evneg___)
     REG0 = PACK_2W(X86_NEGW(B_0_31(REG1)), X86_NEGW(B_32_63(REG1)));
 RTL_END
 
-X("evnor", ___evnor___)
-RTL_BEGIN
+RTL_BEGIN("evnor", ___evnor___)
     REG0 = ~(REG1 | REG2);
 RTL_END
 
-X("evor", ___evor___)
-RTL_BEGIN
+RTL_BEGIN("evor", ___evor___)
     REG0 = REG1 | REG2;
 RTL_END
 
-X("evorc", ___evorc___)
-RTL_BEGIN
+RTL_BEGIN("evorc", ___evorc___)
     REG0 = REG1 | ~REG2;
 RTL_END
 
-X("evrlw", ___evrlw___)
-RTL_BEGIN
+RTL_BEGIN("evrlw", ___evrlw___)
     int nh, nl;
     uint32_t u, v;
 
@@ -3962,8 +3612,7 @@ RTL_BEGIN
     REG0 = PACK_2W(u, v);
 RTL_END
 
-X("evrlwi", ___evrlwi___)
-RTL_BEGIN
+RTL_BEGIN("evrlwi", ___evrlwi___)
     uint32_t u, v;
     int n = ARG2;
     u     = ROTL32(B_0_31(REG1), n);
@@ -3971,16 +3620,14 @@ RTL_BEGIN
     REG0  = PACK_2W(u, v);
 RTL_END
 
-X("evrndw", ___evrndw___)
-RTL_BEGIN
+RTL_BEGIN("evrndw", ___evrndw___)
     uint32_t u, v;
     u    = (B_0_31(REG1)  + 0x8000) & 0xffff0000;
     v    = (B_32_63(REG1) + 0x8000) & 0xffff0000;
     REG0 = PACK_2W(u, v);
 RTL_END
 
-X("evsel", ___evsel___)
-RTL_BEGIN
+RTL_BEGIN("evsel", ___evsel___)
     bool ch = 0;
     bool cl = 0;
     uint32_t u, v;
@@ -3997,8 +3644,7 @@ RTL_BEGIN
 RTL_END
 
 
-X("evslw", ___evslw___)
-RTL_BEGIN
+RTL_BEGIN("evslw", ___evslw___)
     int nh, nl;
 
     nh   = B_26_31(REG2);
@@ -4006,27 +3652,23 @@ RTL_BEGIN
     REG0 = PACK_2W(SL(B_0_31(REG1), nh), SL(B_32_63(REG1), nl));
 RTL_END
 
-X("evslwi", ___evslwi___)
-RTL_BEGIN
+RTL_BEGIN("evslwi", ___evslwi___)
     int n = ARG2;
     REG0  = PACK_2W(SL(B_0_31(REG1), n), SL(B_32_63(REG2), n));
 RTL_END
 
-X("evsplatfi", ___evsplatfi___)
-RTL_BEGIN
+RTL_BEGIN("evsplatfi", ___evsplatfi___)
     uint32_t u;
     u    = ((ARG1 & 0x1f) << 27);
     REG0 = PACK_2W(u, u);
 RTL_END
 
-X("evsplati", ___evsplati___)
-RTL_BEGIN
+RTL_BEGIN("evsplati", ___evsplati___)
     uint32_t u = EXTS_5B_2_32B(ARG1);
     REG0       = PACK_2W(u, u);
 RTL_END
 
-X("evsrwis", ___evsrwis___)
-RTL_BEGIN
+RTL_BEGIN("evsrwis", ___evsrwis___)
     int n = ARG2;
     uint32_t u, v;
 
@@ -4035,8 +3677,7 @@ RTL_BEGIN
     REG0  = PACK_2W(u, v);
 RTL_END
 
-X("evsrwiu", ___evsrwiu___)
-RTL_BEGIN
+RTL_BEGIN("evsrwiu", ___evsrwiu___)
     int n = ARG2;
     uint32_t u, v;
 
@@ -4045,8 +3686,7 @@ RTL_BEGIN
     REG0 = PACK_2W(u, v);
 RTL_END
 
-X("evsrws", ___evsrws___)
-RTL_BEGIN
+RTL_BEGIN("evsrws", ___evsrws___)
     int nh, nl;
     uint32_t u, v;
 
@@ -4057,8 +3697,7 @@ RTL_BEGIN
     REG0 = PACK_2W(u, v);
 RTL_END
 
-X("evsrwu", ___evsrwu___)
-RTL_BEGIN
+RTL_BEGIN("evsrwu", ___evsrwu___)
     int nh, nl;
     uint32_t u, v;
 
@@ -4069,8 +3708,7 @@ RTL_BEGIN
     REG0 = PACK_2W(u, v);
 RTL_END
 
-X("evstdd", ___evstdd___)
-RTL_BEGIN
+RTL_BEGIN("evstdd", ___evstdd___)
     UMODE b = 0, ea;
 
     if(ARG2){ b = REG2; }
@@ -4078,8 +3716,7 @@ RTL_BEGIN
     REG0 = LOAD64(ea);
 RTL_END
 
-X("evstddx", ___evstddx___)
-RTL_BEGIN
+RTL_BEGIN("evstddx", ___evstddx___)
     UMODE b = 0, ea;
 
     if(ARG1){ b = REG1; }
@@ -4087,8 +3724,7 @@ RTL_BEGIN
     REG0 = LOAD64(ea);
 RTL_END
 
-X("evstdh", ___evstdh___)
-RTL_BEGIN
+RTL_BEGIN("evstdh", ___evstdh___)
     UMODE b = 0, ea;
     uint16_t u, v, w, x;
 
@@ -4101,8 +3737,7 @@ RTL_BEGIN
     REG0 = (U64(u) << 48) | (U64(v) << 32) | (U64(w) << 16) | U64(x);
 RTL_END
 
-X("evstdhx", ___evstdhx___)
-RTL_BEGIN
+RTL_BEGIN("evstdhx", ___evstdhx___)
     UMODE b = 0, ea;
     uint16_t u, v, w, x;
 
@@ -4115,8 +3750,7 @@ RTL_BEGIN
     REG0 = (U64(u) << 48) | (U64(v) << 32) | (U64(w) << 16) | U64(x);
 RTL_END
 
-X("evstdw", ___evstdw___)
-RTL_BEGIN
+RTL_BEGIN("evstdw", ___evstdw___)
     UMODE b = 0, ea;
     uint32_t u, v;
 
@@ -4127,8 +3761,7 @@ RTL_BEGIN
     REG0 = PACK_2W(u, v);
 RTL_END
 
-X("evstdwx", ___evstdwx___)
-RTL_BEGIN
+RTL_BEGIN("evstdwx", ___evstdwx___)
     UMODE b = 0, ea;
     uint32_t u, v;
 
@@ -4139,8 +3772,7 @@ RTL_BEGIN
     REG0 = PACK_2W(u, v);
 RTL_END
 
-X("evstwhe", ___evstwhe___)
-RTL_BEGIN
+RTL_BEGIN("evstwhe", ___evstwhe___)
     UMODE b = 0, ea;
     uint16_t u, v;
 
@@ -4151,8 +3783,7 @@ RTL_BEGIN
     REG0 = (U64(u) << 48) | (U64(v) << 16);
 RTL_END
 
-X("evstwhex", ___evstwhex___)
-RTL_BEGIN
+RTL_BEGIN("evstwhex", ___evstwhex___)
     UMODE b = 0, ea;
     uint16_t u, v;
 
@@ -4163,8 +3794,7 @@ RTL_BEGIN
     REG0 = (U64(u) << 48) | (U64(v) << 16);
 RTL_END
 
-X("evstwho", ___evstwho___)
-RTL_BEGIN
+RTL_BEGIN("evstwho", ___evstwho___)
     UMODE b = 0, ea;
     uint16_t u, v;
 
@@ -4175,8 +3805,7 @@ RTL_BEGIN
     REG0 = (U64(u) << 32) | U64(v);
 RTL_END
 
-X("evstwhox", ___evstwhox___)
-RTL_BEGIN
+RTL_BEGIN("evstwhox", ___evstwhox___)
     UMODE b = 0, ea;
     uint16_t u, v;
 
@@ -4187,8 +3816,7 @@ RTL_BEGIN
     REG0 = (U64(u) << 32) | U64(v);
 RTL_END
 
-X("evstwwe", ___evstwwe___)
-RTL_BEGIN
+RTL_BEGIN("evstwwe", ___evstwwe___)
     UMODE b = 0, ea;
     uint32_t u;
 
@@ -4198,8 +3826,7 @@ RTL_BEGIN
     REG0 = (U64(u) << 32);
 RTL_END
 
-X("evstwwex", ___evstwwex___)
-RTL_BEGIN
+RTL_BEGIN("evstwwex", ___evstwwex___)
     UMODE b = 0, ea;
     uint32_t u;
 
@@ -4209,8 +3836,7 @@ RTL_BEGIN
     REG0 = (U64(u) << 32);
 RTL_END
 
-X("evstwwo", ___evstwwo___)
-RTL_BEGIN
+RTL_BEGIN("evstwwo", ___evstwwo___)
     UMODE b = 0, ea;
     uint32_t u;
 
@@ -4220,8 +3846,7 @@ RTL_BEGIN
     REG0 = U64(u);
 RTL_END
 
-X("evstwwox", ___evstwwox___)
-RTL_BEGIN
+RTL_BEGIN("evstwwox", ___evstwwox___)
     UMODE b = 0, ea;
     uint32_t u;
 
@@ -4231,8 +3856,7 @@ RTL_BEGIN
     REG0 = U64(u);
 RTL_END
 
-X("evsubfsmiaaw", ___evsubfsmiaaw___)
-RTL_BEGIN
+RTL_BEGIN("evsubfsmiaaw", ___evsubfsmiaaw___)
     uint32_t u, v;
     u    = B_0_31(ACC)  - B_0_31(REG1);
     v    = B_32_63(ACC) - B_32_63(REG1);
@@ -4240,8 +3864,7 @@ RTL_BEGIN
     ACC  = REG0;
 RTL_END
 
-X("evsubfssiaaw", ___evsubfssiaaw___)
-RTL_BEGIN
+RTL_BEGIN("evsubfssiaaw", ___evsubfssiaaw___)
     uint32_t u, v;
     uint64_t tmp64;
     bool ovh, ovl;
@@ -4264,8 +3887,7 @@ RTL_END
 //       Techically signed subtraction & unsigned subtraction return the same final
 //       value according to rules of 2's complement arithmetic. The diff lies only in
 //       interpretation of final result.
-X("evsubfumiaaw", ___evsubfumiaaw___)
-RTL_BEGIN
+RTL_BEGIN("evsubfumiaaw", ___evsubfumiaaw___)
     uint32_t u, v;
     u    = B_0_31(ACC)  - B_0_31(REG1);
     v    = B_32_63(ACC) - B_32_63(REG1);
@@ -4273,16 +3895,14 @@ RTL_BEGIN
     ACC  = REG0;
 RTL_END
 
-X("evsubfw", ___evsubfw___)
-RTL_BEGIN
+RTL_BEGIN("evsubfw", ___evsubfw___)
     uint32_t u, v;
     u    = B_0_31(REG2)  - B_0_31(REG1);
     v    = B_32_63(REG2) - B_32_63(REG1);
     REG0 = PACK_2W(u, v);
 RTL_END
 
-X("evsubfusiaaw", ___evsubfusiaaw___)
-RTL_BEGIN
+RTL_BEGIN("evsubfusiaaw", ___evsubfusiaaw___)
     uint32_t u, v;
     uint64_t tmp64;
     bool ovh, ovl;
@@ -4301,31 +3921,26 @@ RTL_BEGIN
     UPDATE_SPEFSCR_OV(ovh, ovl);
 RTL_END
 
-X("evsubifw", ___evsubifw___)
-RTL_BEGIN
+RTL_BEGIN("evsubifw", ___evsubifw___)
     uint32_t u, v;
     u    = B_0_31(REG2)  - (ARG1 & 0x1f);
     v    = B_32_63(REG2) - (ARG1 & 0x1f);
     REG0 = PACK_2W(u, v);
 RTL_END
 
-X("evxor", ___evxor___)
-RTL_BEGIN
+RTL_BEGIN("evxor", ___evxor___)
     REG0 = REG1 ^ REG2;
 RTL_END
 
 // ----------------- SPE FP ---------------------------------------------------------------------------
 
-X("efdabs", ___efdabs___)
-RTL_BEGIN
+RTL_BEGIN("efdabs", ___efdabs___)
     REG0 = REG1 & 0x7fffffffffffffffULL;       // Change sign bit to zero
 RTL_END
-X("efdnabs", ___efdnabs___)
-RTL_BEGIN
+RTL_BEGIN("efdnabs", ___efdnabs___)
     REG0 = (REG1 & 0x7fffffffffffffffULL) | 0x8000000000000000ULL;
 RTL_END
-X("efdneg", ___efdneg___)
-RTL_BEGIN
+RTL_BEGIN("efdneg", ___efdneg___)
     REG0 = (REG1 & 0x7fffffffffffffffULL) | ((REG1 ^ 0x8000000000000000ULL) & 0x8000000000000000ULL);
 RTL_END
 
