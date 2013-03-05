@@ -106,6 +106,8 @@ class DIS_PPC{
     // Second form of disassemble. Takes a string, decodes it and creates an instruction call frame
     // if valid
     instr_call disasm(std::string instr, uint64_t pc = 0);
+    // Return opcode's index in LUT (used for indexing to apppropriate function ptr)
+    int get_opc_index(std::string opcname);
 
     // static functions
     static int get_num_opcodes(){
@@ -625,6 +627,23 @@ instr_call DIS_PPC::disasm(std::string instr, uint64_t pc)
 
     return call_this;
 
+}
+
+int DIS_PPC::get_opc_index(std::string opcname){
+    for (int indx = 0; indx < powerpc_num_opcodes; indx++){
+        if(!strcmp(opcname.c_str(), powerpc_opcodes[indx].name)){
+            if (!(cpu_dialect != (ppc_cpu_t)(-1) &&
+                       ((powerpc_opcodes[indx].flags & cpu_dialect) == 0 || (powerpc_opcodes[indx].deprecated & cpu_dialect) != 0)))
+                return indx;
+        }
+    }
+    // Throw a warning on undefined opcodes
+    // NOTE : If an opcode was not found in the opcode table,
+    //        this merely means that the extended opcode was not there.
+    //        In that case, the disassembler module will automatically take care
+    //        not to generate extended opcodes.
+    std::cerr << "Warning !!! Undefined opcode " << opcname << std::endl;
+    return 0xffffffff;
 }
 
 // show instruction format
