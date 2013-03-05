@@ -632,8 +632,8 @@ instr_call DIS_PPC::disasm(std::string instr, uint64_t pc)
 int DIS_PPC::get_opc_index(std::string opcname){
     for (int indx = 0; indx < powerpc_num_opcodes; indx++){
         if(!strcmp(opcname.c_str(), powerpc_opcodes[indx].name)){
-            if (!(cpu_dialect != (ppc_cpu_t)(-1) &&
-                       ((powerpc_opcodes[indx].flags & cpu_dialect) == 0 || (powerpc_opcodes[indx].deprecated & cpu_dialect) != 0)))
+            if (!(m_dialect != (ppc_cpu_t)(-1) &&
+                       ((powerpc_opcodes[indx].flags & m_dialect) == 0 || (powerpc_opcodes[indx].deprecated & m_dialect) != 0)))
                 return indx;
         }
     }
