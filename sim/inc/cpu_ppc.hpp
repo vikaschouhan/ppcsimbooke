@@ -528,7 +528,7 @@ CPU_T void CPU_PPC_T::write64(uint64_t addr, uint64_t value){
 //     ea -> effective address at the time fault occured ( used in case of DSI faults etc )
 //
 // FIXME : We don't support hardware exceptions yet. This is planned.
-CPU_T void CPU_PPC_T::ppc_exception(int exception_nr, uint64_t subtype=0, uint64_t ea)
+CPU_T void CPU_PPC_T::ppc_exception(int exception_nr, uint64_t subtype, uint64_t ea)
 {
     LOG("DEBUG4") << MSG_FUNC_START;
 

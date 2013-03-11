@@ -596,9 +596,9 @@ instr_call DIS_PPC::disasm(std::string instr, uint64_t pc)
             {
                 static const char *cbnames[4] = { "lt", "gt", "eq", "so" };
                 char cbname[5];
-                int cr, ind = 0;
+                int cr, ind;
+                cr = ind = 0;
 
-                if (cr != 0)
                 sscanf(token, "4*cr%d+%s", &cr, cbname);
                 for(ind=0; ind < 4; i++)
                     if(!strcmp(cbname, cbnames[i]))

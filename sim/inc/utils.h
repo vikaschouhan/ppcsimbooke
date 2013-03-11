@@ -138,12 +138,12 @@ inline int64_t str_to_int(std::string arg){
     if(arg.substr(0,2) == "0x" || arg.substr(0,2) == "0X" ||
             arg.substr(1,2) == "0x" || arg.substr(1,2) == "0X")
         istr >> std::hex >> value;
-    else if(arg.substr(0,2) == "0b" || arg.substr(0,2) == "0B" ||
-            arg.substr(1,2) == "0b" || arg.substr(1,2) == "0B")
+    //else if(arg.substr(0,2) == "0b" || arg.substr(0,2) == "0B" ||
+    //        arg.substr(1,2) == "0b" || arg.substr(1,2) == "0B")
         //istr >> std::bin >> value;
         // there is no std::bin so we will have to implement it
         // overselves
-        ;
+    //    ;
     else
         istr >> std::dec >> value;
     return value;
