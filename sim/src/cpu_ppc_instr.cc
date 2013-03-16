@@ -3933,13 +3933,31 @@ RTL_BEGIN("evxor", ___evxor___)
 RTL_END
 
 // ----------------- SPE FP ---------------------------------------------------------------------------
+//
+
+// Vector FP SP Absolute
+RTL_BEGIN("evfsabs", __evfsabs__)
+    REG0 = REG1 & 0x7fffffff7fffffffULL;
+RTL_END
+
+// Vector FP SP Negative Absolute
+RTL_BEGIN("evfsnabs", __evfsnabs__)
+    REG0 = REG1 | 0x8000000080000000ULL;
+RTL_END
+
+// Vector FP SP Negate
+RTL_BEGIN("evfsneg", __evfsneg__)
+    REG0 = REG1 | (~REG1 & 0x8000000080000000ULL);
+RTL_END
 
 RTL_BEGIN("efdabs", ___efdabs___)
     REG0 = REG1 & 0x7fffffffffffffffULL;       // Change sign bit to zero
 RTL_END
+
 RTL_BEGIN("efdnabs", ___efdnabs___)
     REG0 = (REG1 & 0x7fffffffffffffffULL) | 0x8000000000000000ULL;
 RTL_END
+
 RTL_BEGIN("efdneg", ___efdneg___)
     REG0 = (REG1 & 0x7fffffffffffffffULL) | ((REG1 ^ 0x8000000000000000ULL) & 0x8000000000000000ULL);
 RTL_END
