@@ -161,12 +161,28 @@ struct ppc_reg64 {
     void refresh_fval(){ value.u64v = fvalue; }
 
     // This data type can't be copied
-    ppc_reg64& operator=(const ppc_reg64& rreg){ return (*this);}
+    ppc_reg64& operator=(const ppc_reg64& rreg){ return *this; }
+
+    // Allow integers to be directly assigned
+    ppc_reg64& operator=(uint64_t v){ value.u64v = v; return *this; }
+
+    // Overload some of operators
+    ppc_reg64& operator|=(uint64_t v)          { value.u64v |= v; return *this; }
+    ppc_reg64& operator&=(uint64_t v)          { value.u64v &= v; return *this; }
+    ppc_reg64& operator>>=(uint64_t v)         { value.u64v >>= v; return *this; }
+    ppc_reg64& operator<<=(uint64_t v)         { value.u64v <<= v; return *this; }
+    uint64_t   operator>>(uint64_t v)          { return value.u64v >> v; }
+    uint64_t   operator<<(uint64_t v)          { return value.u64v << v; }
+    uint64_t   operator|(uint64_t v)           { return value.u64v | v; }
+    uint64_t   operator&(uint64_t v)           { return value.u64v & v; }
 };
 
 
-// e500v2 PPC register file ( this is the file we are gonna use in our cpu )
+// BookE (e500v2 compliant) PPC register file (this is the file we are gonna use in our cpu)
 struct ppc_regs {
+    // mode
+    bool              cm;
+
     ppc_reg64         msr;
     ppc_reg64         cr;
     ppc_reg64         acc;
@@ -328,343 +344,498 @@ struct ppc_regs {
     std::map<std::string, ppc_reg64*>  m_reg;
     std::map<int,         ppc_reg64*>  m_ireg;
 
-    // Constructor
-    ppc_regs():
-        msr     (0,    (REG_READ_SUP | REG_WRITE_SUP | REG_READ_USR                                  ), 0            , REG_TYPE_MSR),
-        cr      (0,    0                                                                              , 0            , REG_TYPE_CR ),
-        acc     (0,    0                                                                              , 0            , REG_TYPE_ACC),
+    // Constructors
+    ppc_regs(bool c_m=0);
+    
+    // change CR, XER
+    void       update_cr0(uint64_t value=0);                     // Update CR0
+    void       update_cr0_host(x86_flags &hf);                   // Update CR0 using host flags
 
-        gpr0    (0,    0                                                                              , 0            , REG_TYPE_GPR),
-        gpr1    (0,    0                                                                              , 1            , REG_TYPE_GPR),
-        gpr2    (0,    0                                                                              , 2            , REG_TYPE_GPR),
-        gpr3    (0,    0                                                                              , 3            , REG_TYPE_GPR),
-        gpr4    (0,    0                                                                              , 4            , REG_TYPE_GPR),
-        gpr5    (0,    0                                                                              , 5            , REG_TYPE_GPR),
-        gpr6    (0,    0                                                                              , 6            , REG_TYPE_GPR),
-        gpr7    (0,    0                                                                              , 7            , REG_TYPE_GPR),
-        gpr8    (0,    0                                                                              , 8            , REG_TYPE_GPR),
-        gpr9    (0,    0                                                                              , 9            , REG_TYPE_GPR),
-        gpr10   (0,    0                                                                              , 10           , REG_TYPE_GPR),
-        gpr11   (0,    0                                                                              , 11           , REG_TYPE_GPR),
-        gpr12   (0,    0                                                                              , 12           , REG_TYPE_GPR),
-        gpr13   (0,    0                                                                              , 13           , REG_TYPE_GPR),
-        gpr14   (0,    0                                                                              , 14           , REG_TYPE_GPR),
-        gpr15   (0,    0                                                                              , 15           , REG_TYPE_GPR),
-        gpr16   (0,    0                                                                              , 16           , REG_TYPE_GPR),
-        gpr17   (0,    0                                                                              , 17           , REG_TYPE_GPR),
-        gpr18   (0,    0                                                                              , 18           , REG_TYPE_GPR),
-        gpr19   (0,    0                                                                              , 19           , REG_TYPE_GPR),
-        gpr20   (0,    0                                                                              , 20           , REG_TYPE_GPR),
-        gpr21   (0,    0                                                                              , 21           , REG_TYPE_GPR),
-        gpr22   (0,    0                                                                              , 22           , REG_TYPE_GPR),
-        gpr23   (0,    0                                                                              , 23           , REG_TYPE_GPR),
-        gpr24   (0,    0                                                                              , 24           , REG_TYPE_GPR),
-        gpr25   (0,    0                                                                              , 25           , REG_TYPE_GPR),
-        gpr26   (0,    0                                                                              , 26           , REG_TYPE_GPR),
-        gpr27   (0,    0                                                                              , 27           , REG_TYPE_GPR),
-        gpr28   (0,    0                                                                              , 28           , REG_TYPE_GPR),
-        gpr29   (0,    0                                                                              , 29           , REG_TYPE_GPR),
-        gpr30   (0,    0                                                                              , 30           , REG_TYPE_GPR),
-        gpr31   (0,    0                                                                              , 31           , REG_TYPE_GPR),
+    // Used for Condition register operations
+    void       update_crF(unsigned bf, unsigned val);            // Updates CR[bf] with val i.e CR[bf] <- (val & 0xf)
+    unsigned   get_crF(unsigned bf);                             // Get crF  (F -> [0:7])
+    void       update_crf(unsigned field, bool value);           // Update CR by exact field value [0:31]
+    bool       get_crf(unsigned field);                          // Get CR bit at exact field
 
-        atbl    (0, (REG_READ_SUP  | REG_WRITE_SUP   | REG_READ_USR                                  ), SPRN_ATBL    , REG_TYPE_SPR),
-        atbu    (0, (REG_READ_SUP  | REG_WRITE_SUP   | REG_READ_USR                                  ), SPRN_ATBU    , REG_TYPE_SPR),
-        csrr0   (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_CSRR0   , REG_TYPE_SPR),
-        csrr1   (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_CSRR1   , REG_TYPE_SPR),
-        ctr     (0, (REG_READ_SUP  | REG_WRITE_SUP   | REG_READ_USR  | REG_WRITE_USR                 ), SPRN_CTR     , REG_TYPE_SPR),
-        dac1    (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_DAC1    , REG_TYPE_SPR),
-        dac2    (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_DAC2    , REG_TYPE_SPR),
-        dbcr0   (0, (REG_READ_SUP  | REG_WRITE_SUP   | REG_REQ_SYNC                                  ), SPRN_DBCR0   , REG_TYPE_SPR),
-        dbcr1   (0, (REG_READ_SUP  | REG_WRITE_SUP   | REG_REQ_SYNC                                  ), SPRN_DBCR1   , REG_TYPE_SPR),
-        dbcr2   (0, (REG_READ_SUP  | REG_WRITE_SUP   | REG_REQ_SYNC                                  ), SPRN_DBCR2   , REG_TYPE_SPR),
-        dbsr    (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_DBSR    , REG_TYPE_SPR),
-        dear    (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_DEAR    , REG_TYPE_SPR),
-        dec     (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_DEC     , REG_TYPE_SPR),
-        decar   (0, (REG_WRITE_SUP                                                                   ), SPRN_DECAR   , REG_TYPE_SPR),
-        esr     (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_ESR     , REG_TYPE_SPR),
-        iac1    (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_IAC1    , REG_TYPE_SPR),
-        iac2    (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_IAC2    , REG_TYPE_SPR),
-        ivor0   (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_IVOR0   , REG_TYPE_SPR),
-        ivor1   (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_IVOR1   , REG_TYPE_SPR),
-        ivor2   (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_IVOR2   , REG_TYPE_SPR),
-        ivor3   (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_IVOR3   , REG_TYPE_SPR),
-        ivor4   (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_IVOR4   , REG_TYPE_SPR),
-        ivor5   (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_IVOR5   , REG_TYPE_SPR),
-        ivor6   (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_IVOR6   , REG_TYPE_SPR),
-        ivor7   (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_IVOR7   , REG_TYPE_SPR),
-        ivor8   (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_IVOR8   , REG_TYPE_SPR),
-        ivor9   (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_IVOR9   , REG_TYPE_SPR),
-        ivor10  (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_IVOR10  , REG_TYPE_SPR),
-        ivor11  (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_IVOR11  , REG_TYPE_SPR),
-        ivor12  (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_IVOR12  , REG_TYPE_SPR),
-        ivor13  (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_IVOR13  , REG_TYPE_SPR),
-        ivor14  (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_IVOR14  , REG_TYPE_SPR),
-        ivor15  (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_IVOR15  , REG_TYPE_SPR),
-        ivpr    (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_IVPR    , REG_TYPE_SPR),
-        lr      (0, (REG_READ_SUP  | REG_WRITE_SUP  | REG_READ_USR | REG_WRITE_USR                   ), SPRN_LR      , REG_TYPE_SPR),
-        pid0    (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_PID0    , REG_TYPE_SPR),
-        pid1    (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_PID1    , REG_TYPE_SPR),
-        pid2    (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_PID2    , REG_TYPE_SPR),
-        pir     (0, (REG_READ_SUP                                                                    ), SPRN_PIR     , REG_TYPE_SPR),
-        pvr     (0, (REG_READ_SUP                                                                    ), SPRN_PVR     , REG_TYPE_SPR),
-        sprg0   (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_SPRG0   , REG_TYPE_SPR),
-        sprg1   (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_SPRG1   , REG_TYPE_SPR),
-        sprg2   (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_SPRG2   , REG_TYPE_SPR),
-        sprg3   (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_SPRG3   , REG_TYPE_SPR),
-        sprg4   (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_SPRG4   , REG_TYPE_SPR),
-        sprg5   (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_SPRG5   , REG_TYPE_SPR),
-        sprg6   (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_SPRG6   , REG_TYPE_SPR),
-        sprg7   (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_SPRG7   , REG_TYPE_SPR),
-        srr0    (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_SRR0    , REG_TYPE_SPR),
-        srr1    (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_SRR1    , REG_TYPE_SPR),
-        tbl     (0, (REG_READ_USR                                                                    ), SPRN_TBWL    , REG_TYPE_SPR),
-        tbu     (0, (REG_WRITE_SUP                                                                   ), SPRN_TBWU    , REG_TYPE_SPR),
-        tcr     (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_TCR     , REG_TYPE_SPR),
-        tsr     (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_TSR     , REG_TYPE_SPR),
-        usprg0  (0, (REG_READ_SUP  | REG_WRITE_SUP  | REG_READ_USR  | REG_WRITE_USR                  ), SPRN_USPRG0  , REG_TYPE_SPR),
-        xer     (0, (REG_READ_SUP  | REG_WRITE_SUP  | REG_READ_USR  | REG_WRITE_USR                  ), SPRN_XER     , REG_TYPE_SPR),
+    // XER operations
+    void       update_xerF(unsigned bf, unsigned val);           // Updates XER[bf] with val i.e XER[bf] <- (val & 0xf)
+    unsigned   get_xerF(unsigned bf);                            // Get xerF (F -> [0:7])
+    void       update_xerf(unsigned field, bool value);          // Update XER by exact field value [0:31]
+    bool       get_xerf(unsigned field);                         // Get XER bit at exact field
 
-        bbear   (0, (REG_READ_SUP  | REG_WRITE_SUP  | REG_READ_USR  | REG_WRITE_USR   | REG_REQ_SYNC ), SPRN_BBEAR   , REG_TYPE_SPR),
-        bbtar   (0, (REG_READ_SUP  | REG_WRITE_SUP  | REG_READ_USR  | REG_WRITE_USR   | REG_REQ_SYNC ), SPRN_BBTAR   , REG_TYPE_SPR),
-        bucsr   (0, (REG_READ_SUP  | REG_WRITE_SUP  | REG_REQ_SYNC                                   ), SPRN_BUCSR   , REG_TYPE_SPR),
-        hid0    (0, (REG_READ_SUP  | REG_WRITE_SUP  | REG_REQ_SYNC                                   ), SPRN_HID0    , REG_TYPE_SPR),
-        hid1    (0, (REG_READ_SUP  | REG_WRITE_SUP  | REG_REQ_SYNC                                   ), SPRN_HID1    , REG_TYPE_SPR),
-        ivor32  (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_IVOR32  , REG_TYPE_SPR),
-        ivor33  (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_IVOR33  , REG_TYPE_SPR),
-        ivor34  (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_IVOR34  , REG_TYPE_SPR),
-        ivor35  (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_IVOR35  , REG_TYPE_SPR),
-        l1cfg0  (0, (REG_READ_SUP                                                                    ), SPRN_L1CFG0  , REG_TYPE_SPR),
-        l1cfg1  (0, (REG_READ_SUP                                                                    ), SPRN_L1CFG1  , REG_TYPE_SPR),
-        l1csr0  (0, (REG_READ_SUP  | REG_WRITE_SUP  | REG_REQ_SYNC                                   ), SPRN_L1CSR0  , REG_TYPE_SPR),
-        l1csr1  (0, (REG_READ_SUP  | REG_WRITE_SUP  | REG_REQ_SYNC                                   ), SPRN_L1CSR1  , REG_TYPE_SPR),
-        mas0    (0, (REG_READ_SUP  | REG_WRITE_SUP  | REG_REQ_SYNC                                   ), SPRN_MAS0    , REG_TYPE_SPR),
-        mas1    (0, (REG_READ_SUP  | REG_WRITE_SUP  | REG_REQ_SYNC                                   ), SPRN_MAS1    , REG_TYPE_SPR),
-        mas2    (0, (REG_READ_SUP  | REG_WRITE_SUP  | REG_REQ_SYNC                                   ), SPRN_MAS2    , REG_TYPE_SPR),
-        mas3    (0, (REG_READ_SUP  | REG_WRITE_SUP  | REG_REQ_SYNC                                   ), SPRN_MAS3    , REG_TYPE_SPR),
-        mas4    (0, (REG_READ_SUP  | REG_WRITE_SUP  | REG_REQ_SYNC                                   ), SPRN_MAS4    , REG_TYPE_SPR),
-        mas5    (0, (REG_READ_SUP  | REG_WRITE_SUP  | REG_REQ_SYNC                                   ), SPRN_MAS5    , REG_TYPE_SPR),
-        mas6    (0, (REG_READ_SUP  | REG_WRITE_SUP  | REG_REQ_SYNC                                   ), SPRN_MAS6    , REG_TYPE_SPR),
-        mas7    (0, (REG_READ_SUP  | REG_WRITE_SUP  | REG_REQ_SYNC                                   ), SPRN_MAS7    , REG_TYPE_SPR),
-        mcar    (0, (REG_READ_SUP                                                                    ), SPRN_MCAR    , REG_TYPE_SPR),
-        mcsr    (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_MCSR    , REG_TYPE_SPR),
-        mcsrr0  (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_MCSRR0  , REG_TYPE_SPR),
-        mcsrr1  (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_MCSRR1  , REG_TYPE_SPR),
-        mmucfg  (0, (REG_READ_SUP                                                                    ), SPRN_MMUCFG  , REG_TYPE_SPR),
-        mmucsr0 (0, (REG_READ_SUP  | REG_WRITE_SUP  | REG_REQ_SYNC                                   ), SPRN_MMUCSR0 , REG_TYPE_SPR),
-        spefscr (0, (REG_READ_SUP  | REG_WRITE_SUP  | REG_REQ_SYNC                                   ), SPRN_SPEFSCR , REG_TYPE_SPR),
-        svr     (0, (REG_READ_SUP                                                                    ), SPRN_SVR     , REG_TYPE_SPR),
-        tlb0cfg (0, (REG_READ_SUP                                                                    ), SPRN_TLB0CFG , REG_TYPE_SPR),
-        tlb1cfg (0, (REG_READ_SUP                                                                    ), SPRN_TLB1CFG , REG_TYPE_SPR),
+    void       update_xer_so_ov(uint8_t so_ov);                  // Update SO & OV
+    void       update_xer_so_ov_host(x86_flags &hf);             // Update SO & OV using host flags
+    void       update_xer_ca(bool value=0);                      // Update XER[CA]
+    void       update_xer_ca_host(x86_flags &hf);                // Update XER[CA] using host flags
 
-        pmgc0   (0, 0, PMRN_PMGC0   , REG_TYPE_PMR),
-        pmlca0  (0, 0, PMRN_PMLCA0  , REG_TYPE_PMR),
-        pmlca1  (0, 0, PMRN_PMLCA1  , REG_TYPE_PMR),
-        pmlca2  (0, 0, PMRN_PMLCA2  , REG_TYPE_PMR),
-        pmlca3  (0, 0, PMRN_PMLCA3  , REG_TYPE_PMR),
-        pmlcb0  (0, 0, PMRN_PMLCB0  , REG_TYPE_PMR),
-        pmlcb1  (0, 0, PMRN_PMLCB1  , REG_TYPE_PMR),
-        pmlcb2  (0, 0, PMRN_PMLCB2  , REG_TYPE_PMR),
-        pmlcb3  (0, 0, PMRN_PMLCB3  , REG_TYPE_PMR),
-        pmc0    (0, 0, PMRN_PMC0    , REG_TYPE_PMR),
-        pmc1    (0, 0, PMRN_PMC1    , REG_TYPE_PMR),
-        pmc2    (0, 0, PMRN_PMC2    , REG_TYPE_PMR),
-        pmc3    (0, 0, PMRN_PMC3    , REG_TYPE_PMR),
-        upmgc0  (0, 0, PMRN_UPMGC0  , REG_TYPE_PMR),
-        upmlca0 (0, 0, PMRN_UPMLCA0 , REG_TYPE_PMR),
-        upmlca1 (0, 0, PMRN_UPMLCA1 , REG_TYPE_PMR),
-        upmlca2 (0, 0, PMRN_UPMLCA2 , REG_TYPE_PMR),
-        upmlca3 (0, 0, PMRN_UPMLCA3 , REG_TYPE_PMR),
-        upmlcb0 (0, 0, PMRN_UPMLCB0 , REG_TYPE_PMR),
-        upmlcb1 (0, 0, PMRN_UPMLCB1 , REG_TYPE_PMR),
-        upmlcb2 (0, 0, PMRN_UPMLCB2 , REG_TYPE_PMR),
-        upmlcb3 (0, 0, PMRN_UPMLCB3 , REG_TYPE_PMR),
-        upmc0   (0, 0, PMRN_UPMC0   , REG_TYPE_PMR),
-        upmc1   (0, 0, PMRN_UPMC1   , REG_TYPE_PMR),
-        upmc2   (0, 0, PMRN_UPMC2   , REG_TYPE_PMR),
-        upmc3   (0, 0, PMRN_UPMC2   , REG_TYPE_PMR)
-    {
-        // Initialize value ptrs
-        m_reg["msr"]        = &(msr     );      m_ireg[REG_MSR]         = m_reg["msr"];
-        m_reg["cr"]         = &(cr      );      m_ireg[REG_CR]          = m_reg["cr"];
-        m_reg["acc"]        = &(acc     );      m_ireg[REG_ACC]         = m_reg["acc"];
+    bool       get_xer_so();                                     // Get XER[SO]
+    bool       get_xer_ca();                                     // Get XER[CA]
+    bool       get_xer_ov();                                     // Get XER[OV]
+ 
+};
 
-        m_reg["atbl"]       = &(atbl    );      m_ireg[REG_ATBL]        = m_reg["atbl"];
-        m_reg["atbu"]       = &(atbu    );      m_ireg[REG_ATBU]        = m_reg["atbu"];
-        m_reg["csrr0"]      = &(csrr0   );      m_ireg[REG_CSRR0]       = m_reg["csrr0"];
-        m_reg["csrr1"]      = &(csrr1   );      m_ireg[REG_CSRR1]       = m_reg["csrr1"];
-        m_reg["ctr"]        = &(ctr     );      m_ireg[REG_CTR]         = m_reg["ctr"];
-        m_reg["dac1"]       = &(dac1    );      m_ireg[REG_DAC1]        = m_reg["dac1"];
-        m_reg["dac2"]       = &(dac2    );      m_ireg[REG_DAC2]        = m_reg["dac2"];
-        m_reg["dbcr0"]      = &(dbcr0   );      m_ireg[REG_DBCR0]       = m_reg["dbcr0"];
-        m_reg["dbcr1"]      = &(dbcr1   );      m_ireg[REG_DBCR1]       = m_reg["dbcr1"];
-        m_reg["dbcr2"]      = &(dbcr2   );      m_ireg[REG_DBCR2]       = m_reg["dbcr2"];
-        m_reg["dbsr"]       = &(dbsr    );      m_ireg[REG_DBSR]        = m_reg["dbsr"];
-        m_reg["dear"]       = &(dear    );      m_ireg[REG_DEAR]        = m_reg["dear"];
-        m_reg["dec"]        = &(dec     );      m_ireg[REG_DEC]         = m_reg["dec"];
-        m_reg["decar"]      = &(decar   );      m_ireg[REG_DECAR]       = m_reg["decar"];
-        m_reg["esr"]        = &(esr     );      m_ireg[REG_ESR]         = m_reg["esr"];
-        m_reg["iac1"]       = &(iac1    );      m_ireg[REG_IAC1]        = m_reg["iac1"];
-        m_reg["iac2"]       = &(iac2    );      m_ireg[REG_IAC2]        = m_reg["iac2"];
-        m_reg["ivor0"]      = &(ivor0   );      m_ireg[REG_IVOR0]       = m_reg["ivor0"];
-        m_reg["ivor1"]      = &(ivor1   );      m_ireg[REG_IVOR1]       = m_reg["ivor1"]; 
-        m_reg["ivor2"]      = &(ivor2   );      m_ireg[REG_IVOR2]       = m_reg["ivor2"];
-        m_reg["ivor3"]      = &(ivor3   );      m_ireg[REG_IVOR3]       = m_reg["ivor3"];
-        m_reg["ivor4"]      = &(ivor4   );      m_ireg[REG_IVOR4]       = m_reg["ivor4"];
-        m_reg["ivor5"]      = &(ivor5   );      m_ireg[REG_IVOR5]       = m_reg["ivor5"];
-        m_reg["ivor6"]      = &(ivor6   );      m_ireg[REG_IVOR6]       = m_reg["ivor6"];
-        m_reg["ivor7"]      = &(ivor7   );      m_ireg[REG_IVOR7]       = m_reg["ivor7"];
-        m_reg["ivor8"]      = &(ivor8   );      m_ireg[REG_IVOR8]       = m_reg["ivor8"];
-        m_reg["ivor9"]      = &(ivor9   );      m_ireg[REG_IVOR9]       = m_reg["ivor9"];
-        m_reg["ivor10"]     = &(ivor10  );      m_ireg[REG_IVOR10]      = m_reg["ivor10"];
-        m_reg["ivor11"]     = &(ivor11  );      m_ireg[REG_IVOR11]      = m_reg["ivor11"];
-        m_reg["ivor12"]     = &(ivor12  );      m_ireg[REG_IVOR12]      = m_reg["ivor12"];
-        m_reg["ivor13"]     = &(ivor13  );      m_ireg[REG_IVOR13]      = m_reg["ivor13"];
-        m_reg["ivor14"]     = &(ivor14  );      m_ireg[REG_IVOR14]      = m_reg["ivor14"];
-        m_reg["ivor15"]     = &(ivor15  );      m_ireg[REG_IVOR15]      = m_reg["ivor15"];
-        m_reg["ivpr"]       = &(ivpr    );      m_ireg[REG_IVPR]        = m_reg["ivpr"];
-        m_reg["lr"]         = &(lr      );      m_ireg[REG_LR]          = m_reg["lr"];
-        m_reg["pid"]        = &(pid0    );      m_ireg[REG_PID]         = m_reg["pid"];
-        m_reg["pir"]        = &(pir     );      m_ireg[REG_PIR]         = m_reg["pir"];
-        m_reg["pvr"]        = &(pvr     );      m_ireg[REG_PVR]         = m_reg["pvr"];
-        m_reg["sprg0"]      = &(sprg0   );      m_ireg[REG_SPRG0]       = m_reg["sprg0"];
-        m_reg["sprg1"]      = &(sprg1   );      m_ireg[REG_SPRG1]       = m_reg["sprg1"];
-        m_reg["sprg2"]      = &(sprg2   );      m_ireg[REG_SPRG2]       = m_reg["sprg2"];
-        m_reg["sprg3r"]     = &(sprg3   );      m_ireg[REG_SPRG3R]      = m_reg["sprg3r"];
-        m_reg["sprg3"]      = &(sprg3   );      m_ireg[REG_SPRG3]       = m_reg["sprg3"];
-        m_reg["sprg4r"]     = &(sprg4   );      m_ireg[REG_SPRG4R]      = m_reg["sprg4r"];
-        m_reg["sprg4"]      = &(sprg4   );      m_ireg[REG_SPRG4]       = m_reg["sprg4"];
-        m_reg["sprg5r"]     = &(sprg5   );      m_ireg[REG_SPRG5R]      = m_reg["sprg5r"];
-        m_reg["sprg5"]      = &(sprg5   );      m_ireg[REG_SPRG5]       = m_reg["sprg5"];
-        m_reg["sprg6r"]     = &(sprg6   );      m_ireg[REG_SPRG6R]      = m_reg["sprg6r"];
-        m_reg["sprg6"]      = &(sprg6   );      m_ireg[REG_SPRG6]       = m_reg["sprg6"];
-        m_reg["sprg7r"]     = &(sprg7   );      m_ireg[REG_SPRG7R]      = m_reg["sprg7r"];
-        m_reg["sprg7"]      = &(sprg7   );      m_ireg[REG_SPRG7]       = m_reg["sprg7"];
-        m_reg["srr0"]       = &(srr0    );      m_ireg[REG_SRR0]        = m_reg["srr0"];
-        m_reg["srr1"]       = &(srr1    );      m_ireg[REG_SRR1]        = m_reg["srr1"];
-        m_reg["tbrl"]       = &(tbl     );      m_ireg[REG_TBRL]        = m_reg["tbrl"];
-        m_reg["tbwl"]       = &(tbl     );      m_ireg[REG_TBWL]        = m_reg["tbwl"];
-        m_reg["tbru"]       = &(tbu     );      m_ireg[REG_TBRU]        = m_reg["tbru"];
-        m_reg["tbwu"]       = &(tbu     );      m_ireg[REG_TBWU]        = m_reg["tbwu"];
-        m_reg["tcr"]        = &(tcr     );      m_ireg[REG_TCR]         = m_reg["tcr"];
-        m_reg["tsr"]        = &(tsr     );      m_ireg[REG_TSR]         = m_reg["tsr"];
-        m_reg["usprg0"]     = &(usprg0  );      m_ireg[REG_USPRG0]      = m_reg["usprg0"];
-        m_reg["xer"]        = &(xer     );      m_ireg[REG_XER]         = m_reg["xer"];
+// Constructor
+ppc_regs::ppc_regs(bool c_m):
+    cm(c_m),
 
-        m_reg["bbear"]      = &(bbear    );     m_ireg[REG_BBEAR]       = m_reg["bbear"];
-        m_reg["bbtar"]      = &(bbtar    );     m_ireg[REG_BBTAR]       = m_reg["bbtar"];
-        m_reg["bucsr"]      = &(bucsr    );     m_ireg[REG_BUCSR]       = m_reg["bucsr"];
-        m_reg["hid0"]       = &(hid0     );     m_ireg[REG_HID0]        = m_reg["hid0"];
-        m_reg["hid1"]       = &(hid1     );     m_ireg[REG_HID1]        = m_reg["hid1"];
-        m_reg["ivor32"]     = &(ivor32   );     m_ireg[REG_IVOR32]      = m_reg["ivor32"];
-        m_reg["ivor33"]     = &(ivor33   );     m_ireg[REG_IVOR33]      = m_reg["ivor33"];
-        m_reg["ivor34"]     = &(ivor34   );     m_ireg[REG_IVOR34]      = m_reg["ivor34"];
-        m_reg["ivor35"]     = &(ivor35   );     m_ireg[REG_IVOR35]      = m_reg["ivor35"];
-        m_reg["l1cfg0"]     = &(l1cfg0   );     m_ireg[REG_L1CFG0]      = m_reg["l1cfg0"];
-        m_reg["l1cfg1"]     = &(l1cfg1   );     m_ireg[REG_L1CFG1]      = m_reg["l1cfg1"];
-        m_reg["l1csr0"]     = &(l1csr0   );     m_ireg[REG_L1CSR0]      = m_reg["l1csr0"];
-        m_reg["l1csr1"]     = &(l1csr1   );     m_ireg[REG_L1CSR1]      = m_reg["l1csr1"];
-        m_reg["mas0"]       = &(mas0     );     m_ireg[REG_MAS0]        = m_reg["mas0"];
-        m_reg["mas1"]       = &(mas1     );     m_ireg[REG_MAS1]        = m_reg["mas1"];
-        m_reg["mas2"]       = &(mas2     );     m_ireg[REG_MAS2]        = m_reg["mas2"];
-        m_reg["mas3"]       = &(mas3     );     m_ireg[REG_MAS3]        = m_reg["mas3"];
-        m_reg["mas4"]       = &(mas4     );     m_ireg[REG_MAS4]        = m_reg["mas4"];
-        m_reg["mas5"]       = &(mas5     );     m_ireg[REG_MAS5]        = m_reg["mas5"];
-        m_reg["mas6"]       = &(mas6     );     m_ireg[REG_MAS6]        = m_reg["mas6"];
-        m_reg["mas7"]       = &(mas7     );     m_ireg[REG_MAS7]        = m_reg["mas7"];
-        m_reg["mcar"]       = &(mcar     );     m_ireg[REG_MCAR]        = m_reg["mcar"];
-        m_reg["mcsr"]       = &(mcsr     );     m_ireg[REG_MCSR]        = m_reg["mcsr"];
-        m_reg["mcsrr0"]     = &(mcsrr0   );     m_ireg[REG_MCSRR0]      = m_reg["mcsrr0"];
-        m_reg["mcsrr1"]     = &(mcsrr1   );     m_ireg[REG_MCSRR1]      = m_reg["mcsrr1"];
-        m_reg["mmucfg"]     = &(mmucfg   );     m_ireg[REG_MMUCFG]      = m_reg["mmucfg"];
-        m_reg["mmucsr0"]    = &(mmucsr0  );     m_ireg[REG_MMUCSR0]     = m_reg["mmucsr0"];
-        m_reg["pid0"]       = &(pid0     );     m_ireg[REG_PID0]        = m_reg["pid0"];
-        m_reg["pid1"]       = &(pid1     );     m_ireg[REG_PID1]        = m_reg["pid1"];
-        m_reg["pid2"]       = &(pid2     );     m_ireg[REG_PID2]        = m_reg["pid2"];
-        m_reg["spefscr"]    = &(spefscr  );     m_ireg[REG_SPEFSCR]     = m_reg["spefscr"];
-        m_reg["svr"]        = &(svr      );     m_ireg[REG_SVR]         = m_reg["svr"];
-        m_reg["tlb0cfg"]    = &(tlb0cfg  );     m_ireg[REG_TLB0CFG]     = m_reg["tlb0cfg"];
-        m_reg["tlb1cfg"]    = &(tlb1cfg  );     m_ireg[REG_TLB1CFG]     = m_reg["tlb1cfg"];
+    msr     (0,    (REG_READ_SUP | REG_WRITE_SUP | REG_READ_USR                                  ), 0            , REG_TYPE_MSR),
+    cr      (0,    0                                                                              , 0            , REG_TYPE_CR ),
+    acc     (0,    0                                                                              , 0            , REG_TYPE_ACC),
 
-        // PMRs
-        m_reg["pmc0"]       = &(pmc0     );     m_ireg[REG_PMC0]        = m_reg["pmc0"];
-        m_reg["pmc1"]       = &(pmc1     );     m_ireg[REG_PMC1]        = m_reg["pmc1"];
-        m_reg["pmc2"]       = &(pmc2     );     m_ireg[REG_PMC2]        = m_reg["pmc2"];
-        m_reg["pmc3"]       = &(pmc3     );     m_ireg[REG_PMC3]        = m_reg["pmc3"];
-        m_reg["pmlca0"]     = &(pmlca0   );     m_ireg[REG_PMLCA0]      = m_reg["pmlca0"];
-        m_reg["pmlca1"]     = &(pmlca1   );     m_ireg[REG_PMLCA1]      = m_reg["pmlca1"];
-        m_reg["pmlca2"]     = &(pmlca2   );     m_ireg[REG_PMLCA2]      = m_reg["pmlca2"];
-        m_reg["pmlca3"]     = &(pmlca3   );     m_ireg[REG_PMLCA3]      = m_reg["pmlca3"];
-        m_reg["pmlcb0"]     = &(pmlcb0   );     m_ireg[REG_PMLCB0]      = m_reg["pmlcb0"];
-        m_reg["pmlcb1"]     = &(pmlcb1   );     m_ireg[REG_PMLCB1]      = m_reg["pmlcb1"];
-        m_reg["pmlcb2"]     = &(pmlcb2   );     m_ireg[REG_PMLCB2]      = m_reg["pmlcb2"];
-        m_reg["pmlcb3"]     = &(pmlcb2   );     m_ireg[REG_PMLCB3]      = m_reg["pmlcb3"];
-        m_reg["pmgc0"]      = &(pmgc0    );     m_ireg[REG_PMGC0]       = m_reg["pmgc0"];
-        m_reg["upmc0"]      = &(upmc0    );     m_ireg[REG_UPMC0]       = m_reg["upmc0"];
-        m_reg["upmc1"]      = &(upmc1    );     m_ireg[REG_UPMC1]       = m_reg["upmc1"];
-        m_reg["upmc2"]      = &(upmc2    );     m_ireg[REG_UPMC2]       = m_reg["upmc2"];
-        m_reg["upmc3"]      = &(upmc3    );     m_ireg[REG_UPMC3]       = m_reg["upmc3"];
-        m_reg["upmlca0"]    = &(upmlca0  );     m_ireg[REG_UPMLCA0]     = m_reg["upmlca0"];
-        m_reg["upmlca1"]    = &(upmlca1  );     m_ireg[REG_UPMLCA1]     = m_reg["upmlca1"];
-        m_reg["upmlca2"]    = &(upmlca2  );     m_ireg[REG_UPMLCA2]     = m_reg["upmlca2"];
-        m_reg["upmlca3"]    = &(upmlca3  );     m_ireg[REG_UPMLCA3]     = m_reg["upmlca3"];
-        m_reg["upmlcb0"]    = &(upmlcb0  );     m_ireg[REG_UPMLCB0]     = m_reg["upmlcb0"];
-        m_reg["upmlcb1"]    = &(upmlcb1  );     m_ireg[REG_UPMLCB1]     = m_reg["upmlcb1"];
-        m_reg["upmlcb2"]    = &(upmlcb2  );     m_ireg[REG_UPMLCB2]     = m_reg["upmlcb2"];
-        m_reg["upmlcb3"]    = &(upmlcb3  );     m_ireg[REG_UPMLCB3]     = m_reg["upmlcb3"];
-        m_reg["upmgc0"]     = &(upmgc0   );     m_ireg[REG_UPMGC0]      = m_reg["upmgc0"];
+    gpr0    (0,    0                                                                              , 0            , REG_TYPE_GPR),
+    gpr1    (0,    0                                                                              , 1            , REG_TYPE_GPR),
+    gpr2    (0,    0                                                                              , 2            , REG_TYPE_GPR),
+    gpr3    (0,    0                                                                              , 3            , REG_TYPE_GPR),
+    gpr4    (0,    0                                                                              , 4            , REG_TYPE_GPR),
+    gpr5    (0,    0                                                                              , 5            , REG_TYPE_GPR),
+    gpr6    (0,    0                                                                              , 6            , REG_TYPE_GPR),
+    gpr7    (0,    0                                                                              , 7            , REG_TYPE_GPR),
+    gpr8    (0,    0                                                                              , 8            , REG_TYPE_GPR),
+    gpr9    (0,    0                                                                              , 9            , REG_TYPE_GPR),
+    gpr10   (0,    0                                                                              , 10           , REG_TYPE_GPR),
+    gpr11   (0,    0                                                                              , 11           , REG_TYPE_GPR),
+    gpr12   (0,    0                                                                              , 12           , REG_TYPE_GPR),
+    gpr13   (0,    0                                                                              , 13           , REG_TYPE_GPR),
+    gpr14   (0,    0                                                                              , 14           , REG_TYPE_GPR),
+    gpr15   (0,    0                                                                              , 15           , REG_TYPE_GPR),
+    gpr16   (0,    0                                                                              , 16           , REG_TYPE_GPR),
+    gpr17   (0,    0                                                                              , 17           , REG_TYPE_GPR),
+    gpr18   (0,    0                                                                              , 18           , REG_TYPE_GPR),
+    gpr19   (0,    0                                                                              , 19           , REG_TYPE_GPR),
+    gpr20   (0,    0                                                                              , 20           , REG_TYPE_GPR),
+    gpr21   (0,    0                                                                              , 21           , REG_TYPE_GPR),
+    gpr22   (0,    0                                                                              , 22           , REG_TYPE_GPR),
+    gpr23   (0,    0                                                                              , 23           , REG_TYPE_GPR),
+    gpr24   (0,    0                                                                              , 24           , REG_TYPE_GPR),
+    gpr25   (0,    0                                                                              , 25           , REG_TYPE_GPR),
+    gpr26   (0,    0                                                                              , 26           , REG_TYPE_GPR),
+    gpr27   (0,    0                                                                              , 27           , REG_TYPE_GPR),
+    gpr28   (0,    0                                                                              , 28           , REG_TYPE_GPR),
+    gpr29   (0,    0                                                                              , 29           , REG_TYPE_GPR),
+    gpr30   (0,    0                                                                              , 30           , REG_TYPE_GPR),
+    gpr31   (0,    0                                                                              , 31           , REG_TYPE_GPR),
 
-        // GPRS
-        m_reg["r0"]         = &(gpr0);
-        m_reg["r1"]         = &(gpr1);
-        m_reg["r2"]         = &(gpr2);
-        m_reg["r3"]         = &(gpr3);
-        m_reg["r4"]         = &(gpr4);
-        m_reg["r5"]         = &(gpr5);
-        m_reg["r6"]         = &(gpr6);
-        m_reg["r7"]         = &(gpr7);
-        m_reg["r8"]         = &(gpr8);
-        m_reg["r9"]         = &(gpr9);
-        m_reg["r10"]        = &(gpr10);
-        m_reg["r11"]        = &(gpr11);
-        m_reg["r12"]        = &(gpr12);
-        m_reg["r13"]        = &(gpr13);
-        m_reg["r14"]        = &(gpr14);
-        m_reg["r15"]        = &(gpr15);
-        m_reg["r16"]        = &(gpr16);
-        m_reg["r17"]        = &(gpr17);
-        m_reg["r18"]        = &(gpr18);
-        m_reg["r19"]        = &(gpr19);
-        m_reg["r20"]        = &(gpr20);
-        m_reg["r21"]        = &(gpr21);
-        m_reg["r22"]        = &(gpr22);
-        m_reg["r23"]        = &(gpr23);
-        m_reg["r24"]        = &(gpr24);
-        m_reg["r25"]        = &(gpr25);
-        m_reg["r26"]        = &(gpr26);
-        m_reg["r27"]        = &(gpr27);
-        m_reg["r28"]        = &(gpr28);
-        m_reg["r29"]        = &(gpr29);
-        m_reg["r30"]        = &(gpr30);
-        m_reg["r31"]        = &(gpr31);
+    atbl    (0, (REG_READ_SUP  | REG_WRITE_SUP   | REG_READ_USR                                  ), SPRN_ATBL    , REG_TYPE_SPR),
+    atbu    (0, (REG_READ_SUP  | REG_WRITE_SUP   | REG_READ_USR                                  ), SPRN_ATBU    , REG_TYPE_SPR),
+    csrr0   (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_CSRR0   , REG_TYPE_SPR),
+    csrr1   (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_CSRR1   , REG_TYPE_SPR),
+    ctr     (0, (REG_READ_SUP  | REG_WRITE_SUP   | REG_READ_USR  | REG_WRITE_USR                 ), SPRN_CTR     , REG_TYPE_SPR),
+    dac1    (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_DAC1    , REG_TYPE_SPR),
+    dac2    (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_DAC2    , REG_TYPE_SPR),
+    dbcr0   (0, (REG_READ_SUP  | REG_WRITE_SUP   | REG_REQ_SYNC                                  ), SPRN_DBCR0   , REG_TYPE_SPR),
+    dbcr1   (0, (REG_READ_SUP  | REG_WRITE_SUP   | REG_REQ_SYNC                                  ), SPRN_DBCR1   , REG_TYPE_SPR),
+    dbcr2   (0, (REG_READ_SUP  | REG_WRITE_SUP   | REG_REQ_SYNC                                  ), SPRN_DBCR2   , REG_TYPE_SPR),
+    dbsr    (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_DBSR    , REG_TYPE_SPR),
+    dear    (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_DEAR    , REG_TYPE_SPR),
+    dec     (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_DEC     , REG_TYPE_SPR),
+    decar   (0, (REG_WRITE_SUP                                                                   ), SPRN_DECAR   , REG_TYPE_SPR),
+    esr     (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_ESR     , REG_TYPE_SPR),
+    iac1    (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_IAC1    , REG_TYPE_SPR),
+    iac2    (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_IAC2    , REG_TYPE_SPR),
+    ivor0   (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_IVOR0   , REG_TYPE_SPR),
+    ivor1   (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_IVOR1   , REG_TYPE_SPR),
+    ivor2   (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_IVOR2   , REG_TYPE_SPR),
+    ivor3   (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_IVOR3   , REG_TYPE_SPR),
+    ivor4   (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_IVOR4   , REG_TYPE_SPR),
+    ivor5   (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_IVOR5   , REG_TYPE_SPR),
+    ivor6   (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_IVOR6   , REG_TYPE_SPR),
+    ivor7   (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_IVOR7   , REG_TYPE_SPR),
+    ivor8   (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_IVOR8   , REG_TYPE_SPR),
+    ivor9   (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_IVOR9   , REG_TYPE_SPR),
+    ivor10  (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_IVOR10  , REG_TYPE_SPR),
+    ivor11  (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_IVOR11  , REG_TYPE_SPR),
+    ivor12  (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_IVOR12  , REG_TYPE_SPR),
+    ivor13  (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_IVOR13  , REG_TYPE_SPR),
+    ivor14  (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_IVOR14  , REG_TYPE_SPR),
+    ivor15  (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_IVOR15  , REG_TYPE_SPR),
+    ivpr    (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_IVPR    , REG_TYPE_SPR),
+    lr      (0, (REG_READ_SUP  | REG_WRITE_SUP  | REG_READ_USR | REG_WRITE_USR                   ), SPRN_LR      , REG_TYPE_SPR),
+    pid0    (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_PID0    , REG_TYPE_SPR),
+    pid1    (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_PID1    , REG_TYPE_SPR),
+    pid2    (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_PID2    , REG_TYPE_SPR),
+    pir     (0, (REG_READ_SUP                                                                    ), SPRN_PIR     , REG_TYPE_SPR),
+    pvr     (0, (REG_READ_SUP                                                                    ), SPRN_PVR     , REG_TYPE_SPR),
+    sprg0   (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_SPRG0   , REG_TYPE_SPR),
+    sprg1   (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_SPRG1   , REG_TYPE_SPR),
+    sprg2   (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_SPRG2   , REG_TYPE_SPR),
+    sprg3   (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_SPRG3   , REG_TYPE_SPR),
+    sprg4   (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_SPRG4   , REG_TYPE_SPR),
+    sprg5   (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_SPRG5   , REG_TYPE_SPR),
+    sprg6   (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_SPRG6   , REG_TYPE_SPR),
+    sprg7   (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_SPRG7   , REG_TYPE_SPR),
+    srr0    (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_SRR0    , REG_TYPE_SPR),
+    srr1    (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_SRR1    , REG_TYPE_SPR),
+    tbl     (0, (REG_READ_USR                                                                    ), SPRN_TBWL    , REG_TYPE_SPR),
+    tbu     (0, (REG_WRITE_SUP                                                                   ), SPRN_TBWU    , REG_TYPE_SPR),
+    tcr     (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_TCR     , REG_TYPE_SPR),
+    tsr     (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_TSR     , REG_TYPE_SPR),
+    usprg0  (0, (REG_READ_SUP  | REG_WRITE_SUP  | REG_READ_USR  | REG_WRITE_USR                  ), SPRN_USPRG0  , REG_TYPE_SPR),
+    xer     (0, (REG_READ_SUP  | REG_WRITE_SUP  | REG_READ_USR  | REG_WRITE_USR                  ), SPRN_XER     , REG_TYPE_SPR),
 
-        for (size_t i=0; i<PPC_NGPRS; i++){
-            m_reg[static_cast<std::ostringstream *>(&(std::ostringstream() << "gpr" << i))->str()]
-                = m_reg[static_cast<std::ostringstream *>(&(std::ostringstream() << "r" << i))->str()];
-            m_ireg[REG_GPR0 + i]
-                = m_reg[static_cast<std::ostringstream *>(&(std::ostringstream() << "r" << i))->str()];
-        }
+    bbear   (0, (REG_READ_SUP  | REG_WRITE_SUP  | REG_READ_USR  | REG_WRITE_USR   | REG_REQ_SYNC ), SPRN_BBEAR   , REG_TYPE_SPR),
+    bbtar   (0, (REG_READ_SUP  | REG_WRITE_SUP  | REG_READ_USR  | REG_WRITE_USR   | REG_REQ_SYNC ), SPRN_BBTAR   , REG_TYPE_SPR),
+    bucsr   (0, (REG_READ_SUP  | REG_WRITE_SUP  | REG_REQ_SYNC                                   ), SPRN_BUCSR   , REG_TYPE_SPR),
+    hid0    (0, (REG_READ_SUP  | REG_WRITE_SUP  | REG_REQ_SYNC                                   ), SPRN_HID0    , REG_TYPE_SPR),
+    hid1    (0, (REG_READ_SUP  | REG_WRITE_SUP  | REG_REQ_SYNC                                   ), SPRN_HID1    , REG_TYPE_SPR),
+    ivor32  (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_IVOR32  , REG_TYPE_SPR),
+    ivor33  (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_IVOR33  , REG_TYPE_SPR),
+    ivor34  (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_IVOR34  , REG_TYPE_SPR),
+    ivor35  (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_IVOR35  , REG_TYPE_SPR),
+    l1cfg0  (0, (REG_READ_SUP                                                                    ), SPRN_L1CFG0  , REG_TYPE_SPR),
+    l1cfg1  (0, (REG_READ_SUP                                                                    ), SPRN_L1CFG1  , REG_TYPE_SPR),
+    l1csr0  (0, (REG_READ_SUP  | REG_WRITE_SUP  | REG_REQ_SYNC                                   ), SPRN_L1CSR0  , REG_TYPE_SPR),
+    l1csr1  (0, (REG_READ_SUP  | REG_WRITE_SUP  | REG_REQ_SYNC                                   ), SPRN_L1CSR1  , REG_TYPE_SPR),
+    mas0    (0, (REG_READ_SUP  | REG_WRITE_SUP  | REG_REQ_SYNC                                   ), SPRN_MAS0    , REG_TYPE_SPR),
+    mas1    (0, (REG_READ_SUP  | REG_WRITE_SUP  | REG_REQ_SYNC                                   ), SPRN_MAS1    , REG_TYPE_SPR),
+    mas2    (0, (REG_READ_SUP  | REG_WRITE_SUP  | REG_REQ_SYNC                                   ), SPRN_MAS2    , REG_TYPE_SPR),
+    mas3    (0, (REG_READ_SUP  | REG_WRITE_SUP  | REG_REQ_SYNC                                   ), SPRN_MAS3    , REG_TYPE_SPR),
+    mas4    (0, (REG_READ_SUP  | REG_WRITE_SUP  | REG_REQ_SYNC                                   ), SPRN_MAS4    , REG_TYPE_SPR),
+    mas5    (0, (REG_READ_SUP  | REG_WRITE_SUP  | REG_REQ_SYNC                                   ), SPRN_MAS5    , REG_TYPE_SPR),
+    mas6    (0, (REG_READ_SUP  | REG_WRITE_SUP  | REG_REQ_SYNC                                   ), SPRN_MAS6    , REG_TYPE_SPR),
+    mas7    (0, (REG_READ_SUP  | REG_WRITE_SUP  | REG_REQ_SYNC                                   ), SPRN_MAS7    , REG_TYPE_SPR),
+    mcar    (0, (REG_READ_SUP                                                                    ), SPRN_MCAR    , REG_TYPE_SPR),
+    mcsr    (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_MCSR    , REG_TYPE_SPR),
+    mcsrr0  (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_MCSRR0  , REG_TYPE_SPR),
+    mcsrr1  (0, (REG_READ_SUP  | REG_WRITE_SUP                                                   ), SPRN_MCSRR1  , REG_TYPE_SPR),
+    mmucfg  (0, (REG_READ_SUP                                                                    ), SPRN_MMUCFG  , REG_TYPE_SPR),
+    mmucsr0 (0, (REG_READ_SUP  | REG_WRITE_SUP  | REG_REQ_SYNC                                   ), SPRN_MMUCSR0 , REG_TYPE_SPR),
+    spefscr (0, (REG_READ_SUP  | REG_WRITE_SUP  | REG_REQ_SYNC                                   ), SPRN_SPEFSCR , REG_TYPE_SPR),
+    svr     (0, (REG_READ_SUP                                                                    ), SPRN_SVR     , REG_TYPE_SPR),
+    tlb0cfg (0, (REG_READ_SUP                                                                    ), SPRN_TLB0CFG , REG_TYPE_SPR),
+    tlb1cfg (0, (REG_READ_SUP                                                                    ), SPRN_TLB1CFG , REG_TYPE_SPR),
+
+    pmgc0   (0, 0, PMRN_PMGC0   , REG_TYPE_PMR),
+    pmlca0  (0, 0, PMRN_PMLCA0  , REG_TYPE_PMR),
+    pmlca1  (0, 0, PMRN_PMLCA1  , REG_TYPE_PMR),
+    pmlca2  (0, 0, PMRN_PMLCA2  , REG_TYPE_PMR),
+    pmlca3  (0, 0, PMRN_PMLCA3  , REG_TYPE_PMR),
+    pmlcb0  (0, 0, PMRN_PMLCB0  , REG_TYPE_PMR),
+    pmlcb1  (0, 0, PMRN_PMLCB1  , REG_TYPE_PMR),
+    pmlcb2  (0, 0, PMRN_PMLCB2  , REG_TYPE_PMR),
+    pmlcb3  (0, 0, PMRN_PMLCB3  , REG_TYPE_PMR),
+    pmc0    (0, 0, PMRN_PMC0    , REG_TYPE_PMR),
+    pmc1    (0, 0, PMRN_PMC1    , REG_TYPE_PMR),
+    pmc2    (0, 0, PMRN_PMC2    , REG_TYPE_PMR),
+    pmc3    (0, 0, PMRN_PMC3    , REG_TYPE_PMR),
+    upmgc0  (0, 0, PMRN_UPMGC0  , REG_TYPE_PMR),
+    upmlca0 (0, 0, PMRN_UPMLCA0 , REG_TYPE_PMR),
+    upmlca1 (0, 0, PMRN_UPMLCA1 , REG_TYPE_PMR),
+    upmlca2 (0, 0, PMRN_UPMLCA2 , REG_TYPE_PMR),
+    upmlca3 (0, 0, PMRN_UPMLCA3 , REG_TYPE_PMR),
+    upmlcb0 (0, 0, PMRN_UPMLCB0 , REG_TYPE_PMR),
+    upmlcb1 (0, 0, PMRN_UPMLCB1 , REG_TYPE_PMR),
+    upmlcb2 (0, 0, PMRN_UPMLCB2 , REG_TYPE_PMR),
+    upmlcb3 (0, 0, PMRN_UPMLCB3 , REG_TYPE_PMR),
+    upmc0   (0, 0, PMRN_UPMC0   , REG_TYPE_PMR),
+    upmc1   (0, 0, PMRN_UPMC1   , REG_TYPE_PMR),
+    upmc2   (0, 0, PMRN_UPMC2   , REG_TYPE_PMR),
+    upmc3   (0, 0, PMRN_UPMC2   , REG_TYPE_PMR)
+{
+    // Initialize value ptrs
+    m_reg["msr"]        = &(msr     );      m_ireg[REG_MSR]         = m_reg["msr"];
+    m_reg["cr"]         = &(cr      );      m_ireg[REG_CR]          = m_reg["cr"];
+    m_reg["acc"]        = &(acc     );      m_ireg[REG_ACC]         = m_reg["acc"];
+
+    m_reg["atbl"]       = &(atbl    );      m_ireg[REG_ATBL]        = m_reg["atbl"];
+    m_reg["atbu"]       = &(atbu    );      m_ireg[REG_ATBU]        = m_reg["atbu"];
+    m_reg["csrr0"]      = &(csrr0   );      m_ireg[REG_CSRR0]       = m_reg["csrr0"];
+    m_reg["csrr1"]      = &(csrr1   );      m_ireg[REG_CSRR1]       = m_reg["csrr1"];
+    m_reg["ctr"]        = &(ctr     );      m_ireg[REG_CTR]         = m_reg["ctr"];
+    m_reg["dac1"]       = &(dac1    );      m_ireg[REG_DAC1]        = m_reg["dac1"];
+    m_reg["dac2"]       = &(dac2    );      m_ireg[REG_DAC2]        = m_reg["dac2"];
+    m_reg["dbcr0"]      = &(dbcr0   );      m_ireg[REG_DBCR0]       = m_reg["dbcr0"];
+    m_reg["dbcr1"]      = &(dbcr1   );      m_ireg[REG_DBCR1]       = m_reg["dbcr1"];
+    m_reg["dbcr2"]      = &(dbcr2   );      m_ireg[REG_DBCR2]       = m_reg["dbcr2"];
+    m_reg["dbsr"]       = &(dbsr    );      m_ireg[REG_DBSR]        = m_reg["dbsr"];
+    m_reg["dear"]       = &(dear    );      m_ireg[REG_DEAR]        = m_reg["dear"];
+    m_reg["dec"]        = &(dec     );      m_ireg[REG_DEC]         = m_reg["dec"];
+    m_reg["decar"]      = &(decar   );      m_ireg[REG_DECAR]       = m_reg["decar"];
+    m_reg["esr"]        = &(esr     );      m_ireg[REG_ESR]         = m_reg["esr"];
+    m_reg["iac1"]       = &(iac1    );      m_ireg[REG_IAC1]        = m_reg["iac1"];
+    m_reg["iac2"]       = &(iac2    );      m_ireg[REG_IAC2]        = m_reg["iac2"];
+    m_reg["ivor0"]      = &(ivor0   );      m_ireg[REG_IVOR0]       = m_reg["ivor0"];
+    m_reg["ivor1"]      = &(ivor1   );      m_ireg[REG_IVOR1]       = m_reg["ivor1"]; 
+    m_reg["ivor2"]      = &(ivor2   );      m_ireg[REG_IVOR2]       = m_reg["ivor2"];
+    m_reg["ivor3"]      = &(ivor3   );      m_ireg[REG_IVOR3]       = m_reg["ivor3"];
+    m_reg["ivor4"]      = &(ivor4   );      m_ireg[REG_IVOR4]       = m_reg["ivor4"];
+    m_reg["ivor5"]      = &(ivor5   );      m_ireg[REG_IVOR5]       = m_reg["ivor5"];
+    m_reg["ivor6"]      = &(ivor6   );      m_ireg[REG_IVOR6]       = m_reg["ivor6"];
+    m_reg["ivor7"]      = &(ivor7   );      m_ireg[REG_IVOR7]       = m_reg["ivor7"];
+    m_reg["ivor8"]      = &(ivor8   );      m_ireg[REG_IVOR8]       = m_reg["ivor8"];
+    m_reg["ivor9"]      = &(ivor9   );      m_ireg[REG_IVOR9]       = m_reg["ivor9"];
+    m_reg["ivor10"]     = &(ivor10  );      m_ireg[REG_IVOR10]      = m_reg["ivor10"];
+    m_reg["ivor11"]     = &(ivor11  );      m_ireg[REG_IVOR11]      = m_reg["ivor11"];
+    m_reg["ivor12"]     = &(ivor12  );      m_ireg[REG_IVOR12]      = m_reg["ivor12"];
+    m_reg["ivor13"]     = &(ivor13  );      m_ireg[REG_IVOR13]      = m_reg["ivor13"];
+    m_reg["ivor14"]     = &(ivor14  );      m_ireg[REG_IVOR14]      = m_reg["ivor14"];
+    m_reg["ivor15"]     = &(ivor15  );      m_ireg[REG_IVOR15]      = m_reg["ivor15"];
+    m_reg["ivpr"]       = &(ivpr    );      m_ireg[REG_IVPR]        = m_reg["ivpr"];
+    m_reg["lr"]         = &(lr      );      m_ireg[REG_LR]          = m_reg["lr"];
+    m_reg["pid"]        = &(pid0    );      m_ireg[REG_PID]         = m_reg["pid"];
+    m_reg["pir"]        = &(pir     );      m_ireg[REG_PIR]         = m_reg["pir"];
+    m_reg["pvr"]        = &(pvr     );      m_ireg[REG_PVR]         = m_reg["pvr"];
+    m_reg["sprg0"]      = &(sprg0   );      m_ireg[REG_SPRG0]       = m_reg["sprg0"];
+    m_reg["sprg1"]      = &(sprg1   );      m_ireg[REG_SPRG1]       = m_reg["sprg1"];
+    m_reg["sprg2"]      = &(sprg2   );      m_ireg[REG_SPRG2]       = m_reg["sprg2"];
+    m_reg["sprg3r"]     = &(sprg3   );      m_ireg[REG_SPRG3R]      = m_reg["sprg3r"];
+    m_reg["sprg3"]      = &(sprg3   );      m_ireg[REG_SPRG3]       = m_reg["sprg3"];
+    m_reg["sprg4r"]     = &(sprg4   );      m_ireg[REG_SPRG4R]      = m_reg["sprg4r"];
+    m_reg["sprg4"]      = &(sprg4   );      m_ireg[REG_SPRG4]       = m_reg["sprg4"];
+    m_reg["sprg5r"]     = &(sprg5   );      m_ireg[REG_SPRG5R]      = m_reg["sprg5r"];
+    m_reg["sprg5"]      = &(sprg5   );      m_ireg[REG_SPRG5]       = m_reg["sprg5"];
+    m_reg["sprg6r"]     = &(sprg6   );      m_ireg[REG_SPRG6R]      = m_reg["sprg6r"];
+    m_reg["sprg6"]      = &(sprg6   );      m_ireg[REG_SPRG6]       = m_reg["sprg6"];
+    m_reg["sprg7r"]     = &(sprg7   );      m_ireg[REG_SPRG7R]      = m_reg["sprg7r"];
+    m_reg["sprg7"]      = &(sprg7   );      m_ireg[REG_SPRG7]       = m_reg["sprg7"];
+    m_reg["srr0"]       = &(srr0    );      m_ireg[REG_SRR0]        = m_reg["srr0"];
+    m_reg["srr1"]       = &(srr1    );      m_ireg[REG_SRR1]        = m_reg["srr1"];
+    m_reg["tbrl"]       = &(tbl     );      m_ireg[REG_TBRL]        = m_reg["tbrl"];
+    m_reg["tbwl"]       = &(tbl     );      m_ireg[REG_TBWL]        = m_reg["tbwl"];
+    m_reg["tbru"]       = &(tbu     );      m_ireg[REG_TBRU]        = m_reg["tbru"];
+    m_reg["tbwu"]       = &(tbu     );      m_ireg[REG_TBWU]        = m_reg["tbwu"];
+    m_reg["tcr"]        = &(tcr     );      m_ireg[REG_TCR]         = m_reg["tcr"];
+    m_reg["tsr"]        = &(tsr     );      m_ireg[REG_TSR]         = m_reg["tsr"];
+    m_reg["usprg0"]     = &(usprg0  );      m_ireg[REG_USPRG0]      = m_reg["usprg0"];
+    m_reg["xer"]        = &(xer     );      m_ireg[REG_XER]         = m_reg["xer"];
+
+    m_reg["bbear"]      = &(bbear    );     m_ireg[REG_BBEAR]       = m_reg["bbear"];
+    m_reg["bbtar"]      = &(bbtar    );     m_ireg[REG_BBTAR]       = m_reg["bbtar"];
+    m_reg["bucsr"]      = &(bucsr    );     m_ireg[REG_BUCSR]       = m_reg["bucsr"];
+    m_reg["hid0"]       = &(hid0     );     m_ireg[REG_HID0]        = m_reg["hid0"];
+    m_reg["hid1"]       = &(hid1     );     m_ireg[REG_HID1]        = m_reg["hid1"];
+    m_reg["ivor32"]     = &(ivor32   );     m_ireg[REG_IVOR32]      = m_reg["ivor32"];
+    m_reg["ivor33"]     = &(ivor33   );     m_ireg[REG_IVOR33]      = m_reg["ivor33"];
+    m_reg["ivor34"]     = &(ivor34   );     m_ireg[REG_IVOR34]      = m_reg["ivor34"];
+    m_reg["ivor35"]     = &(ivor35   );     m_ireg[REG_IVOR35]      = m_reg["ivor35"];
+    m_reg["l1cfg0"]     = &(l1cfg0   );     m_ireg[REG_L1CFG0]      = m_reg["l1cfg0"];
+    m_reg["l1cfg1"]     = &(l1cfg1   );     m_ireg[REG_L1CFG1]      = m_reg["l1cfg1"];
+    m_reg["l1csr0"]     = &(l1csr0   );     m_ireg[REG_L1CSR0]      = m_reg["l1csr0"];
+    m_reg["l1csr1"]     = &(l1csr1   );     m_ireg[REG_L1CSR1]      = m_reg["l1csr1"];
+    m_reg["mas0"]       = &(mas0     );     m_ireg[REG_MAS0]        = m_reg["mas0"];
+    m_reg["mas1"]       = &(mas1     );     m_ireg[REG_MAS1]        = m_reg["mas1"];
+    m_reg["mas2"]       = &(mas2     );     m_ireg[REG_MAS2]        = m_reg["mas2"];
+    m_reg["mas3"]       = &(mas3     );     m_ireg[REG_MAS3]        = m_reg["mas3"];
+    m_reg["mas4"]       = &(mas4     );     m_ireg[REG_MAS4]        = m_reg["mas4"];
+    m_reg["mas5"]       = &(mas5     );     m_ireg[REG_MAS5]        = m_reg["mas5"];
+    m_reg["mas6"]       = &(mas6     );     m_ireg[REG_MAS6]        = m_reg["mas6"];
+    m_reg["mas7"]       = &(mas7     );     m_ireg[REG_MAS7]        = m_reg["mas7"];
+    m_reg["mcar"]       = &(mcar     );     m_ireg[REG_MCAR]        = m_reg["mcar"];
+    m_reg["mcsr"]       = &(mcsr     );     m_ireg[REG_MCSR]        = m_reg["mcsr"];
+    m_reg["mcsrr0"]     = &(mcsrr0   );     m_ireg[REG_MCSRR0]      = m_reg["mcsrr0"];
+    m_reg["mcsrr1"]     = &(mcsrr1   );     m_ireg[REG_MCSRR1]      = m_reg["mcsrr1"];
+    m_reg["mmucfg"]     = &(mmucfg   );     m_ireg[REG_MMUCFG]      = m_reg["mmucfg"];
+    m_reg["mmucsr0"]    = &(mmucsr0  );     m_ireg[REG_MMUCSR0]     = m_reg["mmucsr0"];
+    m_reg["pid0"]       = &(pid0     );     m_ireg[REG_PID0]        = m_reg["pid0"];
+    m_reg["pid1"]       = &(pid1     );     m_ireg[REG_PID1]        = m_reg["pid1"];
+    m_reg["pid2"]       = &(pid2     );     m_ireg[REG_PID2]        = m_reg["pid2"];
+    m_reg["spefscr"]    = &(spefscr  );     m_ireg[REG_SPEFSCR]     = m_reg["spefscr"];
+    m_reg["svr"]        = &(svr      );     m_ireg[REG_SVR]         = m_reg["svr"];
+    m_reg["tlb0cfg"]    = &(tlb0cfg  );     m_ireg[REG_TLB0CFG]     = m_reg["tlb0cfg"];
+    m_reg["tlb1cfg"]    = &(tlb1cfg  );     m_ireg[REG_TLB1CFG]     = m_reg["tlb1cfg"];
+
+    // PMRs
+    m_reg["pmc0"]       = &(pmc0     );     m_ireg[REG_PMC0]        = m_reg["pmc0"];
+    m_reg["pmc1"]       = &(pmc1     );     m_ireg[REG_PMC1]        = m_reg["pmc1"];
+    m_reg["pmc2"]       = &(pmc2     );     m_ireg[REG_PMC2]        = m_reg["pmc2"];
+    m_reg["pmc3"]       = &(pmc3     );     m_ireg[REG_PMC3]        = m_reg["pmc3"];
+    m_reg["pmlca0"]     = &(pmlca0   );     m_ireg[REG_PMLCA0]      = m_reg["pmlca0"];
+    m_reg["pmlca1"]     = &(pmlca1   );     m_ireg[REG_PMLCA1]      = m_reg["pmlca1"];
+    m_reg["pmlca2"]     = &(pmlca2   );     m_ireg[REG_PMLCA2]      = m_reg["pmlca2"];
+    m_reg["pmlca3"]     = &(pmlca3   );     m_ireg[REG_PMLCA3]      = m_reg["pmlca3"];
+    m_reg["pmlcb0"]     = &(pmlcb0   );     m_ireg[REG_PMLCB0]      = m_reg["pmlcb0"];
+    m_reg["pmlcb1"]     = &(pmlcb1   );     m_ireg[REG_PMLCB1]      = m_reg["pmlcb1"];
+    m_reg["pmlcb2"]     = &(pmlcb2   );     m_ireg[REG_PMLCB2]      = m_reg["pmlcb2"];
+    m_reg["pmlcb3"]     = &(pmlcb2   );     m_ireg[REG_PMLCB3]      = m_reg["pmlcb3"];
+    m_reg["pmgc0"]      = &(pmgc0    );     m_ireg[REG_PMGC0]       = m_reg["pmgc0"];
+    m_reg["upmc0"]      = &(upmc0    );     m_ireg[REG_UPMC0]       = m_reg["upmc0"];
+    m_reg["upmc1"]      = &(upmc1    );     m_ireg[REG_UPMC1]       = m_reg["upmc1"];
+    m_reg["upmc2"]      = &(upmc2    );     m_ireg[REG_UPMC2]       = m_reg["upmc2"];
+    m_reg["upmc3"]      = &(upmc3    );     m_ireg[REG_UPMC3]       = m_reg["upmc3"];
+    m_reg["upmlca0"]    = &(upmlca0  );     m_ireg[REG_UPMLCA0]     = m_reg["upmlca0"];
+    m_reg["upmlca1"]    = &(upmlca1  );     m_ireg[REG_UPMLCA1]     = m_reg["upmlca1"];
+    m_reg["upmlca2"]    = &(upmlca2  );     m_ireg[REG_UPMLCA2]     = m_reg["upmlca2"];
+    m_reg["upmlca3"]    = &(upmlca3  );     m_ireg[REG_UPMLCA3]     = m_reg["upmlca3"];
+    m_reg["upmlcb0"]    = &(upmlcb0  );     m_ireg[REG_UPMLCB0]     = m_reg["upmlcb0"];
+    m_reg["upmlcb1"]    = &(upmlcb1  );     m_ireg[REG_UPMLCB1]     = m_reg["upmlcb1"];
+    m_reg["upmlcb2"]    = &(upmlcb2  );     m_ireg[REG_UPMLCB2]     = m_reg["upmlcb2"];
+    m_reg["upmlcb3"]    = &(upmlcb3  );     m_ireg[REG_UPMLCB3]     = m_reg["upmlcb3"];
+    m_reg["upmgc0"]     = &(upmgc0   );     m_ireg[REG_UPMGC0]      = m_reg["upmgc0"];
+
+    // GPRS
+    m_reg["r0"]         = &(gpr0);
+    m_reg["r1"]         = &(gpr1);
+    m_reg["r2"]         = &(gpr2);
+    m_reg["r3"]         = &(gpr3);
+    m_reg["r4"]         = &(gpr4);
+    m_reg["r5"]         = &(gpr5);
+    m_reg["r6"]         = &(gpr6);
+    m_reg["r7"]         = &(gpr7);
+    m_reg["r8"]         = &(gpr8);
+    m_reg["r9"]         = &(gpr9);
+    m_reg["r10"]        = &(gpr10);
+    m_reg["r11"]        = &(gpr11);
+    m_reg["r12"]        = &(gpr12);
+    m_reg["r13"]        = &(gpr13);
+    m_reg["r14"]        = &(gpr14);
+    m_reg["r15"]        = &(gpr15);
+    m_reg["r16"]        = &(gpr16);
+    m_reg["r17"]        = &(gpr17);
+    m_reg["r18"]        = &(gpr18);
+    m_reg["r19"]        = &(gpr19);
+    m_reg["r20"]        = &(gpr20);
+    m_reg["r21"]        = &(gpr21);
+    m_reg["r22"]        = &(gpr22);
+    m_reg["r23"]        = &(gpr23);
+    m_reg["r24"]        = &(gpr24);
+    m_reg["r25"]        = &(gpr25);
+    m_reg["r26"]        = &(gpr26);
+    m_reg["r27"]        = &(gpr27);
+    m_reg["r28"]        = &(gpr28);
+    m_reg["r29"]        = &(gpr29);
+    m_reg["r30"]        = &(gpr30);
+    m_reg["r31"]        = &(gpr31);
+
+    for (size_t i=0; i<PPC_NGPRS; i++){
+        m_reg[static_cast<std::ostringstream *>(&(std::ostringstream() << "gpr" << i))->str()]
+            = m_reg[static_cast<std::ostringstream *>(&(std::ostringstream() << "r" << i))->str()];
+        m_ireg[REG_GPR0 + i]
+            = m_reg[static_cast<std::ostringstream *>(&(std::ostringstream() << "r" << i))->str()];
     }
 
-};
+    // set some default values
+    msr |= (c_m) << RSHIFT<MSR_CM>::VAL;
+}
 
-//
-//
-//
-// python signal callback to respond to any python errors( we can attach a callback with signature int xxx() {} )
-struct py_signal_callback {
-    typedef int (*callback_ptr)();   // Return type is "int" to return any status indicator
-    static callback_ptr callback;
-};
-py_signal_callback::callback_ptr py_signal_callback::callback = NULL;
+// Update CR0
+void ppc_regs::update_cr0(uint64_t value){
+    int c;
+
+    if unlikely(cm) {
+        if ((int64_t)value < 0)
+            c = 8;
+        else if ((int64_t)value > 0)
+            c = 4;
+        else
+            c = 2;
+    } else {
+        if ((int32_t)value < 0)
+            c = 8;
+        else if ((int32_t)value > 0)
+            c = 4;
+        else
+            c = 2;
+    }
+
+    /*  SO bit, copied from XER:  */
+    c |= (xer >> 31) & 1;
+
+    cr &= ~((uint32_t)0xf << 28);
+    cr |= ((uint32_t)c << 28);
+}
+
+// Update CR0 using host flags
+void ppc_regs::update_cr0_host(x86_flags &hf){
+    int c = 0;
+
+    if(hf.sf){ c = 8;  }          // If sign flag, set cr0[lt] flag
+    else     { c |= 4; }          // else set cr0[gt] flag
+    if(hf.zf){ c |= 2; }          // if zero flag, set cr0[eq] flag
+
+    /*  SO bit, copied from XER:  */
+    c |= (xer >> 31) & 1;
+
+    cr &= ~((uint32_t)0xf << 28);
+    cr |= ((uint32_t)c << 28);
+}
+
+// Updates CR[bf] with val i.e CR[bf] <- (val & 0xf)
+// bf may range from [0:7]
+void ppc_regs::update_crF(unsigned bf, unsigned val){
+    bf &= 0x7;
+    val &= 0xf;
+    cr &= ~( 0xf << (7 - bf)*4 );
+    cr |=  ((val & 0xf) << (7 - bf)*4);
+}
+
+// Get crF  ( F -> [0:7] )
+unsigned ppc_regs::get_crF(unsigned bf){
+    return (cr >> (7 - bf)*4) & 0xf;
+}
+
+// Update CR by exact field value [0:31]
+void ppc_regs::update_crf(unsigned field, bool value){
+    field &= 0x1f;
+    value &= 0x1;
+    cr &= ~(0x1 << (31 - field));
+    cr |= (value << (31 - field));
+}
+
+// Get CR bit at exact field
+bool ppc_regs::get_crf(unsigned field){
+    return (cr >> (31 - field)) & 0x1;
+}
+
+void ppc_regs::update_xerF(unsigned bf, unsigned val){
+    bf &= 0x7;
+    val &= 0xf;
+    xer &= ~( 0xf << (7 - bf)*4 );
+    xer |=  ((val & 0xf) << (7 - bf)*4);
+}
+
+unsigned ppc_regs::get_xerF(unsigned bf){
+    return (xer >> (7 - bf)*4) & 0xf;
+}
+
+void ppc_regs::update_xerf(unsigned field, bool value){
+    field &= 0x1f;
+    value &= 0x1;
+    xer &= ~(0x1 << (31 - field));
+    xer |= (value << (31 - field));
+}
+
+bool ppc_regs::get_xerf(unsigned field){
+    return (xer >> (31 - field)) & 0x1;
+}
+
+// Update XER[SO] & XER[OV] by value.
+// so_ov is a 2 bit value with ((XER[SO] << 1) | XER[OV])
+// NOTE : since XER[32:35] = { SO, OV, CA, RESERVED } , hence XER = XER | (so_ov << 30)
+void ppc_regs::update_xer_so_ov(uint8_t so_ov){
+    xer &= ~((uint32_t)0x3 << 30);
+    xer |= (static_cast<uint64_t>(so_ov) << 30);
+}
+
+// so_ov=0x3 if x86_flags::of=1
+void ppc_regs::update_xer_so_ov_host(x86_flags &hf){
+    uint64_t v = (hf.of) ? 0x3:0;
+    xer &= ~((uint32_t)0x3 << 30);
+    xer |= (v << 30);
+}
+
+// Update XER[CA]
+void ppc_regs::update_xer_ca(bool value){
+    uint32_t val = (value) ? 1:0;
+    xer &= XER_CA;                              // clear XER[CA]
+    xer |= val << RSHIFT<XER_CA>::VAL;          // Insert value into XER[CA]
+}
+
+// Update XER[CA] using host flags
+void ppc_regs::update_xer_ca_host(x86_flags &hf){
+    xer &= XER_CA;                                                  // clear XER[CA]
+    xer |= static_cast<uint64_t>(hf.cf) << RSHIFT<XER_CA>::VAL;     // Insert value into XER[CA]
+}
+
+// Get XER[SO]
+bool ppc_regs::get_xer_so(){
+    return (xer & XER_SO) ? 1:0;
+}
+
+bool ppc_regs::get_xer_ca(){
+    return (xer & XER_CA) ? 1:0;
+}
+
+bool ppc_regs::get_xer_ov(){
+    return (xer & XER_OV) ? 1:0;
+}
 
 #endif

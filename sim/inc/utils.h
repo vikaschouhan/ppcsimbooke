@@ -34,6 +34,9 @@
 #include <cstring>
 #include "log.hpp"
 
+#define unlikely(x)    (__builtin_expect(!!(x), 0))
+#define likely(x)      (__builtin_expect(!!(x), 1))
+
 // endianness consts
 static const int  EMUL_BIG_ENDIAN        =  0;
 static const int  EMUL_LITTLE_ENDIAN     =  1;

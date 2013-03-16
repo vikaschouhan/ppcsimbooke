@@ -125,16 +125,6 @@ void translate_sim_ex_ppc_halt(const sim_except_ppc_halt& e){
    PyErr_SetString(PyExc_RuntimeError, e.desc());
 }
 
-// python signal checker
-int py_sig_callback(){
-    PyErr_CheckSignals();
-    if(PyErr_Occurred()){
-        std::cerr << "Signal recieved." << std::endl;
-        return 1;
-    }
-    return 0;
-}
-
 // Add attributes for GPRs
 #define ADD_REG(reg_v, reg_alias) \
     ppc_regs_py.def_readwrite(reg_alias, &ppc_regs::reg_v)
@@ -229,9 +219,6 @@ BOOST_PYTHON_MODULE(ppcsim)
 
     // Wrap log_to_file()
     def("log_to_file", log_to_file);
-
-    // Install the python signal checker
-    py_signal_callback::callback = py_sig_callback;
 
     // Register exception convertors
     register_exception_translator<sim_except>(&translate_sim_ex);

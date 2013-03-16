@@ -3,11 +3,6 @@
  *  PowerPC BookE RTL description.
  * ------------------------------------------------------------------------------------
  *
- *  Acknowledgement :
- *  This file format was taken from a similar file from "gxemu" project by
- *  Anders Gavare, but it doesn't contain any of the code in that file.
- *
- *  -----------------------------------------------------------------------------------
  *  Author : Vikas Chouhan (presentisgood@gmail.com)
  *  Copyright (C) 2012.
  *  
@@ -32,8 +27,6 @@
 
 //
 // NOTE: 1. CPU and IC should come from the parsing utility.
-//       2. update_xer() updates all bits of XER. Some freescale ppc instrs only update CA, others only update
-//          SO and OV at a time. To update only XER[CA] use update_xer_ca()
 //
 // TERMINOLOGIES :
 //       1. byte means 8 bits.
@@ -140,85 +133,34 @@
 #undef  NIP
 #define NIP                      CPU->m_nip
 
-// Alias to some cpu functions ----------------------------------------------------------------
-#pragma push_macro("update_cr0")
-#undef  update_cr0
-#define update_cr0               CPU->update_cr0
-
-#pragma push_macro("update_cr0_host")
-#undef  update_cr0_host
-#define update_cr0_host          CPU->update_cr0_host
-
-#pragma push_macro("update_crF")
-#undef  update_crF
-#define update_crF               CPU->update_crF
-
-#pragma push_macro("update_crf")
-#undef  update_crf
-#define update_crf               CPU->update_crf
-
-#pragma push_macro("update_xer")
-#undef  update_xer
-#define update_xer               CPU->update_xer
-
-#pragma push_macro("update_xer_host")
-#undef  update_xer_host
-#define update_xer_host          CPU->update_xer_host
-
-#pragma push_macro("update_xer_so_ov")
-#undef  update_xer_so_ov
-#define update_xer_so_ov         CPU->update_xer_so_ov
-
-#pragma push_macro("update_xer_ca")
-#undef  update_xer_ca
-#define update_xer_ca            CPU->update_xer_ca
-
-#pragma push_macro("update_xer_ca_host")
-#undef  update_xer_ca_host
-#define update_xer_ca_host       CPU->update_xer_ca_host
-
-#pragma push_macro("get_xer_so")
-#undef  get_xer_so
-#define get_xer_so               CPU->get_xer_so
-
-#pragma push_macro("get_crf")
-#undef  get_crf
-#define get_crf                  CPU->get_crf
-
-#pragma push_macro("get_crF")
-#undef  get_crF
-#define get_crF                  CPU->get_crF
-
-#pragma push_macro("get_xerF")
-#undef  get_xerF
-#define get_xerF                 CPU->get_xerF
-
-#pragma push_macro("get_xerf")
-#undef  get_xerf
-#define get_xerf                 CPU->get_xerf
-
-#pragma push_macro("get_xer_ca")
-#undef  get_xer_ca
-#define get_xer_ca               CPU->get_xer_ca
-
 #pragma push_macro("HOST_FLAGS")
 #undef  HOST_FLAGS
 #define HOST_FLAGS               CPU->host_flags
 
-//---------------------------------- ??? -----------------------------------------------------
+// Alias to some cpu functions ----------------------------------------------------------------
+
+#define get_crf                  CPU->m_cpu_regs.get_crf
+#define get_crF                  CPU->m_cpu_regs.get_crF
+#define update_crf               CPU->m_cpu_regs.update_crf
+#define update_crF               CPU->m_cpu_regs.update_crF
+#define get_xerf                 CPU->m_cpu_regs.get_xerf
+#define get_xerF                 CPU->m_cpu_regs.get_xerF
+#define update_xerf              CPU->m_cpu_regs.update_xerf
+#define update_xerF              CPU->m_cpu_regs.update_xerF
 
 // Host flags
 #define GET_CF_H()               CPU->host_flags.cf       // x86 carry flag
 #define GET_OF_H()               CPU->host_flags.of       // x86 overflow flag
 
 // Generic macros
-#define UPDATE_CA()               update_xer_ca_host()
-#define UPDATE_SO_OV()            update_xer_host()
-#define UPDATE_SO_OV_V            update_xer_so_ov 
-#define UPDATE_CR0()              update_cr0_host()
-#define GET_CA()                  get_xer_ca()
-#define GET_SO()                  get_xer_so()
-#define UPDATE_CR0_V              update_cr0
+#define UPDATE_CA()              CPU->m_cpu_regs.update_xer_ca_host(HOST_FLAGS)
+#define UPDATE_CA_V              CPU->m_cpu_regs.update_xer_ca
+#define UPDATE_SO_OV()           CPU->m_cpu_regs.update_xer_so_ov_host(HOST_FLAGS)
+#define UPDATE_SO_OV_V           CPU->m_cpu_regs.update_xer_so_ov 
+#define UPDATE_CR0()             CPU->m_cpu_regs.update_cr0_host(HOST_FLAGS)
+#define GET_CA()                 CPU->m_cpu_regs.get_xer_ca()
+#define GET_SO()                 CPU->m_cpu_regs.get_xer_so()
+#define UPDATE_CR0_V             CPU->m_cpu_regs.update_cr0
 
 #define UPDATE_CYCLES(n)         CPU->m_ncycles += n
 
@@ -1303,7 +1245,7 @@ RTL_BEGIN("sraw", ___sraw___)
     else            m = 0;                                                               \
     int s = ((rS >> 31) & 0x1);                                                          \
     rA = (r & m) | (((s) ? 0xffffffffffffffffL : 0L) & ~m);                              \
-    update_xer_ca(s & (B_32_63(r & ~m) != 0))
+    UPDATE_CA_V(s & (B_32_63(r & ~m) != 0))
 
     sraw_code(REG0, REG1, REG2);
 RTL_END
@@ -1318,7 +1260,7 @@ RTL_BEGIN("srawi", ___srawi___)
     uint64_t m = MASK(n+32, 63);                                                         \
     int s = ((rS >> 31) & 0x1);                                                          \
     rA = (r& m) | (((s) ? 0xffffffffffffffffL : 0L) & ~m);                               \
-    update_xer_ca(s & (B_32_63(r & ~m) != 0))
+    UPDATE_CA_V(s & (B_32_63(r & ~m) != 0))
 
     srawi_code(REG0, REG1, ARG2);
 RTL_END
@@ -1968,9 +1910,9 @@ RTL_BEGIN("stwcx.", ___stwcx_dot___)
     ea = tmp + REG2;
     if(CHECK_RESV(ea, 4)){
         STORE32(ea, REG0);
-        update_crF(0, 0x20 | get_xer_so());  // Set ZERO bit
+        update_crF(0, 0x20 | GET_SO());  // Set ZERO bit
     }else{
-        update_crF(0, get_xer_so());
+        update_crF(0, GET_SO());
     }
     CLEAR_RESV(ea);
 RTL_END
@@ -3985,21 +3927,6 @@ RTL_END
 #pragma pop_macro("MCSRR1")
 #pragma pop_macro("PC")
 #pragma pop_macro("NIP")
-#pragma pop_macro("update_cr0")
-#pragma pop_macro("update_cr0_host")
-#pragma pop_macro("update_crF")
-#pragma pop_macro("update_crf")
-#pragma pop_macro("update_xer")
-#pragma pop_macro("update_xer_host")
-#pragma pop_macro("update_xer_so_ov")
-#pragma pop_macro("update_xer_ca")
-#pragma pop_macro("update_xer_ca_host")
-#pragma pop_macro("get_xer_so")
-#pragma pop_macro("get_crf")
-#pragma pop_macro("get_crF")
-#pragma pop_macro("get_xerF")
-#pragma pop_macro("get_xerf")
-#pragma pop_macro("get_xer_ca")
 #pragma pop_macro("HOST_FLAGS")
 
 #endif
