@@ -347,7 +347,7 @@ struct ppc_regs {
     // Constructors
     ppc_regs(bool c_m=0);
     
-    // change CR, XER
+    // functions operating on CR, XER
     void       update_cr0(uint64_t value=0);                     // Update CR0
     void       update_cr0_host(x86_flags &hf);                   // Update CR0 using host flags
 
@@ -371,6 +371,9 @@ struct ppc_regs {
     bool       get_xer_so();                                     // Get XER[SO]
     bool       get_xer_ca();                                     // Get XER[CA]
     bool       get_xer_ov();                                     // Get XER[OV]
+
+    // functions operating on SEPFSCR
+    void       update_spefscr_host(x86_mxcsr& hf);
  
 };
 
@@ -836,6 +839,10 @@ bool ppc_regs::get_xer_ca(){
 
 bool ppc_regs::get_xer_ov(){
     return (xer & XER_OV) ? 1:0;
+}
+
+void ppc_regs::update_spefscr_host(x86_mxcsr &hf){
+
 }
 
 #endif

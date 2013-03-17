@@ -366,8 +366,9 @@ void write_buff<uint16_t>(uint8_t* buff, uint16_t value, int endianness){
 #endif
 
 
-// ----------------------------------------- x86 fncs returning flags----------------------------------------
-// x86 functions
+// ----------------------------------------- x86 globals ----------------------------------------
+// general
+
 struct x86_flags {
     bool cf;   // carry flag
     bool zf;   // zero flag
@@ -490,5 +491,103 @@ def_x86_div_op(x86_idiv, idiv)
 
 #define ADD64             x86_add<int64_t>   // 64 bit ADD
 #define SUB64             x86_sub<int64_t>   // 64 bit SUB
+
+// vector extensions (SSE)
+
+union x86_mxcsr {
+    uint32_t v;
+    struct {
+        uint32_t  ie : 1;
+        uint32_t  de : 1;
+        uint32_t  ze : 1;
+        uint32_t  oe : 1;
+        uint32_t  ue : 1;
+        uint32_t  pe : 1;
+        uint32_t daz : 1;
+        uint32_t  im : 1;
+        uint32_t  dm : 1;
+        uint32_t  zm : 1;
+        uint32_t  om : 1;
+        uint32_t  um : 1;
+        uint32_t  pm : 1;
+        uint32_t  rn : 1;
+        uint32_t  rp : 1;
+        uint32_t  fz : 1;
+        uint32_t rs0 : 15;
+    };
+};
+
+std::ostream& operator<<(std::ostream& ostr, x86_mxcsr &m){
+    ostr << std::hex << std::showbase;
+    ostr << "mxcsr=" << m.v;
+    ostr << std::dec << std::noshowbase;
+    ostr << " [ie=" << m.ie << ",de=" << m.de
+         << ",ze=" << m.ze << ",oe=" << m.oe << ",ue=" << m.ue
+         << ",pe=" << m.pe << ",daz=" << m.daz << ",im=" << m.im
+         << ",dm=" << m.dm << ",zm=" << m.zm << ",om=" << m.om
+         << ",um=" << m.um << ",pm=" << m.pm << ",r-=" << m.rn
+         << ",r+=" << m.rp << ",fz=" << m.fz << "] ";
+    return ostr;
+}
+
+// SSE vector type
+typedef float __m128 __attribute__ ((__vector_size__ (16), __may_alias__));
+typedef union __attribute__((__packed__)){
+    __m128       m;
+    double       f64[2];
+    float        f32[4];
+    uint64_t     u64[2];
+    uint32_t     u32[4];
+    uint16_t     u16[8];
+    uint8_t      u8[16];
+    int64_t      i64[2];
+    int32_t      i32[4];
+    int16_t      i16[8];
+    int8_t       i8[16];
+
+    template<typename T, int index>
+    inline T& ret_v(){};
+} sse_vec;
+
+// spcializations
+template<>
+inline uint64_t& sse_vec::ret_v<uint64_t, 0>(){ return u64[0]; }
+
+template<>
+inline uint32_t& sse_vec::ret_v<uint32_t, 0>(){ return u32[0]; }
+
+#define def_x86_sse_op2(name, x86_op)            \
+template<typename T>                             \
+inline T name(T ra, T rb, x86_mxcsr &f){         \
+    sse_vec va, vb;                              \
+    va.ret_v<T,0>() = ra;                        \
+    vb.ret_v<T,0>() = rb;                        \
+    asm( #x86_op " %[vb], %[va]; stmxcsr %[f];"  \
+        : [va] "+x" (va.m), [f] "=m" (f)         \
+        : [vb] "xm" (vb.m)                       \
+        :                                        \
+    );                                           \
+    return va.ret_v<T,0>();                      \
+}
+
+// Naming convention
+// def_x86_sse_op2(op[s/v]_f[32/64], op[s/p][s/d])
+//      |           |  |   |   |         |    |________________________________________________________ single/double precision
+//      |           |  |   |   |         |__________________________________________________________ 
+//      |           |  |   |   |______________________________________________                      |
+//      |           |  |   |_____________________________                     |                   single/packed
+//      |           |  |_______________                 |               32 -> single precision
+//      |           |                  |                |               64 -> double precision
+// 2 operand sse   opcode's name    scalar/vector     floating point type
+//
+//
+def_x86_sse_op2(adds_f32, addss)
+def_x86_sse_op2(adds_f64, addsd)
+def_x86_sse_op2(subs_f32, subss)
+def_x86_sse_op2(subs_f64, subsd)
+def_x86_sse_op2(muls_f32, mulss)
+def_x86_sse_op2(muls_f64, mulsd)
+def_x86_sse_op2(divs_f32, divss)
+def_x86_sse_op2(divs_f64, divsd)
 
 #endif
