@@ -1035,6 +1035,8 @@ CPU_T void CPU_PPC_T::run_b(){
 
     std::pair<uint64_t, bool> last_bkpt = m_bm.last_breakpoint();
     m_cpu_mode = CPU_MODE_RUNNING;
+    static const int n_instrs_per_pass = 100;
+    int i;
 
     // get first timing & clear all counters
     m_prev_stamp = boost::posix_time::microsec_clock::local_time();
@@ -1054,25 +1056,17 @@ CPU_T void CPU_PPC_T::run_b(){
     for(;;){
         // Observe each instruction for possible exceptions
         try {
-            // Execute 32 instrs without looping again
-            // Loop unrolling above 32 instrs, makes compilation slow like crazy
-            // ( it already takes too much ), so I am sticking with a low count here.
-            I; I; I; I; I; I; I; I;         I; I; I; I; I; I; I; I;
-            I; I; I; I; I; I; I; I;         I; I; I; I; I; I; I; I;
+            // Run this much instructions before checking for other conditions
+            for(i=0; i<n_instrs_per_pass; i++){
+                I;
+            }
         }
         catch(sim_except_ppc& e){
             ppc_exception(e.err_code0(), e.err_code1(), e.addr());
         }
 
-        // FIXME: Will remove this in future.
-        //        PS: This code causes segfaults, if used within thread context from python
-        // Periodically check for any python error signals ( only for boost python )
-        //if(py_signal_callback::callback != NULL)
-        //    if(py_signal_callback::callback())
-        //        goto loop_exit_0;
-
         // If running status is changed to stopped/halted, exit out of loop
-        if(m_cpu_mode == CPU_MODE_HALTED or m_cpu_mode == CPU_MODE_STOPPED){
+        if unlikely(m_cpu_mode == CPU_MODE_HALTED or m_cpu_mode == CPU_MODE_STOPPED){
             goto loop_exit_0;
         }
     }

@@ -34,7 +34,8 @@ DUT_TEST_EXES := test_001                     \
 	         test_sqrt_0                      \
 	         test_palindrome_0                \
 			 test_palindrome_1                \
-			 test_fft_0
+			 test_fft_0                       \
+			 test_recursive_0
 
 PYWRAP_SO := ppcsim
 
@@ -119,6 +120,9 @@ test_palindrome_1: $(CROSS_OBJS_COMM) test_palindrome_1.o
 	$(CROSS_CC) $(CROSS_LDFLAGS) $(CROSS_EXTFLAGS) -Wl,-Map=$(@).map -o $(@).elf $^ $(CROSS_EXT_LIBS)
 
 test_fft_0: $(CROSS_OBJS_COMM) test_fft_0.o
+	$(CROSS_CC) $(CROSS_LDFLAGS) $(CROSS_EXTFLAGS) -Wl,-Map=$(@).map -o $(@).elf $^ $(CROSS_EXT_LIBS)
+
+test_recursive_0: $(CROSS_OBJS_COMM) test_recursive_0.o
 	$(CROSS_CC) $(CROSS_LDFLAGS) $(CROSS_EXTFLAGS) -Wl,-Map=$(@).map -o $(@).elf $^ $(CROSS_EXT_LIBS)
 
 dut_tests: $(DUT_TEST_EXES)
