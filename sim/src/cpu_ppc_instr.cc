@@ -51,19 +51,23 @@
 #undef  PPCREG
 #define PPCREG(regid)            (CPU->reg(regid)->value.u64v)
 
-#pragma push_macro("PPCREGN")
-#undef  PPCREGN
-#define PPCREGN(reg_name)        (CPU->regn(reg_name)->value.u64v)
+#pragma push_macro("DREG")
+#undef  DREG
+#define DREG(reg_alias)          CPU->m_cpu_regs.reg_alias.value.u64v
+
+#pragma push_macro("DREG_FN")
+#undef  DREG_FN
+#define DREG_FN(reg_fn)          CPU->m_cpu_regs.reg_fn
 
 // Alias to Registers --------------------------------------------------------------------------
 // MSR bits
 #pragma push_macro("MSR_CM")
 #undef  MSR_CM
-#define MSR_CM                   ((PPCREG(REG_MSR) & 0x80000000) ? 1 : 0)
+#define MSR_CM                   ((DREG(msr) & 0x80000000) ? 1 : 0)
 
 #pragma push_macro("GPR")
 #undef  GPR
-#define GPR(gprno)               PPCREG(REG_GPR0 + gprno)
+#define GPR(gprno)               DREG(gpr[gprno])
 
 #pragma push_macro("SPR")
 #undef  SPR
@@ -71,19 +75,19 @@
 
 #pragma push_macro("XER")
 #undef  XER
-#define XER                      SPR(SPRN_XER) 
+#define XER                      DREG(xer)
 
 #pragma push_macro("MSR")
 #undef  MSR
-#define MSR                      PPCREG(REG_MSR)
+#define MSR                      DREG(msr)
 
 #pragma push_macro("ACC")
 #undef  ACC
-#define ACC                      PPCREG(REG_ACC)
+#define ACC                      DREG(acc)
 
 #pragma push_macro("SPEFSCR")
 #undef  SPEFSCR
-#define SPEFSCR                  PPCREG(REG_SPEFSCR)
+#define SPEFSCR                  DREG(spefscr)
 
 #pragma push_macro("PMR")
 #undef  PMR
@@ -91,39 +95,39 @@
 
 #pragma push_macro("CR")
 #undef  CR
-#define CR                       PPCREG(REG_CR)
+#define CR                       DREG(cr)
 
 #pragma push_macro("LR")
 #undef  LR
-#define LR                       PPCREG(REG_LR)
+#define LR                       DREG(lr)
 
 #pragma push_macro("CTR")
 #undef  CTR
-#define CTR                      PPCREG(REG_CTR)
+#define CTR                      DREG(ctr)
 
 #pragma push_macro("SRR0")
 #undef  SRR0
-#define SRR0                     PPCREG(REG_SRR0)
+#define SRR0                     DREG(srr0)
 
 #pragma push_macro("SRR1")
 #undef  SRR1
-#define SRR1                     PPCREG(REG_SRR1)
+#define SRR1                     DREG(srr1)
 
 #pragma push_macro("CSRR0")
 #undef  CSRR0
-#define CSRR0                    PPCREG(REG_CSRR0)
+#define CSRR0                    DREG(csrr0)
 
 #pragma push_macro("CSRR1")
 #undef  CSRR1
-#define CSRR1                    PPCREG(REG_CSRR1)
+#define CSRR1                    DREG(csrr1)
 
 #pragma push_macro("MCSRR0")
 #undef  MCSRR0
-#define MCSRR0                   PPCREG(REG_MCSRR0)
+#define MCSRR0                   DREG(mcsrr0)
 
 #pragma push_macro("MCSRR1")
 #undef  MCSRR1
-#define MCSRR1                   PPCREG(REG_MCSRR1)
+#define MCSRR1                   DREG(mcsrr1)
 
 #pragma push_macro("PC")
 #undef  PC
@@ -139,28 +143,28 @@
 
 // Alias to some cpu functions ----------------------------------------------------------------
 
-#define get_crf                  CPU->m_cpu_regs.get_crf
-#define get_crF                  CPU->m_cpu_regs.get_crF
-#define update_crf               CPU->m_cpu_regs.update_crf
-#define update_crF               CPU->m_cpu_regs.update_crF
-#define get_xerf                 CPU->m_cpu_regs.get_xerf
-#define get_xerF                 CPU->m_cpu_regs.get_xerF
-#define update_xerf              CPU->m_cpu_regs.update_xerf
-#define update_xerF              CPU->m_cpu_regs.update_xerF
+#define get_crf                  DREG_FN(get_crf)
+#define get_crF                  DREG_FN(get_crF)
+#define update_crf               DREG_FN(update_crf)
+#define update_crF               DREG_FN(update_crF)
+#define get_xerf                 DREG_FN(get_xerf)
+#define get_xerF                 DREG_FN(get_xerF)
+#define update_xerf              DREG_FN(update_xerf)
+#define update_xerF              DREG_FN(update_xerF)
 
 // Host flags
 #define GET_CF_H()               CPU->host_flags.cf       // x86 carry flag
 #define GET_OF_H()               CPU->host_flags.of       // x86 overflow flag
 
 // Generic macros
-#define UPDATE_CA()              CPU->m_cpu_regs.update_xer_ca_host(HOST_FLAGS)
-#define UPDATE_CA_V              CPU->m_cpu_regs.update_xer_ca
-#define UPDATE_SO_OV()           CPU->m_cpu_regs.update_xer_so_ov_host(HOST_FLAGS)
-#define UPDATE_SO_OV_V           CPU->m_cpu_regs.update_xer_so_ov 
-#define UPDATE_CR0()             CPU->m_cpu_regs.update_cr0_host(HOST_FLAGS)
-#define GET_CA()                 CPU->m_cpu_regs.get_xer_ca()
-#define GET_SO()                 CPU->m_cpu_regs.get_xer_so()
-#define UPDATE_CR0_V             CPU->m_cpu_regs.update_cr0
+#define UPDATE_CA()              DREG_FN(update_xer_ca_host(HOST_FLAGS))
+#define UPDATE_CA_V              DREG_FN(update_xer_ca)
+#define UPDATE_SO_OV()           DREG_FN(update_xer_so_ov_host(HOST_FLAGS))
+#define UPDATE_SO_OV_V           DREG_FN(update_xer_so_ov)
+#define UPDATE_CR0()             DREG_FN(update_cr0_host(HOST_FLAGS))
+#define GET_CA()                 DREG_FN(get_xer_ca())
+#define GET_SO()                 DREG_FN(get_xer_so())
+#define UPDATE_CR0_V             DREG_FN(update_cr0)
 
 #define UPDATE_CYCLES(n)         CPU->m_ncycles += n
 
@@ -182,34 +186,26 @@
 #define CLEAR_RESV(ea)           CPU->clear_resv(ea)
 
 // TLB macros
-#define TLBWE()                  CPU->m_l2tlb.tlbwe(PPCREG(REG_MAS0), \
-                                     PPCREG(REG_MAS1), PPCREG(REG_MAS2), PPCREG(REG_MAS3), PPCREG(REG_MAS7), PPCREG(REG_HID0))
-#define TLBRE()                  CPU->m_l2tlb.tlbre(PPCREG(REG_MAS0), \
-                                     PPCREG(REG_MAS1), PPCREG(REG_MAS2), PPCREG(REG_MAS3), PPCREG(REG_MAS7), PPCREG(REG_HID0))
+#define TLBWE()                  CPU->m_l2tlb.tlbwe(DREG(mas0), DREG(mas1), DREG(mas2), DREG(mas3), DREG(mas7), DREG(hid0))
+#define TLBRE()                  CPU->m_l2tlb.tlbre(DREG(mas0), DREG(mas1), DREG(mas2), DREG(mas3), DREG(mas7), DREG(hid0))
 #define TLBIVAX(ea)              CPU->m_l2tlb.tlbive(ea)
-#define TLBSX(ea)                CPU->m_l2tlb.tlbse(ea, PPCREG(REG_MAS0), \
-                                     PPCREG(REG_MAS1), PPCREG(REG_MAS2), PPCREG(REG_MAS3), PPCREG(REG_MAS6), PPCREG(REG_MAS7), PPCREG(REG_HID0))
+#define TLBSX(ea)                CPU->m_l2tlb.tlbse(ea, DREG(mas0), DREG(mas1), DREG(mas2), DREG(mas3), DREG(mas6), DREG(mas7), DREG(hid0))
 
 // In case of register operands, their pointers are instead passed in corresponding ARG parameter.
 #define ARG_BASE                 IC->arg
-
-#define REG0_P                   (ARG_BASE[0].p)
-#define REG1_P                   (ARG_BASE[1].p)
-#define REG2_P                   (ARG_BASE[2].p)
-#define REG3_P                   (ARG_BASE[3].p)
-#define REG4_P                   (ARG_BASE[4].p)
-
-#define REG0                     PPCREG(REG0_P)
-#define REG1                     PPCREG(REG1_P)
-#define REG2                     PPCREG(REG2_P)
-#define REG3                     PPCREG(REG3_P)
-#define REG4                     PPCREG(REG4_P)
 
 #define ARG0                     (ARG_BASE[0].v)
 #define ARG1                     (ARG_BASE[1].v)
 #define ARG2                     (ARG_BASE[2].v)
 #define ARG3                     (ARG_BASE[3].v)
 #define ARG4                     (ARG_BASE[4].v)
+
+#define REG0                     CPU->m_cpu_regs.gpr[ARG0].value.u64v
+#define REG1                     CPU->m_cpu_regs.gpr[ARG1].value.u64v
+#define REG2                     CPU->m_cpu_regs.gpr[ARG2].value.u64v
+#define REG3                     CPU->m_cpu_regs.gpr[ARG3].value.u64v
+#define REG4                     CPU->m_cpu_regs.gpr[ARG4].value.u64v
+
 
 // target mode , UT -> unsigned target, st -> signed target
 // If target_bits == 32
@@ -3907,7 +3903,8 @@ RTL_END
 
 // Restore all saved macros
 #pragma pop_macro("PPCREG")
-#pragma pop_macro("PPCREGN")
+#pragma pop_macro("DREG")
+#pragma pop_macro("DREG_FN")
 #pragma pop_macro("MSR_CM")
 #pragma pop_macro("GPR")
 #pragma pop_macro("SPR")

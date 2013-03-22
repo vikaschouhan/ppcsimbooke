@@ -188,38 +188,7 @@ struct ppc_regs {
     ppc_reg64         acc;
 
     // GPRs
-    ppc_reg64         gpr0;
-    ppc_reg64         gpr1;
-    ppc_reg64         gpr2;
-    ppc_reg64         gpr3;
-    ppc_reg64         gpr4;
-    ppc_reg64         gpr5;
-    ppc_reg64         gpr6;
-    ppc_reg64         gpr7;
-    ppc_reg64         gpr8;
-    ppc_reg64         gpr9;
-    ppc_reg64         gpr10;
-    ppc_reg64         gpr11;
-    ppc_reg64         gpr12;
-    ppc_reg64         gpr13;
-    ppc_reg64         gpr14;
-    ppc_reg64         gpr15;
-    ppc_reg64         gpr16;
-    ppc_reg64         gpr17;
-    ppc_reg64         gpr18;
-    ppc_reg64         gpr19;
-    ppc_reg64         gpr20;
-    ppc_reg64         gpr21;
-    ppc_reg64         gpr22;
-    ppc_reg64         gpr23;
-    ppc_reg64         gpr24;
-    ppc_reg64         gpr25;
-    ppc_reg64         gpr26;
-    ppc_reg64         gpr27;
-    ppc_reg64         gpr28;
-    ppc_reg64         gpr29;
-    ppc_reg64         gpr30;
-    ppc_reg64         gpr31;
+    ppc_reg64         gpr[32];
 
     // SPRs
     ppc_reg64         atbl;
@@ -373,7 +342,13 @@ struct ppc_regs {
     bool       get_xer_ov();                                     // Get XER[OV]
 
     // functions operating on SEPFSCR
-    void       update_spefscr_host(x86_mxcsr& hf);
+    void       update_spefscr_host(x86_mxcsr& hf, bool high, uint64_t& tgt_reg);
+
+    // for boost::python
+    template<int x>
+    ppc_reg64& get_gpr(){
+        return gpr[x];
+    }
  
 };
 
@@ -385,38 +360,39 @@ ppc_regs::ppc_regs(bool c_m):
     cr      (0,    0                                                                              , 0            , REG_TYPE_CR ),
     acc     (0,    0                                                                              , 0            , REG_TYPE_ACC),
 
-    gpr0    (0,    0                                                                              , 0            , REG_TYPE_GPR),
-    gpr1    (0,    0                                                                              , 1            , REG_TYPE_GPR),
-    gpr2    (0,    0                                                                              , 2            , REG_TYPE_GPR),
-    gpr3    (0,    0                                                                              , 3            , REG_TYPE_GPR),
-    gpr4    (0,    0                                                                              , 4            , REG_TYPE_GPR),
-    gpr5    (0,    0                                                                              , 5            , REG_TYPE_GPR),
-    gpr6    (0,    0                                                                              , 6            , REG_TYPE_GPR),
-    gpr7    (0,    0                                                                              , 7            , REG_TYPE_GPR),
-    gpr8    (0,    0                                                                              , 8            , REG_TYPE_GPR),
-    gpr9    (0,    0                                                                              , 9            , REG_TYPE_GPR),
-    gpr10   (0,    0                                                                              , 10           , REG_TYPE_GPR),
-    gpr11   (0,    0                                                                              , 11           , REG_TYPE_GPR),
-    gpr12   (0,    0                                                                              , 12           , REG_TYPE_GPR),
-    gpr13   (0,    0                                                                              , 13           , REG_TYPE_GPR),
-    gpr14   (0,    0                                                                              , 14           , REG_TYPE_GPR),
-    gpr15   (0,    0                                                                              , 15           , REG_TYPE_GPR),
-    gpr16   (0,    0                                                                              , 16           , REG_TYPE_GPR),
-    gpr17   (0,    0                                                                              , 17           , REG_TYPE_GPR),
-    gpr18   (0,    0                                                                              , 18           , REG_TYPE_GPR),
-    gpr19   (0,    0                                                                              , 19           , REG_TYPE_GPR),
-    gpr20   (0,    0                                                                              , 20           , REG_TYPE_GPR),
-    gpr21   (0,    0                                                                              , 21           , REG_TYPE_GPR),
-    gpr22   (0,    0                                                                              , 22           , REG_TYPE_GPR),
-    gpr23   (0,    0                                                                              , 23           , REG_TYPE_GPR),
-    gpr24   (0,    0                                                                              , 24           , REG_TYPE_GPR),
-    gpr25   (0,    0                                                                              , 25           , REG_TYPE_GPR),
-    gpr26   (0,    0                                                                              , 26           , REG_TYPE_GPR),
-    gpr27   (0,    0                                                                              , 27           , REG_TYPE_GPR),
-    gpr28   (0,    0                                                                              , 28           , REG_TYPE_GPR),
-    gpr29   (0,    0                                                                              , 29           , REG_TYPE_GPR),
-    gpr30   (0,    0                                                                              , 30           , REG_TYPE_GPR),
-    gpr31   (0,    0                                                                              , 31           , REG_TYPE_GPR),
+    gpr{ ppc_reg64(0,    0                                                                              , 0            , REG_TYPE_GPR),
+         ppc_reg64(0,    0                                                                              , 1            , REG_TYPE_GPR),
+         ppc_reg64(0,    0                                                                              , 2            , REG_TYPE_GPR),
+         ppc_reg64(0,    0                                                                              , 3            , REG_TYPE_GPR),
+         ppc_reg64(0,    0                                                                              , 4            , REG_TYPE_GPR),
+         ppc_reg64(0,    0                                                                              , 5            , REG_TYPE_GPR),
+         ppc_reg64(0,    0                                                                              , 6            , REG_TYPE_GPR),
+         ppc_reg64(0,    0                                                                              , 7            , REG_TYPE_GPR),
+         ppc_reg64(0,    0                                                                              , 8            , REG_TYPE_GPR),
+         ppc_reg64(0,    0                                                                              , 9            , REG_TYPE_GPR),
+         ppc_reg64(0,    0                                                                              , 10           , REG_TYPE_GPR),
+         ppc_reg64(0,    0                                                                              , 11           , REG_TYPE_GPR),
+         ppc_reg64(0,    0                                                                              , 12           , REG_TYPE_GPR),
+         ppc_reg64(0,    0                                                                              , 13           , REG_TYPE_GPR),
+         ppc_reg64(0,    0                                                                              , 14           , REG_TYPE_GPR),
+         ppc_reg64(0,    0                                                                              , 15           , REG_TYPE_GPR),
+         ppc_reg64(0,    0                                                                              , 16           , REG_TYPE_GPR),
+         ppc_reg64(0,    0                                                                              , 17           , REG_TYPE_GPR),
+         ppc_reg64(0,    0                                                                              , 18           , REG_TYPE_GPR),
+         ppc_reg64(0,    0                                                                              , 19           , REG_TYPE_GPR),
+         ppc_reg64(0,    0                                                                              , 20           , REG_TYPE_GPR),
+         ppc_reg64(0,    0                                                                              , 21           , REG_TYPE_GPR),
+         ppc_reg64(0,    0                                                                              , 22           , REG_TYPE_GPR),
+         ppc_reg64(0,    0                                                                              , 23           , REG_TYPE_GPR),
+         ppc_reg64(0,    0                                                                              , 24           , REG_TYPE_GPR),
+         ppc_reg64(0,    0                                                                              , 25           , REG_TYPE_GPR),
+         ppc_reg64(0,    0                                                                              , 26           , REG_TYPE_GPR),
+         ppc_reg64(0,    0                                                                              , 27           , REG_TYPE_GPR),
+         ppc_reg64(0,    0                                                                              , 28           , REG_TYPE_GPR),
+         ppc_reg64(0,    0                                                                              , 29           , REG_TYPE_GPR),
+         ppc_reg64(0,    0                                                                              , 30           , REG_TYPE_GPR),
+         ppc_reg64(0,    0                                                                              , 31           , REG_TYPE_GPR),
+       },
 
     atbl    (0, (REG_READ_SUP  | REG_WRITE_SUP   | REG_READ_USR                                  ), SPRN_ATBL    , REG_TYPE_SPR),
     atbu    (0, (REG_READ_SUP  | REG_WRITE_SUP   | REG_READ_USR                                  ), SPRN_ATBU    , REG_TYPE_SPR),
@@ -665,38 +641,38 @@ ppc_regs::ppc_regs(bool c_m):
     m_reg["upmgc0"]     = &(upmgc0   );     m_ireg[REG_UPMGC0]      = m_reg["upmgc0"];
 
     // GPRS
-    m_reg["r0"]         = &(gpr0);
-    m_reg["r1"]         = &(gpr1);
-    m_reg["r2"]         = &(gpr2);
-    m_reg["r3"]         = &(gpr3);
-    m_reg["r4"]         = &(gpr4);
-    m_reg["r5"]         = &(gpr5);
-    m_reg["r6"]         = &(gpr6);
-    m_reg["r7"]         = &(gpr7);
-    m_reg["r8"]         = &(gpr8);
-    m_reg["r9"]         = &(gpr9);
-    m_reg["r10"]        = &(gpr10);
-    m_reg["r11"]        = &(gpr11);
-    m_reg["r12"]        = &(gpr12);
-    m_reg["r13"]        = &(gpr13);
-    m_reg["r14"]        = &(gpr14);
-    m_reg["r15"]        = &(gpr15);
-    m_reg["r16"]        = &(gpr16);
-    m_reg["r17"]        = &(gpr17);
-    m_reg["r18"]        = &(gpr18);
-    m_reg["r19"]        = &(gpr19);
-    m_reg["r20"]        = &(gpr20);
-    m_reg["r21"]        = &(gpr21);
-    m_reg["r22"]        = &(gpr22);
-    m_reg["r23"]        = &(gpr23);
-    m_reg["r24"]        = &(gpr24);
-    m_reg["r25"]        = &(gpr25);
-    m_reg["r26"]        = &(gpr26);
-    m_reg["r27"]        = &(gpr27);
-    m_reg["r28"]        = &(gpr28);
-    m_reg["r29"]        = &(gpr29);
-    m_reg["r30"]        = &(gpr30);
-    m_reg["r31"]        = &(gpr31);
+    m_reg["r0"]         = &(gpr[0]);
+    m_reg["r1"]         = &(gpr[1]);
+    m_reg["r2"]         = &(gpr[2]);
+    m_reg["r3"]         = &(gpr[3]);
+    m_reg["r4"]         = &(gpr[4]);
+    m_reg["r5"]         = &(gpr[5]);
+    m_reg["r6"]         = &(gpr[6]);
+    m_reg["r7"]         = &(gpr[7]);
+    m_reg["r8"]         = &(gpr[8]);
+    m_reg["r9"]         = &(gpr[9]);
+    m_reg["r10"]        = &(gpr[10]);
+    m_reg["r11"]        = &(gpr[11]);
+    m_reg["r12"]        = &(gpr[12]);
+    m_reg["r13"]        = &(gpr[13]);
+    m_reg["r14"]        = &(gpr[14]);
+    m_reg["r15"]        = &(gpr[15]);
+    m_reg["r16"]        = &(gpr[16]);
+    m_reg["r17"]        = &(gpr[17]);
+    m_reg["r18"]        = &(gpr[18]);
+    m_reg["r19"]        = &(gpr[19]);
+    m_reg["r20"]        = &(gpr[20]);
+    m_reg["r21"]        = &(gpr[21]);
+    m_reg["r22"]        = &(gpr[22]);
+    m_reg["r23"]        = &(gpr[23]);
+    m_reg["r24"]        = &(gpr[24]);
+    m_reg["r25"]        = &(gpr[25]);
+    m_reg["r26"]        = &(gpr[26]);
+    m_reg["r27"]        = &(gpr[27]);
+    m_reg["r28"]        = &(gpr[28]);
+    m_reg["r29"]        = &(gpr[29]);
+    m_reg["r30"]        = &(gpr[30]);
+    m_reg["r31"]        = &(gpr[31]);
 
     for (size_t i=0; i<PPC_NGPRS; i++){
         m_reg[static_cast<std::ostringstream *>(&(std::ostringstream() << "gpr" << i))->str()]
@@ -841,8 +817,31 @@ bool ppc_regs::get_xer_ov(){
     return (xer & XER_OV) ? 1:0;
 }
 
-void ppc_regs::update_spefscr_host(x86_mxcsr &hf){
-
+// Exception Conditions
+// ==========================
+// 0. Denormalized Input Values :-
+//            Truncated to a properly signed zero value. (taken care in x86_mxcsr constructor)
+// 1. Overflow :-
+//            Result is set to pmax/nmax (+/-) if exception is masked. If exception is not masked, interrupt is taken
+//            & destination is not updated.
+// 2. Underflow :-
+//            Result is set to +0/-0 (+/-) if exception is masked. If exception is not masked, interrupt is taken
+//            & destination is not updated.
+// 3. Invalid operation / Input errors :-
+//            If any input is inf, denorm or NaN or both inputs are +/-0 (FP divide only), FINV[H]=1,FG[H]=1, FX[H]=1.
+//            If exception is not masked, an interrupt is taken & destination is not updated.
+// 4. Round/Inexact :-
+//            If the result is inexact/overflows (overflow exceptions disabled) or underflows (underflow exceptions
+//            disabled), FINX[H]=1. If inexact exception is unmasked, an interrupt occurs & destination is updated with
+//            truncated results. FG[H]/FX[H] bits are properly updated.
+//            FG[H]/FX[H] are set to zero, if interrupt is taken due to overflow/underflow or if invalid operation/input error
+//            is signalled.
+// 5. Divide by zero :-
+//            If an invalid operation/input error doesn't happen, divisor is (+/-)0 & divident is a non-zero normalized no,
+//            FDBZ[H]=1. If exception is unmasked, an interrupt is taken.
+// ==========================
+void ppc_regs::update_spefscr_host(x86_mxcsr &hf, bool high, uint64_t &tgt_reg){
+    
 }
 
 #endif

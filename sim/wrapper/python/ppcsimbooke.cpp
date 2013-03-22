@@ -125,20 +125,22 @@ void translate_sim_ex_ppc_halt(const sim_except_ppc_halt& e){
    PyErr_SetString(PyExc_RuntimeError, e.desc());
 }
 
-// Add attributes for GPRs
+// Add attributes for other registers (SPRs/PMRs) and GPRs
 #define ADD_REG(reg_v, reg_alias) \
     ppc_regs_py.def_readwrite(reg_alias, &ppc_regs::reg_v)
+#define ADD_GREG(reg_n, reg_alias) \
+    ppc_regs_py.add_property(reg_alias, make_function(&ppc_regs::get_gpr<reg_n>, return_value_policy<reference_existing_object>()))
 
 // Add all registers
 #define ADD_ALL_REGS() \
-       ADD_REG(gpr0,  "R0"  ); ADD_REG(gpr1,  "R1"  ); ADD_REG(gpr2,  "R2"  ); ADD_REG(gpr3,  "R3"  );  \
-       ADD_REG(gpr4,  "R4"  ); ADD_REG(gpr5,  "R5"  ); ADD_REG(gpr6,  "R6"  ); ADD_REG(gpr7,  "R7"  );  \
-       ADD_REG(gpr8,  "R8"  ); ADD_REG(gpr9,  "R9"  ); ADD_REG(gpr10, "R10" ); ADD_REG(gpr11, "R11" );  \
-       ADD_REG(gpr12, "R12" ); ADD_REG(gpr13, "R13" ); ADD_REG(gpr14, "R14" ); ADD_REG(gpr15, "R15" );  \
-       ADD_REG(gpr16, "R16" ); ADD_REG(gpr17, "R17" ); ADD_REG(gpr18, "R18" ); ADD_REG(gpr19, "R19" );  \
-       ADD_REG(gpr20, "R20" ); ADD_REG(gpr21, "R21" ); ADD_REG(gpr22, "R22" ); ADD_REG(gpr23, "R23" );  \
-       ADD_REG(gpr24, "R24" ); ADD_REG(gpr25, "R25" ); ADD_REG(gpr26, "R26" ); ADD_REG(gpr27, "R27" );  \
-       ADD_REG(gpr28, "R28" ); ADD_REG(gpr29, "R29" ); ADD_REG(gpr30, "R30" ); ADD_REG(gpr31, "R31" );  \
+       ADD_GREG(0,  "R0"  ); ADD_GREG(1,  "R1"  ); ADD_GREG(2,  "R2"  ); ADD_GREG(3,  "R3"  );  \
+       ADD_GREG(4,  "R4"  ); ADD_GREG(5,  "R5"  ); ADD_GREG(6,  "R6"  ); ADD_GREG(7,  "R7"  );  \
+       ADD_GREG(8,  "R8"  ); ADD_GREG(9,  "R9"  ); ADD_GREG(10, "R10" ); ADD_GREG(11, "R11" );  \
+       ADD_GREG(12, "R12" ); ADD_GREG(13, "R13" ); ADD_GREG(14, "R14" ); ADD_GREG(15, "R15" );  \
+       ADD_GREG(16, "R16" ); ADD_GREG(17, "R17" ); ADD_GREG(18, "R18" ); ADD_GREG(19, "R19" );  \
+       ADD_GREG(20, "R20" ); ADD_GREG(21, "R21" ); ADD_GREG(22, "R22" ); ADD_GREG(23, "R23" );  \
+       ADD_GREG(24, "R24" ); ADD_GREG(25, "R25" ); ADD_GREG(26, "R26" ); ADD_GREG(27, "R27" );  \
+       ADD_GREG(28, "R28" ); ADD_GREG(29, "R29" ); ADD_GREG(30, "R30" ); ADD_GREG(31, "R31" );  \
                                                                                             \
       /* Add attributes for other registers */                                              \
       ADD_REG(atbl,    "ATBL"   ); ADD_REG(atbu,    "ATBU"    ); ADD_REG(csrr0,   "CSRR0"  ); ADD_REG(csrr1,    "CSRR1"  );    \

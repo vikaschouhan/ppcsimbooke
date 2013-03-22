@@ -497,24 +497,31 @@ def_x86_div_op(x86_idiv, idiv)
 union x86_mxcsr {
     uint32_t v;
     struct {
-        uint32_t  ie : 1;
-        uint32_t  de : 1;
-        uint32_t  ze : 1;
-        uint32_t  oe : 1;
-        uint32_t  ue : 1;
-        uint32_t  pe : 1;
-        uint32_t daz : 1;
-        uint32_t  im : 1;
-        uint32_t  dm : 1;
-        uint32_t  zm : 1;
-        uint32_t  om : 1;
-        uint32_t  um : 1;
-        uint32_t  pm : 1;
-        uint32_t  rn : 1;
-        uint32_t  rp : 1;
-        uint32_t  fz : 1;
-        uint32_t rs0 : 15;
+        uint32_t  ie : 1;      // Invalid Operation flag
+        uint32_t  de : 1;      // Denormal flag
+        uint32_t  ze : 1;      // Divide by zero flag
+        uint32_t  oe : 1;      // Overflow
+        uint32_t  ue : 1;      // Underflow
+        uint32_t  pe : 1;      // Precision
+        uint32_t daz : 1;      // Denormals are zero
+        uint32_t  im : 1;      // Invalid Operation flag
+        uint32_t  dm : 1;      // Denormal Operation mask
+        uint32_t  zm : 1;      // Divide by zero mask
+        uint32_t  om : 1;      // Overflow Mask
+        uint32_t  um : 1;      // Underflow Mask
+        uint32_t  pm : 1;      // Precision Mask
+        uint32_t  rn : 1;      // Rounding Control -
+        uint32_t  rp : 1;      // Rounding Control +
+        uint32_t  fz : 1;      // Flush to zero
+        uint32_t rs0 : 16;
     };
+
+    // load a default value into mxcsr
+    // Default -> All exceptions disabled. daz=1 (powerPC SPE bahaviour)
+    x86_mxcsr(){
+        v = 0x1fc0;
+        __asm__ __volatile__("ldmxcsr %[f]" ::[f] "m" (v):);
+    }
 };
 
 std::ostream& operator<<(std::ostream& ostr, x86_mxcsr &m){
