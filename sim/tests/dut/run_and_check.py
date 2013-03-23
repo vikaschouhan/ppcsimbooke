@@ -5,6 +5,11 @@ import time
 sys.path.append('.')
 import ppcsim
 
+class bcolors:
+    OKGREEN   = '\033[92m'
+    FAIL      = '\033[93m'
+    ENDC      = '\033[0m'
+
 # All variables
 trace_start_addr = 0x100000;
 trace_size       = 0x1000;      # Extracting only 4K space.
@@ -39,9 +44,9 @@ a.memory.read_to_ascii_file(trace_start_addr, tr_file, trace_size)
 
 # Check results
 if a.memory.read32(0x4) == 0x900d900d:
-    print "%s - [PASSED]" % (ops.efile)
+    print bcolors.OKGREEN + "%s - [PASSED]" % (ops.efile) + bcolors.ENDC
 else:
-    print "%s - [FAILED]" % (ops.efile)
+    print bcolors.FAIL + "%s - [FAILED]" % (ops.efile) + bcolors.ENDC
 
 # Generate coverage logs
 a.gen_cov_logs()

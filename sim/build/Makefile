@@ -35,7 +35,9 @@ DUT_TEST_EXES := test_001                     \
 	         test_palindrome_0                \
 			 test_palindrome_1                \
 			 test_fft_0                       \
-			 test_recursive_0
+			 test_recursive_0                 \
+			 test_matrix_mul_0                \
+			 test_eval_fp_0
 
 PYWRAP_SO := ppcsim
 
@@ -125,6 +127,12 @@ test_fft_0: $(CROSS_OBJS_COMM) test_fft_0.o
 test_recursive_0: $(CROSS_OBJS_COMM) test_recursive_0.o
 	$(CROSS_CC) $(CROSS_LDFLAGS) $(CROSS_EXTFLAGS) -Wl,-Map=$(@).map -o $(@).elf $^ $(CROSS_EXT_LIBS)
 
+test_matrix_mul_0: $(CROSS_OBJS_COMM) test_matrix_mul_0.o
+	$(CROSS_CC) $(CROSS_LDFLAGS) $(CROSS_EXTFLAGS) -Wl,-Map=$(@).map -o $(@).elf $^ $(CROSS_EXT_LIBS)
+
+test_eval_fp_0: $(CROSS_OBJS_COMM) test_eval_fp_0.o
+	$(CROSS_CC) $(CROSS_LDFLAGS) $(CROSS_EXTFLAGS) -Wl,-Map=$(@).map -o $(@).elf $^ $(CROSS_EXT_LIBS)
+
 dut_tests: $(DUT_TEST_EXES)
 
 #======= BUILD SIMULATOR MODULE
@@ -173,4 +181,6 @@ distclean: clean
 again: clean all
 	echo "Built"
 
+test: $(DUT_TEST_EXES)
+	$(foreach var, $(DUT_TEST_EXES), ./run_and_check.py --file $(var).elf;)
 

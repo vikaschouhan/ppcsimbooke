@@ -4,7 +4,10 @@ Current status of DUT tests.
 S.No.    TEST_NAME                             STATUS
 ---------------------------------------------------------
 1.      test_001                       :       passes
-2.      test_palindrome_0              :       passes         # A very simple palindrome test
-3.      test_palindrome_1              :       passes         # Somewhat more complex palindrome test
-4.      test_sqrt_0                    :       passes         # simple square root test
-5.      test_fft_0                     :       passes         # FFT test with 2 complex samples
+2.      test_palindrome_0              :       passes                        # A very simple palindrome test
+3.      test_palindrome_1              :       passes                        # Somewhat more complex palindrome test
+4.      test_sqrt_0                    :       passes                        # simple square root test
+5.      test_fft_0                     :       passes                        # FFT test with 2 complex samples
+6.      test_recursive_0               :       passes
+7.      test_matrix_mul_0              :       passes                        # Fails when all floats are converted to double. Double emulation seems to be broken.
+8.      test_eval_fp_0                 :       throws FP exception

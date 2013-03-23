@@ -2,6 +2,7 @@
 #define _COMMON_H
 
 #include <stdio.h>
+#include <math.h>
 
 void log_pass();
 void log_fail();
