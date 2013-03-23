@@ -29,15 +29,16 @@ SIM_TEST_EXES := test_ppcdis_interface        \
              test_exception_class             \
              test_log_class                   \
 			 test_lru_class                   \
-			 test_bm_class
-DUT_TEST_EXES := test_001                     \
-	         test_sqrt_0                      \
-	         test_palindrome_0                \
-			 test_palindrome_1                \
-			 test_fft_0                       \
-			 test_recursive_0                 \
-			 test_matrix_mul_0                \
-			 test_eval_fp_0
+			 test_bm_class                    \
+			 test_misc_module
+DUT_TEST_EXES := test_001.elf                     \
+	         test_sqrt_0.elf                      \
+	         test_palindrome_0.elf                \
+			 test_palindrome_1.elf                \
+			 test_fft_0.elf                       \
+			 test_recursive_0.elf                 \
+			 test_matrix_mul_0.elf                \
+			 test_eval_fp_0.elf
 
 PYWRAP_SO := ppcsim
 
@@ -109,35 +110,37 @@ all: $(EXES)
 	$(CROSS_CC) $(CROSS_CFLAGS) $(CROSS_EXTFLAGS) -c -o $@ $^
 
 #======= BUILD DUT TESTS
-test_001: $(CROSS_OBJS_COMM) test_001.o
-	$(CROSS_CC) $(CROSS_LDFLAGS) $(CROSS_EXTFLAGS) -Wl,-Map=$(@).map -o $(@).elf $^ $(CROSS_EXT_LIBS)
+test_001.elf: $(CROSS_OBJS_COMM) test_001.o
+	$(CROSS_CC) $(CROSS_LDFLAGS) $(CROSS_EXTFLAGS) -Wl,-Map=$(@).map -o $(@) $^ $(CROSS_EXT_LIBS)
 
-test_sqrt_0: $(CROSS_OBJS_COMM) test_sqrt_0.o
-	$(CROSS_CC) $(CROSS_LDFLAGS) $(CROSS_EXTFLAGS) -Wl,-Map=$(@).map -o $(@).elf $^ $(CROSS_EXT_LIBS)
+test_sqrt_0.elf: $(CROSS_OBJS_COMM) test_sqrt_0.o
+	$(CROSS_CC) $(CROSS_LDFLAGS) $(CROSS_EXTFLAGS) -Wl,-Map=$(@).map -o $(@) $^ $(CROSS_EXT_LIBS)
 
-test_palindrome_0: $(CROSS_OBJS_COMM) test_palindrome_0.o
-	$(CROSS_CC) $(CROSS_LDFLAGS) $(CROSS_EXTFLAGS) -Wl,-Map=$(@).map -o $(@).elf $^ $(CROSS_EXT_LIBS)
+test_palindrome_0.elf: $(CROSS_OBJS_COMM) test_palindrome_0.o
+	$(CROSS_CC) $(CROSS_LDFLAGS) $(CROSS_EXTFLAGS) -Wl,-Map=$(@).map -o $(@) $^ $(CROSS_EXT_LIBS)
 
-test_palindrome_1: $(CROSS_OBJS_COMM) test_palindrome_1.o
-	$(CROSS_CC) $(CROSS_LDFLAGS) $(CROSS_EXTFLAGS) -Wl,-Map=$(@).map -o $(@).elf $^ $(CROSS_EXT_LIBS)
+test_palindrome_1.elf: $(CROSS_OBJS_COMM) test_palindrome_1.o
+	$(CROSS_CC) $(CROSS_LDFLAGS) $(CROSS_EXTFLAGS) -Wl,-Map=$(@).map -o $(@) $^ $(CROSS_EXT_LIBS)
 
-test_fft_0: $(CROSS_OBJS_COMM) test_fft_0.o
-	$(CROSS_CC) $(CROSS_LDFLAGS) $(CROSS_EXTFLAGS) -Wl,-Map=$(@).map -o $(@).elf $^ $(CROSS_EXT_LIBS)
+test_fft_0.elf: $(CROSS_OBJS_COMM) test_fft_0.o
+	$(CROSS_CC) $(CROSS_LDFLAGS) $(CROSS_EXTFLAGS) -Wl,-Map=$(@).map -o $(@) $^ $(CROSS_EXT_LIBS)
 
-test_recursive_0: $(CROSS_OBJS_COMM) test_recursive_0.o
-	$(CROSS_CC) $(CROSS_LDFLAGS) $(CROSS_EXTFLAGS) -Wl,-Map=$(@).map -o $(@).elf $^ $(CROSS_EXT_LIBS)
+test_recursive_0.elf: $(CROSS_OBJS_COMM) test_recursive_0.o
+	$(CROSS_CC) $(CROSS_LDFLAGS) $(CROSS_EXTFLAGS) -Wl,-Map=$(@).map -o $(@) $^ $(CROSS_EXT_LIBS)
 
-test_matrix_mul_0: $(CROSS_OBJS_COMM) test_matrix_mul_0.o
-	$(CROSS_CC) $(CROSS_LDFLAGS) $(CROSS_EXTFLAGS) -Wl,-Map=$(@).map -o $(@).elf $^ $(CROSS_EXT_LIBS)
+test_matrix_mul_0.elf: $(CROSS_OBJS_COMM) test_matrix_mul_0.o
+	$(CROSS_CC) $(CROSS_LDFLAGS) $(CROSS_EXTFLAGS) -Wl,-Map=$(@).map -o $(@) $^ $(CROSS_EXT_LIBS)
 
-test_eval_fp_0: $(CROSS_OBJS_COMM) test_eval_fp_0.o
-	$(CROSS_CC) $(CROSS_LDFLAGS) $(CROSS_EXTFLAGS) -Wl,-Map=$(@).map -o $(@).elf $^ $(CROSS_EXT_LIBS)
+test_eval_fp_0.elf: $(CROSS_OBJS_COMM) test_eval_fp_0.o
+	$(CROSS_CC) $(CROSS_LDFLAGS) $(CROSS_EXTFLAGS) -Wl,-Map=$(@).map -o $(@) $^ $(CROSS_EXT_LIBS)
 
 dut_tests: $(DUT_TEST_EXES)
 
 #======= BUILD SIMULATOR MODULE
-ppcsim: $(SIM_PY_ROOT)/ppcsimbooke.cpp
-	$(CXX) $(HOST_CXXFLAGS) $(HOST_BOOST_PYTHON_CXXFLAGS) $(HOST_LDFLAGS) $(HOST_BOOST_PYTHON_LDFLAGS) $(HOST_EXTFLAGS) -Wl,-soname,"$@.so"  -fpic -o $@.so $^
+ppcsim.so: $(SIM_PY_ROOT)/ppcsimbooke.cpp
+	$(CXX) $(HOST_CXXFLAGS) $(HOST_BOOST_PYTHON_CXXFLAGS) $(HOST_LDFLAGS) $(HOST_BOOST_PYTHON_LDFLAGS) $(HOST_EXTFLAGS) -Wl,-soname,"$@"  -fpic -o $@ $^
+
+ppcsim: ppcsim.so
 
 #====== BUILD SIM TESTS
 test_ppcdis_interface: test_ppcdis_interface.o
@@ -170,6 +173,9 @@ test_lru_class: test_lru_class.o
 test_bm_class: test_bm_class.o
 	$(CXX) $(HOST_LDFLAGS) -o $@ $^
 
+test_misc_module: test_misc_module.o
+	$(CXX) $(HOST_LDFLAGS) -o $@ $^
+
 sim_tests: $(SIM_TEST_EXES)
 
 clean:
@@ -181,6 +187,6 @@ distclean: clean
 again: clean all
 	echo "Built"
 
-test: $(DUT_TEST_EXES)
-	$(foreach var, $(DUT_TEST_EXES), ./run_and_check.py --file $(var).elf;)
+test: $(DUT_TEST_EXES) ppcsim
+	$(foreach var, $(DUT_TEST_EXES), ./run_and_check.py --file $(var);)
 

@@ -158,6 +158,7 @@ template<int nbits> class MEM_PPC {
     // Memory I/O
     inline void write_from_buffer(uint64_t addr, uint8_t* buff, size_t size);
     inline uint8_t *read_to_buffer(uint64_t addr, uint8_t *buff, size_t size);
+    inline const uint8_t *host_ptr(uint64_t addr);
     inline void write_from_file(uint64_t addr, std::string file_name, size_t size);
     inline void read_to_file(uint64_t addr, std::string file_name, size_t size);
     inline void read_to_ascii_file(uint64_t addr, std::string file_name, size_t size);
@@ -310,8 +311,8 @@ MEM_T uint8_t* MEM_PPC_T::paddr_to_hostpage(uint64_t paddr){
    
     uint64_t pageno = (paddr >> MIN_PGSZ_SHIFT);
     // Search in cache first
-    if(mem_tgt_modified == 0){
-        if((page_hash_cache.find(pageno) != page_hash_cache.end()) && page_hash_cache[pageno] != NULL){
+    if likely(mem_tgt_modified == 0){
+        if likely((page_hash_cache.find(pageno) != page_hash_cache.end()) && page_hash_cache[pageno] != NULL){
             return page_hash_cache[pageno];
         }
     }
@@ -566,6 +567,18 @@ MEM_T uint8_t* MEM_PPC_T::read_to_buffer(uint64_t addr, uint8_t *buff, size_t si
         size -= curr_size;
     }
     return buff;
+}
+
+/*
+ * @func : host_ptr
+ * @args : uint64_t address
+ *
+ * @brief  : get host pointer directly (useful for fast access)
+ * @return : pointer
+ */
+MEM_T const uint8_t* MEM_PPC_T::host_ptr(uint64_t addr){
+    LOG("DEBUG4") << "Inside memory::host_ptr" << std::endl;
+    return const_cast<uint8_t*>(paddr_to_hostaddr(addr));
 }
 
 /*
