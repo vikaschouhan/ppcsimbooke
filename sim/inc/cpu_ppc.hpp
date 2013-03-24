@@ -272,6 +272,10 @@ CPU_T uint64_t CPU_PPC_T::get_pc(){
 CPU_T void CPU_PPC_T::run(){
     LOG("DEBUG4") << MSG_FUNC_START;
     boost::thread thr0(&CPU_PPC_T::run_b, this);
+
+    // Try to rethrow the exception from daughter thread
+    if(sim_except_ptr)
+        std::rethrow_exception(sim_except_ptr);
     LOG("DEBUG4") << MSG_FUNC_END;
 }
 
@@ -1052,23 +1056,29 @@ CPU_T void CPU_PPC_T::run_b(){
 
 #define I  run_curr_instr() 
         
+    // Catch all non-hardware exceptions & save them into sim_except_ptr
+    // to be thrown later.
+    try {
+        for(;;){
+            // Observe each instruction for possible exceptions
+            try {
+                // Run this much instructions before checking for other conditions
+                for(i=0; i<n_instrs_per_pass; i++){
+                    I;
+                }
+            }
+            catch(sim_except_ppc& e){
+                ppc_exception(e.err_code0(), e.err_code1(), e.addr());
+            }
 
-    for(;;){
-        // Observe each instruction for possible exceptions
-        try {
-            // Run this much instructions before checking for other conditions
-            for(i=0; i<n_instrs_per_pass; i++){
-                I;
+            // If running status is changed to stopped/halted, exit out of loop
+            if unlikely(m_cpu_mode == CPU_MODE_HALTED or m_cpu_mode == CPU_MODE_STOPPED){
+                goto loop_exit_0;
             }
         }
-        catch(sim_except_ppc& e){
-            ppc_exception(e.err_code0(), e.err_code1(), e.addr());
-        }
-
-        // If running status is changed to stopped/halted, exit out of loop
-        if unlikely(m_cpu_mode == CPU_MODE_HALTED or m_cpu_mode == CPU_MODE_STOPPED){
-            goto loop_exit_0;
-        }
+    }
+    catch(...){
+        sim_except_ptr = std::current_exception();
     }
 
     loop_exit_0:

@@ -164,4 +164,7 @@ class sim_except_ppc_halt : public std::exception {
     }
 };
 
+// global exception_ptr object
+std::exception_ptr sim_except_ptr;
+
 #endif
