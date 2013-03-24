@@ -110,106 +110,91 @@ template<int X> inline int Log<X>::from_str(std::string level){
 }
 
 // Constructor 0
-template<int X> Log<X>::Log(){
+template<int X> inline Log<X>::Log(){
     m_stream = &(std::cout);
     m_enable_log = true;
     m_log_level = LOG_LEVEL_INFO;
 }
-template< > Log<0>::Log(){}
+template< > inline Log<0>::Log(){}
 
-template<int X> Log<X>::Log(std::string filename){
+template<int X> inline Log<X>::Log(std::string filename){
     m_fstream.open(filename.c_str());
     m_stream = &m_fstream;
     m_enable_log = true;
     m_log_level = LOG_LEVEL_INFO;
 }
-template< > Log<0>::Log(std::string filename){
+template< > inline Log<0>::Log(std::string filename){
     std::cout << "Logging is ddisabled." << std::endl;
 }
 
-template<int X> Log<X>::~Log(){
+template<int X> inline Log<X>::~Log(){
     m_stream = NULL;
     m_fstream.close();
 }
-template< > Log<0>::~Log(){}
+template< > inline Log<0>::~Log(){}
 
-template<int X> void Log<X>::direct_to_file(std::string filename){
+template<int X> inline void Log<X>::direct_to_file(std::string filename){
     m_fstream.close();
     m_fstream.open(filename.c_str());
     m_stream = &m_fstream;
 }
-template< > void Log<0>::direct_to_file(std::string filename){
+template< > inline void Log<0>::direct_to_file(std::string filename){
     std::cout << "Logging is disabled." << std::endl;
 }
 
-template<int X> void Log<X>::enable(){
+template<int X> inline void Log<X>::enable(){
     m_enable_log = true;
 }
-template< > void Log<0>::enable(){}
+template< > inline void Log<0>::enable(){}
 
-template<int X> void Log<X>::disable(){
+template<int X> inline void Log<X>::disable(){
     m_enable_log = false;
 }
-template< > void Log<0>::disable(){}
+template< > inline void Log<0>::disable(){}
 
 // Check if Loggger is enabled
-template<int X> bool Log<X>::is_enabled(){
+template<int X> inline bool Log<X>::is_enabled(){
     return m_enable_log;
 }
 
 // Overload << for normal buildin types
-template<int X> template<typename T> Log<X>& Log<X>::operator<<(T item)
+template<int X> template<typename T> inline Log<X>& Log<X>::operator<<(T item)
 {
     if(m_enable_log == true){
         (*m_stream) << item;
     }
     return *this;
 }
-template< > template<typename T> Log<0>& Log<0>::operator<<(T item){
+template< > template<typename T> inline Log<0>& Log<0>::operator<<(T item){
     return *this;
 }
 
 // overload for stream manipulators ( std::endl etc for eg. )
-template<int X> Log<X>& Log<X>::operator<<(std::ostream& (*pf)(std::ostream&)){
+template<int X> inline Log<X>& Log<X>::operator<<(std::ostream& (*pf)(std::ostream&)){
     if(m_enable_log == true){
         (*m_stream) << pf;
     }
     return *this;
 }
-template< > Log<0>& Log<0>::operator<<(std::ostream& (*pf)(std::ostream&)){
+template< > inline Log<0>& Log<0>::operator<<(std::ostream& (*pf)(std::ostream&)){
     return *this;
 }
 
-template<int X> Log<X>& Log<X>::operator()(std::string level){
+template<int X> inline Log<X>& Log<X>::operator()(std::string level){
     if(m_enable_log == true){
         (*m_stream) << "- " << now_time() << " [" << level << "]" << '\t';
     }
     return *this;
 }
-template< > Log<0>& Log<0>::operator()(std::string level){
+template< > inline Log<0>& Log<0>::operator()(std::string level){
     return *this;
 }
 
-template<int X> Log<X>& Log<X>::operator()(int level){
+template<int X> inline Log<X>& Log<X>::operator()(int level){
     return (*this)(to_str(level));
 }
-template< > Log<0>& Log<0>::operator()(int level){
+template< > inline Log<0>& Log<0>::operator()(int level){
     return (*this);
-}
-
-#ifndef SIM_DEBUG
-#define SIM_DEBUG 1
-#endif
-
-static Log<SIM_DEBUG> Logger;
-
-#define LOG(level_str) Logger(level_str)
-#define LOG_TO_FILE(file_name) Logger.direct_to_file(file_name)
-
-// for Boost.Python
-// We don't want to expose the whole logging framewok, only the log_to_file functionality
-inline void log_to_file(std::string file_name){
-    LOG_TO_FILE(file_name);
 }
 
 #endif

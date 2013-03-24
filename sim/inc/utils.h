@@ -353,7 +353,7 @@ inline uint16_t read_buff<uint16_t>(uint8_t *buff, int endianness){
         return *(reinterpret_cast<uint16_t *>(buff));
 }
 template<>
-void write_buff<uint16_t>(uint8_t* buff, uint16_t value, int endianness){
+inline void write_buff<uint16_t>(uint8_t* buff, uint16_t value, int endianness){
     if(endianness == EMUL_BIG_ENDIAN){
         buff[0] = (value >> 8);
         buff[1] = (value >> 0);
@@ -377,7 +377,7 @@ struct x86_flags {
 
     x86_flags() : cf(false), zf(false), sf(false), of(false) {}
 };
-std::ostream& operator<<(std::ostream& ostr, x86_flags f){
+inline std::ostream& operator<<(std::ostream& ostr, x86_flags f){
     ostr << ": cf=" << f.cf << ", zf=" << f.zf << ", sf=" << f.sf << ", of=" << f.of << " ";
     return ostr;
 }
@@ -524,7 +524,7 @@ union x86_mxcsr {
     }
 };
 
-std::ostream& operator<<(std::ostream& ostr, x86_mxcsr &m){
+inline std::ostream& operator<<(std::ostream& ostr, x86_mxcsr &m){
     ostr << std::hex << std::showbase;
     ostr << "mxcsr=" << m.v;
     ostr << std::dec << std::noshowbase;
@@ -596,5 +596,22 @@ def_x86_sse_op2(muls_f32, mulss)
 def_x86_sse_op2(muls_f64, mulsd)
 def_x86_sse_op2(divs_f32, divss)
 def_x86_sse_op2(divs_f64, divsd)
+
+
+// Logging facilities --------------------------------------------------------------------------------
+#ifndef SIM_DEBUG
+#define SIM_DEBUG 1
+#endif
+
+static Log<SIM_DEBUG> Logger;
+
+#define LOG(level_str) Logger(level_str)
+#define LOG_TO_FILE(file_name) Logger.direct_to_file(file_name)
+
+// for Boost.Python
+// We don't want to expose the whole logging framewok, only the log_to_file functionality
+inline void log_to_file(std::string file_name){
+    LOG_TO_FILE(file_name);
+}
 
 #endif
