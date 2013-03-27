@@ -22,7 +22,7 @@ How to Compile :-
     To compile everthing, go to sim/build and just issue "make CROSS_PREFIX=xxx", where prefix is the cross-compiler prefix (for eg. powerpc-unknown-linux- etc).
     To compile only dut testcases, issue "make dut_tests CROSS_PREFIX=xxx".
     To compile only sim testcases, issue "make sim_tests".
-    To compile the simulator model, issue "make ppcsim".
+    To compile the simulator model, issue "make ppcsimbooke".
 
 Running dut tests :-
     After doing "make" in sim/build, we get the simulator module (with name ppcsim.so), some dut tests (elf files) and a python script called
