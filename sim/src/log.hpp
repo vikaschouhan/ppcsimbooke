@@ -197,4 +197,20 @@ template< > inline Log<0>& Log<0>::operator()(int level){
     return (*this);
 }
 
+// Logging facilities --------------------------------------------------------------------------------
+#ifndef SIM_DEBUG
+#define SIM_DEBUG 1
+#endif
+
+static Log<SIM_DEBUG> Logger;
+
+#define LOG(level_str) Logger(level_str)
+#define LOG_TO_FILE(file_name) Logger.direct_to_file(file_name)
+
+// for Boost.Python
+// We don't want to expose the whole logging framewok, only the log_to_file functionality
+inline void log_to_file(std::string file_name){
+    LOG_TO_FILE(file_name);
+}
+
 #endif

@@ -10,8 +10,7 @@ int main(){
     LOG_TO_FILE("test_cpu_ppc_interface.log");
     uint32_t cpuid = 0x80101234; // A unique cpu id.
     string cpuname = "e500v2";
-    typedef CPU_PPC<32, 36, 128, 4, 16>  cpu_e500;
-    cpu_e500 cpu0 = cpu_e500(cpuid, cpuname);
+    CPU_PPC cpu0(cpuid, cpuname);
     cpu0.dump_state(4);
     std::cout << "Adding some instrs" << std::endl;
     cpu0.run_instr("addi r0, r0, 0x345");

@@ -49,12 +49,12 @@ EXES := $(PYWRAP_SO) $(SIM_TEST_EXES) $(DUT_TEST_EXES)
 SIM_ROOT       := ..
 SIM_TESTS_ROOT := ../tests/sim
 DUT_TESTS_ROOT := ../tests/dut
-SIM_PY_ROOT    := ../wrapper/python
+SIM_PY_ROOT    := $(SIM_ROOT)
 
 #============================= HOST FLAGS ==========================================================
 # Include current directory for dynamically generated headers
-HOST_CFLAGS                 := -I$(SIM_ROOT)/inc -I. -I$(SIM_ROOT)/src
-HOST_CXXFLAGS               := -I$(SIM_ROOT)/inc -I. -I/usr/include/boost -I$(SIM_ROOT)/src
+HOST_CFLAGS                 := -I$(SIM_ROOT)
+HOST_CXXFLAGS               := -I/usr/include -I$(SIM_ROOT)
 HOST_LDFLAGS                := -L/usr/lib64 -lboost_thread
 
 HOST_BOOST_PYTHON_CXXFLAGS  := -I`python-config --includes` -DCONFIG_BOOST_PYTHON
@@ -73,7 +73,7 @@ ifeq ($(ENABLE_DEBUG), 1)
 endif
 
 #============================ TARGET FLAGS =========================================================
-CROSS_CFLAGS                := -mregnames -Wa,-me500x2 -I. -I$(SIM_ROOT)/inc 
+CROSS_CFLAGS                := -mregnames -Wa,-me500x2 -I. -I$(SIM_ROOT)
 CROSS_LDFLAGS               := -L -n -N -T $(DUT_TESTS_ROOT)/e500v2_eabi_default.lcf -Wa,-me500x2
 CROSS_EXTFLAGS              := -D__ASSEMBLY__ -DCONFIG_E500 -DCONFIG_BOOKE -DCONFIG_FSL_EMB_PERFMON -std=c99
 CROSS_EXT_LIBS              := -lm
@@ -187,6 +187,11 @@ distclean: clean
 again: clean all
 	echo "Built"
 
-test: $(DUT_TEST_EXES) ppcsim
+run_tests: $(DUT_TEST_EXES) ppcsim
 	$(foreach var, $(DUT_TEST_EXES), ./run_and_check.py --file $(var);)
+
+run_sim_tests: $(SIM_TEST_EXES)
+	$(foreach var, $(SIM_TEST_EXES), ./$(var);)
+
+run_tests: run_tests run_sim_tests
 
