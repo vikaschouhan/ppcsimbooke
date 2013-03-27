@@ -40,7 +40,7 @@ DUT_TEST_EXES := test_001.elf                     \
 			 test_matrix_mul_0.elf                \
 			 test_eval_fp_0.elf
 
-PYWRAP_SO := ppcsim
+PYWRAP_SO := ppcsim.so
 
 EXES := $(PYWRAP_SO) $(SIM_TEST_EXES) $(DUT_TEST_EXES)
 
@@ -54,7 +54,7 @@ SIM_PY_ROOT    := $(SIM_ROOT)
 #============================= HOST FLAGS ==========================================================
 # Include current directory for dynamically generated headers
 HOST_CFLAGS                 := -I$(SIM_ROOT)
-HOST_CXXFLAGS               := -I/usr/include -I$(SIM_ROOT)
+HOST_CXXFLAGS               := -I/usr/include -I$(SIM_ROOT) -fPIC
 HOST_LDFLAGS                := -L/usr/lib64 -lboost_thread
 
 HOST_BOOST_PYTHON_CXXFLAGS  := -I`python-config --includes` -DCONFIG_BOOST_PYTHON
@@ -141,10 +141,13 @@ test_eval_fp_0.elf: $(CROSS_OBJS_COMM) test_eval_fp_0.o
 dut_tests: $(DUT_TEST_EXES)
 
 #======= BUILD SIMULATOR MODULE
-ppcsim.so: $(SIM_PY_ROOT)/ppcsimbooke.cpp
-	$(CXX) $(HOST_CXXFLAGS) $(HOST_BOOST_PYTHON_CXXFLAGS) $(HOST_LDFLAGS) $(HOST_BOOST_PYTHON_LDFLAGS) $(HOST_EXTFLAGS) -Wl,-soname,"$@"  -fpic -o $@ $^
+ppcsim.o: $(SIM_ROOT)/ppcsimbooke.cpp
+	$(CXX) $(HOST_CXXFLAGS) $(HOST_BOOST_PYTHON_CXXFLAGS) $(HOST_LDFLAGS) $(HOST_BOOST_PYTHON_LDFLAGS) $(HOST_EXTFLAGS) -o $@  -c $<
 
-ppcsim: ppcsim.so
+ppcsim.so: ppcsim.o machine.o cpu_ppc.o ppc_dis.o tlb_booke.o memory.o cpu_ppc_coverage.o globals.o bm.o
+	$(CXX) $(HOST_CXXFLAGS) $(HOST_BOOST_PYTHON_CXXFLAGS) $(HOST_LDFLAGS) $(HOST_BOOST_PYTHON_LDFLAGS) $(HOST_EXTFLAGS) -Wl,-soname,"$@"  -o $@ $^
+
+ppcsimbooke: ppcsim.so
 
 #====== BUILD SIM TESTS
 test_ppcdis_interface: test_ppcdis_interface.o ppc_dis.o globals.o
@@ -191,11 +194,11 @@ distclean: clean
 again: clean all
 	echo "Built"
 
-run_tests: $(DUT_TEST_EXES) ppcsim
+run_dut_tests: $(DUT_TEST_EXES) ppcsim.so
 	$(foreach var, $(DUT_TEST_EXES), ./run_and_check.py --file $(var);)
 
 run_sim_tests: $(SIM_TEST_EXES)
 	$(foreach var, $(SIM_TEST_EXES), ./$(var);)
 
-run_tests: run_tests run_sim_tests
+run_tests: run_dut_tests run_sim_tests
 

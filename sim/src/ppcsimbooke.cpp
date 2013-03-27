@@ -1,8 +1,8 @@
 
-// ppcsimbooke.cpp ( python wrapper for our simulator )
+// ppcsimbooke.cpp (python wrapper for our simulator)
 // This file contains wrappping macros and classes for our simulator modules
 //
-// Author : Vikas Chouhan ( presentisgood@gmail.com )
+// Author : Vikas Chouhan (presentisgood@gmail.com)
 // Copyright 2012.
 //
 // This file is part of ppc-sim library bundled with ppcsimbooke.
@@ -37,10 +37,10 @@
 #define  CPU_TLBCAM_N_ENTRIES        16    // Number of entries in tlbCam
 
 
-#include "cpu_ppc.hpp"
-#include "memory.hpp"
-#include "machine.hpp"
-#include "ppc_dis.hpp"
+#include "cpu_ppc.h"
+#include "memory.h"
+#include "machine.h"
+#include "ppc_dis.h"
  
 
 typedef CPU_PPC                      cpu_e500v2_t;
