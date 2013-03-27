@@ -31,7 +31,6 @@
 #include "bm.hpp"                    // Software Breakpoint manager
 #include "cpu_ppc_coverage.hpp"      // Coverage logger
 
-
 // Debug events
 #define DBG_EVENT_IAC       0x00000001UL
 #define DBG_EVENT_DAC_LD    0x00000002UL
@@ -45,12 +44,11 @@
  * NOTE: All registers are 64 bits.
  *       ( even if some of them are 32 bits in actual hardware. Upper 32 bits are just ignored in those cases )
  */
-#define CPU_T       template<int ta_cl_s, int ta_m_bits, int ta_tlb4K_ns, int ta_tlb4K_nw, int ta_tlbCam_ne>
+#define CPU_T
 #define CPU_PPC     cpu_ppc
-#define CPU_PPC_A   <ta_cl_s, ta_m_bits, ta_tlb4K_ns, ta_tlb4K_nw, ta_tlbCam_ne>
-#define CPU_PPC_T   CPU_PPC<ta_cl_s, ta_m_bits, ta_tlb4K_ns, ta_tlb4K_nw, ta_tlbCam_ne>
+#define CPU_PPC_A
+#define CPU_PPC_T   CPU_PPC
 
-template<int cl_s, int m_bits, int tlb4K_ns, int tlb4K_nw, int tlbCam_ne>
 class CPU_PPC {
 
     public:
@@ -59,7 +57,7 @@ class CPU_PPC {
     ~CPU_PPC();
 
     void       init(uint64_t cpuid, std::string name);  // Initialize CPU
-    void       register_mem(memory<m_bits> &mem);       // Register memory
+    void       register_mem(memory &mem);               // Register memory
     size_t     get_ninstrs();                           // Get number of instrs
     uint64_t   get_pc();                                // Get pc
     void       run();                                   // Non blocking run
@@ -187,8 +185,8 @@ class CPU_PPC {
     CPU_PPC_COVERAGE                       m_cov_logger;          // coverage logger
 
     DIS_PPC                                m_dis;                  // Disassembler module
-    TLB_PPC<tlb4K_ns, tlb4K_nw, tlbCam_ne> m_l2tlb;                // tlb4K_ns = 128, tlb4K_nw = 4, tlbCam_ne = 16
-    memory<m_bits>                         *m_mem_ptr;             // Memory module
+    TLB_PPC                                m_l2tlb;                // tlb4K_ns = 128, tlb4K_nw = 4, tlbCam_ne = 16
+    memory                                 *m_mem_ptr;             // Memory module
     
     
 
@@ -230,14 +228,14 @@ CPU_T std::map<uint64_t,
 //
 
 // Default constructor
-CPU_T CPU_PPC_T::CPU_PPC(): m_cache_line_size(ta_cl_s){
+CPU_T CPU_PPC_T::CPU_PPC(): m_cache_line_size(CPU_CACHE_LINE_SIZE){
     LOG("DEBUG4") << MSG_FUNC_START;
     init_common();
     LOG("DEBUG4") << MSG_FUNC_END;
 }
 
 CPU_T CPU_PPC_T::CPU_PPC(uint64_t cpuid, std::string name):
-    m_cpu_name(name), m_cache_line_size(ta_cl_s), m_pc(0xfffffffc), m_cpu_id(cpuid){
+    m_cpu_name(name), m_cache_line_size(CPU_CACHE_LINE_SIZE), m_pc(0xfffffffc), m_cpu_id(cpuid){
     LOG("DEBUG4") << MSG_FUNC_START;
     init_common(); 
     LOG("DEBUG4") << MSG_FUNC_END;
@@ -255,7 +253,7 @@ CPU_T void CPU_PPC_T::init(uint64_t cpuid, std::string name){    // Initialize C
     m_pc       = 0xfffffffc;
 }
 
-CPU_T void CPU_PPC_T::register_mem(memory<ta_m_bits> &mem){
+CPU_T void CPU_PPC_T::register_mem(memory &mem){
     if(m_mem_ptr == NULL)
         m_mem_ptr = &mem;
 }

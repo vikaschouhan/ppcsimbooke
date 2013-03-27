@@ -40,11 +40,11 @@ static const int TGT_IFC  = 3;      // Integrated Flash Controller
  *        2. Only one object can be crated for this class
  *        3. It's cumpulsory that all base address should be page (4K) aligned.
  */
-#define  MEM_T             template<int n>
+#define  MEM_T
 #define  MEM_PPC           memory
-#define  MEM_PPC_T         MEM_PPC<n>
+#define  MEM_PPC_T         MEM_PPC
 
-template<int nbits> class MEM_PPC {
+class MEM_PPC {
 
     #define    MEM_READ                    0
     #define    MEM_WRITE                   1
@@ -123,7 +123,7 @@ template<int nbits> class MEM_PPC {
     // @func : constructor
     // @args : number of physical address lines ( To gauge the total physical address space )
     //
-    memory() : m_bits(nbits){
+    memory() : m_bits(CPU_PHY_ADDR_SIZE){
         LOG("DEBUG4") << MSG_FUNC_START;
         this->pa_max = (1LL << m_bits) - 1 ;
         this->pn_max = (this->pa_max) >> static_cast<int>(log2(PAGE_SIZE));

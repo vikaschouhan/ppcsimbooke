@@ -29,13 +29,6 @@
 #include <boost/python/implicit.hpp>
 #include <boost/python/exception_translator.hpp>
 
-#include "cpu_ppc.hpp"
-#include "memory.hpp"
-#include "machine.hpp"
-#include "ppc_dis.hpp"
- 
-#define  SIM_REL                     "current"
-// CPU parameters
 #define  N_CPUS                      2     // Number of cpus
 #define  CPU_CACHE_LINE_SIZE         32    // cache line size
 #define  CPU_PHY_ADDR_SIZE           36    // physical address line size
@@ -43,10 +36,16 @@
 #define  CPU_TLB4K_N_WAYS            4     // number of ways/set in tlb4K
 #define  CPU_TLBCAM_N_ENTRIES        16    // Number of entries in tlbCam
 
-typedef CPU_PPC<CPU_CACHE_LINE_SIZE, CPU_PHY_ADDR_SIZE, CPU_TLB4K_N_SETS, CPU_TLB4K_N_WAYS, CPU_TLBCAM_N_ENTRIES>   cpu_e500v2_t;
-typedef MEM_PPC<CPU_PHY_ADDR_SIZE>                                                                                  memory_e500v2_t;
-typedef machine<N_CPUS, CPU_PHY_ADDR_SIZE, CPU_CACHE_LINE_SIZE,
-        CPU_TLB4K_N_SETS, CPU_TLB4K_N_WAYS, CPU_TLBCAM_N_ENTRIES>                                                   machine_e500v2_t;
+
+#include "cpu_ppc.hpp"
+#include "memory.hpp"
+#include "machine.hpp"
+#include "ppc_dis.hpp"
+ 
+
+typedef CPU_PPC                      cpu_e500v2_t;
+typedef MEM_PPC                      memory_e500v2_t;
+typedef machine                      machine_e500v2_t;
 
 // Wrapping some cpu functions
 

@@ -26,16 +26,15 @@
 #include "cpu_ppc.hpp"
 #include "memory.hpp"
 
-#define MACHINE_T      template<int ta_n_cpus, int ta_m_bits, int ta_cl_size, int ta_tlb4K_ns, int ta_tlb4K_nw, int ta_tlbCam_ne>
+#define MACHINE_T
 #define MACHINE        machine
-#define MACHINE_CL_T   MACHINE<ta_n_cpus, ta_m_bits, ta_cl_size, ta_tlb4K_ns, ta_tlb4K_nw, ta_tlbCam_ne>  
+#define MACHINE_CL_T   MACHINE
 
 // Machine class
-template <int n_cpus, int m_bits, int cl_size, int tlb4K_ns, int tlb4K_nw, int tlbCam_ne>
 struct MACHINE {
-    typedef CPU_PPC<cl_size, m_bits, tlb4K_ns, tlb4K_nw, tlbCam_ne>  cpu_t;
-    typedef memory<m_bits>                                           memory_t;
-    cpu_t                                                            m_cpu[n_cpus];
+    typedef CPU_PPC                                                  cpu_t;
+    typedef memory                                                   memory_t;
+    cpu_t                                                            m_cpu[N_CPUS];
     memory_t                                                         m_memory;   // one memory module
     const int                                                        m_ncpus;
 
@@ -65,7 +64,7 @@ struct MACHINE {
 
 // Member functions
 
-MACHINE_T MACHINE_CL_T::MACHINE() : m_ncpus(ta_n_cpus){
+MACHINE_T MACHINE_CL_T::MACHINE() : m_ncpus(N_CPUS){
     LOG("DEBUG4") << MSG_FUNC_START;
 
     uint64_t cpuid = 0x81008100;   // An id

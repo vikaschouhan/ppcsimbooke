@@ -33,16 +33,11 @@
                                            ((ea) & 0xffffffff))
 
 // Macros for easy accessibility
-#define TLB_T                      template<int x, int y, int z>
+#define TLB_T
 #define TLB_PPC                    ppc_tlb
-#define TLB_PPC_T                  TLB_PPC<x, y, z>
+#define TLB_PPC_T                  TLB_PPC
 
-/* A booke tlb emulation */
-// Template parameters
-// tlb4K_ns -> number of sets in tlb4K
-// tlb4K_nw -> number of ways per set in tlb4K
-// tlbCam_ne -> number of entries in tlbCam
-template<int tlb4K_ns, int tlb4K_nw, int tlbCam_ne> class TLB_PPC {
+class TLB_PPC {
 
     public:
     // Tlb entry
@@ -103,8 +98,8 @@ template<int tlb4K_ns, int tlb4K_nw, int tlbCam_ne> class TLB_PPC {
 
 
     private:
-    t_tlb<tlb4K_ns,  tlb4K_nw, 0>       tlb4K;       // tlb4K_ns sets, tlb4K_nw ways
-    t_tlb<       1, tlbCam_ne, 1>       tlbCam;      // 1 set,         tlbCam_nw ways
+    t_tlb<CPU_TLB4K_N_SETS, CPU_TLB4K_N_WAYS, 0>       tlb4K;       // tlb4K_ns sets, tlb4K_nw ways
+    t_tlb<1, CPU_TLBCAM_N_ENTRIES, 1>                  tlbCam;      // 1 set,         tlbCam_nw ways
 
     // NOTE :
     //        1. m_tlb_cache stores translation tables in cached form for faster access.
