@@ -2,7 +2,7 @@
  * Test to check if cpu_ppc's interface is working fine.
  */
 
-#include "cpu_ppc_coverage.hpp"
+#include "cpu_ppc_coverage.h"
 
 int main(){
     CPU_PPC_COVERAGE cov_log0;

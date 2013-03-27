@@ -1,7 +1,7 @@
 /*
  * Test to check if cpu_ppc's interface is working fine.
  */
-#include "cpu_ppc.hpp"
+#include "cpu_ppc.h"
 #include <string>
 
 using std::string;

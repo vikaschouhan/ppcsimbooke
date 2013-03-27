@@ -40,7 +40,7 @@
 #include "log.hpp"
 #include "utils.h"
 
-#include "misc.hpp"
+#include "globals.h"
 
 // check for little endianness & x86
 #if !(defined __ORDER_LITTLE_ENDIAN__ && (defined __x86_64__ || defined __x86__))

@@ -1,5 +1,5 @@
 #include <iostream>
-#include "misc.hpp"
+#include "globals.h"
 
 // NOTE : Only purpose of this test, is to capture syntax errors in misc.hpp 
 int main(){

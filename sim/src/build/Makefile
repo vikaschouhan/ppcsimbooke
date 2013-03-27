@@ -30,7 +30,7 @@ SIM_TEST_EXES := test_ppcdis_interface        \
              test_log_class                   \
 			 test_lru_class                   \
 			 test_bm_class                    \
-			 test_misc_module
+			 test_globals_module
 DUT_TEST_EXES := test_001.elf                     \
 	         test_sqrt_0.elf                      \
 	         test_palindrome_0.elf                \
@@ -98,6 +98,10 @@ EXEC_CP_RUN_PY := $(shell cp $(DUT_TESTS_ROOT)/run_and_check.py .)
 #============================ Start build ==========================================================
 all: $(EXES)
 
+#======= Compile all cpp files
+%.o: $(SIM_ROOT)/%.cpp $(SIM_ROOT)/%.h
+	$(CXX) $(HOST_CXXFLAGS) $(HOST_EXTFLAGS) -o $@ -c $<
+
 #======== COMPILE SIM TESTS
 %.o: $(SIM_TESTS_ROOT)/%.cxx
 	$(CXX) $(HOST_CXXFLAGS) $(HOST_EXTFLAGS) -o $@ -c $<
@@ -143,22 +147,22 @@ ppcsim.so: $(SIM_PY_ROOT)/ppcsimbooke.cpp
 ppcsim: ppcsim.so
 
 #====== BUILD SIM TESTS
-test_ppcdis_interface: test_ppcdis_interface.o
+test_ppcdis_interface: test_ppcdis_interface.o ppc_dis.o globals.o
 	$(CXX) -o $@ $^
 
-test_machine_interface: test_machine_interface.o
+test_machine_interface: test_machine_interface.o machine.o cpu_ppc.o ppc_dis.o tlb_booke.o memory.o cpu_ppc_coverage.o globals.o bm.o
 	$(CXX) $(HOST_LDFLAGS) -o $@ $^
 
-test_cpu_ppc_interface: test_cpu_ppc_interface.o
+test_cpu_ppc_interface: test_cpu_ppc_interface.o cpu_ppc.o ppc_dis.o tlb_booke.o memory.o cpu_ppc_coverage.o globals.o bm.o
 	$(CXX) $(HOST_LDFLAGS) -o $@ $^
 
-test_cpu_ppc_coverage_interface: test_cpu_ppc_coverage_interface.o
+test_cpu_ppc_coverage_interface: test_cpu_ppc_coverage_interface.o cpu_ppc_coverage.o
 	$(CXX) $(HOST_LDFLAGS) -o $@ $^
 
-test_tlb_booke_interface: test_tlb_booke_interface.o
+test_tlb_booke_interface: test_tlb_booke_interface.o tlb_booke.o
 	$(CXX) $(HOST_LDFLAGS) -o $@ $^
 
-test_memory_interface: test_memory_interface.o
+test_memory_interface: test_memory_interface.o  memory.o
 	$(CXX) $(HOST_LDFLAGS) -o $@ $^
 
 test_exception_class: test_exception_class.o
@@ -170,10 +174,10 @@ test_log_class: test_log_class.o
 test_lru_class: test_lru_class.o
 	$(CXX) $(HOST_LDFLAGS) -o $@ $^
 
-test_bm_class: test_bm_class.o
+test_bm_class: test_bm_class.o bm.o
 	$(CXX) $(HOST_LDFLAGS) -o $@ $^
 
-test_misc_module: test_misc_module.o
+test_globals_module: test_globals_module.o globals.o
 	$(CXX) $(HOST_LDFLAGS) -o $@ $^
 
 sim_tests: $(SIM_TEST_EXES)

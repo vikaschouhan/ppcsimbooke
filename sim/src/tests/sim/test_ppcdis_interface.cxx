@@ -1,4 +1,4 @@
-#include "ppc_dis.hpp"
+#include "ppc_dis.h"
 
 int main(int argc, char* argv[])
 {

@@ -1,7 +1,7 @@
 /*
  * Test to check if tlb_booke's interface is working fine.
  */
-#include "tlb_booke.hpp"
+#include "tlb_booke.h"
 #include <string>
 
 int main(){
