@@ -189,9 +189,9 @@ class CPU_PPC {
     memory                                 *m_mem_ptr;             // Memory module
     
     
-
-    /* Host specific stuff */
-    x86_flags host_flags;
+    // Host flags
+    x86_flags                              host_flags;            // x86 flags register
+    x86_mxcsr                              m_x86_mxcsr;           // mxcsr flags register
 
     // A Cache of recently called instrs.
     lru_cache<uint64_t, instr_call>        m_instr_cache;     // Cache of recently used instrs

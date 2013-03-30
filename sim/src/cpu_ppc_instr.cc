@@ -141,6 +141,10 @@
 #undef  HOST_FLAGS
 #define HOST_FLAGS               CPU->host_flags
 
+#pragma push_macro("HOST_FPU_FLAGS")
+#undef  HOST_FPU_FLAGS
+#define HOST_FPU_FLAGS           CPU->m_x86_mxcsr
+
 // Alias to some cpu functions ----------------------------------------------------------------
 
 #define get_crf                  DREG_FN(get_crf)
@@ -165,6 +169,8 @@
 #define GET_CA()                 DREG_FN(get_xer_ca())
 #define GET_SO()                 DREG_FN(get_xer_so())
 #define UPDATE_CR0_V             DREG_FN(update_cr0)
+
+#define UPDATE_SPEFSCR_H(high, tgt_reg)                   DREG_FN(update_spefscr_host(HOST_FPU_FLAGS, high, tgt_reg))
 
 #define UPDATE_CYCLES(n)         CPU->m_ncycles += n
 
@@ -318,6 +324,11 @@
 
 #define X86_ADD64(arg1,   arg2)                      ADD64(arg1,  arg2, HOST_FLAGS)           // 64bit ADD
 #define X86_SUB64(arg1,   arg2)                      SUB64(arg1,  arg2, HOST_FLAGS)           // 64bit SUB
+
+#define X86_ADDS_F32(arg1, arg2)                     x86_adds_f32(arg1, arg2, HOST_FPU_FLAGS)
+#define X86_SUBS_F32(arg1, arg2)                     x86_subs_f32(arg1, arg2, HOST_FPU_FLAGS)
+#define X86_MULS_F32(arg1, arg2)                     x86_muls_f32(arg1, arg2, HOST_FPU_FLAGS)
+#define X86_DIVS_F32(arg1, arg2)                     x86_divs_f32(arg1, arg2, HOST_FPU_FLAGS)
 
 // define building blocks for lambda syntax (GCC compiler must support -std=c++11)
 #define RTL_BEGIN(opc_name, func_name)     CPU->m_ppc_func_hash[CPU->m_dis.get_opc_hash(opc_name)] = [](CPU_PPC_T *CPU, instr_call *IC) -> void {
@@ -3888,6 +3899,43 @@ RTL_BEGIN("evfsneg", __evfsneg__)
     REG0 = REG1 | (~REG1 & 0x8000000080000000ULL);
 RTL_END
 
+RTL_BEGIN("evfsadd", __evfsadd__)
+    uint32_t u, v;
+    u = X86_ADDS_F32(B_0_31(REG1), B_0_31(REG2));
+    UPDATE_SPEFSCR_H(1, u);
+    v = X86_ADDS_F32(B_32_63(REG1), B_32_63(REG2));
+    UPDATE_SPEFSCR_H(0, v);
+    REG0 = PACK_2W(u, v);
+RTL_END
+
+RTL_BEGIN("evfssub", __evfssub__)
+    uint32_t u, v;
+    u = X86_SUBS_F32(B_0_31(REG1), B_0_31(REG2));
+    UPDATE_SPEFSCR_H(1, u);
+    v = X86_SUBS_F32(B_32_63(REG1), B_32_63(REG2));
+    UPDATE_SPEFSCR_H(0, v);
+    REG0 = PACK_2W(u, v);
+RTL_END
+
+RTL_BEGIN("evfsmul", __evfsmul__)
+    uint32_t u, v;
+    u = X86_MULS_F32(B_0_31(REG1), B_0_31(REG2));
+    UPDATE_SPEFSCR_H(1, u);
+    v = X86_MULS_F32(B_32_63(REG1), B_32_63(REG2));
+    UPDATE_SPEFSCR_H(0, v);
+    REG0 = PACK_2W(u, v);
+RTL_END
+
+RTL_BEGIN("evfsdiv", __evfsdiv__)
+    uint32_t u, v;
+    u = X86_DIVS_F32(B_0_31(REG1), B_0_31(REG2));
+    UPDATE_SPEFSCR_H(1, u);
+    v = X86_DIVS_F32(B_32_63(REG1), B_32_63(REG2));
+    UPDATE_SPEFSCR_H(0, v);
+    REG0 = PACK_2W(u, v);
+RTL_END
+
+
 RTL_BEGIN("efdabs", ___efdabs___)
     REG0 = REG1 & 0x7fffffffffffffffULL;       // Change sign bit to zero
 RTL_END
@@ -3925,5 +3973,6 @@ RTL_END
 #pragma pop_macro("PC")
 #pragma pop_macro("NIP")
 #pragma pop_macro("HOST_FLAGS")
+#pragma pop_macro("HOST_FPU_FLAGS")
 
 #endif

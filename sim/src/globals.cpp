@@ -558,6 +558,75 @@ bool ppc_regs::get_xer_ov(){
 //            If an invalid operation/input error doesn't happen, divisor is (+/-)0 & divident is a non-zero normalized no,
 //            FDBZ[H]=1. If exception is unmasked, an interrupt is taken.
 // ==========================
-void ppc_regs::update_spefscr_host(x86_mxcsr &hf, bool high, uint64_t &tgt_reg){
-    
+template<typename T>
+void ppc_regs::update_spefscr_host(x86_mxcsr &hf, bool high, T &tgt_reg){
+    uint32_t m = hf.v;
+
+    // check for errors
+    if likely(m & X86_MXCSR_E){
+        return;
+    }
+
+    // Input error condition
+    if(m & X86_MXCSR_IE){
+        if(high) { spefscr |= SPEFSCR_FINVH; spefscr &= ~(SPEFSCR_FGH | SPEFSCR_FXH); }
+        else     { spefscr |= SPEFSCR_FINV;  spefscr &= ~(SPEFSCR_FG | SPEFSCR_FX);   }
+        spefscr |= SPEFSCR_FINVS;
+
+        if(spefscr & SPEFSCR_FINVE){
+            // throw ppc exception
+        }
+    }
+
+    // divide by zero error condition
+    if(m & X86_MXCSR_ZE){
+        if(high) { spefscr |= SPEFSCR_FDBZH; }
+        else     { spefscr |= SPEFSCR_FDBZ;  }
+        spefscr |= SPEFSCR_FDBZS;
+
+        if(spefscr & SPEFSCR_FDBZE){
+            // throw ppc exception
+        }
+    }
+
+    // Inexact/Rounding error
+    if(m & X86_MXCSR_PE){
+        spefscr |= SPEFSCR_FINXS;
+
+        if(spefscr &SPEFSCR_FINXE){
+            // throw ppc exception
+        }
+    }
+
+    // overflow
+    if(m & X86_MXCSR_OE){
+        if(high) { spefscr |= SPEFSCR_FOVFH; }
+        else     { spefscr |= SPEFSCR_FOVF;  }
+
+        if(spefscr & SPEFSCR_FOVFE){
+            // throw ppc exception
+        }
+    }
+
+    // underflow
+    if(m & X86_MXCSR_UE){
+        if(high) { spefscr |= SPEFSCR_FUNFH; }
+        else     { spefscr |= SPEFSCR_FUNF;  }
+
+        if(spefscr & SPEFSCR_FUNFE){
+            // throw exception
+        }
+    }
+
+    // clear all non sticky flags of SPEFSCR
+    spefscr &= ~(SPEFSCR_FINVH | SPEFSCR_FINV | SPEFSCR_FGH | SPEFSCR_FG | SPEFSCR_FXH | SPEFSCR_FX |
+                 SPEFSCR_FDBZH | SPEFSCR_FDBZ | SPEFSCR_FOVFH | SPEFSCR_FOVF | SPEFSCR_FUNFH |
+                 SPEFSCR_FUNF);
+
+    // clear all sticky flags of host's mxcsr register
+    // NOTE : x86 doesn't have intermediate flags for each instruction. Hence we track
+    //        SSE fpu exceptions using the sticky flags.
+    hf.clear_all_error_flags();
 }
+
+template void ppc_regs::update_spefscr_host<uint32_t>(x86_mxcsr &hf, bool high, uint32_t &tgt_reg);

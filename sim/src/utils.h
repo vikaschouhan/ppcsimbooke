@@ -493,6 +493,29 @@ def_x86_div_op(x86_idiv, idiv)
 #define SUB64             x86_sub<int64_t>   // 64 bit SUB
 
 // vector extensions (SSE)
+// forward declarations
+union x86_mxcsr;
+void x86_ldmxcsr(x86_mxcsr &f);
+void x86_stmxcsr(x86_mxcsr& f);
+
+enum x86_mxcsr_bitmask {
+    X86_MXCSR_IE    = (1 << 0),
+    X86_MXCSR_DE    = (1 << 1),
+    X86_MXCSR_ZE    = (1 << 2),
+    X86_MXCSR_OE    = (1 << 3),
+    X86_MXCSR_UE    = (1 << 4),
+    X86_MXCSR_PE    = (1 << 5),
+    X86_MXCSR_DAZ   = (1 << 6),
+    X86_MXCSR_IM    = (1 << 7),
+    X86_MXCSR_DM    = (1 << 8),
+    X86_MXCSR_ZM    = (1 << 9),
+    X86_MXCSR_OM    = (1 << 10),
+    X86_MXCSR_UM    = (1 << 11),
+    X86_MXCSR_PM    = (1 << 12),
+    X86_MXCSR_RC    = (3 << 13),
+    X86_MXCSR_FZ    = (1 << 15),
+    X86_MXCSR_E     = (X86_MXCSR_IE | X86_MXCSR_ZE | X86_MXCSR_OE | X86_MXCSR_UE | X86_MXCSR_PE),
+};
 
 union x86_mxcsr {
     uint32_t v;
@@ -516,11 +539,34 @@ union x86_mxcsr {
         uint32_t rs0 : 16;
     };
 
+
     // load a default value into mxcsr
     // Default -> All exceptions disabled. daz=1 (powerPC SPE bahaviour)
     x86_mxcsr(){
         v = 0x1fc0;
-        __asm__ __volatile__("ldmxcsr %[f]" ::[f] "m" (v):);
+        x86_ldmxcsr(*this);
+    }
+    void clear_all_error_flags(){
+        v &= ~X86_MXCSR_E;
+        x86_mxcsr(*this);
+    }
+    void round_to_nearest(){
+        v &= 0x600;
+        x86_ldmxcsr(*this);
+    }
+    void round_to_minus_inf(){
+        v &= 0x600;
+        v |= 0x200;
+        x86_ldmxcsr(*this);
+    }
+    void round_to_plus_inf(){
+        v &= 0x600;
+        v |= 0x400;
+        x86_ldmxcsr(*this);
+    }
+    void round_to_zero(){
+        v |= 0x600;
+        x86_ldmxcsr(*this);
     }
 };
 
@@ -535,6 +581,14 @@ inline std::ostream& operator<<(std::ostream& ostr, x86_mxcsr &m){
          << ",um=" << m.um << ",pm=" << m.pm << ",r-=" << m.rn
          << ",r+=" << m.rp << ",fz=" << m.fz << "] ";
     return ostr;
+}
+
+inline void x86_ldmxcsr(x86_mxcsr &f){
+    __asm__ __volatile__("ldmxcsr %[f]" ::[f] "m" (f.v):);
+}
+
+inline void x86_stmxcsr(x86_mxcsr& f){
+    __asm__ __volatile__("stmxcsr %[f]" ::[f] "m" (f.v):);
 }
 
 // SSE vector type
@@ -588,13 +642,13 @@ inline T name(T ra, T rb, x86_mxcsr &f){         \
 // 2 operand sse   opcode's name    scalar/vector     floating point type
 //
 //
-def_x86_sse_op2(adds_f32, addss)
-def_x86_sse_op2(adds_f64, addsd)
-def_x86_sse_op2(subs_f32, subss)
-def_x86_sse_op2(subs_f64, subsd)
-def_x86_sse_op2(muls_f32, mulss)
-def_x86_sse_op2(muls_f64, mulsd)
-def_x86_sse_op2(divs_f32, divss)
-def_x86_sse_op2(divs_f64, divsd)
+def_x86_sse_op2(x86_adds_f32, addss)
+def_x86_sse_op2(x86_adds_f64, addsd)
+def_x86_sse_op2(x86_subs_f32, subss)
+def_x86_sse_op2(x86_subs_f64, subsd)
+def_x86_sse_op2(x86_muls_f32, mulss)
+def_x86_sse_op2(x86_muls_f64, mulsd)
+def_x86_sse_op2(x86_divs_f32, divss)
+def_x86_sse_op2(x86_divs_f64, divsd)
 
 #endif

@@ -288,7 +288,8 @@ struct ppc_regs {
     bool       get_xer_ov();                                     // Get XER[OV]
 
     // functions operating on SEPFSCR
-    void       update_spefscr_host(x86_mxcsr& hf, bool high, uint64_t& tgt_reg);
+    template<typename T>
+    void       update_spefscr_host(x86_mxcsr& hf, bool high, T& tgt_reg);
 
     // for boost::python
     template<int x>
