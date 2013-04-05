@@ -30,6 +30,7 @@
 #include "memory.h"                  // Memory module
 #include "bm.h"                      // Software Breakpoint manager
 #include "cpu_ppc_coverage.h"        // Coverage logger
+#include "fpu_emul.h"                // floating point emulation
 
 // Debug events
 #define DBG_EVENT_IAC       0x00000001UL

@@ -170,7 +170,7 @@
 #define GET_SO()                 DREG_FN(get_xer_so())
 #define UPDATE_CR0_V             DREG_FN(update_cr0)
 
-#define UPDATE_SPEFSCR_H(high, tgt_reg)                   DREG_FN(update_spefscr_host(HOST_FPU_FLAGS, high, tgt_reg))
+#define UPDATE_SPEFSCR_H(high)   DREG_FN(update_spefscr(HOST_FPU_FLAGS, high))
 
 #define UPDATE_CYCLES(n)         CPU->m_ncycles += n
 
@@ -3883,6 +3883,11 @@ RTL_END
 
 // ----------------- SPE FP ---------------------------------------------------------------------------
 //
+//
+#define SPE_FP_2_OP_DEFRES_32(res, opcode, arg0, arg1)   if unlikely(HOST_FPU_FLAGS.is_error())  \
+                                                         fp_emul::get_default_results<uint32_t>(res, opcode, arg0, arg1, HOST_FPU_FLAGS)
+#define SPE_FP_1_OP_DEFRES_32(res, opcode, arg0)         if unlikely(HOST_FPU_FLAGS.is_error())  \
+                                                         fp_emul::get_default_results<uint32_t>(res, opcode, arg0, HOST_FPU_FLAGS)
 
 // Vector FP SP Absolute
 RTL_BEGIN("evfsabs", __evfsabs__)
@@ -3902,36 +3907,44 @@ RTL_END
 RTL_BEGIN("evfsadd", __evfsadd__)
     uint32_t u, v;
     u = X86_ADDS_F32(B_0_31(REG1), B_0_31(REG2));
-    UPDATE_SPEFSCR_H(1, u);
+    SPE_FP_2_OP_DEFRES_32(u, fp_emul::fp_op_add, REG1, REG2);
+    UPDATE_SPEFSCR_H(1);
     v = X86_ADDS_F32(B_32_63(REG1), B_32_63(REG2));
-    UPDATE_SPEFSCR_H(0, v);
+    SPE_FP_2_OP_DEFRES_32(v, fp_emul::fp_op_add, REG1, REG2);
+    UPDATE_SPEFSCR_H(0);
     REG0 = PACK_2W(u, v);
 RTL_END
 
 RTL_BEGIN("evfssub", __evfssub__)
     uint32_t u, v;
     u = X86_SUBS_F32(B_0_31(REG1), B_0_31(REG2));
-    UPDATE_SPEFSCR_H(1, u);
+    SPE_FP_2_OP_DEFRES_32(u, fp_emul::fp_op_sub, REG1, REG2);
+    UPDATE_SPEFSCR_H(1);
     v = X86_SUBS_F32(B_32_63(REG1), B_32_63(REG2));
-    UPDATE_SPEFSCR_H(0, v);
+    SPE_FP_2_OP_DEFRES_32(v, fp_emul::fp_op_sub, REG1, REG2);
+    UPDATE_SPEFSCR_H(0);
     REG0 = PACK_2W(u, v);
 RTL_END
 
 RTL_BEGIN("evfsmul", __evfsmul__)
     uint32_t u, v;
     u = X86_MULS_F32(B_0_31(REG1), B_0_31(REG2));
-    UPDATE_SPEFSCR_H(1, u);
+    SPE_FP_2_OP_DEFRES_32(u, fp_emul::fp_op_mul, REG1, REG2);
+    UPDATE_SPEFSCR_H(1);
     v = X86_MULS_F32(B_32_63(REG1), B_32_63(REG2));
-    UPDATE_SPEFSCR_H(0, v);
+    SPE_FP_2_OP_DEFRES_32(v, fp_emul::fp_op_mul, REG1, REG2);
+    UPDATE_SPEFSCR_H(0);
     REG0 = PACK_2W(u, v);
 RTL_END
 
 RTL_BEGIN("evfsdiv", __evfsdiv__)
     uint32_t u, v;
     u = X86_DIVS_F32(B_0_31(REG1), B_0_31(REG2));
-    UPDATE_SPEFSCR_H(1, u);
+    SPE_FP_2_OP_DEFRES_32(u, fp_emul::fp_op_div, REG1, REG2);
+    UPDATE_SPEFSCR_H(1);
     v = X86_DIVS_F32(B_32_63(REG1), B_32_63(REG2));
-    UPDATE_SPEFSCR_H(0, v);
+    SPE_FP_2_OP_DEFRES_32(v, fp_emul::fp_op_div, REG1, REG2);
+    UPDATE_SPEFSCR_H(0);
     REG0 = PACK_2W(u, v);
 RTL_END
 

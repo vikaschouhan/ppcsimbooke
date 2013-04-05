@@ -366,16 +366,26 @@ namespace fp_emul{
     // get default results (main function)
     // 2 operand version
     template<typename T>
-    inline T get_default_results(fp_op op, T a, T b, bool round_to_minus_inf=false){
-        std::pair<fp_operand, fp_sign_type>  res = fp_map.at(op).at(std::make_pair(get_operand_type<T>(a), get_operand_type<T>(b)));
-        return get_operand<T>(a, b, res, round_to_minus_inf);
+    inline T get_default_results(T& R, fp_op op, T a, T b, x86_mxcsr& m){
+        if(m.ie){
+            std::pair<fp_operand, fp_sign_type>  res = fp_map.at(op).at(std::make_pair(get_operand_type<T>(a), get_operand_type<T>(b)));
+            R = get_operand<T>(a, b, res, m.is_rounding_mode_rm());
+        }
+        if(m.ue){
+            if(m.is_rounding_mode_rnzp()){ R = fp_traits<T>::zero; }
+            else                         { R = fp_traits<T>::minus_zero; }
+        }
+        return R;   // shouldn't fall back to this
     }
 
     // 1 operand version
     template<typename T>
-    inline T get_default_results(fp_op op, T a){
-        std::pair<fp_operand, fp_sign_type>  res = fp_map.at(op).at(std::make_pair(get_operand_type<T>(a), fp_operand_inv));
-        return get_operand<T>(a, res);
+    inline T get_default_results(T& R, fp_op op, T a, x86_mxcsr& m){
+        if(m.ie){
+            std::pair<fp_operand, fp_sign_type>  res = fp_map.at(op).at(std::make_pair(get_operand_type<T>(a), fp_operand_inv));
+            R = get_operand<T>(a, res);
+        }
+        return R;   // shouldn't fallback to this
     }
 }
 

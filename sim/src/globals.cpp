@@ -558,8 +558,7 @@ bool ppc_regs::get_xer_ov(){
 //            If an invalid operation/input error doesn't happen, divisor is (+/-)0 & divident is a non-zero normalized no,
 //            FDBZ[H]=1. If exception is unmasked, an interrupt is taken.
 // ==========================
-template<typename T>
-void ppc_regs::update_spefscr_host(x86_mxcsr &hf, bool high, T &tgt_reg){
+void ppc_regs::update_spefscr(x86_mxcsr &hf, bool high){
     uint32_t m = hf.v;
 
     // check for errors
@@ -628,5 +627,3 @@ void ppc_regs::update_spefscr_host(x86_mxcsr &hf, bool high, T &tgt_reg){
     //        SSE fpu exceptions using the sticky flags.
     hf.clear_all_error_flags();
 }
-
-template void ppc_regs::update_spefscr_host<uint32_t>(x86_mxcsr &hf, bool high, uint32_t &tgt_reg);

@@ -512,7 +512,7 @@ enum x86_mxcsr_bitmask {
     X86_MXCSR_OM    = (1 << 10),
     X86_MXCSR_UM    = (1 << 11),
     X86_MXCSR_PM    = (1 << 12),
-    X86_MXCSR_RC    = (3 << 13),
+    X86_MXCSR_RC    = (3 << 13),        // Rounding Control (R+ = 0b10, R- = 0b1, RZ = 0b11, RN = 0b00)
     X86_MXCSR_FZ    = (1 << 15),
     X86_MXCSR_E     = (X86_MXCSR_IE | X86_MXCSR_ZE | X86_MXCSR_OE | X86_MXCSR_UE | X86_MXCSR_PE),
 };
@@ -567,6 +567,30 @@ union x86_mxcsr {
     void round_to_zero(){
         v |= 0x600;
         x86_ldmxcsr(*this);
+    }
+    bool is_error(){
+        return (v & (X86_MXCSR_IE | X86_MXCSR_ZE | X86_MXCSR_OE | X86_MXCSR_UE | X86_MXCSR_PE));
+    }
+    bool is_underflow(){
+        return (v & X86_MXCSR_UE);
+    }
+    bool is_overflow(){
+        return (v & X86_MXCSR_OE);
+    }
+    bool is_rounding_mode_rp(){
+        return ((v & X86_MXCSR_RC) >> RSHIFT<X86_MXCSR_RC>::VAL) == 0x2;
+    }
+    bool is_rounding_mode_rm(){
+        return ((v & X86_MXCSR_RC) >> RSHIFT<X86_MXCSR_RC>::VAL) == 0x1;
+    }
+    bool is_rounding_mode_rz(){
+        return ((v & X86_MXCSR_RC) >> RSHIFT<X86_MXCSR_RC>::VAL) == 0x3;
+    }
+    bool is_rounding_mode_rn(){
+        return !(v & X86_MXCSR_RC);
+    }
+    bool is_rounding_mode_rnzp(){
+        return is_rounding_mode_rn() && is_rounding_mode_rz() && is_rounding_mode_rp();
     }
 };
 
