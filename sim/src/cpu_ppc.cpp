@@ -132,13 +132,7 @@ CPU_T void CPU_PPC_T::run_instr(std::string instr){
     instr_call call_this;
 
     call_this = m_dis.disasm(instr, m_pc);
-
-    if(call_this.fptr){ (reinterpret_cast<CPU_PPC::ppc_opc_fun_ptr>(call_this.fptr))(this, &call_this); }
-    
-    LASSERT_THROW(m_ppc_func_hash.find(call_this.opc) != m_ppc_func_hash.end(),
-            sim_except(SIM_EXCEPT_EINVAL, "Invalid/Unimplemented opcode " + call_this.opcname), DEBUG4);
-    call_this.fptr = reinterpret_cast<void*>(m_ppc_func_hash[call_this.opc]);
-    m_ppc_func_hash[call_this.opc](this, &call_this);
+    m_ppc_func_hash.at(call_this.opc)(this, &call_this);
     LOG("DEBUG4") << MSG_FUNC_END;
 }
 
@@ -148,12 +142,7 @@ CPU_T void CPU_PPC_T::run_instr(uint32_t opcd){
     instr_call call_this;
 
     call_this = m_dis.disasm(opcd, m_pc);
-    if(call_this.fptr){ (reinterpret_cast<CPU_PPC::ppc_opc_fun_ptr>(call_this.fptr))(this, &call_this); }
-
-    LASSERT_THROW(m_ppc_func_hash.find(call_this.opc) != m_ppc_func_hash.end(),
-            sim_except(SIM_EXCEPT_EINVAL, "Invalid/Unimplemented opcode " + call_this.opcname), DEBUG4);
-    call_this.fptr = reinterpret_cast<void*>(m_ppc_func_hash[call_this.opc]);
-    m_ppc_func_hash[call_this.opc](this, &call_this);
+    m_ppc_func_hash.at(call_this.opc)(this, &call_this);
     LOG("DEBUG4") << MSG_FUNC_END;
 }
 
@@ -190,20 +179,12 @@ CPU_T std::pair<uint64_t, uint8_t> CPU_PPC_T::xlate(uint64_t addr, bool wr){
 // Get register pointer using regid
 // TODO : Check Permissions
 CPU_T inline ppc_reg64* CPU_PPC_T::reg(int regid){
-    LASSERT_THROW(m_cpu_regs.m_ireg.find(regid) != m_cpu_regs.m_ireg.end(),
-           sim_except(SIM_EXCEPT_EINVAL, "Invalid register id " + boost::lexical_cast<std::string>(regid)), DEBUG4);
-    return m_cpu_regs.m_ireg[regid];
+    return m_cpu_regs.m_ireg.at(regid);
 }
 
 // Get register pointer using reg name
 CPU_T inline ppc_reg64* CPU_PPC_T::regn(std::string regname){
-    LASSERT_THROW(m_cpu_regs.m_reg.find(regname) != m_cpu_regs.m_reg.end(),
-           sim_except(SIM_EXCEPT_EINVAL, "Invalid register name " + regname), DEBUG4);
-    // Do several checks
-    //if(!PPCREGNATTR(regname)){
-    //    std::cout << "Warning !! Invalid register " << regname << std::endl;
-    //}
-    return m_cpu_regs.m_reg[regname];
+    return m_cpu_regs.m_reg.at(regname);
 }
 
 // Memory I/O functions
@@ -916,11 +897,8 @@ CPU_T inline void CPU_PPC_T::run_curr_instr(){
     // FIXME : This may not work at this time
     check_for_dbg_events(DBG_EVENT_IAC);
  
-    LASSERT_THROW(m_ppc_func_hash.find(call_this.opc) != m_ppc_func_hash.end(),
-            sim_except(SIM_EXCEPT_EINVAL, "Invalid/Unimplemented opcode " + call_this.opcname), DEBUG4);
-    call_this.fptr = reinterpret_cast<void*>(m_ppc_func_hash[call_this.opc]);
     /* call handler function for this call frame */ 
-    m_ppc_func_hash[call_this.opc](this, &call_this);
+    m_ppc_func_hash.at(call_this.opc)(this, &call_this);
 
     // book-keeping
     m_pc = m_nip;     // Update PC
