@@ -27,7 +27,7 @@ TLB_T const uint64_t TLB_PPC_T::sm_pgmask_list[] = {
 
 /* Initialize default values on per entry basis for all tlb arrays */
 TLB_T void TLB_PPC_T::init_ppc_tlb_defaults(void){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
 
     // tlb4K
     for(size_t j=0; j<tlb4K.n_sets; j++){
@@ -63,7 +63,7 @@ TLB_T void TLB_PPC_T::init_ppc_tlb_defaults(void){
     entry.u03          = 0;
     entry.tflags.iprot = 1;
 
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 /*
@@ -74,7 +74,7 @@ TLB_T void TLB_PPC_T::init_ppc_tlb_defaults(void){
  * @brief : print one tlb entry at a time.
  */ 
 TLB_T void TLB_PPC_T::print_tlb_entry(t_tlb_entry &entry, std::string fmtstr){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
 
     std::cout << fmtstr << "tid    -> " << std::hex << entry.tid << std::endl;
     std::cout << fmtstr << "ea     -> " << std::hex << entry.ea  << std::endl;
@@ -89,12 +89,12 @@ TLB_T void TLB_PPC_T::print_tlb_entry(t_tlb_entry &entry, std::string fmtstr){
     std::cout << fmtstr << "iprot  -> " << std::hex << entry.tflags.iprot << " (please ignore, if not tlbCam)" << std::endl;
     std::cout << fmtstr << "valid  -> " << std::hex << entry.tflags.valid << std::endl;
 
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 // Get tlb entry when tlbno, epn and esel are specified.
 TLB_T typename TLB_PPC_T::t_tlb_entry& TLB_PPC_T::get_entry(size_t tlbno, uint64_t ea, size_t esel){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
 
     unsigned setno = 0;
     unsigned wayno = 0;
@@ -119,12 +119,12 @@ TLB_T typename TLB_PPC_T::t_tlb_entry& TLB_PPC_T::get_entry(size_t tlbno, uint64
         return tlbCam.tlb_set[setno].tlb_way[wayno];
     }
 
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 // Get tlb entry when tlbno, setno and wayno are specified.
 TLB_T typename TLB_PPC_T::t_tlb_entry& TLB_PPC_T::get_entry2(size_t tlbno, size_t setno, size_t wayno){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
 
     /* Wrong tlbsel */
     LASSERT_THROW(tlbno == 0 || tlbno == 1, sim_except(SIM_EXCEPT_EINVAL, "invalid tlbsel ( MAS0 )"), DEBUG4);
@@ -139,22 +139,22 @@ TLB_T typename TLB_PPC_T::t_tlb_entry& TLB_PPC_T::get_entry2(size_t tlbno, size_
         return tlbCam.tlb_set[setno].tlb_way[wayno];
     }
 
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 // Constructor
 TLB_T TLB_PPC_T::TLB_PPC(){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     /* Initialize default tlb parameters , based on passed information */
     init_ppc_tlb_defaults();
     m_tlb_cache.set_size(128);
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 /* Destructor */
 TLB_T TLB_PPC_T::~TLB_PPC(){
-    LOG("DEBUG4") << MSG_FUNC_START;
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_START);
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 /*
@@ -164,7 +164,7 @@ TLB_T TLB_PPC_T::~TLB_PPC(){
  * @brief : print all tlb entries in a nice form
  */
 TLB_T void TLB_PPC_T::print_tlbs(){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
 
 #define PRINT_TLB(tlb_type)                                                                            \
     std::cout << #tlb_type << std::endl;                                                               \
@@ -185,7 +185,7 @@ TLB_T void TLB_PPC_T::print_tlbs(){
     PRINT_TLB(tlb4K);
     PRINT_TLB(tlbCam);
 
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 /*
@@ -195,7 +195,7 @@ TLB_T void TLB_PPC_T::print_tlbs(){
  * @brief : print all tlb entries in a nice form
  */
 TLB_T void TLB_PPC_T::print_tlbs2(){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
 
 #define PRINT_TLB_ENT(set, way, ea, ra, epn, rpn, tid, ts, wimge, permis, ps, x01, u03, iprot)                            \
     std::cout << std::showbase;                                                                                           \
@@ -228,7 +228,7 @@ TLB_T void TLB_PPC_T::print_tlbs2(){
     PRINT_TLB2(tlb4K);
     PRINT_TLB2(tlbCam);
 
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 /* 
@@ -241,7 +241,7 @@ TLB_T void TLB_PPC_T::print_tlbs2(){
  *
  */
 TLB_T void TLB_PPC_T::tlbre(uint64_t &mas0, uint64_t &mas1, uint64_t &mas2, uint64_t &mas3, uint64_t &mas7, uint64_t hid0){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
 
     unsigned tlbsel = EBF(mas0,       MAS0_TLBSEL);
     unsigned esel   = EBF(mas0,       MAS0_ESEL);
@@ -275,7 +275,7 @@ TLB_T void TLB_PPC_T::tlbre(uint64_t &mas0, uint64_t &mas1, uint64_t &mas2, uint
     if(EBF(hid0, HID0_EN_MAS7_UPDATE))
         mas7  = IBF(mas7, (entry.ra >> 32) & 0xf, MAS7_RPN);    /* Upper 4 bits of rpn */
 
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 /* @func : tlbwe (Tlb write entry)
@@ -284,7 +284,7 @@ TLB_T void TLB_PPC_T::tlbre(uint64_t &mas0, uint64_t &mas1, uint64_t &mas2, uint
  *         hid0 -> HID0 register
  */
 TLB_T void TLB_PPC_T::tlbwe(uint64_t mas0, uint64_t mas1, uint64_t mas2, uint64_t mas3, uint64_t mas7, uint64_t hid0){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
 
     unsigned tlbsel = EBF(mas0,    MAS0_TLBSEL);
     unsigned esel   = EBF(mas0,    MAS0_ESEL);
@@ -323,7 +323,7 @@ TLB_T void TLB_PPC_T::tlbwe(uint64_t mas0, uint64_t mas1, uint64_t mas2, uint64_
 
     entry.ps           = psize;
 
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 /* @func : tlbse (Tlb Search entry)
@@ -336,7 +336,7 @@ TLB_T void TLB_PPC_T::tlbwe(uint64_t mas0, uint64_t mas1, uint64_t mas2, uint64_
  *
  */
 TLB_T void TLB_PPC_T::tlbse(uint64_t ea, uint64_t &mas0, uint64_t &mas1, uint64_t &mas2, uint64_t &mas3, uint64_t &mas6, uint64_t &mas7, uint64_t hid0){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
 
     uint32_t  as  = EBF(mas6,  MAS6_SAS);
     uint32_t pid  = EBF(mas6,  MAS6_SPID0);
@@ -394,7 +394,7 @@ TLB_T void TLB_PPC_T::tlbse(uint64_t ea, uint64_t &mas0, uint64_t &mas1, uint64_
     if(EBF(hid0, HID0_EN_MAS7_UPDATE))
         mas7 = IBF(mas7, (entry->ra >> 32) & 0xf,  MAS7_RPN);    /* Upper 4 bits of rpn */
 
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 /* @func : tlbive (TLB INValidate entry)
@@ -413,7 +413,7 @@ TLB_T void TLB_PPC_T::tlbse(uint64_t ea, uint64_t &mas0, uint64_t &mas1, uint64_
  *
  * */
 TLB_T void TLB_PPC_T::tlbive(uint64_t ea){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
 
     uint8_t  tlbsel = (ea >> 3) & 0x1;
     uint8_t  inv_all = (ea >> 2) & 0x1;
@@ -469,12 +469,12 @@ TLB_T void TLB_PPC_T::tlbive(uint64_t ea){
     exit_loop_1:
     ;
 
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 // Translate effective address into real address using as bit, an 8 bit PID value and permission attributes
 TLB_T std::pair<uint64_t, uint8_t> TLB_PPC_T::xlate(uint64_t ea, bool as, uint8_t pid, uint8_t rwx, bool pr){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
 
     uint64_t offset;
     uint8_t wimge;
@@ -536,7 +536,7 @@ TLB_T std::pair<uint64_t, uint8_t> TLB_PPC_T::xlate(uint64_t ea, bool as, uint8_
     FIND_TLB_MATCH(tlb4K)
     FIND_TLB_MATCH(tlbCam)
 
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
     // Instead of throwing TLB miss exception from here itself we are returning a value of -1
     // The TLB miss exception will be thrown in the caller after it tries to get a hit with
     // three different PID registers ( viz. PID0, PID1 and PID2 ) and still fails.
@@ -551,7 +551,7 @@ TLB_T std::pair<uint64_t, uint8_t> TLB_PPC_T::xlate(uint64_t ea, bool as, uint8_
     // Update the cache
     m_tlb_cache.insert(TO_VIRT(u64(pr), u64(rwx), u64(as), u64(pid), (ea & ~(entry->ps - 1))), entry->ra, entry->wimge); 
 
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
     return std::pair<uint64_t, uint8_t>((entry->ra + offset), wimge);
 }
 

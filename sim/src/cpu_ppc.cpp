@@ -12,22 +12,22 @@ CPU_T std::map<uint64_t,
 
 // Default constructor
 CPU_T CPU_PPC_T::CPU_PPC(): m_cache_line_size(CPU_CACHE_LINE_SIZE){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     init_common();
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 CPU_T CPU_PPC_T::CPU_PPC(uint64_t cpuid, std::string name):
     m_cpu_name(name), m_cache_line_size(CPU_CACHE_LINE_SIZE), m_pc(0xfffffffc), m_cpu_id(cpuid){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     init_common(); 
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 CPU_T CPU_PPC_T::~CPU_PPC(){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     sm_ncpus--;
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 } 
 
 CPU_T void CPU_PPC_T::init(uint64_t cpuid, std::string name){    // Initialize CPU
@@ -51,18 +51,18 @@ CPU_T uint64_t CPU_PPC_T::get_pc(){
 
 // run (non blocking)
 CPU_T void CPU_PPC_T::run(){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     boost::thread thr0(&CPU_PPC_T::run_b, this);
 
     // Try to rethrow the exception from daughter thread
     if(sim_except_ptr)
         std::rethrow_exception(sim_except_ptr);
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 // step operation
 CPU_T void CPU_PPC_T::step(size_t instr_cnt){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
 
     size_t t=0;
     if(!instr_cnt) return;
@@ -95,25 +95,25 @@ CPU_T void CPU_PPC_T::step(size_t instr_cnt){
 
     m_ninstrs += m_ninstrs_last;
 #undef I
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 CPU_T void CPU_PPC_T::halt(){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     // FIXME: should change it under mutex control
     m_cpu_mode = CPU_MODE_HALTED;
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 CPU_T void CPU_PPC_T::stop(){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     // FIXME: should change it under mutex control
     m_cpu_mode = CPU_MODE_STOPPED;
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 CPU_T void CPU_PPC_T::run_mode(){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     switch(m_cpu_mode){
         case CPU_MODE_RUNNING  : std::cout << "Running"  << std::endl; break;
         case CPU_MODE_STEPPING : std::cout << "Stepping" << std::endl; break;
@@ -121,36 +121,36 @@ CPU_T void CPU_PPC_T::run_mode(){
         case CPU_MODE_STOPPED  : std::cout << "Stopped"  << std::endl; break;
         default                : std::cout << "Unknown"  << std::endl; break;
     }
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 // virtual form of run_instr
 // Seems like c++ doesn't have an very effective way of handling non POD objects
 //  with variadic arg funcs
 CPU_T void CPU_PPC_T::run_instr(std::string instr){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     instr_call call_this;
 
     call_this = m_dis.disasm(instr, m_pc);
     m_ppc_func_hash.at(call_this.opc)(this, &call_this);
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 // Overloaded form of run_instr ( specifically for CPU_PPC )
 CPU_T void CPU_PPC_T::run_instr(uint32_t opcd){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     instr_call call_this;
 
     call_this = m_dis.disasm(opcd, m_pc);
     m_ppc_func_hash.at(call_this.opc)(this, &call_this);
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 #define TO_RWX(r, w, x) (((r & 0x1) << 2) | ((w & 0x1) << 1) | (x & 0x1))
 // Translate EA to RA ( for data only )
 // NOTE: All exceptions ( hardware/software ) will be handled at run_instr() or run() level.
 CPU_T std::pair<uint64_t, uint8_t> CPU_PPC_T::xlate(uint64_t addr, bool wr){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
 
     std::pair<uint64_t, uint8_t> res;
     uint8_t  perm = (wr) ? TO_RWX(0, 1, 0) : TO_RWX(1, 0, 0);
@@ -171,8 +171,8 @@ CPU_T std::pair<uint64_t, uint8_t> CPU_PPC_T::xlate(uint64_t addr, bool wr){
     }
 
     exit_loop_0:
-    LOG("DEBUG4") << std::hex << std::showbase << "Xlation : " << addr << " -> " << res.first << std::endl;
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(std::hex, std::showbase, "Xlation : ", addr, " -> ", res.first, std::endl);
+    LOG_DEBUG4(MSG_FUNC_END);
     return std::pair<uint64_t, uint8_t>(res.first, res.second);
 }
 
@@ -189,76 +189,76 @@ CPU_T inline ppc_reg64* CPU_PPC_T::regn(std::string regname){
 
 // Memory I/O functions
 CPU_T uint8_t CPU_PPC_T::read8(uint64_t addr){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     std::pair<uint64_t, uint8_t> res = xlate(addr, 0);
  
     LASSERT_THROW(m_mem_ptr != NULL, sim_except_fatal("no memory module registered."), DEBUG4);
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
     return m_mem_ptr->read8(res.first, (res.second & 0x1));
 }
 
 CPU_T void CPU_PPC_T::write8(uint64_t addr, uint8_t value){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     std::pair<uint64_t, uint8_t> res = xlate(addr, 1);
 
     LASSERT_THROW(m_mem_ptr != NULL, sim_except_fatal("no memory module registered."), DEBUG4);
     m_mem_ptr->write8(res.first, value, (res.second & 0x1));
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 CPU_T uint16_t CPU_PPC_T::read16(uint64_t addr){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     std::pair<uint64_t, uint8_t> res = xlate(addr, 0);
 
     LASSERT_THROW(m_mem_ptr != NULL, sim_except_fatal("no memory module registered."), DEBUG4);
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
     return m_mem_ptr->read16(res.first, (res.second & 0x1));
 }
 
 
 CPU_T void CPU_PPC_T::write16(uint64_t addr, uint16_t value){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     std::pair<uint64_t, uint8_t> res = xlate(addr, 1);
 
     LASSERT_THROW(m_mem_ptr != NULL, sim_except_fatal("no memory module registered."), DEBUG4);
     m_mem_ptr->write16(res.first, value, (res.second & 0x1));
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 CPU_T uint32_t CPU_PPC_T::read32(uint64_t addr){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     std::pair<uint64_t, uint8_t> res = xlate(addr, 0);
 
     LASSERT_THROW(m_mem_ptr != NULL, sim_except_fatal("no memory module registered."), DEBUG4);
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
     return m_mem_ptr->read32(res.first, (res.second & 0x1));
 }
 
 CPU_T void CPU_PPC_T::write32(uint64_t addr, uint32_t value){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     std::pair<uint64_t, uint8_t> res = xlate(addr, 1);
 
     LASSERT_THROW(m_mem_ptr != NULL, sim_except_fatal("no memory module registered."), DEBUG4);
     m_mem_ptr->write32(res.first, value, (res.second & 0x1));
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 CPU_T uint64_t CPU_PPC_T::read64(uint64_t addr){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     std::pair<uint64_t, uint8_t> res = xlate(addr, 0);
 
     LASSERT_THROW(m_mem_ptr != NULL, sim_except_fatal("no memory module registered."), DEBUG4);
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
     return m_mem_ptr->read64(res.first, (res.second & 0x1));
 }
 
 CPU_T void CPU_PPC_T::write64(uint64_t addr, uint64_t value){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     std::pair<uint64_t, uint8_t> res = xlate(addr, 1);
 
     LASSERT_THROW(m_mem_ptr != NULL, sim_except_fatal("no memory module registered."), DEBUG4);
     m_mem_ptr->write64(res.first, value, (res.second & 0x1));
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 
@@ -272,7 +272,7 @@ CPU_T void CPU_PPC_T::write64(uint64_t addr, uint64_t value){
 // FIXME : We don't support hardware exceptions yet. This is planned.
 CPU_T void CPU_PPC_T::ppc_exception(int exception_nr, uint64_t subtype, uint64_t ea)
 {
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
 
     uint64_t *srr0 = NULL;
     uint64_t *srr1 = NULL;
@@ -668,7 +668,7 @@ CPU_T void CPU_PPC_T::ppc_exception(int exception_nr, uint64_t subtype, uint64_t
         default:
             break;
     }
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 /*
@@ -678,7 +678,7 @@ CPU_T void CPU_PPC_T::ppc_exception(int exception_nr, uint64_t subtype, uint64_t
  * @brief : Read instruction at next NIP
  */
 CPU_T instr_call CPU_PPC_T::get_instr(){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
 
     std::pair<uint64_t, uint8_t> res;           // pair of <ra, wimge>
     instr_call call_this;
@@ -686,7 +686,7 @@ CPU_T instr_call CPU_PPC_T::get_instr(){
     call_this = m_instr_cache[m_pc];
 
     if(!m_instr_cache.error()){
-        LOG("DEBUG4") << MSG_FUNC_END;
+        LOG_DEBUG4(MSG_FUNC_END);
         return call_this;
     }
 
@@ -704,7 +704,7 @@ CPU_T instr_call CPU_PPC_T::get_instr(){
     LTHROW(sim_except_ppc(PPC_EXCEPTION_ITLB, PPC_EXCEPT_ITLB_MISS, "ITLB miss."), DEBUG4);
 
     exit_loop_0:
-    LOG("DEBUG4") << std::hex << std::showbase << "instr Xlation : " << m_pc << " -> " << res.first << std::endl;
+    LOG_DEBUG4(std::hex, std::showbase, "instr Xlation : ", m_pc, " -> ", res.first, std::endl);
 
     LASSERT_THROW(m_mem_ptr != NULL, sim_except_fatal("no memory module registered."), DEBUG4);
     // Disassemble the instr at curr pc
@@ -713,7 +713,7 @@ CPU_T instr_call CPU_PPC_T::get_instr(){
     // Update instruction cache.
     m_instr_cache[m_pc] = call_this;
 
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
     return call_this;
 }
 
@@ -797,7 +797,7 @@ CPU_T void CPU_PPC_T::check_for_dbg_events(int flags, uint64_t ea){
 
 // Blocking run
 CPU_T void CPU_PPC_T::run_b(){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
 
     std::pair<uint64_t, bool> last_bkpt = m_bm.last_breakpoint();
     m_cpu_mode = CPU_MODE_RUNNING;
@@ -857,26 +857,26 @@ CPU_T void CPU_PPC_T::run_b(){
     std::cout << "Average Speed = " << instrs_per_sec << " KIPS." << std::endl;
 
 #undef I
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 CPU_T inline void CPU_PPC_T::clear_ctrs(){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     m_ninstrs_last = 0;
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 /*
  * @func : run current instr
  */
 CPU_T inline void CPU_PPC_T::run_curr_instr(){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
 
     m_nip += 4;   // Update NIP
 
     /* Get Instr call frame at next NIP */
     instr_call call_this = get_instr();
-    LOG("DEBUG4") << "INSTR : " << call_this.get_instr_str() << std::endl;
+    LOG_DEBUG4("INSTR : ", call_this.get_instr_str(), std::endl);
 
     // Trace instructions
     //sm_instr_tracer("DEBUG") << "[CPU_" << (int)m_cpu_no << std::hex << "]\t" << "PC: 0x" << m_pc << "\t" << call_this.get_instr_str() << std::endl;
@@ -904,12 +904,12 @@ CPU_T inline void CPU_PPC_T::run_curr_instr(){
     m_pc = m_nip;     // Update PC
     m_ninstrs_last++;
 
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 // Initialize all common parameters
 CPU_T inline void CPU_PPC_T::init_common(){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     m_cpu_no = sm_ncpus++;                 // Increment global cpu cnt
     gen_ppc_opc_func_hash(this);           // Initialize opcode function pointer table
     m_instr_cache.set_size(4096);          // LRU cache size = 4096 instrs
@@ -922,34 +922,34 @@ CPU_T inline void CPU_PPC_T::init_common(){
     ostr << "cpu_" << int(m_cpu_no) << "_cov.log";
     m_cov_logger.log_to_file(ostr.str());
     
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 
 // set reservation
 CPU_T void CPU_PPC_T::set_resv(uint64_t ea, size_t size){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     std::pair<uint64_t, uint8_t> res = xlate(ea, 0);
     m_resv_addr = res.first;
     m_resv_set  = true;
     m_resv_size = size;
     // We need a mutex here
     sm_resv_map[m_resv_addr & ~(m_cache_line_size - 1)] = std::make_pair(true, m_cpu_no);  // Global reservation always act on resv granules
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 // clear resv.
 CPU_T void CPU_PPC_T::clear_resv(uint64_t ea){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     m_resv_set = false;
     // Need a mutex
     sm_resv_map[m_resv_addr & ~(m_cache_line_size - 1)].first = false;
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 // Check resv
 CPU_T bool CPU_PPC_T::check_resv(uint64_t ea, size_t size){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     std::pair<uint64_t, uint8_t> res = xlate(ea, 1);  // Reservation is checked during stwcx.
     uint64_t caddr = res.first & ~(m_cache_line_size - 1);    // Get granule addr
     if(sm_resv_map.find(caddr) == sm_resv_map.end()){
@@ -957,33 +957,33 @@ CPU_T bool CPU_PPC_T::check_resv(uint64_t ea, size_t size){
     }
     if(res.first == m_resv_addr and m_resv_set == true and m_resv_size == size and
             sm_resv_map[caddr].first == true and sm_resv_map[caddr].second == m_cpu_no){
-        LOG("DEBUG4") << MSG_FUNC_END;
+        LOG_DEBUG4(MSG_FUNC_END);
         return true;
     }
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
     return false;
 }
 
 // Notify of context switches. LRU cache uses this parameter to flush it's
 // instruction cache when a context switch happens.
 CPU_T void CPU_PPC_T::notify_ctxt_switch(){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     m_ctxt_switch = 1;
     m_instr_cache.clear();
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 // Get register value by name
 CPU_T uint64_t CPU_PPC_T::get_reg(std::string reg_name) throw(sim_except) {
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     if(m_cpu_regs.m_reg.find(reg_name) == m_cpu_regs.m_reg.end()) throw sim_except(SIM_EXCEPT_EINVAL, "Illegal register name");
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
     return PPCREGN(reg_name);
 }
 
 // Dump CPU state
 CPU_T void CPU_PPC_T::dump_state(int columns, std::ostream &ostr, int dump_all_sprs){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     int i;
     int colno = 0;
     std::ostringstream strout;
@@ -1040,47 +1040,47 @@ CPU_T void CPU_PPC_T::dump_state(int columns, std::ostream &ostr, int dump_all_s
 
     }
     ostr << BAR0 << std::endl;
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 // print all tlbs
 CPU_T void CPU_PPC_T::print_L2tlbs(){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     m_l2tlb.print_tlbs2();
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 CPU_T void CPU_PPC_T::enable_cov_log(){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     m_cov_logger.enable();
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 CPU_T void CPU_PPC_T::disable_cov_log(){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     m_cov_logger.disable();
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 CPU_T bool CPU_PPC_T::is_cov_log_enabled(){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     return m_cov_logger.is_enabled();
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 CPU_T void CPU_PPC_T::gen_cov_log(){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     m_cov_logger.add_ext_info("###############################################################");
     m_cov_logger.add_ext_info("  COVERAGE FOR CPU " + boost::lexical_cast<std::string>(int(m_cpu_no)));
     m_cov_logger.add_ext_info("###############################################################\n");
     m_cov_logger.generate_log();
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 CPU_T void CPU_PPC_T::log_cov_to_file(std::string filename){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     m_cov_logger.log_to_file(filename);
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 // friend function

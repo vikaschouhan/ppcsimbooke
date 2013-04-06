@@ -3,7 +3,7 @@
 // Member functions
 
 MACHINE_T MACHINE_CL_T::MACHINE() : m_ncpus(N_CPUS){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
 
     uint64_t cpuid = 0x81008100;   // An id
     std::string name = "e500v2";
@@ -16,14 +16,14 @@ MACHINE_T MACHINE_CL_T::MACHINE() : m_ncpus(N_CPUS){
     }
     trace_to_file("machine_trace.log");
 
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 // Load an elf binary directly into machine's memory
 MACHINE_T void MACHINE_CL_T::load_elf(std::string filename){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     m_memory.load_elf(filename);
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 // Common run ( invokes run of invoked CPUs using multiple threads )
@@ -31,10 +31,10 @@ MACHINE_T void MACHINE_CL_T::load_elf(std::string filename){
 //        leaving them to detatch
 //        We need to do some bookeeping in future.
 MACHINE_T void MACHINE_CL_T::run(unsigned mask){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     if(mask == 0){
         m_cpu[0].run();
-        LOG("DEBUG4") << MSG_FUNC_END;
+        LOG_DEBUG4(MSG_FUNC_END);
         return;
     }
     for(size_t i=0; i<sizeof(mask); i++){
@@ -42,15 +42,15 @@ MACHINE_T void MACHINE_CL_T::run(unsigned mask){
             m_cpu[i].run();
         }
     }
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
     return;
 }
 
 MACHINE_T void MACHINE_CL_T::stop(unsigned mask){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     if(mask == 0){
         m_cpu[0].stop();
-        LOG("DEBUG4") << MSG_FUNC_END;
+        LOG_DEBUG4(MSG_FUNC_END);
         return;
     }
     // FIXME: All threads should be stopped at once.
@@ -60,15 +60,15 @@ MACHINE_T void MACHINE_CL_T::stop(unsigned mask){
             m_cpu[i].stop();
         }
     }
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
     return;
 }
 
 MACHINE_T void MACHINE_CL_T::run_mode(unsigned mask){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     if(mask == 0){
         m_cpu[0].run_mode();
-        LOG("DEBUG4") << MSG_FUNC_END;
+        LOG_DEBUG4(MSG_FUNC_END);
         return;
     }
     // FIXME: All threads should be stopped at once.
@@ -78,37 +78,37 @@ MACHINE_T void MACHINE_CL_T::run_mode(unsigned mask){
             m_cpu[i].run_mode();
         }
     }
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
     return;
 }
 
 MACHINE_T void MACHINE_CL_T::trace_to_file(std::string filename){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     cpu_t::sm_instr_tracer.direct_to_file(filename);
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 MACHINE_T void MACHINE_CL_T::trace_enable(){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     cpu_t::sm_instr_tracer.enable();
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 MACHINE_T void MACHINE_CL_T::trace_disable(){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     cpu_t::sm_instr_tracer.disable();
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 MACHINE_T bool MACHINE_CL_T::is_trace_enabled(){
-    LOG("DEBUG4") << MSG_FUNC_START;
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_START);
+    LOG_DEBUG4(MSG_FUNC_END);
     return cpu_t::sm_instr_tracer.is_enabled();
 }
 
 MACHINE_T void MACHINE_CL_T::gen_cov_logs(){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     for(int i=0; i<m_ncpus; i++)
         m_cpu[i].gen_cov_log();
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 }

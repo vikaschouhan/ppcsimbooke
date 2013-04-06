@@ -124,14 +124,14 @@ class MEM_PPC {
     // @args : number of physical address lines ( To gauge the total physical address space )
     //
     memory() : m_bits(CPU_PHY_ADDR_SIZE){
-        LOG("DEBUG4") << MSG_FUNC_START;
+        LOG_DEBUG4(MSG_FUNC_START);
         this->pa_max = (1LL << m_bits) - 1 ;
         this->pn_max = (this->pa_max) >> static_cast<int>(log2(PAGE_SIZE));
         this->mem_tgt_modified = 0;
 
         // Register a default DDR of the whole supported address range
         this->register_memory_target(0x0, (1LL << m_bits), "ddr0", 0, TGT_DDR, 0);
-        LOG("DEBUG4") << MSG_FUNC_END;
+        LOG_DEBUG4(MSG_FUNC_END);
     }
 
     //
@@ -139,14 +139,14 @@ class MEM_PPC {
     // @args : none
     //
     ~memory(){
-        LOG("DEBUG4") << MSG_FUNC_START;
+        LOG_DEBUG4(MSG_FUNC_START);
         // clear all phy pages
         for(mem_tgt_iter iter0 = mem_tgt.begin(); iter0 != mem_tgt.end(); iter0++){
             for(page_hash_iter iter1 = iter0->page_hash.begin(); iter1 != iter0->page_hash.end(); iter1++){
                 delete[] iter1->second;
             }
         }
-        LOG("DEBUG4") << MSG_FUNC_END;
+        LOG_DEBUG4(MSG_FUNC_END);
     }
 
     void register_memory_target(uint64_t ba, size_t size, std::string name, uint32_t flags, int tgt_type, int prio = 0);

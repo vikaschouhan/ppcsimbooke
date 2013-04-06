@@ -186,7 +186,7 @@ instr_call DIS_PPC::disasm(uint32_t opcd, uint64_t pc, int endianness)
         goto exit_0;
     }
 
-    LOG("DEBUG4") << "Loading " << call_this << " from PC:" << dinfo.pc << std::endl;
+    LOG_DEBUG4("Loading ", call_this, " from PC:", dinfo.pc, std::endl);
 
     // If pc required and current pc == cached pc, return the value
     if(dinfo.pcr && ( dinfo.pc == pc))

@@ -59,8 +59,10 @@ template<int EN_LOG> class Log
     void        disable();
     bool        is_enabled();
 
-    template<typename T> Log& operator<<(T item);
+    template<typename T> Log& operator<<(const T& item);
     Log&                      operator<<(std::ostream& (*pf)(std::ostream&));
+    template<typename T> Log& operator,(const T& item);
+    Log&                      operator,(std::ostream& (*pf)(std::ostream&));
     Log&                      operator()(std::string level);
     Log&                      operator()(int level);
 };
@@ -124,7 +126,7 @@ template<int X> inline Log<X>::Log(std::string filename){
     m_log_level = LOG_LEVEL_INFO;
 }
 template< > inline Log<0>::Log(std::string filename){
-    std::cout << "Logging is ddisabled." << std::endl;
+    std::cout << "Logging is disabled." << std::endl;
 }
 
 template<int X> inline Log<X>::~Log(){
@@ -158,14 +160,14 @@ template<int X> inline bool Log<X>::is_enabled(){
 }
 
 // Overload << for normal buildin types
-template<int X> template<typename T> inline Log<X>& Log<X>::operator<<(T item)
+template<int X> template<typename T> inline Log<X>& Log<X>::operator<<(const T& item)
 {
     if(m_enable_log == true){
         (*m_stream) << item;
     }
     return *this;
 }
-template< > template<typename T> inline Log<0>& Log<0>::operator<<(T item){
+template< > template<typename T> inline Log<0>& Log<0>::operator<<(const T& item){
     return *this;
 }
 
@@ -178,6 +180,15 @@ template<int X> inline Log<X>& Log<X>::operator<<(std::ostream& (*pf)(std::ostre
 }
 template< > inline Log<0>& Log<0>::operator<<(std::ostream& (*pf)(std::ostream&)){
     return *this;
+}
+
+// Overload comma
+template<int X> template<typename T> inline Log<X>& Log<X>::operator,(const T& item)
+{
+    return *this << item;
+}
+template<int X> inline Log<X>& Log<X>::operator,(std::ostream& (*pf)(std::ostream&)){
+    return *this << pf;
 }
 
 template<int X> inline Log<X>& Log<X>::operator()(std::string level){
@@ -206,6 +217,26 @@ static Log<SIM_DEBUG> Logger;
 
 #define LOG(level_str) Logger(level_str)
 #define LOG_TO_FILE(file_name) Logger.direct_to_file(file_name)
+
+#if SIM_DEBUG == 1
+#define LOG_DEBUG(...)      Logger("DEBUG"), __VA_ARGS__
+#define LOG_DEBUG1(...)     Logger("DEBUG1"), __VA_ARGS__
+#define LOG_DEBUG2(...)     Logger("DEBUG2"), __VA_ARGS__
+#define LOG_DEBUG3(...)     Logger("DEBUG3"), __VA_ARGS__
+#define LOG_DEBUG4(...)     Logger("DEBUG4"), __VA_ARGS__
+#define LOG_ERROR(...)      Logger("ERROR"), __VA_ARGS__
+#define LOG_WARNING(...)    Logger("WARNING"), __VA_ARGS__
+#define LOG_INFO(...)       Logger("INFO"), __VA_ARGS__
+#else
+#define LOG_DEBUG(...)      do{}while(0)
+#define LOG_DEBUG1(...)     do{}while(0)
+#define LOG_DEBUG2(...)     do{}while(0)
+#define LOG_DEBUG3(...)     do{}while(0)
+#define LOG_DEBUG4(...)     do{}while(0)
+#define LOG_ERROR(...)      do{}while(0)
+#define LOG_WARNING(...)    do{}while(0)
+#define LOG_INFO(...)       do{}while(0)
+#endif
 
 // for Boost.Python
 // We don't want to expose the whole logging framewok, only the log_to_file functionality

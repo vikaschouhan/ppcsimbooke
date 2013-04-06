@@ -86,56 +86,56 @@ std::vector<std::string> CPU_PPC_COVERAGE::sm_instr_list = {
 
 // Probe instruction
 void CPU_PPC_COVERAGE::probe(std::string opcd){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     if(m_cov_enabled == false){
-        LOG("DEBUG4") << MSG_FUNC_END;
+        LOG_DEBUG4(MSG_FUNC_END);
         return;
     }
 
     //LASSERT_THROW(m_instr_hits.find(opcd) != m_instr_hits.end(), sim_except_fatal("Invalid opcode in cpu_ppc_coverage."), DEBUG4);
     if(m_instr_hits.find(opcd) == m_instr_hits.end()){
         std::cout << "Warning !! " << opcd << " doesn't exist in coverage logger." << std::endl;
-        LOG("DEBUG4") << MSG_FUNC_END;
+        LOG_DEBUG4(MSG_FUNC_END);
         return;
     }
     m_instr_hits[opcd]++;
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 void CPU_PPC_COVERAGE::log_to_file(std::string filename){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     if(m_cov_enabled == false){
-        LOG("DEBUG4") << MSG_FUNC_END;
+        LOG_DEBUG4(MSG_FUNC_END);
         return;
     }
     if(m_report_logger.is_open())
         m_report_logger.close();
     m_report_logger.open(filename);
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 void CPU_PPC_COVERAGE::enable(){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     m_cov_enabled = true;
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 void CPU_PPC_COVERAGE::disable(){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     m_cov_enabled = false;
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 bool CPU_PPC_COVERAGE::is_enabled(){
-    LOG("DEBUG4") << MSG_FUNC_START;
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_START);
+    LOG_DEBUG4(MSG_FUNC_END);
     return m_cov_enabled;
 }
 
 void CPU_PPC_COVERAGE::generate_log(){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     if(m_cov_enabled == false){
-        LOG("DEBUG4") << MSG_FUNC_END;
+        LOG_DEBUG4(MSG_FUNC_END);
         return;
     }
 
@@ -154,13 +154,13 @@ void CPU_PPC_COVERAGE::generate_log(){
     }else{
         std::cout << "No logger specified. Did you call log_to_file()." << std::endl;
     }
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 void CPU_PPC_COVERAGE::add_ext_info(std::string info){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     if(m_cov_enabled == false){
-        LOG("DEBUG4") << MSG_FUNC_END;
+        LOG_DEBUG4(MSG_FUNC_END);
         return;
     }
 
@@ -169,26 +169,26 @@ void CPU_PPC_COVERAGE::add_ext_info(std::string info){
     }else{
         std::cout << "No logger specified. Did you call log_to_file()." << std::endl;
     }
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 CPU_PPC_COVERAGE::CPU_PPC_COVERAGE(){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     for(size_t i=0; i<sm_instr_list.size(); i++){
         m_instr_hits[sm_instr_list[i]] = 0;
     }
     m_cov_enabled = true;
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 CPU_PPC_COVERAGE::CPU_PPC_COVERAGE(const CPU_PPC_COVERAGE& c){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     m_cov_enabled = c.m_cov_enabled;
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 CPU_PPC_COVERAGE::CPU_PPC_COVERAGE(std::string filename, std::string header){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     for(size_t i=0; i<sm_instr_list.size(); i++){
         m_instr_hits[sm_instr_list[i]] = 0;
     }
@@ -196,13 +196,13 @@ CPU_PPC_COVERAGE::CPU_PPC_COVERAGE(std::string filename, std::string header){
     m_report_logger.open(filename);
     // Add supplied header
     m_report_logger << header << std::endl;
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 CPU_PPC_COVERAGE::~CPU_PPC_COVERAGE(){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     if(m_report_logger.is_open())
         m_report_logger.close();
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 

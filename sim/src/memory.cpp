@@ -10,7 +10,7 @@
  * @brief : dump memory target
  */
 MEM_T void MEM_PPC_T::dump_mem_tgt(t_mem_tgt &mem_tgt_this, std::string fmtstr){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     std::cout << std::hex << std::showbase;
     std::cout << fmtstr << "base address = " << mem_tgt_this.baseaddr << std::endl;
     std::cout << fmtstr << "size         = " << mem_tgt_this.size << std::endl;
@@ -18,7 +18,7 @@ MEM_T void MEM_PPC_T::dump_mem_tgt(t_mem_tgt &mem_tgt_this, std::string fmtstr){
     std::cout << fmtstr << "name         = " << mem_tgt_this.name << std::endl;
     std::cout << fmtstr << "priority     = " << mem_tgt_this.priority << std::endl;
     std::cout << fmtstr << "target       = " << mem_tgt_str[mem_tgt_this.tgt_type] << std::endl;
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 /*
@@ -30,13 +30,13 @@ MEM_T void MEM_PPC_T::dump_mem_tgt(t_mem_tgt &mem_tgt_this, std::string fmtstr){
  *
  */
 MEM_T void MEM_PPC_T::dump_mem_tgt2(t_mem_tgt &mem_tgt_this, std::string fmtstr){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     std::cout << std::hex << std::showbase;
     std::cout << fmtstr << "tgt = " << mem_tgt_this.name << " with base_addr = " <<
         mem_tgt_this.baseaddr << ", size = " << mem_tgt_this.size << ", priority = " <<
         mem_tgt_this.priority << ", tgt_type = " << mem_tgt_str[mem_tgt_this.tgt_type] <<
         std::endl;
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 /*
@@ -47,22 +47,22 @@ MEM_T void MEM_PPC_T::dump_mem_tgt2(t_mem_tgt &mem_tgt_this, std::string fmtstr)
  *
  */
 MEM_T bool MEM_PPC_T::is_overlapping_tgt(const t_mem_tgt &mem_tgt_this){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     for(mem_tgt_iter iter_this = mem_tgt.begin(); iter_this != mem_tgt.end(); iter_this++){
         if((mem_tgt_this.baseaddr >= iter_this->baseaddr) &&
                 (mem_tgt_this.baseaddr <= iter_this->endaddr) &&
                 (mem_tgt_this.priority <= iter_this->priority)){
-            LOG("DEBUG4") << MSG_FUNC_END;
+            LOG_DEBUG4(MSG_FUNC_END);
             return true;
         }
         if((mem_tgt_this.endaddr >= iter_this->baseaddr) &&
                 (mem_tgt_this.endaddr < iter_this->endaddr) &&
                 (mem_tgt_this.priority <= iter_this->priority)){
-            LOG("DEBUG4") << MSG_FUNC_END;
+            LOG_DEBUG4(MSG_FUNC_END);
             return true;
         }
     }
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
     return false;
 }
 
@@ -74,12 +74,12 @@ MEM_T bool MEM_PPC_T::is_overlapping_tgt(const t_mem_tgt &mem_tgt_this){
  * @return : bool
  */
 MEM_T bool MEM_PPC_T::is_paddr_there(typename MEM_PPC_T::mem_tgt_iter iter_this, uint64_t paddr){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     if((iter_this->baseaddr <= paddr) && (iter_this->endaddr >= paddr)){
-        LOG("DEBUG4") << MSG_FUNC_END;
+        LOG_DEBUG4(MSG_FUNC_END);
         return true;
     }
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
     return false; 
 }
 
@@ -91,7 +91,7 @@ MEM_T bool MEM_PPC_T::is_paddr_there(typename MEM_PPC_T::mem_tgt_iter iter_this,
  * @return : iterator ( pointer ) to the selected memory target
  */
 MEM_T typename MEM_PPC_T::mem_tgt_iter MEM_PPC_T::select_mem_tgt(uint64_t paddr) throw(sim_except){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     mem_tgt_iter iter_last = mem_tgt.end();
     for(mem_tgt_iter iter_this = mem_tgt.begin(); iter_this != mem_tgt.end(); iter_this++){
         if(is_paddr_there(iter_this, paddr)){
@@ -104,10 +104,10 @@ MEM_T typename MEM_PPC_T::mem_tgt_iter MEM_PPC_T::select_mem_tgt(uint64_t paddr)
             }
         }
     }
-    LOG("DEBUG4") << std::hex << std::showbase << "target selected with baseaddr=" << iter_last->baseaddr << " ,size=" <<
-        iter_last->size << " ,priority=" << iter_last->priority << " ,name=" << iter_last->name << " ,tgt_type=" <<
-        mem_tgt_str[iter_last->tgt_type];
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(std::hex, std::showbase, "target selected with baseaddr=", iter_last->baseaddr, " ,size=",
+        iter_last->size, " ,priority=", iter_last->priority, " ,name=", iter_last->name, " ,tgt_type=",
+        mem_tgt_str[iter_last->tgt_type]);
+    LOG_DEBUG4(MSG_FUNC_END);
     return iter_last;
 }
 
@@ -118,7 +118,7 @@ MEM_T typename MEM_PPC_T::mem_tgt_iter MEM_PPC_T::select_mem_tgt(uint64_t paddr)
  * @brief: returns a pointer to the host page
  */
 MEM_T uint8_t* MEM_PPC_T::paddr_to_hostpage(uint64_t paddr){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
    
     uint64_t pageno = (paddr >> MIN_PGSZ_SHIFT);
     // Search in cache first
@@ -139,7 +139,7 @@ MEM_T uint8_t* MEM_PPC_T::paddr_to_hostpage(uint64_t paddr){
     // Clear mem_tgt_modified, just in case it was already set
     mem_tgt_modified = 0;
 
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
     return iter_this->page_hash[pageno];
 }
 
@@ -151,10 +151,10 @@ MEM_T uint8_t* MEM_PPC_T::paddr_to_hostpage(uint64_t paddr){
  * @return: unsigned char pointer to the host address
  */
 MEM_T uint8_t* MEM_PPC_T::paddr_to_hostaddr(uint64_t paddr){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     uint64_t pageno = (paddr >> MIN_PGSZ_SHIFT);
     size_t   offset =  (paddr - (pageno << MIN_PGSZ_SHIFT));
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
     return (paddr_to_hostpage(paddr) + offset);
 }
 
@@ -224,7 +224,7 @@ MEM_T void MEM_PPC_T::dump_all_memory_targets(){
  * @type : debug
  */
 MEM_T void MEM_PPC_T::dump_all_page_maps(){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     for(mem_tgt_iter iter_this = mem_tgt.begin(); iter_this != mem_tgt.end(); iter_this++){
         dump_mem_tgt2(*iter_this);
         std::cout << BAR0 << std::endl;
@@ -235,7 +235,7 @@ MEM_T void MEM_PPC_T::dump_all_page_maps(){
         }
         std::cout << BAR0 << std::endl;
     }
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 /*
@@ -246,7 +246,7 @@ MEM_T void MEM_PPC_T::dump_all_page_maps(){
  * @type  : debug
  */
 MEM_T void MEM_PPC_T::dump_all_pages(std::ostream &ostr){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     uint8_t *ptr = NULL;
     int grp_size = 4;
     int columns = 8;
@@ -282,7 +282,7 @@ MEM_T void MEM_PPC_T::dump_all_pages(std::ostream &ostr){
 
         }
     } 
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 /*
@@ -293,7 +293,7 @@ MEM_T void MEM_PPC_T::dump_all_pages(std::ostream &ostr){
  * @type  : debug
  */
 MEM_T void MEM_PPC_T::dump_page(uint64_t addr, std::ostream &ostr){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     uint8_t *ptr = NULL;
     int grp_size = 4;
     int columns = 8;
@@ -323,7 +323,7 @@ MEM_T void MEM_PPC_T::dump_page(uint64_t addr, std::ostream &ostr){
     }
     ostr << std::endl;
 
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 /*
@@ -388,7 +388,7 @@ MEM_T uint8_t* MEM_PPC_T::read_to_buffer(uint64_t addr, uint8_t *buff, size_t si
  * @return : pointer
  */
 MEM_T const uint8_t* MEM_PPC_T::host_ptr(uint64_t addr){
-    LOG("DEBUG4") << "Inside memory::host_ptr" << std::endl;
+    LOG_DEBUG4("Inside memory::host_ptr", std::endl);
     return const_cast<uint8_t*>(paddr_to_hostaddr(addr));
 }
 
@@ -467,9 +467,9 @@ MEM_T void MEM_PPC_T::read_to_ascii_file(uint64_t addr, std::string file_name, s
  * @brief : return 8 bits data at physical address
  */ 
 MEM_T uint8_t MEM_PPC_T::read8(uint64_t addr, int endianness){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     uint8_t *hostptr = paddr_to_hostaddr(addr);
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
     return *hostptr;
 }
 
@@ -479,10 +479,10 @@ MEM_T uint8_t MEM_PPC_T::read8(uint64_t addr, int endianness){
  * @brief : write 8 bits of data at location physical address
  */
 MEM_T void MEM_PPC_T::write8(uint64_t addr, uint8_t value, int endianness){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     uint8_t *hostptr = paddr_to_hostaddr(addr);
     *hostptr = value;
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 /*
@@ -492,9 +492,9 @@ MEM_T void MEM_PPC_T::write8(uint64_t addr, uint8_t value, int endianness){
  * @brief : return 16 bits data at physical address
  */ 
 MEM_T uint16_t MEM_PPC_T::read16(uint64_t addr, int endianness){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     uint8_t *hostptr = paddr_to_hostaddr(addr);
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
     return read_buff<uint16_t>(hostptr, endianness);
 }
 
@@ -504,10 +504,10 @@ MEM_T uint16_t MEM_PPC_T::read16(uint64_t addr, int endianness){
  * @brief : write 16 bits of data at location physical address
  */
 MEM_T void MEM_PPC_T::write16(uint64_t addr, uint16_t value, int endianness){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     uint8_t *hostptr = paddr_to_hostaddr(addr);
     write_buff<uint16_t>(hostptr, value, endianness);
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 /*
@@ -517,9 +517,9 @@ MEM_T void MEM_PPC_T::write16(uint64_t addr, uint16_t value, int endianness){
  * @brief : return 32 bits data at physical address
  */ 
 MEM_T uint32_t MEM_PPC_T::read32(uint64_t addr, int endianness){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     uint8_t *hostptr = paddr_to_hostaddr(addr);
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
     return read_buff<uint32_t>(hostptr, endianness);
 }
 
@@ -529,10 +529,10 @@ MEM_T uint32_t MEM_PPC_T::read32(uint64_t addr, int endianness){
  * @brief : write 32 bits of data at location physical address
  */
 MEM_T void MEM_PPC_T::write32(uint64_t addr, uint32_t value, int endianness){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     uint8_t *hostptr = paddr_to_hostaddr(addr);
     write_buff<uint32_t>(hostptr, value, endianness);
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 /*
@@ -540,9 +540,9 @@ MEM_T void MEM_PPC_T::write32(uint64_t addr, uint32_t value, int endianness){
  * @args : physical address, endianness
  */
 MEM_T uint64_t MEM_PPC_T::read64(uint64_t addr, int endianness){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     uint8_t *hostptr = paddr_to_hostaddr(addr);
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
     return read_buff<uint64_t>(hostptr, endianness);
 }
 
@@ -551,10 +551,10 @@ MEM_T uint64_t MEM_PPC_T::read64(uint64_t addr, int endianness){
  * @args : physical address, data, endianness
  */
 MEM_T void MEM_PPC_T::write64(uint64_t addr, uint64_t value, int endianness){
-    LOG("DEBUG4") << MSG_FUNC_START;
+    LOG_DEBUG4(MSG_FUNC_START);
     uint8_t *hostptr = paddr_to_hostaddr(addr);
     write_buff<uint64_t>(hostptr, value, endianness);
-    LOG("DEBUG4") << MSG_FUNC_END;
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 // Load /store versions for integers
