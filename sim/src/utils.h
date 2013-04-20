@@ -37,6 +37,8 @@
 #define unlikely(x)    (__builtin_expect(!!(x), 0))
 #define likely(x)      (__builtin_expect(!!(x), 1))
 
+#define foreach(i, N)  for(int i=0; i<N; i++)
+
 // endianness consts
 static const int  EMUL_BIG_ENDIAN        =  0;
 static const int  EMUL_LITTLE_ENDIAN     =  1;
@@ -369,63 +371,76 @@ inline void write_buff<uint16_t>(uint8_t* buff, uint16_t value, int endianness){
 // ----------------------------------------- x86 globals ----------------------------------------
 // general
 
-struct x86_flags {
-    bool cf;   // carry flag
-    bool zf;   // zero flag
-    bool sf;   // sign
-    bool of;   // overflow
-
-    x86_flags() : cf(false), zf(false), sf(false), of(false) {}
+enum x86_eflags_bitmask {
+    X86_EFLAGS_CF = (1 << 0),
+    X86_EFLAGS_PF = (1 << 2),
+    X86_EFLAGS_AF = (1 << 4),
+    X86_EFLAGS_ZF = (1 << 6),
+    X86_EFLAGS_SF = (1 << 7),
+    X86_EFLAGS_OF = (1 << 11),
 };
+
+union x86_flags {
+    uint32_t v;
+    struct {
+        uint32_t  cf    : 1;   // carry flag
+        uint32_t  resv0 : 1;
+        uint32_t  pf    : 1;   // parity flag
+        uint32_t  resv1 : 1;
+        uint32_t  af    : 1;   // auxiliary flag
+        uint32_t  resv2 : 1;
+        uint32_t  zf    : 1;   // zero flag
+        uint32_t  sf    : 1;   // sign flag
+        uint32_t  resv3 : 3;
+        uint32_t  of    : 1;
+        uint32_t  resv4 : 20;
+    };
+
+    x86_flags() : v(0) {}
+
+    bool is_cf()   { return v & X86_EFLAGS_CF; }
+    bool is_zf()   { return v & X86_EFLAGS_ZF; }
+    bool is_sf()   { return v & X86_EFLAGS_SF; }
+    bool is_of()   { return v & X86_EFLAGS_OF; }
+};
+
 inline std::ostream& operator<<(std::ostream& ostr, x86_flags f){
     ostr << ": cf=" << f.cf << ", zf=" << f.zf << ", sf=" << f.sf << ", of=" << f.of << " ";
     return ostr;
 }
 
-#define def_x86_alu_op1(name, x86_op, zaps, oc)                          \
+#define def_x86_alu_op1(name, x86_op)                                    \
 template<typename T>                                                     \
 inline T name(T ra, x86_flags& f){                                       \
-    x86_flags f0;                                                        \
     asm(                                                                 \
-            #x86_op " %[ra]; setc %[cf]; seto %[of];"                    \
-            "sets %[sf]; setz %[zf];"                                    \
-            : [ra] "+a" (ra), [cf] "=q" (f0.cf), [of] "=q" (f0.of),      \
-              [zf] "=q" (f0.zf), [sf] "=q" (f0.sf)                       \
+            #x86_op " %[ra]; pushf; pop %[f];"                           \
+            : [ra] "+a" (ra), [f] "=m" (f.v)                             \
             :                                                            \
             :                                                            \
        );                                                                \
-    if(zaps & oc) { f=f0; }                                              \
-    else if(zaps) { f.zf=f0.zf; f.sf=f0.sf; }                            \
-    else if(oc)   { f.cf=f0.cf; f.of=f0.of; }                            \
     return ra;                                                           \
 }
 
-#define def_x86_alu_op2(name, x86_op, zaps, oc)                          \
+#define def_x86_alu_op2(name, x86_op)                                    \
 template<typename T>                                                     \
 inline T name(T ra, T rb, x86_flags& f){                                 \
-    x86_flags f0;                                                        \
     asm(                                                                 \
-            #x86_op " %[rb], %[ra]; setc %[cf]; seto %[of];"             \
-            "sets %[sf]; setz %[zf];"                                    \
-            : [ra] "+q" (ra), [cf] "=q" (f0.cf), [of] "=q" (f0.of),      \
-              [zf] "=q" (f0.zf), [sf] "=q" (f0.sf)                       \
+            #x86_op " %[rb], %[ra]; pushf; pop %[f];"                    \
+            : [ra] "+q" (ra), [f] "=m" (f.v)                             \
             : [rb] "q" (rb)                                              \
             :                                                            \
        );                                                                \
-    if(zaps & oc) { f=f0; }                                              \
-    else if(zaps) { f.zf=f0.zf; f.sf=f0.sf; }                            \
-    else if(oc)   { f.cf=f0.cf; f.of=f0.of; }                            \
     return ra;                                                           \
 }
 
 // All flags are set for neg, add & sub (i.e zaps=oc=true)
 // only zaps are set for logical instrs (and, or, xor etc)
-def_x86_alu_op1(x86_neg, neg, true, true)
-def_x86_alu_op2(x86_add, add, true, true)
-def_x86_alu_op2(x86_sub, sub, true, true)
-def_x86_alu_op2(x86_and, and, true, false)
-def_x86_alu_op2(x86_or,  or,  true, false)
-def_x86_alu_op2(x86_xor, xor, true, false)
+def_x86_alu_op1(x86_neg, neg)
+def_x86_alu_op2(x86_add, add)
+def_x86_alu_op2(x86_sub, sub)
+def_x86_alu_op2(x86_and, and)
+def_x86_alu_op2(x86_or,  or)
+def_x86_alu_op2(x86_xor, xor)
 
 
 #define def_x86_mul_op(name, x86_op)                                    \
@@ -433,8 +448,8 @@ template<typename T>                                                    \
 inline T name(T ra, T rb, x86_flags& f, bool high=0){                   \
     register T rd = 0;                                                  \
     asm(                                                                \
-            #x86_op " %[rb]; setc %[cf]; seto %[of];"                   \
-            : "+a" (ra), "=d" (rd), [cf] "=q" (f.cf), [of] "=q" (f.of)  \
+            #x86_op " %[rb]; pushf; pop %[f];"                          \
+            : "+a" (ra), "=d" (rd), [f] "=m" (f.v)                      \
             : [rb] "q" (rb)                                             \
             :                                                           \
        );                                                               \
@@ -449,8 +464,8 @@ template<typename D, typename S>                                        \
 inline D name(S ra, S rb, x86_flags& f){                                \
     register S rd = 0;                                                  \
     asm(                                                                \
-            #x86_op " %[rb]; setc %[cf]; seto %[of];"                   \
-            : "+a" (ra), "=d" (rd), [cf] "=q" (f.cf), [of] "=q" (f.of)  \
+            #x86_op " %[rb]; pushf; pop %[f];"                          \
+            : "+a" (ra), "=d" (rd), [f] "=m" (f.v)                      \
             : [rb] "q" (rb)                                             \
             :                                                           \
        );                                                               \
@@ -493,6 +508,29 @@ def_x86_div_op(x86_idiv, idiv)
 #define SUB64             x86_sub<int64_t>   // 64 bit SUB
 
 // vector extensions (SSE)
+// forward declarations
+union x86_mxcsr;
+void x86_ldmxcsr(x86_mxcsr &f);
+void x86_stmxcsr(x86_mxcsr& f);
+
+enum x86_mxcsr_bitmask {
+    X86_MXCSR_IE    = (1 << 0),
+    X86_MXCSR_DE    = (1 << 1),
+    X86_MXCSR_ZE    = (1 << 2),
+    X86_MXCSR_OE    = (1 << 3),
+    X86_MXCSR_UE    = (1 << 4),
+    X86_MXCSR_PE    = (1 << 5),
+    X86_MXCSR_DAZ   = (1 << 6),
+    X86_MXCSR_IM    = (1 << 7),
+    X86_MXCSR_DM    = (1 << 8),
+    X86_MXCSR_ZM    = (1 << 9),
+    X86_MXCSR_OM    = (1 << 10),
+    X86_MXCSR_UM    = (1 << 11),
+    X86_MXCSR_PM    = (1 << 12),
+    X86_MXCSR_RC    = (3 << 13),        // Rounding Control (R+ = 0b10, R- = 0b1, RZ = 0b11, RN = 0b00)
+    X86_MXCSR_FZ    = (1 << 15),
+    X86_MXCSR_E     = (X86_MXCSR_IE | X86_MXCSR_ZE | X86_MXCSR_OE | X86_MXCSR_UE | X86_MXCSR_PE),
+};
 
 union x86_mxcsr {
     uint32_t v;
@@ -516,11 +554,58 @@ union x86_mxcsr {
         uint32_t rs0 : 16;
     };
 
+
     // load a default value into mxcsr
     // Default -> All exceptions disabled. daz=1 (powerPC SPE bahaviour)
     x86_mxcsr(){
         v = 0x1fc0;
-        __asm__ __volatile__("ldmxcsr %[f]" ::[f] "m" (v):);
+        x86_ldmxcsr(*this);
+    }
+    void clear_all_error_flags(){
+        v &= ~X86_MXCSR_E;
+        x86_mxcsr(*this);
+    }
+    void round_to_nearest(){
+        v &= 0x600;
+        x86_ldmxcsr(*this);
+    }
+    void round_to_minus_inf(){
+        v &= 0x600;
+        v |= 0x200;
+        x86_ldmxcsr(*this);
+    }
+    void round_to_plus_inf(){
+        v &= 0x600;
+        v |= 0x400;
+        x86_ldmxcsr(*this);
+    }
+    void round_to_zero(){
+        v |= 0x600;
+        x86_ldmxcsr(*this);
+    }
+    bool is_error(){
+        return (v & (X86_MXCSR_IE | X86_MXCSR_ZE | X86_MXCSR_OE | X86_MXCSR_UE | X86_MXCSR_PE));
+    }
+    bool is_underflow(){
+        return (v & X86_MXCSR_UE);
+    }
+    bool is_overflow(){
+        return (v & X86_MXCSR_OE);
+    }
+    bool is_rounding_mode_rp(){
+        return ((v & X86_MXCSR_RC) >> RSHIFT<X86_MXCSR_RC>::VAL) == 0x2;
+    }
+    bool is_rounding_mode_rm(){
+        return ((v & X86_MXCSR_RC) >> RSHIFT<X86_MXCSR_RC>::VAL) == 0x1;
+    }
+    bool is_rounding_mode_rz(){
+        return ((v & X86_MXCSR_RC) >> RSHIFT<X86_MXCSR_RC>::VAL) == 0x3;
+    }
+    bool is_rounding_mode_rn(){
+        return !(v & X86_MXCSR_RC);
+    }
+    bool is_rounding_mode_rnzp(){
+        return is_rounding_mode_rn() && is_rounding_mode_rz() && is_rounding_mode_rp();
     }
 };
 
@@ -535,6 +620,14 @@ inline std::ostream& operator<<(std::ostream& ostr, x86_mxcsr &m){
          << ",um=" << m.um << ",pm=" << m.pm << ",r-=" << m.rn
          << ",r+=" << m.rp << ",fz=" << m.fz << "] ";
     return ostr;
+}
+
+inline void x86_ldmxcsr(x86_mxcsr &f){
+    __asm__ __volatile__("ldmxcsr %[f]" ::[f] "m" (f.v):);
+}
+
+inline void x86_stmxcsr(x86_mxcsr& f){
+    __asm__ __volatile__("stmxcsr %[f]" ::[f] "m" (f.v):);
 }
 
 // SSE vector type
@@ -588,13 +681,13 @@ inline T name(T ra, T rb, x86_mxcsr &f){         \
 // 2 operand sse   opcode's name    scalar/vector     floating point type
 //
 //
-def_x86_sse_op2(adds_f32, addss)
-def_x86_sse_op2(adds_f64, addsd)
-def_x86_sse_op2(subs_f32, subss)
-def_x86_sse_op2(subs_f64, subsd)
-def_x86_sse_op2(muls_f32, mulss)
-def_x86_sse_op2(muls_f64, mulsd)
-def_x86_sse_op2(divs_f32, divss)
-def_x86_sse_op2(divs_f64, divsd)
+def_x86_sse_op2(x86_adds_f32, addss)
+def_x86_sse_op2(x86_adds_f64, addsd)
+def_x86_sse_op2(x86_subs_f32, subss)
+def_x86_sse_op2(x86_subs_f64, subsd)
+def_x86_sse_op2(x86_muls_f32, mulss)
+def_x86_sse_op2(x86_muls_f64, mulsd)
+def_x86_sse_op2(x86_divs_f32, divss)
+def_x86_sse_op2(x86_divs_f64, divsd)
 
 #endif
