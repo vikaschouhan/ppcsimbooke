@@ -29,6 +29,12 @@ namespace superstl {
     typedef unsigned char byte;
     typedef unsigned char W8;
     typedef signed char W8s;
+#ifdef __x86_64__
+    typedef W64 Waddr;
+#else
+    typedef W32 Waddr;
+#endif
+
 
 #define superstl_sqr(x) ((x)*(x))
 #define superstl_cube(x) ((x)*(x)*(x))
@@ -1575,6 +1581,62 @@ namespace superstl {
             }
 
             return n;
+        }
+    };
+
+
+    //
+    // Index References (indexrefs) work exactly like pointers but always
+    // index into a specific structure. This saves considerable space and
+    // can allow aliasing optimizations not possible with pointers.
+    //
+
+    template <typename T, typename P = W32, Waddr base = 0, int granularity = 1>
+    struct shortptr {
+        P p;
+
+        shortptr() { }
+
+        shortptr(const T& obj) {
+            *this = obj;
+        }
+
+        shortptr(const T* obj) {
+            *this = obj;
+        }
+
+        shortptr<T, P, base, granularity>& operator =(const T& obj) {
+            p = (P)((((Waddr)&obj) - base) / granularity);
+            return *this;
+        }
+
+        shortptr<T, P, base, granularity>& operator =(const T* obj) {
+            p = (P)((((Waddr)obj) - base) / granularity);
+            return *this;
+        }
+
+        T* get() const {
+            return (T*)((p * granularity) + base);
+        }
+
+        T* operator ->() const {
+            return get();
+        }
+
+        T& operator *() const {
+            return *get();
+        }
+
+        operator T*() const { return get(); }
+
+        shortptr<T, P, base, granularity>& operator ++() {
+            (*this) = (get() + 1);
+            return *this;
+        }
+
+        shortptr<T, P, base, granularity>& operator --() {
+            (*this) = (get() - 1);
+            return *this;
         }
     };
 
