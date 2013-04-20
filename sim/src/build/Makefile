@@ -189,11 +189,17 @@ test_fpu_emul_module: test_fpu_emul_module.o
 	$(CXX) $(HOST_LDFLAGS) -o $@ $^
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 test_superstl: test_superstl.o
 	$(CXX) $(HOST_LDFLAGS) -o $@ $^
 
 >>>>>>> Added superstl library from ptlsim project.
+=======
+test_superstl: test_superstl.o
+	$(CXX) $(HOST_LDFLAGS) -o $@ $^
+
+>>>>>>> 512ca31a6fba4283fe11570554e6afe495065776
 sim_tests: $(SIM_TEST_EXES)
 
 clean:
