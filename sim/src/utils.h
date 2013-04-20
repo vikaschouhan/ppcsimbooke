@@ -37,6 +37,8 @@
 #define unlikely(x)    (__builtin_expect(!!(x), 0))
 #define likely(x)      (__builtin_expect(!!(x), 1))
 
+#define foreach(i, N)  for(int i=0; i<N; i++)
+
 // endianness consts
 static const int  EMUL_BIG_ENDIAN        =  0;
 static const int  EMUL_LITTLE_ENDIAN     =  1;

@@ -31,7 +31,8 @@ SIM_TEST_EXES := test_ppcdis_interface        \
 			 test_lru_class                   \
 			 test_bm_class                    \
 			 test_globals_module              \
-			 test_fpu_emul_module
+			 test_fpu_emul_module             \
+			 test_superstl
 DUT_TEST_EXES := test_001.elf                     \
 	         test_sqrt_0.elf                      \
 	         test_palindrome_0.elf                \
@@ -187,6 +188,12 @@ test_globals_module: test_globals_module.o globals.o
 test_fpu_emul_module: test_fpu_emul_module.o
 	$(CXX) $(HOST_LDFLAGS) -o $@ $^
 
+<<<<<<< HEAD
+=======
+test_superstl: test_superstl.o
+	$(CXX) $(HOST_LDFLAGS) -o $@ $^
+
+>>>>>>> Added superstl library from ptlsim project.
 sim_tests: $(SIM_TEST_EXES)
 
 clean:
