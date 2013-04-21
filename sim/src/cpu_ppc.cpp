@@ -261,6 +261,25 @@ CPU_T void CPU_PPC_T::write64(uint64_t addr, uint64_t value){
     LOG_DEBUG4(MSG_FUNC_END);
 }
 
+CPU_T void CPU_PPC_T::read_buff(uint64_t addr, uint8_t* buff, size_t buffsize){
+    LOG_DEBUG4(MSG_FUNC_START);
+    uint64_t ps, pm;
+    size_t size_curr_page;
+    xlated_tlb_res res;
+    
+    while(buffsize > 0){
+        res = xlate(addr, 1);          // translate this address
+        ps = std::get<2>(res);         // get page_size & page_mask
+        pm = ~(ps - 1);
+        size_curr_page = min(buffsize, ((addr & pm) + ps - addr));
+        m_mem_ptr->read_to_buffer(addr, buff, size_curr_page);
+        buff     += size_curr_page;
+        buffsize -= size_curr_page;
+        addr     += size_curr_page;
+    }
+    LOG_DEBUG4(MSG_FUNC_END);
+}
+
 
 // Interrupt handling routines ( they handle exceptions at hardware level only and redirect control
 //                               to appropriate ISR. ).
@@ -270,7 +289,7 @@ CPU_T void CPU_PPC_T::write64(uint64_t addr, uint64_t value){
 //     ea -> effective address at the time fault occured ( used in case of DSI faults etc )
 //
 // FIXME : We don't support hardware exceptions yet. This is planned.
-CPU_T void CPU_PPC_T::ppc_exception(int exception_nr, uint64_t subtype, uint64_t ea)
+CPU_T void CPU_PPC_T::ppc_exception(int exception_nr, int subtype, uint64_t ea)
 {
     LOG_DEBUG4(MSG_FUNC_START);
 

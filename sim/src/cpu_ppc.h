@@ -120,7 +120,7 @@ class CPU_PPC {
     private:
     void                  run_b();                               // blocking run
     void                  clear_ctrs();                          // clear counters
-    void                  ppc_exception(int exception_nr, uint64_t subtype, uint64_t ea=0xffffffffffffffffULL);
+    void                  ppc_exception(int exception_nr, int subtype, uint64_t ea=0xffffffffffffffffULL);
     instr_call            get_instr();                           // Automatically tries to read instr from next NIP(PC)
     void                  check_for_dbg_events(int flags, uint64_t ea=0);   // check for debug events
     inline void           run_curr_instr();                                 // run current instr

@@ -472,8 +472,24 @@ TLB_T void TLB_PPC_T::tlbive(uint64_t ea){
     LOG_DEBUG4(MSG_FUNC_END);
 }
 
-// Translate effective address into real address using as bit, an 8 bit PID value and permission attributes
-// Return read_addr, page_size & wimge attributes
+//   @func : xlate
+//   @args :
+//          ea  -> effective address.
+//          as  -> address space (either MSR[IS] or MSR[DS] based on code or data page)
+//          pid -> pid of the task
+//          rwx -> read/wrire/execute permission bit mask
+//          pr  -> process state (=MSR[PR])
+//
+//   @return :
+//          tuple of xlated physical address, wimge & page size.
+//   
+//   @brief : This function will translate effective address to a corresponding real address, based
+//            on parameters passed.
+//            First a high speed cahce is searched for. If not found there, the function resorts to low speed
+//            search in main tlb arrays.
+//            
+//  @NOTE :
+//          If a TLB miss is encountered, the miss type as well as the offending address is returned as part of exception class
 TLB_T std::tuple<uint64_t, uint8_t, uint64_t> TLB_PPC_T::xlate(uint64_t ea, bool as, uint8_t pid, uint8_t rwx, bool pr){
     LOG_DEBUG4(MSG_FUNC_START);
 
@@ -521,13 +537,13 @@ TLB_T std::tuple<uint64_t, uint8_t, uint64_t> TLB_PPC_T::xlate(uint64_t ea, bool
                 }else{                                                                                                \
                     if(rwx & 0x1){                                                                                    \
                         std::cout << "Got ISI exception" <<std::endl;                                                 \
-                        throw sim_except_ppc(PPC_EXCEPTION_ISI, PPC_EXCEPT_ISI_ACS, "ISI exception.");                \
+                        throw sim_except_ppc(PPC_EXCEPTION_ISI, PPC_EXCEPT_ISI_ACS, "ISI exception.", ea);            \
                     }else if(rwx & 0x2){                                                                              \
                         std::cout << "Got DSI write exception" << std::endl;                                          \
-                        throw sim_except_ppc(PPC_EXCEPTION_DSI, PPC_EXCEPT_DSI_ACS_W, "DSI write exception.");        \
+                        throw sim_except_ppc(PPC_EXCEPTION_DSI, PPC_EXCEPT_DSI_ACS_W, "DSI write exception.", ea);    \
                     }else if(rwx & 0x4){                                                                              \
                         std::cout << "Got DSI read exception" << std::endl;                                           \
-                        throw sim_except_ppc(PPC_EXCEPTION_DSI, PPC_EXCEPT_DSI_ACS_R, "DSI read exception.");         \
+                        throw sim_except_ppc(PPC_EXCEPTION_DSI, PPC_EXCEPT_DSI_ACS_R, "DSI read exception.", ea);     \
                     }                                                                                                 \
                 }                                                                                                     \
             }                                                                                                         \

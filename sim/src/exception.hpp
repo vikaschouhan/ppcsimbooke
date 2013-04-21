@@ -38,12 +38,12 @@ static std::string glb_msg0;
 // generic exception class for our sim module ( only non fatal exception )
 // TODO: This is barebones right now.
 class sim_except : public std::exception {
-    uint8_t     m_errcode;  // 8 bit error code
+    int         m_errcode;  // 8 bit error code
     std::string m_message;  // Custom user message
 
     public:
     // Constructor
-    sim_except(uint64_t errcode, std::string message = "runtime exception"){
+    sim_except(int errcode, std::string message = "runtime exception"){
         m_errcode    = errcode;
         m_message    = message;
     }
@@ -51,7 +51,7 @@ class sim_except : public std::exception {
     ~sim_except() throw(){
     }
 
-    const uint64_t err_code(){
+    const int err_code(){
         return m_errcode;
     }
     const char* desc() const{
@@ -94,23 +94,23 @@ class sim_except_fatal : public std::exception {
 //                 m_errcode[0] was thrown.
 class sim_except_ppc : public std::exception {
     std::string m_message;     // Custom user message
-    uint64_t    m_errcode[2];  // 2 diff codes can be specified for each type
+    int         m_errcode[2];  // 2 diff codes can be specified for each type
     uint64_t    m_addr;        // Possible offending address
 
     public:
     // Constructor
-    sim_except_ppc(uint64_t c0, uint64_t c1, std::string message = "PPC exception", uint64_t a=0){
+    sim_except_ppc(int c0, int c1, std::string message = "PPC exception", uint64_t a=0){
         m_errcode[0] = c0;
         m_errcode[1] = c1;
         m_message    = message;
         m_addr       = a;
     }
-    sim_except_ppc(uint64_t c0, uint64_t c1, uint64_t a=0){
+    sim_except_ppc(int c0, int c1, uint64_t a=0){
         m_errcode[0] = c0;
         m_errcode[1] = c1;
         m_addr       = a;
     }
-    sim_except_ppc(uint64_t c0, std::string message = "PPC exception"){
+    sim_except_ppc(int c0, std::string message = "PPC exception"){
         m_errcode[0] = c0;
         m_message    = message;
     }
@@ -120,13 +120,17 @@ class sim_except_ppc : public std::exception {
     }
 
     // Retrive Err codes
-    const uint64_t err_code0(){
+    const int err_code0(){
         return m_errcode[0];
     }
-    const uint64_t err_code1(){
+    const int err_code1(){
         return m_errcode[1];
     }
-    const uint64_t addr(){
+    template<int x>
+    const int err_code(){
+        return m_errcode[x];
+    }
+    const int addr(){
         return m_addr;
     }
     const char *desc() const{

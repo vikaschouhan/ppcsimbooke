@@ -54,7 +54,7 @@ namespace ppcsimbooke_basic_block {
     
     // Basic Block
     struct basic_block {
-        basic_block                      ip;
+        basic_block                      bip;                      // basic block ip
         selflistlink                     hashlink;
         basic_block_chunk_list::locator  mfnlo_loc;
         basic_block_chunk_list::locator  mfnhi_loc;
@@ -115,6 +115,7 @@ namespace ppcsimbooke_basic_block {
         bool              dirflag;
         uint8_t           *insnbytes;
         int               insnbytes_buffsize;
+        int               valid_byte_count;
         uint64_t          ip;
         uint64_t          ipstart;
         int               byteoffset;
@@ -122,6 +123,8 @@ namespace ppcsimbooke_basic_block {
         uint64_t          user_insn_count;
         bool              invalid;
         int               outcome;
+        uint64_t          fault_addr;                      // page fault address (tlb miss generating addr)
+        int               fault_cause;                     // contains the exact fault error type
         
         basic_block_decoder(const basic_block_ip& rvp);
         basic_block_decoder(CPU_PPC &ctx, Waddr rip);       // cpu maintains the context
