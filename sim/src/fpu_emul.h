@@ -38,7 +38,9 @@ namespace fp_emul{
         fp_op_inv
     };
 
+#ifdef PPCSIMBOOKE_FPU_EMUL_DEBUG
     static const char* fp_op_str[] = { "INV", "fp_add", "fp_sub", "fp_mul", "fp_div", "fp_d2s", "fp_s2d" };
+#endif
 
     // FP operand type
     enum fp_operand {
@@ -59,8 +61,10 @@ namespace fp_emul{
         fp_operand_inv
     };
 
+#ifdef PPCSIMBOOKE_FPU_EMUL_DEBUG
     static const char* fp_operand_str[] = { "INV", "inf", "norm", "denorm", "NAN", "zero", "amax", "bmax", "a", "b",
         "-a", "-b", "-amax", "-bmax", "max" };
+#endif
 
     // one of these (if enabled), decides the final sign of result
     enum fp_sign_type {
@@ -378,6 +382,13 @@ namespace fp_emul{
         return R;   // shouldn't fall back to this
     }
 
+    template<typename T>
+    inline T get_default_results(fp_op op, T a, T b, x86_mxcsr& m){
+        T R;
+        R = get_default_results<T>(R, op, a, b, m);
+        return R;
+    }
+
     // 1 operand version
     template<typename T>
     inline T get_default_results(T& R, fp_op op, T a, x86_mxcsr& m){
@@ -386,6 +397,13 @@ namespace fp_emul{
             R = get_operand<T>(a, res);
         }
         return R;   // shouldn't fallback to this
+    }
+
+    template<typename T>
+    inline T get_default_results(fp_op op, T a, x86_mxcsr& m){
+        T R;
+        R = get_default_results<T>(R, op, a, m);
+        return R;
     }
 }
 

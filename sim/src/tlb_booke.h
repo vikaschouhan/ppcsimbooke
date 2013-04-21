@@ -135,7 +135,7 @@ class TLB_PPC {
     void tlbwe(uint64_t mas0, uint64_t mas1, uint64_t mas2, uint64_t mas3, uint64_t mas7, uint64_t hid0);
     void tlbse(uint64_t ea, uint64_t &mas0, uint64_t &mas1, uint64_t &mas2, uint64_t &mas3, uint64_t &mas6, uint64_t &mas7, uint64_t hid0);
     void tlbive(uint64_t ea);
-    std::pair<uint64_t, uint8_t> xlate(uint64_t ea, bool as, uint8_t pid, uint8_t rwx, bool pr);
+    std::tuple<uint64_t, uint8_t, uint64_t> xlate(uint64_t ea, bool as, uint8_t pid, uint8_t rwx, bool pr);
 
 };
 

@@ -149,18 +149,18 @@ CPU_T void CPU_PPC_T::run_instr(uint32_t opcd){
 #define TO_RWX(r, w, x) (((r & 0x1) << 2) | ((w & 0x1) << 1) | (x & 0x1))
 // Translate EA to RA ( for data only )
 // NOTE: All exceptions ( hardware/software ) will be handled at run_instr() or run() level.
-CPU_T std::pair<uint64_t, uint8_t> CPU_PPC_T::xlate(uint64_t addr, bool wr){
+CPU_T CPU_PPC_T::xlated_tlb_res CPU_PPC_T::xlate(uint64_t addr, bool wr){
     LOG_DEBUG4(MSG_FUNC_START);
 
-    std::pair<uint64_t, uint8_t> res;
+    xlated_tlb_res res;
     uint8_t  perm = (wr) ? TO_RWX(0, 1, 0) : TO_RWX(1, 0, 0);
     bool as = EBF(PPCREG(REG_MSR), MSR_DS);
     bool pr = EBF(PPCREG(REG_MSR), MSR_PR);
 
     // Try hits with PID0, PID1 and PID2
-    res = m_l2tlb.xlate(addr, as, PPCREG(REG_PID0), perm, pr); if(res.first != static_cast<uint64_t>(-1)) goto exit_loop_0;
-    res = m_l2tlb.xlate(addr, as, PPCREG(REG_PID1), perm, pr); if(res.first != static_cast<uint64_t>(-1)) goto exit_loop_0; 
-    res = m_l2tlb.xlate(addr, as, PPCREG(REG_PID2), perm, pr); if(res.first != static_cast<uint64_t>(-1)) goto exit_loop_0;
+    res = m_l2tlb.xlate(addr, as, PPCREG(REG_PID0), perm, pr); if(std::get<0>(res) != static_cast<uint64_t>(-1)) goto exit_loop_0;
+    res = m_l2tlb.xlate(addr, as, PPCREG(REG_PID1), perm, pr); if(std::get<0>(res) != static_cast<uint64_t>(-1)) goto exit_loop_0; 
+    res = m_l2tlb.xlate(addr, as, PPCREG(REG_PID2), perm, pr); if(std::get<0>(res) != static_cast<uint64_t>(-1)) goto exit_loop_0;
 
     // We encountered TLB miss. Throw exceptions
     std::cout << "DTLB miss" << std::endl;
@@ -171,9 +171,9 @@ CPU_T std::pair<uint64_t, uint8_t> CPU_PPC_T::xlate(uint64_t addr, bool wr){
     }
 
     exit_loop_0:
-    LOG_DEBUG4(std::hex, std::showbase, "Xlation : ", addr, " -> ", res.first, std::endl);
+    LOG_DEBUG4(std::hex, std::showbase, "Xlation : ", addr, " -> ", std::get<0>(res), std::endl);
     LOG_DEBUG4(MSG_FUNC_END);
-    return std::pair<uint64_t, uint8_t>(res.first, res.second);
+    return res;
 }
 
 // Get register pointer using regid
@@ -190,74 +190,74 @@ CPU_T inline ppc_reg64* CPU_PPC_T::regn(std::string regname){
 // Memory I/O functions
 CPU_T uint8_t CPU_PPC_T::read8(uint64_t addr){
     LOG_DEBUG4(MSG_FUNC_START);
-    std::pair<uint64_t, uint8_t> res = xlate(addr, 0);
+    xlated_tlb_res res = xlate(addr, 0);
  
     LASSERT_THROW(m_mem_ptr != NULL, sim_except_fatal("no memory module registered."), DEBUG4);
     LOG_DEBUG4(MSG_FUNC_END);
-    return m_mem_ptr->read8(res.first, (res.second & 0x1));
+    return m_mem_ptr->read8(std::get<0>(res), (std::get<1>(res) & 0x1));
 }
 
 CPU_T void CPU_PPC_T::write8(uint64_t addr, uint8_t value){
     LOG_DEBUG4(MSG_FUNC_START);
-    std::pair<uint64_t, uint8_t> res = xlate(addr, 1);
+    xlated_tlb_res res = xlate(addr, 1);
 
     LASSERT_THROW(m_mem_ptr != NULL, sim_except_fatal("no memory module registered."), DEBUG4);
-    m_mem_ptr->write8(res.first, value, (res.second & 0x1));
+    m_mem_ptr->write8(std::get<0>(res), value, (std::get<1>(res) & 0x1));
     LOG_DEBUG4(MSG_FUNC_END);
 }
 
 CPU_T uint16_t CPU_PPC_T::read16(uint64_t addr){
     LOG_DEBUG4(MSG_FUNC_START);
-    std::pair<uint64_t, uint8_t> res = xlate(addr, 0);
+    xlated_tlb_res res = xlate(addr, 0);
 
     LASSERT_THROW(m_mem_ptr != NULL, sim_except_fatal("no memory module registered."), DEBUG4);
     LOG_DEBUG4(MSG_FUNC_END);
-    return m_mem_ptr->read16(res.first, (res.second & 0x1));
+    return m_mem_ptr->read16(std::get<0>(res), (std::get<1>(res) & 0x1));
 }
 
 
 CPU_T void CPU_PPC_T::write16(uint64_t addr, uint16_t value){
     LOG_DEBUG4(MSG_FUNC_START);
-    std::pair<uint64_t, uint8_t> res = xlate(addr, 1);
+    xlated_tlb_res res = xlate(addr, 1);
 
     LASSERT_THROW(m_mem_ptr != NULL, sim_except_fatal("no memory module registered."), DEBUG4);
-    m_mem_ptr->write16(res.first, value, (res.second & 0x1));
+    m_mem_ptr->write16(std::get<0>(res), value, (std::get<1>(res) & 0x1));
     LOG_DEBUG4(MSG_FUNC_END);
 }
 
 CPU_T uint32_t CPU_PPC_T::read32(uint64_t addr){
     LOG_DEBUG4(MSG_FUNC_START);
-    std::pair<uint64_t, uint8_t> res = xlate(addr, 0);
+    xlated_tlb_res res = xlate(addr, 0);
 
     LASSERT_THROW(m_mem_ptr != NULL, sim_except_fatal("no memory module registered."), DEBUG4);
     LOG_DEBUG4(MSG_FUNC_END);
-    return m_mem_ptr->read32(res.first, (res.second & 0x1));
+    return m_mem_ptr->read32(std::get<0>(res), (std::get<1>(res) & 0x1));
 }
 
 CPU_T void CPU_PPC_T::write32(uint64_t addr, uint32_t value){
     LOG_DEBUG4(MSG_FUNC_START);
-    std::pair<uint64_t, uint8_t> res = xlate(addr, 1);
+    xlated_tlb_res res = xlate(addr, 1);
 
     LASSERT_THROW(m_mem_ptr != NULL, sim_except_fatal("no memory module registered."), DEBUG4);
-    m_mem_ptr->write32(res.first, value, (res.second & 0x1));
+    m_mem_ptr->write32(std::get<0>(res), value, (std::get<1>(res) & 0x1));
     LOG_DEBUG4(MSG_FUNC_END);
 }
 
 CPU_T uint64_t CPU_PPC_T::read64(uint64_t addr){
     LOG_DEBUG4(MSG_FUNC_START);
-    std::pair<uint64_t, uint8_t> res = xlate(addr, 0);
+    xlated_tlb_res res = xlate(addr, 0);
 
     LASSERT_THROW(m_mem_ptr != NULL, sim_except_fatal("no memory module registered."), DEBUG4);
     LOG_DEBUG4(MSG_FUNC_END);
-    return m_mem_ptr->read64(res.first, (res.second & 0x1));
+    return m_mem_ptr->read64(std::get<0>(res), (std::get<1>(res) & 0x1));
 }
 
 CPU_T void CPU_PPC_T::write64(uint64_t addr, uint64_t value){
     LOG_DEBUG4(MSG_FUNC_START);
-    std::pair<uint64_t, uint8_t> res = xlate(addr, 1);
+    xlated_tlb_res res = xlate(addr, 1);
 
     LASSERT_THROW(m_mem_ptr != NULL, sim_except_fatal("no memory module registered."), DEBUG4);
-    m_mem_ptr->write64(res.first, value, (res.second & 0x1));
+    m_mem_ptr->write64(std::get<0>(res), value, (std::get<1>(res) & 0x1));
     LOG_DEBUG4(MSG_FUNC_END);
 }
 
@@ -680,7 +680,7 @@ CPU_T void CPU_PPC_T::ppc_exception(int exception_nr, uint64_t subtype, uint64_t
 CPU_T instr_call CPU_PPC_T::get_instr(){
     LOG_DEBUG4(MSG_FUNC_START);
 
-    std::pair<uint64_t, uint8_t> res;           // pair of <ra, wimge>
+    xlated_tlb_res res;           // tuple of <ra, wimge, ps>
     instr_call call_this;
 
     call_this = m_instr_cache[m_pc];
@@ -695,20 +695,20 @@ CPU_T instr_call CPU_PPC_T::get_instr(){
     bool pr = EBF(PPCREG(REG_MSR), MSR_PR);  // pr = MSR[pr]
 
     // Try hits with PID0, PID1 and PID2
-    res = m_l2tlb.xlate(m_pc, as, PPCREG(REG_PID0), perm, pr); if(res.first != static_cast<uint64_t>(-1)) goto exit_loop_0;
-    res = m_l2tlb.xlate(m_pc, as, PPCREG(REG_PID1), perm, pr); if(res.first != static_cast<uint64_t>(-1)) goto exit_loop_0; 
-    res = m_l2tlb.xlate(m_pc, as, PPCREG(REG_PID2), perm, pr); if(res.first != static_cast<uint64_t>(-1)) goto exit_loop_0;
+    res = m_l2tlb.xlate(m_pc, as, PPCREG(REG_PID0), perm, pr); if(std::get<0>(res) != static_cast<uint64_t>(-1)) goto exit_loop_0;
+    res = m_l2tlb.xlate(m_pc, as, PPCREG(REG_PID1), perm, pr); if(std::get<0>(res) != static_cast<uint64_t>(-1)) goto exit_loop_0; 
+    res = m_l2tlb.xlate(m_pc, as, PPCREG(REG_PID2), perm, pr); if(std::get<0>(res) != static_cast<uint64_t>(-1)) goto exit_loop_0;
 
     // We encountered ITLB miss. Throw exceptions
     std::cout << "ITLB miss" << std::endl;
     LTHROW(sim_except_ppc(PPC_EXCEPTION_ITLB, PPC_EXCEPT_ITLB_MISS, "ITLB miss."), DEBUG4);
 
     exit_loop_0:
-    LOG_DEBUG4(std::hex, std::showbase, "instr Xlation : ", m_pc, " -> ", res.first, std::endl);
+    LOG_DEBUG4(std::hex, std::showbase, "instr Xlation : ", m_pc, " -> ", std::get<0>(res), std::endl);
 
     LASSERT_THROW(m_mem_ptr != NULL, sim_except_fatal("no memory module registered."), DEBUG4);
     // Disassemble the instr at curr pc
-    call_this = m_dis.disasm(m_mem_ptr->read32(res.first, (res.second & 0x1)), m_pc, (res.second & 0x1));
+    call_this = m_dis.disasm(m_mem_ptr->read32(std::get<0>(res), (std::get<1>(res) & 0x1)), m_pc, (std::get<1>(res) & 0x1));
 
     // Update instruction cache.
     m_instr_cache[m_pc] = call_this;
@@ -929,8 +929,8 @@ CPU_T inline void CPU_PPC_T::init_common(){
 // set reservation
 CPU_T void CPU_PPC_T::set_resv(uint64_t ea, size_t size){
     LOG_DEBUG4(MSG_FUNC_START);
-    std::pair<uint64_t, uint8_t> res = xlate(ea, 0);
-    m_resv_addr = res.first;
+    xlated_tlb_res res = xlate(ea, 0);
+    m_resv_addr = std::get<0>(res);
     m_resv_set  = true;
     m_resv_size = size;
     // We need a mutex here
@@ -950,12 +950,12 @@ CPU_T void CPU_PPC_T::clear_resv(uint64_t ea){
 // Check resv
 CPU_T bool CPU_PPC_T::check_resv(uint64_t ea, size_t size){
     LOG_DEBUG4(MSG_FUNC_START);
-    std::pair<uint64_t, uint8_t> res = xlate(ea, 1);  // Reservation is checked during stwcx.
-    uint64_t caddr = res.first & ~(m_cache_line_size - 1);    // Get granule addr
+    xlated_tlb_res res = xlate(ea, 1);  // Reservation is checked during stwcx.
+    uint64_t caddr = std::get<0>(res) & ~(m_cache_line_size - 1);    // Get granule addr
     if(sm_resv_map.find(caddr) == sm_resv_map.end()){
         return false;
     }
-    if(res.first == m_resv_addr and m_resv_set == true and m_resv_size == size and
+    if(std::get<0>(res) == m_resv_addr and m_resv_set == true and m_resv_size == size and
             sm_resv_map[caddr].first == true and sm_resv_map[caddr].second == m_cpu_no){
         LOG_DEBUG4(MSG_FUNC_END);
         return true;

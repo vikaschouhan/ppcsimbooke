@@ -1,4 +1,6 @@
 // Some basic tests for FP default values in case of invalid operand error
+
+#define PPCSIMBOOKE_FPU_EMUL_DEBUG     // enable data structs for fpu debug
 #include "fpu_emul.h"
 
 using namespace fp_emul;

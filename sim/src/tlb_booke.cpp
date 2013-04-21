@@ -473,7 +473,8 @@ TLB_T void TLB_PPC_T::tlbive(uint64_t ea){
 }
 
 // Translate effective address into real address using as bit, an 8 bit PID value and permission attributes
-TLB_T std::pair<uint64_t, uint8_t> TLB_PPC_T::xlate(uint64_t ea, bool as, uint8_t pid, uint8_t rwx, bool pr){
+// Return read_addr, page_size & wimge attributes
+TLB_T std::tuple<uint64_t, uint8_t, uint64_t> TLB_PPC_T::xlate(uint64_t ea, bool as, uint8_t pid, uint8_t rwx, bool pr){
     LOG_DEBUG4(MSG_FUNC_START);
 
     uint64_t offset;
@@ -504,7 +505,7 @@ TLB_T std::pair<uint64_t, uint8_t> TLB_PPC_T::xlate(uint64_t ea, bool as, uint8_
             continue;
         }
 
-        return std::pair<uint64_t, uint8_t>((ra + offset), wimge);
+        return std::make_tuple((ra + offset), wimge, (~sm_pgmask_list[indx] + 1));
     }
 
     // According to e500v2 CRM , multiple hits are considered programming error and the xlated
@@ -540,7 +541,7 @@ TLB_T std::pair<uint64_t, uint8_t> TLB_PPC_T::xlate(uint64_t ea, bool as, uint8_
     // Instead of throwing TLB miss exception from here itself we are returning a value of -1
     // The TLB miss exception will be thrown in the caller after it tries to get a hit with
     // three different PID registers ( viz. PID0, PID1 and PID2 ) and still fails.
-    return std::pair<uint64_t, uint8_t>(-1, -1);
+    return std::make_tuple(-1, -1, -1);
 
     exit_loop_1:
 
@@ -552,6 +553,6 @@ TLB_T std::pair<uint64_t, uint8_t> TLB_PPC_T::xlate(uint64_t ea, bool as, uint8_
     m_tlb_cache.insert(TO_VIRT(u64(pr), u64(rwx), u64(as), u64(pid), (ea & ~(entry->ps - 1))), entry->ra, entry->wimge); 
 
     LOG_DEBUG4(MSG_FUNC_END);
-    return std::pair<uint64_t, uint8_t>((entry->ra + offset), wimge);
+    return std::make_tuple((entry->ra + offset), wimge, entry->ps);
 }
 

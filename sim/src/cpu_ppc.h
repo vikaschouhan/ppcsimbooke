@@ -84,7 +84,8 @@ class CPU_PPC {
     uint32_t   read32(uint64_t addr);
     void       write32(uint64_t addr, uint32_t value);
     uint64_t   read64(uint64_t addr);
-    void       write64(uint64_t addr, uint64_t value); 
+    void       write64(uint64_t addr, uint64_t value);
+    void       read_buff(uint64_t addr, uint8_t *buff, size_t buffsize);
 
     uint64_t   get_reg(std::string name) throw(sim_except);    // Get register by name
     void       dump_state(int columns=0, std::ostream &ostr=std::cout, int dump_all_sprs=0);   // Dump Cpu state
@@ -109,7 +110,8 @@ class CPU_PPC {
     void       notify_ctxt_switch();   // notify of context switches ( called by context syncronizing instructions  such as rfi, sc etc. )
 
     // Misc
-    std::pair<uint64_t, uint8_t>  xlate(uint64_t addr, bool wr=0);  // Translate EA to RA ( return a pair of <xlated addr, wimge> )
+    typedef std::tuple<uint64_t, uint8_t, uint64_t>  xlated_tlb_res;
+    xlated_tlb_res  xlate(uint64_t addr, bool wr=0);  // Translate EA to RA (return a tuple of <xlated addr, wimge, page_size>)
 
     // Accessing registers using reghash interface ( for use with ppc code translation unit )
     inline ppc_reg64*      reg(int regid);
