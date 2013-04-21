@@ -1441,7 +1441,7 @@ namespace superstl {
 
                 T* next() {
                     for (;;) {
-                        if superstl_unlikely (i >= lengthof(chunk.data)) return NULL;
+                        if superstl_unlikely (i >= lengthof(chunk->data)) return NULL;
                         if superstl_unlikely (chunk->freemap[i]) { i++; continue; }
                         return &chunk->data[i++];
                     }
