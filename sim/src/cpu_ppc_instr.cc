@@ -1752,7 +1752,7 @@ RTL_BEGIN("sc", ___sc___)
     throw PPC_EXCEPT(PPC_EXCEPT_SC, "system call");     // raise a system call exception
 RTL_END
 
-RTL_BEGIN("mfmsr", ___mfmsr___)
+RTL_BEGIN("mtmsr", ___mtmsr___)
     uint64_t newmsr = B_32_63(REG0);
     uint8_t newmsr_cm = ((newmsr & MSR_CM) ? 1:0);
     if((MSR_CM == 0) && (newmsr_cm == 1)) { NIP &= 0xffffffff; }
@@ -1762,7 +1762,7 @@ RTL_BEGIN("mfmsr", ___mfmsr___)
     MSR = newmsr;
 RTL_END
 
-RTL_BEGIN("mtmsr", ___mtmsr___)
+RTL_BEGIN("mfmsr", ___mfmsr___)
     REG0 = B_32_63(MSR);
 RTL_END
 
