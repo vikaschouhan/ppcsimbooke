@@ -239,6 +239,8 @@ TLB_T void TLB_PPC_T::print_tlbs2(){
  *
  * @brief : Reads TLB entry matching the information passed in MAS registers
  *
+ * TODO : Add support for searching from m_tlb_cache first.
+ *
  */
 TLB_T void TLB_PPC_T::tlbre(uint64_t &mas0, uint64_t &mas1, uint64_t &mas2, uint64_t &mas3, uint64_t &mas7, uint64_t hid0){
     LOG_DEBUG4(MSG_FUNC_START);
@@ -323,6 +325,12 @@ TLB_T void TLB_PPC_T::tlbwe(uint64_t mas0, uint64_t mas1, uint64_t mas2, uint64_
 
     entry.ps           = psize;
 
+    // Flush fast tlb cache
+    // TODO: Flushing whole cache is easiest way (but not most efficient way) of making sure, we don't use
+    //       stale translation entries.
+    //       Work is needed to add/remove only that entry for which "tlbwe" has been called.
+    m_tlb_cache.clear();
+
     LOG_DEBUG4(MSG_FUNC_END);
 }
 
@@ -333,6 +341,8 @@ TLB_T void TLB_PPC_T::tlbwe(uint64_t mas0, uint64_t mas1, uint64_t mas2, uint64_
  *         hid0 -> hid register
  *
  * @brief : This function searches for a tlb entry matching the passed effective address , TS = MAS6[SAS] and TID = MAS6[SPID0]
+ *
+ * TODO : Add support for searching in m_tlb_cache first.
  *
  */
 TLB_T void TLB_PPC_T::tlbse(uint64_t ea, uint64_t &mas0, uint64_t &mas1, uint64_t &mas2, uint64_t &mas3, uint64_t &mas6, uint64_t &mas7, uint64_t hid0){
@@ -468,6 +478,10 @@ TLB_T void TLB_PPC_T::tlbive(uint64_t ea){
     }
     exit_loop_1:
     ;
+
+    // Flush fast tlb cache
+    // TODO : Work needed for invalidating only relevant entries and not trashing the whole cache.
+    m_tlb_cache.clear();
 
     LOG_DEBUG4(MSG_FUNC_END);
 }

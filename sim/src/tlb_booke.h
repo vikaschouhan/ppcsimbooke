@@ -111,12 +111,8 @@ class TLB_PPC {
     //        2. sm_pgmask_list is the list of all supported page masks. This is the list
     //           used to derive page va for all possible page sizes. The generated va is
     //           then used as a hash key in step 1.
-    //        3. m_need_flush is flag which signifies if the cache has to be flushed. This
-    //           type of need arises, when tlb array is changed (for eg. when a new tlb
-    //           entry is written or some entry is invalidated etc.)
     lru_cache<uint64_t, uint64_t, uint32_t>     m_tlb_cache;          // [virtual_address] -> real_address cache
     static const uint64_t                       sm_pgmask_list[];     // page_mask list for all supported pages.
-    bool                                        m_need_flush;         // m_tlb_cache needs flushing
     
     private:
     void init_ppc_tlb_defaults(void);
