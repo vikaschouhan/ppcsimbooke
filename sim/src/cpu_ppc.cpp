@@ -192,7 +192,7 @@ CPU_T uint8_t CPU_PPC_T::read8(uint64_t addr){
     LOG_DEBUG4(MSG_FUNC_START);
     xlated_tlb_res res = xlate(addr, 0);
  
-    LASSERT_THROW(m_mem_ptr != NULL, sim_except_fatal("no memory module registered."), DEBUG4);
+    LASSERT_THROW_UNLIKELY(m_mem_ptr != NULL, sim_except_fatal("no memory module registered."), DEBUG4);
     LOG_DEBUG4(MSG_FUNC_END);
     return m_mem_ptr->read8(std::get<0>(res), (std::get<1>(res) & 0x1));
 }
@@ -201,7 +201,7 @@ CPU_T void CPU_PPC_T::write8(uint64_t addr, uint8_t value){
     LOG_DEBUG4(MSG_FUNC_START);
     xlated_tlb_res res = xlate(addr, 1);
 
-    LASSERT_THROW(m_mem_ptr != NULL, sim_except_fatal("no memory module registered."), DEBUG4);
+    LASSERT_THROW_UNLIKELY(m_mem_ptr != NULL, sim_except_fatal("no memory module registered."), DEBUG4);
     m_mem_ptr->write8(std::get<0>(res), value, (std::get<1>(res) & 0x1));
     LOG_DEBUG4(MSG_FUNC_END);
 }
@@ -210,7 +210,7 @@ CPU_T uint16_t CPU_PPC_T::read16(uint64_t addr){
     LOG_DEBUG4(MSG_FUNC_START);
     xlated_tlb_res res = xlate(addr, 0);
 
-    LASSERT_THROW(m_mem_ptr != NULL, sim_except_fatal("no memory module registered."), DEBUG4);
+    LASSERT_THROW_UNLIKELY(m_mem_ptr != NULL, sim_except_fatal("no memory module registered."), DEBUG4);
     LOG_DEBUG4(MSG_FUNC_END);
     return m_mem_ptr->read16(std::get<0>(res), (std::get<1>(res) & 0x1));
 }
@@ -220,7 +220,7 @@ CPU_T void CPU_PPC_T::write16(uint64_t addr, uint16_t value){
     LOG_DEBUG4(MSG_FUNC_START);
     xlated_tlb_res res = xlate(addr, 1);
 
-    LASSERT_THROW(m_mem_ptr != NULL, sim_except_fatal("no memory module registered."), DEBUG4);
+    LASSERT_THROW_UNLIKELY(m_mem_ptr != NULL, sim_except_fatal("no memory module registered."), DEBUG4);
     m_mem_ptr->write16(std::get<0>(res), value, (std::get<1>(res) & 0x1));
     LOG_DEBUG4(MSG_FUNC_END);
 }
@@ -229,7 +229,7 @@ CPU_T uint32_t CPU_PPC_T::read32(uint64_t addr){
     LOG_DEBUG4(MSG_FUNC_START);
     xlated_tlb_res res = xlate(addr, 0);
 
-    LASSERT_THROW(m_mem_ptr != NULL, sim_except_fatal("no memory module registered."), DEBUG4);
+    LASSERT_THROW_UNLIKELY(m_mem_ptr != NULL, sim_except_fatal("no memory module registered."), DEBUG4);
     LOG_DEBUG4(MSG_FUNC_END);
     return m_mem_ptr->read32(std::get<0>(res), (std::get<1>(res) & 0x1));
 }
@@ -238,7 +238,7 @@ CPU_T void CPU_PPC_T::write32(uint64_t addr, uint32_t value){
     LOG_DEBUG4(MSG_FUNC_START);
     xlated_tlb_res res = xlate(addr, 1);
 
-    LASSERT_THROW(m_mem_ptr != NULL, sim_except_fatal("no memory module registered."), DEBUG4);
+    LASSERT_THROW_UNLIKELY(m_mem_ptr != NULL, sim_except_fatal("no memory module registered."), DEBUG4);
     m_mem_ptr->write32(std::get<0>(res), value, (std::get<1>(res) & 0x1));
     LOG_DEBUG4(MSG_FUNC_END);
 }
@@ -247,7 +247,7 @@ CPU_T uint64_t CPU_PPC_T::read64(uint64_t addr){
     LOG_DEBUG4(MSG_FUNC_START);
     xlated_tlb_res res = xlate(addr, 0);
 
-    LASSERT_THROW(m_mem_ptr != NULL, sim_except_fatal("no memory module registered."), DEBUG4);
+    LASSERT_THROW_UNLIKELY(m_mem_ptr != NULL, sim_except_fatal("no memory module registered."), DEBUG4);
     LOG_DEBUG4(MSG_FUNC_END);
     return m_mem_ptr->read64(std::get<0>(res), (std::get<1>(res) & 0x1));
 }
@@ -256,7 +256,7 @@ CPU_T void CPU_PPC_T::write64(uint64_t addr, uint64_t value){
     LOG_DEBUG4(MSG_FUNC_START);
     xlated_tlb_res res = xlate(addr, 1);
 
-    LASSERT_THROW(m_mem_ptr != NULL, sim_except_fatal("no memory module registered."), DEBUG4);
+    LASSERT_THROW_UNLIKELY(m_mem_ptr != NULL, sim_except_fatal("no memory module registered."), DEBUG4);
     m_mem_ptr->write64(std::get<0>(res), value, (std::get<1>(res) & 0x1));
     LOG_DEBUG4(MSG_FUNC_END);
 }
@@ -266,6 +266,8 @@ CPU_T void CPU_PPC_T::read_buff(uint64_t addr, uint8_t* buff, size_t buffsize){
     uint64_t ps, pm;
     size_t size_curr_page;
     xlated_tlb_res res;
+
+    LASSERT_THROW_UNLIKELY(m_mem_ptr != NULL, sim_except_fatal("no memory module registered."), DEBUG4);
     
     while(buffsize > 0){
         res = xlate(addr, 1);          // translate this address
@@ -725,7 +727,7 @@ CPU_T instr_call CPU_PPC_T::get_instr(){
     exit_loop_0:
     LOG_DEBUG4(std::hex, std::showbase, "instr Xlation : ", m_pc, " -> ", std::get<0>(res), std::endl);
 
-    LASSERT_THROW(m_mem_ptr != NULL, sim_except_fatal("no memory module registered."), DEBUG4);
+    LASSERT_THROW_UNLIKELY(m_mem_ptr != NULL, sim_except_fatal("no memory module registered."), DEBUG4);
     // Disassemble the instr at curr pc
     call_this = m_dis.disasm(m_mem_ptr->read32(std::get<0>(res), (std::get<1>(res) & 0x1)), m_pc, (std::get<1>(res) & 0x1));
 

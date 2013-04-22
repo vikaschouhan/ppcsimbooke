@@ -114,25 +114,36 @@ static const int  EMUL_LITTLE_ENDIAN     =  1;
 
 // Macro for ensuring that function end message is always printed even in case of abrubt returns
 // Void functions don't allow return values
-#define RETURN(retval, DEBUGLEVEL)       LOG(#DEBUGLEVEL) << MSG_FUNC_END; return (retval)
-#define RETURNVOID(DEBUGLEVEL)           LOG(#DEBUGLEVEL) << MSG_FUNC_END; return
+#define RETURN(retval, DEBUGLEVEL)       LOG_##DEBUGLEVEL(MSG_FUNC_END); return (retval)
+#define RETURNVOID(DEBUGLEVEL)           LOG_##DEBUGLEVEL(MSG_FUNC_END); return
 
 // Log assert and return
-#define LASSERT_RET(x, retv, LEVEL)   if(!(x)){                                                                                               \
-                                          std::cout << #x << " failed in " << __FILE__ << " at " << __LINE__ << std::endl;                    \
-                                          LOG(#LEVEL) << MSG_FUNC_END;                                                                        \
+// NOTE: Conditions for all assertions are modelled after assert() function in std C/C++.
+//       i.e assertion will be generated when enclosed condition evaluates to false
+#define PPCSIMBOOKE_UTILS_RET_SYN(x, expv, LEVEL)                                                                                             \
+                                      {                                                                                                       \
+                                          std::cerr << #x << " failed in " << __FILE__ << " at " << __LINE__ << std::endl;                    \
+                                          LOG_##LEVEL(MSG_FUNC_END);                                                                          \
                                           return (retv);                                                                                      \
                                       }
+
+#define LASSERT_RET(x, retv, LEVEL)              do { if(!(x)) PPCSIMBOOKE_UTILS_RET_SYN(x, retv, LEVEL) }while(0)
+#define LASSERT_RET_LIKELY(x, retv, LEVEL)       do { if likely(!(x)) PPCSIMBOOKE_UTILS_RET_SYN(x, retv, LEVEL) }while(0)
+#define LASSERT_RET_UNLIKELY(x, retv, LEVEL)     do { if unlikely(!(x)) PPCSIMBOOKE_UTILS_RET_SYN(x, retv, LEVEL) }while(0)
+                                          
 // Log assert and throw
-#define LASSERT_THROW(x, expv, LEVEL) if(!(x)){                                                                                               \
-                                          std::cout << #x << " failed in " << __FILE__ << " at " << __LINE__ << std::endl;                    \
-                                          LOG(#LEVEL) << MSG_FUNC_END;                                                                        \
+#define PPCSIMBOOKE_UTILS_THROW_SYN(x, expv, LEVEL)                                                                                           \
+                                      {                                                                                                       \
+                                          std::cerr << #x << " failed in " << __FILE__ << " at " << __LINE__ << std::endl;                    \
+                                          LOG_##LEVEL(MSG_FUNC_END);                                                                          \
                                           throw expv;                                                                                         \
                                       }
-#define LTHROW(expv, LEVEL)           {                                                                                                       \
-                                          LOG(#LEVEL) << MSG_FUNC_END;                                                                        \
-                                          throw expv;                                                                                         \
-                                      } 
+
+#define LASSERT_THROW(x, expv, LEVEL)             do { if(!(x)) PPCSIMBOOKE_UTILS_THROW_SYN(x, expv, LEVEL) }while(0)
+#define LASSERT_THROW_LIKELY(x, expv, LEVEL)      do { if likely(!(x)) PPCSIMBOOKE_UTILS_THROW_SYN(x, expv, LEVEL) }while(0)
+#define LASSERT_THROW_UNLIKELY(x, expv, LEVEL)    do { if unlikely(!(x)) PPCSIMBOOKE_UTILS_THROW_SYN(x, expv, LEVEL) }while(0)
+
+#define LTHROW(expv, LEVEL)           do { LOG_##LEVEL(MSG_FUNC_END); throw expv; }while(0)
 
 // Convert a string to an integer
 // We don't support octal and binary ints for time being

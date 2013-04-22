@@ -514,9 +514,9 @@ TLB_T std::tuple<uint64_t, uint8_t, uint64_t> TLB_PPC_T::xlate(uint64_t ea, bool
     uint64_t ra;
 
     // Check validity of AS and PID
-    LASSERT_THROW((as & 0x1)   == as,  sim_except(SIM_EXCEPT_EINVAL, "Illegal AS"), DEBUG4);
-    LASSERT_THROW((pid & 0xff) == pid, sim_except(SIM_EXCEPT_EINVAL, "Illegal PID"), DEBUG4);
-    LASSERT_THROW((rwx & 0x7)  == rwx, sim_except(SIM_EXCEPT_EINVAL, "Illegal permis rwx"), DEBUG4);
+    LASSERT_THROW_UNLIKELY((as & 0x1)   == as,  sim_except(SIM_EXCEPT_EINVAL, "Illegal AS"), DEBUG4);
+    LASSERT_THROW_UNLIKELY((pid & 0xff) == pid, sim_except(SIM_EXCEPT_EINVAL, "Illegal PID"), DEBUG4);
+    LASSERT_THROW_UNLIKELY((rwx & 0x7)  == rwx, sim_except(SIM_EXCEPT_EINVAL, "Illegal permis rwx"), DEBUG4);
 
     uint16_t perm = (rwx << (pr*3));
 

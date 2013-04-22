@@ -129,7 +129,7 @@ MEM_T uint8_t* MEM_PPC_T::paddr_to_hostpage(uint64_t paddr){
     }
 
     mem_tgt_iter iter_this = select_mem_tgt(paddr);
-    LASSERT_THROW(iter_this != mem_tgt.end(), sim_except(SIM_EXCEPT_EFAULT, "No valid target found for this address"), DEBUG4);
+    LASSERT_THROW_UNLIKELY(iter_this != mem_tgt.end(), sim_except(SIM_EXCEPT_EFAULT, "No valid target found for this address"), DEBUG4);
 
     if(!iter_this->page_hash[pageno]){
         iter_this->page_hash[pageno] = new uint8_t[MIN_PGSZ];
