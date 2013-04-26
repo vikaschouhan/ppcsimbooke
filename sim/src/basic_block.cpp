@@ -2,6 +2,28 @@
 
 namespace ppcsimbooke_basic_block {
 
+    void basic_block_decoder::reset(){
+        transbufcount = 0;
+        insnbytes_buffsize = 0;
+        valid_byte_count = 0;
+        ipstart = ip = bip.ip;
+        byteoffset = 0;
+        op = 0;
+        insn_count = 0;
+        invalid = false;
+        outcome = 0;
+        fault_addr = 0;
+        fault_cause = 0;
+    }
+
+    basic_block_decoder::basic_block_decoder(const basic_block_ip& bip){
+        bb.bip = bip;
+        reset(); 
+    }
+
+    basic_block_decoder::(CPU_PPC& ctx, uint64_t ip){
+    }
+
     int basic_block_decode::fillbuff(CPU_PPC *ctx, uint8_t *buff, int buffsize){
         insnbytes = buff;
         insnbytes_buffsize = buffsize;
