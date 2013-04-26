@@ -210,3 +210,9 @@ run_sim_tests: $(SIM_TEST_EXES)
 
 run_tests: run_dut_tests run_sim_tests
 
+show_dut_tests:
+	@echo $(DUT_TEST_EXES)
+
+show_sim_tests:
+	@echo $(SIM_TEST_EXES)
+
