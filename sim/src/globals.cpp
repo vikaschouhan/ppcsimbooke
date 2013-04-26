@@ -2,7 +2,7 @@
 
 // instr_call_frame member functions -----------------------------------------------------------
 
-instr_call::instr_call(){
+ppcsimbooke::instr_call::instr_call(){
     opcname = "";
     fmt     = "";
     opc     = 0;
@@ -14,7 +14,7 @@ instr_call::instr_call(){
 }
 
 // Dump state
-void instr_call::dump_state(){
+void ppcsimbooke::instr_call::dump_state(){
     std::cout << "name   : " << opcname << std::endl;
     std::cout << "opcode : " << std::hex << std::showbase << opc << std::endl;
     std::cout << "args   : ";
@@ -37,7 +37,7 @@ void instr_call::dump_state(){
 }
 
 // print instruction
-void instr_call::print_instr(){
+void ppcsimbooke::instr_call::print_instr(){
     std::string lfmt = fmt;
     for(int i=nargs; i<N_IC_ARGS; i++){
         lfmt += "%c";
@@ -52,7 +52,7 @@ void instr_call::print_instr(){
 
 
 // Get instruction representation in string form ( Used for DEBUG logs )
-char* instr_call::get_instr_str(){
+char* ppcsimbooke::instr_call::get_instr_str(){
     static char instr_str[100];
     std::string lfmt = fmt;
     for(int i=nargs; i<N_IC_ARGS; i++){
@@ -71,7 +71,7 @@ char* instr_call::get_instr_str(){
 // register_file member functions
 //
 // Constructor
-ppc_regs::ppc_regs(bool c_m):
+ppcsimbooke::ppc_regs::ppc_regs(bool c_m):
     cm(c_m),
 
     msr     (0,    (REG_READ_SUP | REG_WRITE_SUP | REG_READ_USR                                  ), 0            , REG_TYPE_MSR),
@@ -404,7 +404,7 @@ ppc_regs::ppc_regs(bool c_m):
 }
 
 // Update CR0
-void ppc_regs::update_cr0(uint64_t value){
+void ppcsimbooke::ppc_regs::update_cr0(uint64_t value){
     int c;
 
     if unlikely(cm) {
@@ -431,7 +431,7 @@ void ppc_regs::update_cr0(uint64_t value){
 }
 
 // Update CR0 using host flags
-void ppc_regs::update_cr0_host(x86_flags &hf){
+void ppcsimbooke::ppc_regs::update_cr0_host(x86_flags &hf){
     int c = 0;
 
     if(hf.sf){ c = 8;  }          // If sign flag, set cr0[lt] flag
@@ -447,7 +447,7 @@ void ppc_regs::update_cr0_host(x86_flags &hf){
 
 // Updates CR[bf] with val i.e CR[bf] <- (val & 0xf)
 // bf may range from [0:7]
-void ppc_regs::update_crF(unsigned bf, unsigned val){
+void ppcsimbooke::ppc_regs::update_crF(unsigned bf, unsigned val){
     bf &= 0x7;
     val &= 0xf;
     cr &= ~( 0xf << (7 - bf)*4 );
@@ -455,12 +455,12 @@ void ppc_regs::update_crF(unsigned bf, unsigned val){
 }
 
 // Get crF  ( F -> [0:7] )
-unsigned ppc_regs::get_crF(unsigned bf){
+unsigned ppcsimbooke::ppc_regs::get_crF(unsigned bf){
     return (cr >> (7 - bf)*4) & 0xf;
 }
 
 // Update CR by exact field value [0:31]
-void ppc_regs::update_crf(unsigned field, bool value){
+void ppcsimbooke::ppc_regs::update_crf(unsigned field, bool value){
     field &= 0x1f;
     value &= 0x1;
     cr &= ~(0x1 << (31 - field));
@@ -468,70 +468,70 @@ void ppc_regs::update_crf(unsigned field, bool value){
 }
 
 // Get CR bit at exact field
-bool ppc_regs::get_crf(unsigned field){
+bool ppcsimbooke::ppc_regs::get_crf(unsigned field){
     return (cr >> (31 - field)) & 0x1;
 }
 
-void ppc_regs::update_xerF(unsigned bf, unsigned val){
+void ppcsimbooke::ppc_regs::update_xerF(unsigned bf, unsigned val){
     bf &= 0x7;
     val &= 0xf;
     xer &= ~( 0xf << (7 - bf)*4 );
     xer |=  ((val & 0xf) << (7 - bf)*4);
 }
 
-unsigned ppc_regs::get_xerF(unsigned bf){
+unsigned ppcsimbooke::ppc_regs::get_xerF(unsigned bf){
     return (xer >> (7 - bf)*4) & 0xf;
 }
 
-void ppc_regs::update_xerf(unsigned field, bool value){
+void ppcsimbooke::ppc_regs::update_xerf(unsigned field, bool value){
     field &= 0x1f;
     value &= 0x1;
     xer &= ~(0x1 << (31 - field));
     xer |= (value << (31 - field));
 }
 
-bool ppc_regs::get_xerf(unsigned field){
+bool ppcsimbooke::ppc_regs::get_xerf(unsigned field){
     return (xer >> (31 - field)) & 0x1;
 }
 
 // Update XER[SO] & XER[OV] by value.
 // so_ov is a 2 bit value with ((XER[SO] << 1) | XER[OV])
 // NOTE : since XER[32:35] = { SO, OV, CA, RESERVED } , hence XER = XER | (so_ov << 30)
-void ppc_regs::update_xer_so_ov(uint8_t so_ov){
+void ppcsimbooke::ppc_regs::update_xer_so_ov(uint8_t so_ov){
     xer &= ~((uint32_t)0x3 << 30);
     xer |= (static_cast<uint64_t>(so_ov) << 30);
 }
 
 // so_ov=0x3 if x86_flags::of=1
-void ppc_regs::update_xer_so_ov_host(x86_flags &hf){
+void ppcsimbooke::ppc_regs::update_xer_so_ov_host(x86_flags &hf){
     uint64_t v = (hf.of) ? 0x3:0;
     xer &= ~((uint32_t)0x3 << 30);
     xer |= (v << 30);
 }
 
 // Update XER[CA]
-void ppc_regs::update_xer_ca(bool value){
+void ppcsimbooke::ppc_regs::update_xer_ca(bool value){
     uint32_t val = (value) ? 1:0;
     xer &= XER_CA;                              // clear XER[CA]
     xer |= val << RSHIFT<XER_CA>::VAL;          // Insert value into XER[CA]
 }
 
 // Update XER[CA] using host flags
-void ppc_regs::update_xer_ca_host(x86_flags &hf){
+void ppcsimbooke::ppc_regs::update_xer_ca_host(x86_flags &hf){
     xer &= XER_CA;                                                  // clear XER[CA]
     xer |= static_cast<uint64_t>(hf.cf) << RSHIFT<XER_CA>::VAL;     // Insert value into XER[CA]
 }
 
 // Get XER[SO]
-bool ppc_regs::get_xer_so(){
+bool ppcsimbooke::ppc_regs::get_xer_so(){
     return (xer & XER_SO) ? 1:0;
 }
 
-bool ppc_regs::get_xer_ca(){
+bool ppcsimbooke::ppc_regs::get_xer_ca(){
     return (xer & XER_CA) ? 1:0;
 }
 
-bool ppc_regs::get_xer_ov(){
+bool ppcsimbooke::ppc_regs::get_xer_ov(){
     return (xer & XER_OV) ? 1:0;
 }
 
@@ -558,7 +558,7 @@ bool ppc_regs::get_xer_ov(){
 //            If an invalid operation/input error doesn't happen, divisor is (+/-)0 & divident is a non-zero normalized no,
 //            FDBZ[H]=1. If exception is unmasked, an interrupt is taken.
 // ==========================
-void ppc_regs::update_spefscr(x86_mxcsr &hf, bool high){
+void ppcsimbooke::ppc_regs::update_spefscr(x86_mxcsr &hf, bool high){
     uint32_t m = hf.v;
 
     // check for errors

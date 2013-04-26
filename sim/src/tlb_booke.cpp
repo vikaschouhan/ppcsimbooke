@@ -3,7 +3,7 @@
 // All static members.
 
 // Look up table for page masks
-TLB_T const uint64_t TLB_PPC_T::sm_pgmask_list[] = {
+const uint64_t ppcsimbooke::ppcsimbooke_tlb::tlb::sm_pgmask_list[] = {
                                                 ~(0x0000000000001000ULL - 1),    // TID=1,   4K
                                                 ~(0x0000000000004000ULL - 1),    // TID=2,   16K
                                                 ~(0x0000000000010000ULL - 1),    // TID=3,   64K
@@ -26,7 +26,7 @@ TLB_T const uint64_t TLB_PPC_T::sm_pgmask_list[] = {
 // Member functions
 
 /* Initialize default values on per entry basis for all tlb arrays */
-TLB_T void TLB_PPC_T::init_ppc_tlb_defaults(void){
+void ppcsimbooke::ppcsimbooke_tlb::tlb::init_ppc_tlb_defaults(void){
     LOG_DEBUG4(MSG_FUNC_START);
 
     // tlb4K
@@ -73,7 +73,7 @@ TLB_T void TLB_PPC_T::init_ppc_tlb_defaults(void){
  *
  * @brief : print one tlb entry at a time.
  */ 
-TLB_T void TLB_PPC_T::print_tlb_entry(t_tlb_entry &entry, std::string fmtstr){
+void ppcsimbooke::ppcsimbooke_tlb::tlb::print_tlb_entry(t_tlb_entry &entry, std::string fmtstr){
     LOG_DEBUG4(MSG_FUNC_START);
 
     std::cout << fmtstr << "tid    -> " << std::hex << entry.tid << std::endl;
@@ -93,7 +93,7 @@ TLB_T void TLB_PPC_T::print_tlb_entry(t_tlb_entry &entry, std::string fmtstr){
 }
 
 // Get tlb entry when tlbno, epn and esel are specified.
-TLB_T typename TLB_PPC_T::t_tlb_entry& TLB_PPC_T::get_entry(size_t tlbno, uint64_t ea, size_t esel){
+typename ppcsimbooke::ppcsimbooke_tlb::tlb::t_tlb_entry& ppcsimbooke::ppcsimbooke_tlb::tlb::get_entry(size_t tlbno, uint64_t ea, size_t esel){
     LOG_DEBUG4(MSG_FUNC_START);
 
     unsigned setno = 0;
@@ -123,7 +123,7 @@ TLB_T typename TLB_PPC_T::t_tlb_entry& TLB_PPC_T::get_entry(size_t tlbno, uint64
 }
 
 // Get tlb entry when tlbno, setno and wayno are specified.
-TLB_T typename TLB_PPC_T::t_tlb_entry& TLB_PPC_T::get_entry2(size_t tlbno, size_t setno, size_t wayno){
+typename ppcsimbooke::ppcsimbooke_tlb::tlb::t_tlb_entry& ppcsimbooke::ppcsimbooke_tlb::tlb::get_entry2(size_t tlbno, size_t setno, size_t wayno){
     LOG_DEBUG4(MSG_FUNC_START);
 
     /* Wrong tlbsel */
@@ -143,7 +143,7 @@ TLB_T typename TLB_PPC_T::t_tlb_entry& TLB_PPC_T::get_entry2(size_t tlbno, size_
 }
 
 // Constructor
-TLB_T TLB_PPC_T::TLB_PPC(){
+ppcsimbooke::ppcsimbooke_tlb::tlb::tlb(){
     LOG_DEBUG4(MSG_FUNC_START);
     /* Initialize default tlb parameters , based on passed information */
     init_ppc_tlb_defaults();
@@ -152,7 +152,7 @@ TLB_T TLB_PPC_T::TLB_PPC(){
 }
 
 /* Destructor */
-TLB_T TLB_PPC_T::~TLB_PPC(){
+ppcsimbooke::ppcsimbooke_tlb::tlb::~tlb(){
     LOG_DEBUG4(MSG_FUNC_START);
     LOG_DEBUG4(MSG_FUNC_END);
 }
@@ -163,7 +163,7 @@ TLB_T TLB_PPC_T::~TLB_PPC(){
  *
  * @brief : print all tlb entries in a nice form
  */
-TLB_T void TLB_PPC_T::print_tlbs(){
+void ppcsimbooke::ppcsimbooke_tlb::tlb::print_tlbs(){
     LOG_DEBUG4(MSG_FUNC_START);
 
 #define PRINT_TLB(tlb_type)                                                                            \
@@ -194,7 +194,7 @@ TLB_T void TLB_PPC_T::print_tlbs(){
  *
  * @brief : print all tlb entries in a nice form
  */
-TLB_T void TLB_PPC_T::print_tlbs2(){
+void ppcsimbooke::ppcsimbooke_tlb::tlb::print_tlbs2(){
     LOG_DEBUG4(MSG_FUNC_START);
 
 #define PRINT_TLB_ENT(set, way, ea, ra, epn, rpn, tid, ts, wimge, permis, ps, x01, u03, iprot)                            \
@@ -242,7 +242,7 @@ TLB_T void TLB_PPC_T::print_tlbs2(){
  * TODO : Add support for searching from m_tlb_cache first.
  *
  */
-TLB_T void TLB_PPC_T::tlbre(uint64_t &mas0, uint64_t &mas1, uint64_t &mas2, uint64_t &mas3, uint64_t &mas7, uint64_t hid0){
+void ppcsimbooke::ppcsimbooke_tlb::tlb::tlbre(uint64_t &mas0, uint64_t &mas1, uint64_t &mas2, uint64_t &mas3, uint64_t &mas7, uint64_t hid0){
     LOG_DEBUG4(MSG_FUNC_START);
 
     unsigned tlbsel = EBF(mas0,       MAS0_TLBSEL);
@@ -285,7 +285,7 @@ TLB_T void TLB_PPC_T::tlbre(uint64_t &mas0, uint64_t &mas1, uint64_t &mas2, uint
  *         mas0, mas1, mas2, mas3, mas7 -> MAS registers.
  *         hid0 -> HID0 register
  */
-TLB_T void TLB_PPC_T::tlbwe(uint64_t mas0, uint64_t mas1, uint64_t mas2, uint64_t mas3, uint64_t mas7, uint64_t hid0){
+void ppcsimbooke::ppcsimbooke_tlb::tlb::tlbwe(uint64_t mas0, uint64_t mas1, uint64_t mas2, uint64_t mas3, uint64_t mas7, uint64_t hid0){
     LOG_DEBUG4(MSG_FUNC_START);
 
     unsigned tlbsel = EBF(mas0,    MAS0_TLBSEL);
@@ -345,7 +345,7 @@ TLB_T void TLB_PPC_T::tlbwe(uint64_t mas0, uint64_t mas1, uint64_t mas2, uint64_
  * TODO : Add support for searching in m_tlb_cache first.
  *
  */
-TLB_T void TLB_PPC_T::tlbse(uint64_t ea, uint64_t &mas0, uint64_t &mas1, uint64_t &mas2, uint64_t &mas3, uint64_t &mas6, uint64_t &mas7, uint64_t hid0){
+void ppcsimbooke::ppcsimbooke_tlb::tlb::tlbse(uint64_t ea, uint64_t &mas0, uint64_t &mas1, uint64_t &mas2, uint64_t &mas3, uint64_t &mas6, uint64_t &mas7, uint64_t hid0){
     LOG_DEBUG4(MSG_FUNC_START);
 
     uint32_t  as  = EBF(mas6,  MAS6_SAS);
@@ -422,7 +422,7 @@ TLB_T void TLB_PPC_T::tlbse(uint64_t ea, uint64_t &mas0, uint64_t &mas1, uint64_
  *        An Invalidate Instruction is broadcase throughout the coherency domain of the current processor.
  *
  * */
-TLB_T void TLB_PPC_T::tlbive(uint64_t ea){
+void ppcsimbooke::ppcsimbooke_tlb::tlb::tlbive(uint64_t ea){
     LOG_DEBUG4(MSG_FUNC_START);
 
     uint8_t  tlbsel = (ea >> 3) & 0x1;
@@ -504,7 +504,7 @@ TLB_T void TLB_PPC_T::tlbive(uint64_t ea){
 //            
 //  @NOTE :
 //          If a TLB miss is encountered, the miss type as well as the offending address is returned as part of exception class
-TLB_T std::tuple<uint64_t, uint8_t, uint64_t> TLB_PPC_T::xlate(uint64_t ea, bool as, uint8_t pid, uint8_t rwx, bool pr){
+std::tuple<uint64_t, uint8_t, uint64_t> ppcsimbooke::ppcsimbooke_tlb::tlb::xlate(uint64_t ea, bool as, uint8_t pid, uint8_t rwx, bool pr){
     LOG_DEBUG4(MSG_FUNC_START);
 
     uint64_t offset;

@@ -7,7 +7,7 @@
 int main(){
     LOG_TO_FILE("test_tlb_booke_interface.log");
 
-    TLB_PPC tlbl2;
+    ppcsimbooke::ppcsimbooke_tlb::tlb tlbl2;
 
     // print alll tlb entries
     tlbl2.print_tlbs2();

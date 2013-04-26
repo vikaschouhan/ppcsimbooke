@@ -13,9 +13,9 @@ int main(){
     for(int i=0; i<80; i++)
         arr[i] = static_cast<char>(i);
 
-    memory mem0;
-    mem0.register_memory_target(0xc1000000, 0x10000, "CCSR", 0, TGT_CCSR, 50); // priority of CCSR is greatest
-    mem0.register_memory_target(0x0, 0x100000000, "ddr0", 0, TGT_DDR);
+    ppcsimbooke::ppcsimbooke_memory::memory mem0;
+    mem0.register_memory_target(0xc1000000, 0x10000, "CCSR", 0, ppcsimbooke::ppcsimbooke_memory::TGT_CCSR, 50); // priority of CCSR is greatest
+    mem0.register_memory_target(0x0, 0x100000000, "ddr0", 0, ppcsimbooke::ppcsimbooke_memory::TGT_DDR);
     mem0.write_from_buffer(0x10, (uint8_t *)arr, 80);
     mem0.read_to_buffer(0x020, data, 80);
     mem0.dump_all_memory_targets();

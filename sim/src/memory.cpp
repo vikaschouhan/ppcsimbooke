@@ -9,7 +9,7 @@
  *
  * @brief : dump memory target
  */
-MEM_T void MEM_PPC_T::dump_mem_tgt(t_mem_tgt &mem_tgt_this, std::string fmtstr){
+void ppcsimbooke::ppcsimbooke_memory::memory::dump_mem_tgt(t_mem_tgt &mem_tgt_this, std::string fmtstr){
     LOG_DEBUG4(MSG_FUNC_START);
     std::cout << std::hex << std::showbase;
     std::cout << fmtstr << "base address = " << mem_tgt_this.baseaddr << std::endl;
@@ -29,7 +29,7 @@ MEM_T void MEM_PPC_T::dump_mem_tgt(t_mem_tgt &mem_tgt_this, std::string fmtstr){
  * @brief : dump memory target
  *
  */
-MEM_T void MEM_PPC_T::dump_mem_tgt2(t_mem_tgt &mem_tgt_this, std::string fmtstr){
+void ppcsimbooke::ppcsimbooke_memory::memory::dump_mem_tgt2(t_mem_tgt &mem_tgt_this, std::string fmtstr){
     LOG_DEBUG4(MSG_FUNC_START);
     std::cout << std::hex << std::showbase;
     std::cout << fmtstr << "tgt = " << mem_tgt_this.name << " with base_addr = " <<
@@ -46,7 +46,7 @@ MEM_T void MEM_PPC_T::dump_mem_tgt2(t_mem_tgt &mem_tgt_this, std::string fmtstr)
  * @brief : checks if this target overlaps with other targets and returns and bool status value
  *
  */
-MEM_T bool MEM_PPC_T::is_overlapping_tgt(const t_mem_tgt &mem_tgt_this){
+bool ppcsimbooke::ppcsimbooke_memory::memory::is_overlapping_tgt(const t_mem_tgt &mem_tgt_this){
     LOG_DEBUG4(MSG_FUNC_START);
     for(mem_tgt_iter iter_this = mem_tgt.begin(); iter_this != mem_tgt.end(); iter_this++){
         if((mem_tgt_this.baseaddr >= iter_this->baseaddr) &&
@@ -73,7 +73,7 @@ MEM_T bool MEM_PPC_T::is_overlapping_tgt(const t_mem_tgt &mem_tgt_this){
  * @brief : check if the passed physical address is there in the passed target
  * @return : bool
  */
-MEM_T bool MEM_PPC_T::is_paddr_there(typename MEM_PPC_T::mem_tgt_iter iter_this, uint64_t paddr){
+bool ppcsimbooke::ppcsimbooke_memory::memory::is_paddr_there(typename ppcsimbooke::ppcsimbooke_memory::memory::mem_tgt_iter iter_this, uint64_t paddr){
     LOG_DEBUG4(MSG_FUNC_START);
     if((iter_this->baseaddr <= paddr) && (iter_this->endaddr >= paddr)){
         LOG_DEBUG4(MSG_FUNC_END);
@@ -90,7 +90,7 @@ MEM_T bool MEM_PPC_T::is_paddr_there(typename MEM_PPC_T::mem_tgt_iter iter_this,
  * @brief: select a memory target based on physical address
  * @return : iterator ( pointer ) to the selected memory target
  */
-MEM_T typename MEM_PPC_T::mem_tgt_iter MEM_PPC_T::select_mem_tgt(uint64_t paddr) throw(sim_except){
+typename ppcsimbooke::ppcsimbooke_memory::memory::mem_tgt_iter ppcsimbooke::ppcsimbooke_memory::memory::select_mem_tgt(uint64_t paddr) throw(sim_except){
     LOG_DEBUG4(MSG_FUNC_START);
     mem_tgt_iter iter_last = mem_tgt.end();
     for(mem_tgt_iter iter_this = mem_tgt.begin(); iter_this != mem_tgt.end(); iter_this++){
@@ -117,7 +117,7 @@ MEM_T typename MEM_PPC_T::mem_tgt_iter MEM_PPC_T::select_mem_tgt(uint64_t paddr)
  *
  * @brief: returns a pointer to the host page
  */
-MEM_T uint8_t* MEM_PPC_T::paddr_to_hostpage(uint64_t paddr){
+uint8_t* ppcsimbooke::ppcsimbooke_memory::memory::paddr_to_hostpage(uint64_t paddr){
     LOG_DEBUG4(MSG_FUNC_START);
    
     uint64_t pageno = (paddr >> MIN_PGSZ_SHIFT);
@@ -150,7 +150,7 @@ MEM_T uint8_t* MEM_PPC_T::paddr_to_hostpage(uint64_t paddr){
  * @brief: return a host pointer to the physical address
  * @return: unsigned char pointer to the host address
  */
-MEM_T uint8_t* MEM_PPC_T::paddr_to_hostaddr(uint64_t paddr){
+uint8_t* ppcsimbooke::ppcsimbooke_memory::memory::paddr_to_hostaddr(uint64_t paddr){
     LOG_DEBUG4(MSG_FUNC_START);
     uint64_t pageno = (paddr >> MIN_PGSZ_SHIFT);
     size_t   offset =  (paddr - (pageno << MIN_PGSZ_SHIFT));
@@ -164,7 +164,7 @@ MEM_T uint8_t* MEM_PPC_T::paddr_to_hostaddr(uint64_t paddr){
  *
  * @brief : registers a memory target type
  */
-MEM_T void MEM_PPC_T::register_memory_target(uint64_t ba, size_t size, std::string name, uint32_t flags, int tgt_type, int prio){
+void ppcsimbooke::ppcsimbooke_memory::memory::register_memory_target(uint64_t ba, size_t size, std::string name, uint32_t flags, int tgt_type, int prio){
     // Check for legal values.
     if(size > static_cast<size_t>(1 << this->m_bits)){
         // throw exception
@@ -208,7 +208,7 @@ MEM_T void MEM_PPC_T::register_memory_target(uint64_t ba, size_t size, std::stri
  *
  * @brief : dump all memory targets
  */
-MEM_T void MEM_PPC_T::dump_all_memory_targets(){
+void ppcsimbooke::ppcsimbooke_memory::memory::dump_all_memory_targets(){
     for(mem_tgt_iter iter_this = mem_tgt.begin(); iter_this != mem_tgt.end(); iter_this++){
         std::cout << BAR0 << std::endl;
         dump_mem_tgt(*iter_this);
@@ -223,7 +223,7 @@ MEM_T void MEM_PPC_T::dump_all_memory_targets(){
  * @brief : dump all pages hashes for all memory targets.
  * @type : debug
  */
-MEM_T void MEM_PPC_T::dump_all_page_maps(){
+void ppcsimbooke::ppcsimbooke_memory::memory::dump_all_page_maps(){
     LOG_DEBUG4(MSG_FUNC_START);
     for(mem_tgt_iter iter_this = mem_tgt.begin(); iter_this != mem_tgt.end(); iter_this++){
         dump_mem_tgt2(*iter_this);
@@ -245,7 +245,7 @@ MEM_T void MEM_PPC_T::dump_all_page_maps(){
  * @brief : dump all pages, along with their contents into a text file / binary files
  * @type  : debug
  */
-MEM_T void MEM_PPC_T::dump_all_pages(std::ostream &ostr){
+void ppcsimbooke::ppcsimbooke_memory::memory::dump_all_pages(std::ostream &ostr){
     LOG_DEBUG4(MSG_FUNC_START);
     uint8_t *ptr = NULL;
     int grp_size = 4;
@@ -292,7 +292,7 @@ MEM_T void MEM_PPC_T::dump_all_pages(std::ostream &ostr){
  * @brief : dump page by physical address ( i.e containing a physical address )
  * @type  : debug
  */
-MEM_T void MEM_PPC_T::dump_page(uint64_t addr, std::ostream &ostr){
+void ppcsimbooke::ppcsimbooke_memory::memory::dump_page(uint64_t addr, std::ostream &ostr){
     LOG_DEBUG4(MSG_FUNC_START);
     uint8_t *ptr = NULL;
     int grp_size = 4;
@@ -332,7 +332,7 @@ MEM_T void MEM_PPC_T::dump_page(uint64_t addr, std::ostream &ostr){
  *
  * @brief : writes passed buffer to the memory
  */
-MEM_T void MEM_PPC_T::write_from_buffer(uint64_t addr, uint8_t* buff, size_t size){
+void ppcsimbooke::ppcsimbooke_memory::memory::write_from_buffer(uint64_t addr, uint8_t* buff, size_t size){
     size_t curr_size;
     size_t offset;
     uint8_t *curr_page = NULL;
@@ -359,7 +359,7 @@ MEM_T void MEM_PPC_T::write_from_buffer(uint64_t addr, uint8_t* buff, size_t siz
  * @brief: reads data into buffer from requested physical address
  * @return : buffer pointer
  */
-MEM_T uint8_t* MEM_PPC_T::read_to_buffer(uint64_t addr, uint8_t *buff, size_t size){
+uint8_t* ppcsimbooke::ppcsimbooke_memory::memory::read_to_buffer(uint64_t addr, uint8_t *buff, size_t size){
     size_t curr_size;
     size_t offset;
     uint8_t *curr_page = NULL;
@@ -387,7 +387,7 @@ MEM_T uint8_t* MEM_PPC_T::read_to_buffer(uint64_t addr, uint8_t *buff, size_t si
  * @brief  : get host pointer directly (useful for fast access)
  * @return : pointer
  */
-MEM_T const uint8_t* MEM_PPC_T::host_ptr(uint64_t addr){
+const uint8_t* ppcsimbooke::ppcsimbooke_memory::memory::host_ptr(uint64_t addr){
     LOG_DEBUG4("Inside memory::host_ptr", std::endl);
     return const_cast<uint8_t*>(paddr_to_hostaddr(addr));
 }
@@ -398,7 +398,7 @@ MEM_T const uint8_t* MEM_PPC_T::host_ptr(uint64_t addr){
  *
  * @brief : copies size bytes to physical address "addr" from file named "file_name"
  */
-MEM_T void MEM_PPC_T::write_from_file(uint64_t addr, std::string file_name, size_t size){
+void ppcsimbooke::ppcsimbooke_memory::memory::write_from_file(uint64_t addr, std::string file_name, size_t size){
     std::ifstream ih;
     ih.open(file_name.c_str(), std::istream::in | std::ifstream::binary);
     LASSERT_THROW(ih.fail() == 0, sim_except(SIM_EXCEPT_ENOFILE, "opening file failed."), DEBUG4);
@@ -417,7 +417,7 @@ MEM_T void MEM_PPC_T::write_from_file(uint64_t addr, std::string file_name, size
  *
  * @brief : copies size bytes from physical addr "addr" to file name "file_name"
  */
-MEM_T void MEM_PPC_T::read_to_file(uint64_t addr, std::string file_name, size_t size){
+void ppcsimbooke::ppcsimbooke_memory::memory::read_to_file(uint64_t addr, std::string file_name, size_t size){
     std::ofstream oh;
     oh.open(file_name.c_str(), std::ofstream::out | std::ofstream::binary | std::ofstream::trunc);
     LASSERT_THROW(oh.fail() == 0, sim_except(SIM_EXCEPT_ENOFILE, "opening file failed."), DEBUG4);
@@ -436,7 +436,7 @@ MEM_T void MEM_PPC_T::read_to_file(uint64_t addr, std::string file_name, size_t 
  *
  * @brief : writes size bytes from physical addr "addr" to file name "file_name" coverting them to ascii in the process
  */
-MEM_T void MEM_PPC_T::read_to_ascii_file(uint64_t addr, std::string file_name, size_t size){
+void ppcsimbooke::ppcsimbooke_memory::memory::read_to_ascii_file(uint64_t addr, std::string file_name, size_t size){
     std::ofstream oh;
     oh.open(file_name.c_str(), std::ofstream::out | std::ofstream::trunc);
     LASSERT_THROW(oh.fail() == 0, sim_except(SIM_EXCEPT_ENOFILE, "opening file failed."), DEBUG4);
@@ -466,7 +466,7 @@ MEM_T void MEM_PPC_T::read_to_ascii_file(uint64_t addr, std::string file_name, s
  *
  * @brief : return 8 bits data at physical address
  */ 
-MEM_T uint8_t MEM_PPC_T::read8(uint64_t addr, int endianness){
+uint8_t ppcsimbooke::ppcsimbooke_memory::memory::read8(uint64_t addr, int endianness){
     LOG_DEBUG4(MSG_FUNC_START);
     uint8_t *hostptr = paddr_to_hostaddr(addr);
     LOG_DEBUG4(MSG_FUNC_END);
@@ -478,7 +478,7 @@ MEM_T uint8_t MEM_PPC_T::read8(uint64_t addr, int endianness){
  *
  * @brief : write 8 bits of data at location physical address
  */
-MEM_T void MEM_PPC_T::write8(uint64_t addr, uint8_t value, int endianness){
+void ppcsimbooke::ppcsimbooke_memory::memory::write8(uint64_t addr, uint8_t value, int endianness){
     LOG_DEBUG4(MSG_FUNC_START);
     uint8_t *hostptr = paddr_to_hostaddr(addr);
     *hostptr = value;
@@ -491,7 +491,7 @@ MEM_T void MEM_PPC_T::write8(uint64_t addr, uint8_t value, int endianness){
  *
  * @brief : return 16 bits data at physical address
  */ 
-MEM_T uint16_t MEM_PPC_T::read16(uint64_t addr, int endianness){
+uint16_t ppcsimbooke::ppcsimbooke_memory::memory::read16(uint64_t addr, int endianness){
     LOG_DEBUG4(MSG_FUNC_START);
     uint8_t *hostptr = paddr_to_hostaddr(addr);
     LOG_DEBUG4(MSG_FUNC_END);
@@ -503,7 +503,7 @@ MEM_T uint16_t MEM_PPC_T::read16(uint64_t addr, int endianness){
  *
  * @brief : write 16 bits of data at location physical address
  */
-MEM_T void MEM_PPC_T::write16(uint64_t addr, uint16_t value, int endianness){
+void ppcsimbooke::ppcsimbooke_memory::memory::write16(uint64_t addr, uint16_t value, int endianness){
     LOG_DEBUG4(MSG_FUNC_START);
     uint8_t *hostptr = paddr_to_hostaddr(addr);
     write_buff<uint16_t>(hostptr, value, endianness);
@@ -516,7 +516,7 @@ MEM_T void MEM_PPC_T::write16(uint64_t addr, uint16_t value, int endianness){
  *
  * @brief : return 32 bits data at physical address
  */ 
-MEM_T uint32_t MEM_PPC_T::read32(uint64_t addr, int endianness){
+uint32_t ppcsimbooke::ppcsimbooke_memory::memory::read32(uint64_t addr, int endianness){
     LOG_DEBUG4(MSG_FUNC_START);
     uint8_t *hostptr = paddr_to_hostaddr(addr);
     LOG_DEBUG4(MSG_FUNC_END);
@@ -528,7 +528,7 @@ MEM_T uint32_t MEM_PPC_T::read32(uint64_t addr, int endianness){
  *
  * @brief : write 32 bits of data at location physical address
  */
-MEM_T void MEM_PPC_T::write32(uint64_t addr, uint32_t value, int endianness){
+void ppcsimbooke::ppcsimbooke_memory::memory::write32(uint64_t addr, uint32_t value, int endianness){
     LOG_DEBUG4(MSG_FUNC_START);
     uint8_t *hostptr = paddr_to_hostaddr(addr);
     write_buff<uint32_t>(hostptr, value, endianness);
@@ -539,7 +539,7 @@ MEM_T void MEM_PPC_T::write32(uint64_t addr, uint32_t value, int endianness){
  * @func : read64 
  * @args : physical address, endianness
  */
-MEM_T uint64_t MEM_PPC_T::read64(uint64_t addr, int endianness){
+uint64_t ppcsimbooke::ppcsimbooke_memory::memory::read64(uint64_t addr, int endianness){
     LOG_DEBUG4(MSG_FUNC_START);
     uint8_t *hostptr = paddr_to_hostaddr(addr);
     LOG_DEBUG4(MSG_FUNC_END);
@@ -550,7 +550,7 @@ MEM_T uint64_t MEM_PPC_T::read64(uint64_t addr, int endianness){
  * @func : write64
  * @args : physical address, data, endianness
  */
-MEM_T void MEM_PPC_T::write64(uint64_t addr, uint64_t value, int endianness){
+void ppcsimbooke::ppcsimbooke_memory::memory::write64(uint64_t addr, uint64_t value, int endianness){
     LOG_DEBUG4(MSG_FUNC_START);
     uint8_t *hostptr = paddr_to_hostaddr(addr);
     write_buff<uint64_t>(hostptr, value, endianness);
@@ -558,41 +558,41 @@ MEM_T void MEM_PPC_T::write64(uint64_t addr, uint64_t value, int endianness){
 }
 
 // Load /store versions for integers
-MEM_T uint8_t MEM_PPC_T::load_byte(uint64_t addr, int endianness){
+uint8_t ppcsimbooke::ppcsimbooke_memory::memory::load_byte(uint64_t addr, int endianness){
     return read8(addr, endianness);
 }
-MEM_T void MEM_PPC_T::store_byte(uint64_t addr, uint8_t data, int endianness){
+void ppcsimbooke::ppcsimbooke_memory::memory::store_byte(uint64_t addr, uint8_t data, int endianness){
     write8(addr, data, endianness);
 }
-MEM_T uint16_t MEM_PPC_T::load_halfword(uint64_t addr, int endianness){
+uint16_t ppcsimbooke::ppcsimbooke_memory::memory::load_halfword(uint64_t addr, int endianness){
     return read16(addr, endianness);
 }
-MEM_T void MEM_PPC_T::store_halfword(uint64_t addr, uint16_t data, int endianness){
+void ppcsimbooke::ppcsimbooke_memory::memory::store_halfword(uint64_t addr, uint16_t data, int endianness){
     write16(addr, data, endianness);
 }
-MEM_T uint32_t MEM_PPC_T::load_word(uint64_t addr, int endianness){
+uint32_t ppcsimbooke::ppcsimbooke_memory::memory::load_word(uint64_t addr, int endianness){
     return read32(addr, endianness);
 }
-MEM_T void MEM_PPC_T::store_word(uint64_t addr, uint32_t data, int endianness){
+void ppcsimbooke::ppcsimbooke_memory::memory::store_word(uint64_t addr, uint32_t data, int endianness){
     write32(addr, data, endianness); 
 }
-MEM_T uint64_t MEM_PPC_T::load_doubleword(uint64_t addr, int endianness){
+uint64_t ppcsimbooke::ppcsimbooke_memory::memory::load_doubleword(uint64_t addr, int endianness){
     return read64(addr, endianness);
 }
-MEM_T void MEM_PPC_T::store_doubleword(uint64_t addr, uint64_t data, int endianness){
+void ppcsimbooke::ppcsimbooke_memory::memory::store_doubleword(uint64_t addr, uint64_t data, int endianness){
     write64(addr, data, endianness);
 }
 
 // Load /store versions for buffers
-MEM_T void MEM_PPC_T::store_buffer(uint64_t addr, uint8_t* buff, size_t size){
+void ppcsimbooke::ppcsimbooke_memory::memory::store_buffer(uint64_t addr, uint8_t* buff, size_t size){
     write_from_buffer(addr, buff, size);
 }
-MEM_T uint8_t* MEM_PPC_T::load_buffer(uint64_t addr, uint8_t *buff, size_t size){
+uint8_t* ppcsimbooke::ppcsimbooke_memory::memory::load_buffer(uint64_t addr, uint8_t *buff, size_t size){
     return read_to_buffer(addr, buff, size);
 }
 
 // Load an elf file
-MEM_T void MEM_PPC_T::load_elf(std::string filename){
+void ppcsimbooke::ppcsimbooke_memory::memory::load_elf(std::string filename){
     ELFIO::elfio elfreader;
     LASSERT_THROW(elfreader.load(filename), sim_except(SIM_EXCEPT_ENOFILE, "File couldn't be opened"), DEBUG4);
    

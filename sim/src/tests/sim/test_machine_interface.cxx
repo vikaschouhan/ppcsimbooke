@@ -8,6 +8,6 @@ using std::string;
 
 int main(){
     LOG_TO_FILE("test_system_interface.log");
-    machine mc;
+    ppcsimbooke::machine mc;
     return 0;
 }

@@ -41,11 +41,14 @@
 #include "memory.h"
 #include "machine.h"
 #include "ppc_dis.h"
- 
 
-typedef CPU_PPC                      cpu_e500v2_t;
-typedef MEM_PPC                      memory_e500v2_t;
-typedef machine                      machine_e500v2_t;
+using namespace ppcsimbooke;
+
+typedef ppcsimbooke_cpu::cpu                          cpu_e500v2_t;
+typedef ppcsimbooke_memory::memory                    memory_e500v2_t;
+typedef machine                                       machine_e500v2_t;
+typedef ppcsimbooke_dis::ppcdis                       ppcdis_e500v2_t;
+
 
 // Wrapping some cpu functions
 
@@ -54,8 +57,8 @@ void (cpu_e500v2_t::*run_instr_ptr_d0)(uint32_t)     = &cpu_e500v2_t::run_instr;
 void (cpu_e500v2_t::*run_instr_ptr2_d0)(std::string) = &cpu_e500v2_t::run_instr;
 
 // Wrapping some ppc_dis functions
-instr_call (DIS_PPC::*disasm_ptr)(uint32_t, uint64_t, int)  = &DIS_PPC::disasm;
-instr_call (DIS_PPC::*disasm_ptr2)(std::string, uint64_t)   = &DIS_PPC::disasm;
+instr_call (ppcdis_e500v2_t::*disasm_ptr)(uint32_t, uint64_t, int)  = &ppcdis_e500v2_t::disasm;
+instr_call (ppcdis_e500v2_t::*disasm_ptr2)(std::string, uint64_t)   = &ppcdis_e500v2_t::disasm;
 
 // Overloads for CPU_PPC::step()
 BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(step_overloads, step, 0, 1);
@@ -226,7 +229,7 @@ BOOST_PYTHON_MODULE(ppcsim)
                 ;
 
         // Disassembler class type
-        class_<DIS_PPC>("ppc_dis")
+        class_<ppcdis_e500v2_t>("ppc_dis")
             .def("disasm", disasm_ptr,  disasm_overloads())
             .def("disasm", disasm_ptr2, disasm2_overloads()) 
             ;
@@ -319,9 +322,9 @@ BOOST_PYTHON_MODULE(ppcsim)
             {
                 class_<dummy<2> > mem_tgts_py("tgts", no_init);
                 scope mem_tgts_scope = mem_tgts_py;
-                mem_tgts_py.def_readonly("TGT_DDR", &TGT_DDR)
-                    .def_readonly("TGT_CCSR", &TGT_CCSR)
-                    .def_readonly("TGT_IFC", &TGT_IFC)
+                mem_tgts_py.def_readonly("TGT_DDR", &ppcsimbooke_memory::TGT_DDR)
+                    .def_readonly("TGT_CCSR",       &ppcsimbooke_memory::TGT_CCSR)
+                    .def_readonly("TGT_IFC",        &ppcsimbooke_memory::TGT_IFC)
                     ;
             }
         }
@@ -393,7 +396,7 @@ BOOST_PYTHON_MODULE(ppcsim)
     std::cout << "This a simulator for booke based powerPC cores and is intended to simulate core, and the memory subsystem."      << std::endl; 
     std::cout << "Copyright Vikas Chouhan (presentisgood@gmail.com) 2012"                                                          << std::endl;
     std::cout << "=============================================================================================================="  << std::endl;
-    std::cout << "Number of Opcodes in primary disassembler template = " << DIS_PPC::get_num_opcodes() << std::endl;
+    std::cout << "Number of Opcodes in primary disassembler template = " << ppcdis_e500v2_t::get_num_opcodes() << std::endl;
     std::cout << "Number of Opcodes in coverage logger framework = " << CPU_PPC_COVERAGE::get_num_opcodes() << std::endl;
     std::cout << std::endl;
 

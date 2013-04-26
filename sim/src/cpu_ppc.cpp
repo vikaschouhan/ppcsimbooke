@@ -2,57 +2,57 @@
 
 // --------------------------- STATIC DATA ---------------------------------------------------
 
-CPU_T size_t                         CPU_PPC_T::sm_ncpus = 0;            // Current number of powerpc cpus
-CPU_T Log<1>                         CPU_PPC_T::sm_instr_tracer;         // Instruction tracer
-CPU_T std::map<uint64_t,
-    std::pair<bool, uint8_t> >       CPU_PPC_T::sm_resv_map;             // This keeps track of global reservation map
+size_t                         ppcsimbooke::ppcsimbooke_cpu::cpu::sm_ncpus = 0;            // Current number of powerpc cpus
+Log<1>                         ppcsimbooke::ppcsimbooke_cpu::cpu::sm_instr_tracer;         // Instruction tracer
+std::map<uint64_t, std::pair<bool, uint8_t> >
+                               ppcsimbooke::ppcsimbooke_cpu::cpu::sm_resv_map;             // This keeps track of global reservation map
 
 
 // CPU Member function definitions -----------------------------------
 
 // Default constructor
-CPU_T CPU_PPC_T::CPU_PPC(): m_cache_line_size(CPU_CACHE_LINE_SIZE){
+ppcsimbooke::ppcsimbooke_cpu::cpu::cpu(): m_cache_line_size(CPU_CACHE_LINE_SIZE){
     LOG_DEBUG4(MSG_FUNC_START);
     init_common();
     LOG_DEBUG4(MSG_FUNC_END);
 }
 
-CPU_T CPU_PPC_T::CPU_PPC(uint64_t cpuid, std::string name):
+ppcsimbooke::ppcsimbooke_cpu::cpu::cpu(uint64_t cpuid, std::string name):
     m_cpu_name(name), m_cache_line_size(CPU_CACHE_LINE_SIZE), m_pc(0xfffffffc), m_cpu_id(cpuid){
     LOG_DEBUG4(MSG_FUNC_START);
     init_common(); 
     LOG_DEBUG4(MSG_FUNC_END);
 }
 
-CPU_T CPU_PPC_T::~CPU_PPC(){
+ppcsimbooke::ppcsimbooke_cpu::cpu::~cpu(){
     LOG_DEBUG4(MSG_FUNC_START);
     sm_ncpus--;
     LOG_DEBUG4(MSG_FUNC_END);
 } 
 
-CPU_T void CPU_PPC_T::init(uint64_t cpuid, std::string name){    // Initialize CPU
+void ppcsimbooke::ppcsimbooke_cpu::cpu::init(uint64_t cpuid, std::string name){    // Initialize CPU
     m_cpu_id   = cpuid;
     m_cpu_name = name;
     m_pc       = 0xfffffffc;
 }
 
-CPU_T void CPU_PPC_T::register_mem(memory &mem){
+void ppcsimbooke::ppcsimbooke_cpu::cpu::register_mem(ppcsimbooke_memory::memory &mem){
     if(m_mem_ptr == NULL)
         m_mem_ptr = &mem;
 }
 
-CPU_T size_t CPU_PPC_T::get_ninstrs(){
+size_t ppcsimbooke::ppcsimbooke_cpu::cpu::get_ninstrs(){
     return m_ninstrs;
 }
 
-CPU_T uint64_t CPU_PPC_T::get_pc(){
+uint64_t ppcsimbooke::ppcsimbooke_cpu::cpu::get_pc(){
     return m_pc;
 }
 
 // run (non blocking)
-CPU_T void CPU_PPC_T::run(){
+void ppcsimbooke::ppcsimbooke_cpu::cpu::run(){
     LOG_DEBUG4(MSG_FUNC_START);
-    boost::thread thr0(&CPU_PPC_T::run_b, this);
+    boost::thread thr0(&ppcsimbooke::ppcsimbooke_cpu::cpu::run_b, this);
 
     // Try to rethrow the exception from daughter thread
     if(sim_except_ptr)
@@ -61,7 +61,7 @@ CPU_T void CPU_PPC_T::run(){
 }
 
 // step operation
-CPU_T void CPU_PPC_T::step(size_t instr_cnt){
+void ppcsimbooke::ppcsimbooke_cpu::cpu::step(size_t instr_cnt){
     LOG_DEBUG4(MSG_FUNC_START);
 
     size_t t=0;
@@ -98,21 +98,21 @@ CPU_T void CPU_PPC_T::step(size_t instr_cnt){
     LOG_DEBUG4(MSG_FUNC_END);
 }
 
-CPU_T void CPU_PPC_T::halt(){
+void ppcsimbooke::ppcsimbooke_cpu::cpu::halt(){
     LOG_DEBUG4(MSG_FUNC_START);
     // FIXME: should change it under mutex control
     m_cpu_mode = CPU_MODE_HALTED;
     LOG_DEBUG4(MSG_FUNC_END);
 }
 
-CPU_T void CPU_PPC_T::stop(){
+void ppcsimbooke::ppcsimbooke_cpu::cpu::stop(){
     LOG_DEBUG4(MSG_FUNC_START);
     // FIXME: should change it under mutex control
     m_cpu_mode = CPU_MODE_STOPPED;
     LOG_DEBUG4(MSG_FUNC_END);
 }
 
-CPU_T void CPU_PPC_T::run_mode(){
+void ppcsimbooke::ppcsimbooke_cpu::cpu::run_mode(){
     LOG_DEBUG4(MSG_FUNC_START);
     switch(m_cpu_mode){
         case CPU_MODE_RUNNING  : std::cout << "Running"  << std::endl; break;
@@ -127,7 +127,7 @@ CPU_T void CPU_PPC_T::run_mode(){
 // virtual form of run_instr
 // Seems like c++ doesn't have an very effective way of handling non POD objects
 //  with variadic arg funcs
-CPU_T void CPU_PPC_T::run_instr(std::string instr){
+void ppcsimbooke::ppcsimbooke_cpu::cpu::run_instr(std::string instr){
     LOG_DEBUG4(MSG_FUNC_START);
     instr_call call_this;
 
@@ -137,7 +137,7 @@ CPU_T void CPU_PPC_T::run_instr(std::string instr){
 }
 
 // Overloaded form of run_instr ( specifically for CPU_PPC )
-CPU_T void CPU_PPC_T::run_instr(uint32_t opcd){
+void ppcsimbooke::ppcsimbooke_cpu::cpu::run_instr(uint32_t opcd){
     LOG_DEBUG4(MSG_FUNC_START);
     instr_call call_this;
 
@@ -149,7 +149,7 @@ CPU_T void CPU_PPC_T::run_instr(uint32_t opcd){
 #define TO_RWX(r, w, x) (((r & 0x1) << 2) | ((w & 0x1) << 1) | (x & 0x1))
 // Translate EA to RA ( for data only )
 // NOTE: All exceptions ( hardware/software ) will be handled at run_instr() or run() level.
-CPU_T CPU_PPC_T::xlated_tlb_res CPU_PPC_T::xlate(uint64_t addr, bool wr){
+ppcsimbooke::ppcsimbooke_cpu::cpu::xlated_tlb_res ppcsimbooke::ppcsimbooke_cpu::cpu::xlate(uint64_t addr, bool wr){
     LOG_DEBUG4(MSG_FUNC_START);
 
     xlated_tlb_res res;
@@ -178,17 +178,17 @@ CPU_T CPU_PPC_T::xlated_tlb_res CPU_PPC_T::xlate(uint64_t addr, bool wr){
 
 // Get register pointer using regid
 // TODO : Check Permissions
-CPU_T inline ppc_reg64* CPU_PPC_T::reg(int regid){
+inline ppcsimbooke::ppc_reg64* ppcsimbooke::ppcsimbooke_cpu::cpu::reg(int regid){
     return m_cpu_regs.m_ireg.at(regid);
 }
 
 // Get register pointer using reg name
-CPU_T inline ppc_reg64* CPU_PPC_T::regn(std::string regname){
+inline ppcsimbooke::ppc_reg64* ppcsimbooke::ppcsimbooke_cpu::cpu::regn(std::string regname){
     return m_cpu_regs.m_reg.at(regname);
 }
 
 // Memory I/O functions
-CPU_T uint8_t CPU_PPC_T::read8(uint64_t addr){
+uint8_t ppcsimbooke::ppcsimbooke_cpu::cpu::read8(uint64_t addr){
     LOG_DEBUG4(MSG_FUNC_START);
     xlated_tlb_res res = xlate(addr, 0);
  
@@ -197,7 +197,7 @@ CPU_T uint8_t CPU_PPC_T::read8(uint64_t addr){
     return m_mem_ptr->read8(std::get<0>(res), (std::get<1>(res) & 0x1));
 }
 
-CPU_T void CPU_PPC_T::write8(uint64_t addr, uint8_t value){
+void ppcsimbooke::ppcsimbooke_cpu::cpu::write8(uint64_t addr, uint8_t value){
     LOG_DEBUG4(MSG_FUNC_START);
     xlated_tlb_res res = xlate(addr, 1);
 
@@ -206,7 +206,7 @@ CPU_T void CPU_PPC_T::write8(uint64_t addr, uint8_t value){
     LOG_DEBUG4(MSG_FUNC_END);
 }
 
-CPU_T uint16_t CPU_PPC_T::read16(uint64_t addr){
+uint16_t ppcsimbooke::ppcsimbooke_cpu::cpu::read16(uint64_t addr){
     LOG_DEBUG4(MSG_FUNC_START);
     xlated_tlb_res res = xlate(addr, 0);
 
@@ -216,7 +216,7 @@ CPU_T uint16_t CPU_PPC_T::read16(uint64_t addr){
 }
 
 
-CPU_T void CPU_PPC_T::write16(uint64_t addr, uint16_t value){
+void ppcsimbooke::ppcsimbooke_cpu::cpu::write16(uint64_t addr, uint16_t value){
     LOG_DEBUG4(MSG_FUNC_START);
     xlated_tlb_res res = xlate(addr, 1);
 
@@ -225,7 +225,7 @@ CPU_T void CPU_PPC_T::write16(uint64_t addr, uint16_t value){
     LOG_DEBUG4(MSG_FUNC_END);
 }
 
-CPU_T uint32_t CPU_PPC_T::read32(uint64_t addr){
+uint32_t ppcsimbooke::ppcsimbooke_cpu::cpu::read32(uint64_t addr){
     LOG_DEBUG4(MSG_FUNC_START);
     xlated_tlb_res res = xlate(addr, 0);
 
@@ -234,7 +234,7 @@ CPU_T uint32_t CPU_PPC_T::read32(uint64_t addr){
     return m_mem_ptr->read32(std::get<0>(res), (std::get<1>(res) & 0x1));
 }
 
-CPU_T void CPU_PPC_T::write32(uint64_t addr, uint32_t value){
+void ppcsimbooke::ppcsimbooke_cpu::cpu::write32(uint64_t addr, uint32_t value){
     LOG_DEBUG4(MSG_FUNC_START);
     xlated_tlb_res res = xlate(addr, 1);
 
@@ -243,7 +243,7 @@ CPU_T void CPU_PPC_T::write32(uint64_t addr, uint32_t value){
     LOG_DEBUG4(MSG_FUNC_END);
 }
 
-CPU_T uint64_t CPU_PPC_T::read64(uint64_t addr){
+uint64_t ppcsimbooke::ppcsimbooke_cpu::cpu::read64(uint64_t addr){
     LOG_DEBUG4(MSG_FUNC_START);
     xlated_tlb_res res = xlate(addr, 0);
 
@@ -252,7 +252,7 @@ CPU_T uint64_t CPU_PPC_T::read64(uint64_t addr){
     return m_mem_ptr->read64(std::get<0>(res), (std::get<1>(res) & 0x1));
 }
 
-CPU_T void CPU_PPC_T::write64(uint64_t addr, uint64_t value){
+void ppcsimbooke::ppcsimbooke_cpu::cpu::write64(uint64_t addr, uint64_t value){
     LOG_DEBUG4(MSG_FUNC_START);
     xlated_tlb_res res = xlate(addr, 1);
 
@@ -261,7 +261,7 @@ CPU_T void CPU_PPC_T::write64(uint64_t addr, uint64_t value){
     LOG_DEBUG4(MSG_FUNC_END);
 }
 
-CPU_T void CPU_PPC_T::read_buff(uint64_t addr, uint8_t* buff, size_t buffsize){
+void ppcsimbooke::ppcsimbooke_cpu::cpu::read_buff(uint64_t addr, uint8_t* buff, size_t buffsize){
     LOG_DEBUG4(MSG_FUNC_START);
     uint64_t ps, pm;
     size_t size_curr_page;
@@ -291,7 +291,7 @@ CPU_T void CPU_PPC_T::read_buff(uint64_t addr, uint8_t* buff, size_t buffsize){
 //     ea -> effective address at the time fault occured ( used in case of DSI faults etc )
 //
 // FIXME : We don't support hardware exceptions yet. This is planned.
-CPU_T void CPU_PPC_T::ppc_exception(int exception_nr, int subtype, uint64_t ea)
+void ppcsimbooke::ppcsimbooke_cpu::cpu::ppc_exception(int exception_nr, int subtype, uint64_t ea)
 {
     LOG_DEBUG4(MSG_FUNC_START);
 
@@ -698,7 +698,7 @@ CPU_T void CPU_PPC_T::ppc_exception(int exception_nr, int subtype, uint64_t ea)
  *
  * @brief : Read instruction at next NIP
  */
-CPU_T instr_call CPU_PPC_T::get_instr(){
+ppcsimbooke::instr_call ppcsimbooke::ppcsimbooke_cpu::cpu::get_instr(){
     LOG_DEBUG4(MSG_FUNC_START);
 
     xlated_tlb_res res;           // tuple of <ra, wimge, ps>
@@ -744,7 +744,7 @@ CPU_T instr_call CPU_PPC_T::get_instr(){
  *
  * @brief : flags signal for various debug events
  */
-CPU_T void CPU_PPC_T::check_for_dbg_events(int flags, uint64_t ea){
+void ppcsimbooke::ppcsimbooke_cpu::cpu::check_for_dbg_events(int flags, uint64_t ea){
     bool event_occurred = 0;
     uint64_t event_type = 0;
     uint64_t event_addr = 0;
@@ -817,7 +817,7 @@ CPU_T void CPU_PPC_T::check_for_dbg_events(int flags, uint64_t ea){
 }
 
 // Blocking run
-CPU_T void CPU_PPC_T::run_b(){
+void ppcsimbooke::ppcsimbooke_cpu::cpu::run_b(){
     LOG_DEBUG4(MSG_FUNC_START);
 
     std::pair<uint64_t, bool> last_bkpt = m_bm.last_breakpoint();
@@ -881,7 +881,7 @@ CPU_T void CPU_PPC_T::run_b(){
     LOG_DEBUG4(MSG_FUNC_END);
 }
 
-CPU_T inline void CPU_PPC_T::clear_ctrs(){
+inline void ppcsimbooke::ppcsimbooke_cpu::cpu::clear_ctrs(){
     LOG_DEBUG4(MSG_FUNC_START);
     m_ninstrs_last = 0;
     LOG_DEBUG4(MSG_FUNC_END);
@@ -890,7 +890,7 @@ CPU_T inline void CPU_PPC_T::clear_ctrs(){
 /*
  * @func : run current instr
  */
-CPU_T inline void CPU_PPC_T::run_curr_instr(){
+inline void ppcsimbooke::ppcsimbooke_cpu::cpu::run_curr_instr(){
     LOG_DEBUG4(MSG_FUNC_START);
 
     m_nip += 4;   // Update NIP
@@ -929,7 +929,7 @@ CPU_T inline void CPU_PPC_T::run_curr_instr(){
 }
 
 // Initialize all common parameters
-CPU_T inline void CPU_PPC_T::init_common(){
+inline void ppcsimbooke::ppcsimbooke_cpu::cpu::init_common(){
     LOG_DEBUG4(MSG_FUNC_START);
     m_cpu_no = sm_ncpus++;                 // Increment global cpu cnt
     gen_ppc_opc_func_hash(this);           // Initialize opcode function pointer table
@@ -948,7 +948,7 @@ CPU_T inline void CPU_PPC_T::init_common(){
 
 
 // set reservation
-CPU_T void CPU_PPC_T::set_resv(uint64_t ea, size_t size){
+void ppcsimbooke::ppcsimbooke_cpu::cpu::set_resv(uint64_t ea, size_t size){
     LOG_DEBUG4(MSG_FUNC_START);
     xlated_tlb_res res = xlate(ea, 0);
     m_resv_addr = std::get<0>(res);
@@ -960,7 +960,7 @@ CPU_T void CPU_PPC_T::set_resv(uint64_t ea, size_t size){
 }
 
 // clear resv.
-CPU_T void CPU_PPC_T::clear_resv(uint64_t ea){
+void ppcsimbooke::ppcsimbooke_cpu::cpu::clear_resv(uint64_t ea){
     LOG_DEBUG4(MSG_FUNC_START);
     m_resv_set = false;
     // Need a mutex
@@ -969,7 +969,7 @@ CPU_T void CPU_PPC_T::clear_resv(uint64_t ea){
 }
 
 // Check resv
-CPU_T bool CPU_PPC_T::check_resv(uint64_t ea, size_t size){
+bool ppcsimbooke::ppcsimbooke_cpu::cpu::check_resv(uint64_t ea, size_t size){
     LOG_DEBUG4(MSG_FUNC_START);
     xlated_tlb_res res = xlate(ea, 1);  // Reservation is checked during stwcx.
     uint64_t caddr = std::get<0>(res) & ~(m_cache_line_size - 1);    // Get granule addr
@@ -987,7 +987,7 @@ CPU_T bool CPU_PPC_T::check_resv(uint64_t ea, size_t size){
 
 // Notify of context switches. LRU cache uses this parameter to flush it's
 // instruction cache when a context switch happens.
-CPU_T void CPU_PPC_T::notify_ctxt_switch(){
+void ppcsimbooke::ppcsimbooke_cpu::cpu::notify_ctxt_switch(){
     LOG_DEBUG4(MSG_FUNC_START);
     m_ctxt_switch = 1;
     m_instr_cache.clear();
@@ -995,7 +995,7 @@ CPU_T void CPU_PPC_T::notify_ctxt_switch(){
 }
 
 // Get register value by name
-CPU_T uint64_t CPU_PPC_T::get_reg(std::string reg_name) throw(sim_except) {
+uint64_t ppcsimbooke::ppcsimbooke_cpu::cpu::get_reg(std::string reg_name) throw(sim_except) {
     LOG_DEBUG4(MSG_FUNC_START);
     if(m_cpu_regs.m_reg.find(reg_name) == m_cpu_regs.m_reg.end()) throw sim_except(SIM_EXCEPT_EINVAL, "Illegal register name");
     LOG_DEBUG4(MSG_FUNC_END);
@@ -1003,7 +1003,7 @@ CPU_T uint64_t CPU_PPC_T::get_reg(std::string reg_name) throw(sim_except) {
 }
 
 // Dump CPU state
-CPU_T void CPU_PPC_T::dump_state(int columns, std::ostream &ostr, int dump_all_sprs){
+void ppcsimbooke::ppcsimbooke_cpu::cpu::dump_state(int columns, std::ostream &ostr, int dump_all_sprs){
     LOG_DEBUG4(MSG_FUNC_START);
     int i;
     int colno = 0;
@@ -1065,31 +1065,31 @@ CPU_T void CPU_PPC_T::dump_state(int columns, std::ostream &ostr, int dump_all_s
 }
 
 // print all tlbs
-CPU_T void CPU_PPC_T::print_L2tlbs(){
+void ppcsimbooke::ppcsimbooke_cpu::cpu::print_L2tlbs(){
     LOG_DEBUG4(MSG_FUNC_START);
     m_l2tlb.print_tlbs2();
     LOG_DEBUG4(MSG_FUNC_END);
 }
 
-CPU_T void CPU_PPC_T::enable_cov_log(){
+void ppcsimbooke::ppcsimbooke_cpu::cpu::enable_cov_log(){
     LOG_DEBUG4(MSG_FUNC_START);
     m_cov_logger.enable();
     LOG_DEBUG4(MSG_FUNC_END);
 }
 
-CPU_T void CPU_PPC_T::disable_cov_log(){
+void ppcsimbooke::ppcsimbooke_cpu::cpu::disable_cov_log(){
     LOG_DEBUG4(MSG_FUNC_START);
     m_cov_logger.disable();
     LOG_DEBUG4(MSG_FUNC_END);
 }
 
-CPU_T bool CPU_PPC_T::is_cov_log_enabled(){
+bool ppcsimbooke::ppcsimbooke_cpu::cpu::is_cov_log_enabled(){
     LOG_DEBUG4(MSG_FUNC_START);
     return m_cov_logger.is_enabled();
     LOG_DEBUG4(MSG_FUNC_END);
 }
 
-CPU_T void CPU_PPC_T::gen_cov_log(){
+void ppcsimbooke::ppcsimbooke_cpu::cpu::gen_cov_log(){
     LOG_DEBUG4(MSG_FUNC_START);
     m_cov_logger.add_ext_info("###############################################################");
     m_cov_logger.add_ext_info("  COVERAGE FOR CPU " + boost::lexical_cast<std::string>(int(m_cpu_no)));
@@ -1098,13 +1098,13 @@ CPU_T void CPU_PPC_T::gen_cov_log(){
     LOG_DEBUG4(MSG_FUNC_END);
 }
 
-CPU_T void CPU_PPC_T::log_cov_to_file(std::string filename){
+void ppcsimbooke::ppcsimbooke_cpu::cpu::log_cov_to_file(std::string filename){
     LOG_DEBUG4(MSG_FUNC_START);
     m_cov_logger.log_to_file(filename);
     LOG_DEBUG4(MSG_FUNC_END);
 }
 
 // friend function
-CPU_T void gen_ppc_opc_func_hash(CPU_PPC_T *pcpu){
+void ppcsimbooke::ppcsimbooke_cpu::gen_ppc_opc_func_hash(ppcsimbooke::ppcsimbooke_cpu::cpu *pcpu){
     #include "cpu_ppc_instr.cc"
 }

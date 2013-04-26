@@ -331,7 +331,8 @@
 #define X86_DIVS_F32(arg1, arg2)                     x86_divs_f32(arg1, arg2, HOST_FPU_FLAGS)
 
 // define building blocks for lambda syntax (GCC compiler must support -std=c++11)
-#define RTL_BEGIN(opc_name, func_name)     CPU->m_ppc_func_hash[CPU->m_dis.get_opc_hash(opc_name)] = [](CPU_PPC_T *CPU, instr_call *IC) -> void {
+#define RTL_BEGIN(opc_name, func_name)     CPU->m_ppc_func_hash[CPU->m_dis.get_opc_hash(opc_name)] =  \
+                                               [](ppcsimbooke::ppcsimbooke_cpu::cpu *CPU, ppcsimbooke::instr_call *IC) -> void {
 #define RTL_END                            };
 
 
