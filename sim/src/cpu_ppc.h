@@ -169,10 +169,8 @@ namespace ppcsimbooke {
         #define PPCREGNATTR(reg_name)              (m_cpu_regs.m_reg_attr[reg_name]->attr)
         #define PPCREGMASK(reg_id, mask)           EBF(PPCREG(reg_id),    mask)
         #define PPCREGNMASK(reg_name, mask)        EBF(PPCREGN(reg_name), mask)
-            uint64_t                               m_pc;                  // PC  -> program counter ( CIA )
-            uint64_t                               m_nip;                 // NIP -> next instruction pointer ( NIA )
-        #define PC   m_pc
-        #define NIP  m_nip
+        #define PPCSIMBOOKE_CPU_PC                 (m_cpu_regs.pc)
+        #define PPCSIMBOOKE_CPU_NIP                (m_cpu_regs.nip)
         
             // Book keeping
             uint64_t                               m_cpu_id;              // A unique cpu id

@@ -71,8 +71,10 @@ char* ppcsimbooke::instr_call::get_instr_str(){
 // register_file member functions
 //
 // Constructor
-ppcsimbooke::ppc_regs::ppc_regs(bool c_m):
+ppcsimbooke::ppc_regs::ppc_regs(bool c_m, uint64_t pc_):
     cm(c_m),
+
+    pc(pc_), nip(pc_),
 
     msr     (0,    (REG_READ_SUP | REG_WRITE_SUP | REG_READ_USR                                  ), 0            , REG_TYPE_MSR),
     cr      (0,    0                                                                              , 0            , REG_TYPE_CR ),

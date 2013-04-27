@@ -131,6 +131,9 @@ namespace ppcsimbooke {
     struct ppc_regs {
         // mode
         bool              cm;
+
+        uint64_t          pc;          // program counter
+        uint64_t          nip;         // next instruction pointer
     
         ppc_reg64         msr;
         ppc_reg64         cr;
@@ -263,7 +266,7 @@ namespace ppcsimbooke {
         std::map<int,         ppc_reg64*>  m_ireg;
     
         // Constructors
-        ppc_regs(bool c_m=0);
+        ppc_regs(bool c_m=0, uint64_t pc_=0xfffffffc);
         
         // functions operating on CR, XER
         void       update_cr0(uint64_t value=0);                     // Update CR0

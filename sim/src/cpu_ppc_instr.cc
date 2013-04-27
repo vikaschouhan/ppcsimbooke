@@ -131,11 +131,11 @@
 
 #pragma push_macro("PC")
 #undef  PC
-#define PC                       CPU->m_pc
+#define PC                       CPU->m_cpu_regs.pc
 
 #pragma push_macro("NIP")
 #undef  NIP
-#define NIP                      CPU->m_nip
+#define NIP                      CPU->m_cpu_regs.nip
 
 #pragma push_macro("HOST_FLAGS")
 #undef  HOST_FLAGS
