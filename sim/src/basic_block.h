@@ -1,10 +1,16 @@
 #ifndef BASIC_BLOCK_H_
 #define BASIC_BLOCK_H_
 
-#include "config.h"
+//#include "config.h"
 #include "superstl.h"
+#include "ppc_dis.h"
 
 namespace ppcsimbooke {
+    // forward declarations
+    namespace ppcsimbooke_cpu {
+        class cpu;
+    }
+
     namespace ppcsimbooke_basic_block {
 
         //////////////////////////////////////////////////////////////////////////////
@@ -12,26 +18,30 @@ namespace ppcsimbooke {
         //////////////////////////////////////////////////////////////////////////////
     
         // Basic Block instruction pointer.
-        // Identifies a basic block uniquely
+        // Identifies a basic block uniquely (on basis of conext in which it was translated)
         struct basic_block_ip {
             uint64_t                ip;            // instruction pointer
             uint64_t                mfn;           // machine frame number (physical page no)
+            uint32_t                msr;           // Machine state register
+            uint32_t                pid0;          // PID registers
+            uint32_t                pid1;
+            uint32_t                pid2;
             bool                    be;            // if page is big endian
             static const uint64_t   INV = (1ULL << CPU_PHY_ADDR_SIZE) - 1;
         
             operator uint64_t() const { return ip; }
             basic_block_ip() {}
-            basic_block_ip(uint64_t ip_) : ip(ip_) {}
-            basic_block_ip(uint64_t ip_, uint64_t mfn_, bool be_) :
-                ip(ip_), mfn(mfn_), be(be_) {}
+            basic_block_ip(uint64_t ip_, uint64_t mfn_, uint32_t msr_, uint32_t pid0_, uint32_t pid1_, uint32_t pid2_, bool be_) :
+                ip(ip_), mfn(mfn_), msr(msr_), pid0(pid0_), pid1(pid1_), pid2(pid2_), be(be_) {}
             bool operator==(const basic_block_ip &bip) const {
-                return (bip.ip == ip) && (bip.mfn == mfn) && (bip.be == be);
+                return !memcmp(this, &bip, sizeof(basic_block_ip));
             }
         };
         
         inline std::ostream& operator<<(std::ostream& ostr, basic_block_ip & bip){
             ostr << std::hex << std::showbase;
-            ostr << "[IP:" << bip.ip << " MFN:" << bip.mfn << " BE:" << bip.be << "]" << std::endl;
+            ostr << "[IP:" << bip.ip << " MFN:" << bip.mfn << " MSR:" << bip.msr << " PIDS=["
+                 << bip.pid0 << "," << bip.pid1 << "," << bip.pid2 << "]" << " BE:" << bip.be << "]" << std::endl;
             ostr << std::dec << std::noshowbase;
             return ostr;
         }
@@ -54,12 +64,15 @@ namespace ppcsimbooke {
         };
     
         static const int MAX_BB_INS = 128;
+
+        //typedef typename ppcsimbooke::ppcsimbooke_cpu::cpu::ppc_opc_fun_ptr  opc_impl_func_t;   // powerpc opcode handler type
+        typedef void (*opc_impl_func_t)(ppcsimbooke::ppcsimbooke_cpu::cpu *pcpu, ppcsimbooke::instr_call *pic);
         
         // Basic Block
         struct basic_block {
             basic_block_ip                   bip;                      // basic block ip
             superstl::selflistlink           hashlink;
-            basic_block_chunk_list::locator  mfn_loc;
+            basic_block_chunk_list::Locator  mfn_loc;
             uint64_t                         ip_taken;
             uint64_t                         ip_not_taken;
             uint16_t                         count;
@@ -96,16 +109,21 @@ namespace ppcsimbooke {
             void use(uint64_t counter) { lastused = counter; };
         };
         
-        ostream& operator <<(ostream& os, const BasicBlock& bb);
+        inline std::ostream& operator <<(std::ostream& ostr, const basic_block& bb){
+            ostr << std::showbase << std::hex;
+            ostr << "PLEASE IMPLEMENT THIS." << std::endl;
+            ostr << std::noshowbase << std::dec;
+            return ostr;
+        }
         
         ///////////////////////////////////////////////////////////////////////////////////////////
         //   basic block decoder
         ///////////////////////////////////////////////////////////////////////////////////////////
         
         // branch cond, uncond, indirect, return from interrupt & system call
-        enum { BB_TYPE_BR_COND, BB_TYPE_BR_UNCOND, BB_TYPE_BR_INDIR, BB_TYPE_RFI, BB_TYPE_SC };
-        const char* bb_type_names[] = { "branch conditional", "branch unconditional", "branch indirect",
-            "rfXi", "system call" };
+        //enum { BB_TYPE_BR_COND, BB_TYPE_BR_UNCOND, BB_TYPE_BR_INDIR, BB_TYPE_RFI, BB_TYPE_SC };
+        //static const char* bb_type_names[] = { "branch conditional", "branch unconditional", "branch indirect",
+        //                                       "rfXi", "system call" };
     
         // Maximum instructions which can be translated before a flush is required
         static const int MAX_TRANS_INS = 32;
@@ -113,7 +131,7 @@ namespace ppcsimbooke {
         // Decode meant for basic block
         struct basic_block_decoder {
             basic_block       bb;
-            DIS_PPC           dis_asm;
+            
             instr_call        transbuf[MAX_TRANS_INS];
             int               transbufcount;
             uint8_t           *insnbytes;
@@ -128,23 +146,22 @@ namespace ppcsimbooke {
             int               outcome;
             uint64_t          fault_addr;                      // page fault address (tlb miss generating addr)
             int               fault_cause;                     // contains the exact fault error type
+
+            ppcsimbooke::ppcsimbooke_dis::ppcdis           decoder;     // decoder module
             
             basic_block_decoder(const basic_block_ip& rvp);
-            basic_block_decoder(CPU_PPC &ctx, uint64_t ip);       // cpu maintains the context
+            basic_block_decoder(ppcsimbooke::ppcsimbooke_cpu::cpu &ctx, uint64_t ip);       // cpu maintains the context
             basic_block_decoder(uint64_t ip, bool kernel, bool df);
             
             void reset();
-            void fillbuf(CPU_PPC &ctx, uint8_t* insn_buff, int insn_buffsize);
+            int  fillbuff(ppcsimbooke::ppcsimbooke_cpu::cpu &ctx, uint8_t* insn_buff, int insn_buffsize);
     
             inline uint32_t fetch() { uint32_t r = *((uint32_t*)&insnbytes[byteoffset]); ip += 4; byteoffset += 4; return r; }
     
             bool invalidate();
             bool decode();
             bool flush();
-            void split(bool after);
-            void split_before() { split(0); }
-            void split_after() { split(1); }
-            bool first_insn_in_bb() { return (uint64_t(ipstart) == uint64_t(bb.ip)); }
+            bool first_insn_in_bb() { return (uint64_t(ipstart) == uint64_t(bb.bip.ip)); }
         };
     
     }

@@ -200,8 +200,12 @@ namespace ppcsimbooke {
             lru_cache<uint64_t, instr_call>        m_instr_cache;     // Cache of recently used instrs
             bool                                   m_ctxt_switch;     // Flag indicating that a ctxt switch happened
         
-            // opcode to function pointer map
+            public:
+            // function pointer type for opcode handlers
             typedef void (*ppc_opc_fun_ptr)(ppcsimbooke::ppcsimbooke_cpu::cpu *, ppcsimbooke::instr_call *);
+
+            // opcode to function pointer map
+            private:
             std::map<uint64_t, ppc_opc_fun_ptr>    m_ppc_func_hash;
         
             // timings

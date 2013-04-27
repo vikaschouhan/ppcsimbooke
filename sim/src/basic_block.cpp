@@ -1,10 +1,33 @@
 #include "basic_block.h"
+#include "cpu_ppc.h"
+
+/////////////////////////////////////////////////////////////////////////////////
+// basic block
+/////////////////////////////////////////////////////////////////////////////////
+
+void ppcsimbooke::ppcsimbooke_basic_block::basic_block::reset(){
+}
+
+void ppcsimbooke::ppcsimbooke_basic_block::basic_block::reset(const ppcsimbooke::ppcsimbooke_basic_block::basic_block_ip &bip){
+}
+
+ppcsimbooke::ppcsimbooke_basic_block::basic_block* ppcsimbooke::ppcsimbooke_basic_block::basic_block::clone(){
+    return NULL;
+}
+
+void ppcsimbooke::ppcsimbooke_basic_block::basic_block::free(){
+}
+
+
+/////////////////////////////////////////////////////////////////////////////////
+// basic block decoder
+/////////////////////////////////////////////////////////////////////////////////
 
 void ppcsimbooke::ppcsimbooke_basic_block::basic_block_decoder::reset(){
     transbufcount = 0;
     insnbytes_buffsize = 0;
     valid_byte_count = 0;
-    ipstart = ip = bip.ip;
+    ipstart = ip = bb.bip;
     byteoffset = 0;
     op = 0;
     insn_count = 0;
@@ -19,10 +42,10 @@ ppcsimbooke::ppcsimbooke_basic_block::basic_block_decoder::basic_block_decoder(c
     reset(); 
 }
 
-ppcsimbooke::ppcsimbooke_basic_block::basic_block_decoder::basic_block_decoder::(CPU_PPC& ctx, uint64_t ip){
+ppcsimbooke::ppcsimbooke_basic_block::basic_block_decoder::basic_block_decoder(ppcsimbooke::ppcsimbooke_cpu::cpu& ctx, uint64_t ip){
 }
 
-int ppcsimbooke::ppcsimbooke_basic_block::basic_block_decode::fillbuff(CPU_PPC *ctx, uint8_t *buff, int buffsize){
+int ppcsimbooke::ppcsimbooke_basic_block::basic_block_decoder::fillbuff(ppcsimbooke::ppcsimbooke_cpu::cpu &ctx, uint8_t *buff, int buffsize){
     insnbytes = buff;
     insnbytes_buffsize = buffsize;
     byteoffset = 0;
@@ -39,13 +62,22 @@ int ppcsimbooke::ppcsimbooke_basic_block::basic_block_decode::fillbuff(CPU_PPC *
             case PPC_EXCEPTION_DSI:
                 fault_addr = e.addr();
                 fault_cause = e.err_code<0>();
-                valid_byte_count = fault_addr - vv.bip.ip;
+                valid_byte_count = fault_addr - bb.bip;
             default:
+                throw(sim_except_fatal("Unknown exception in basic_block_decoder::fillbuff."));
         }
     }
     return valid_byte_count;
 }
 
-bool ppcsimbooke::ppcsimbooke_basic_block::basic_block_decode::decode(){
+bool ppcsimbooke::ppcsimbooke_basic_block::basic_block_decoder::invalidate(){
+    return false;
+}
 
+bool ppcsimbooke::ppcsimbooke_basic_block::basic_block_decoder::decode(){
+    return false;
+}
+
+bool ppcsimbooke::ppcsimbooke_basic_block::basic_block_decoder::flush(){
+    return false;
 }

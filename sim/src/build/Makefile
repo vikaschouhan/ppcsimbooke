@@ -32,7 +32,8 @@ SIM_TEST_EXES := test_ppcdis_interface        \
 			 test_bm_class                    \
 			 test_globals_module              \
 			 test_fpu_emul_module             \
-			 test_superstl
+			 test_superstl                    \
+			 test_basic_block_module
 DUT_TEST_EXES := test_001.elf                     \
 	         test_sqrt_0.elf                      \
 	         test_palindrome_0.elf                \
@@ -189,6 +190,9 @@ test_fpu_emul_module: test_fpu_emul_module.o
 	$(CXX) $(HOST_LDFLAGS) -o $@ $^
 
 test_superstl: test_superstl.o
+	$(CXX) $(HOST_LDFLAGS) -o $@ $^
+
+test_basic_block_module: test_basic_block_module.o basic_block.o globals.o cpu_ppc.o ppc_dis.o tlb_booke.o memory.o cpu_ppc_coverage.o bm.o
 	$(CXX) $(HOST_LDFLAGS) -o $@ $^
 
 sim_tests: $(SIM_TEST_EXES)

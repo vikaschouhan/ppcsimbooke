@@ -1005,7 +1005,6 @@ uint64_t ppcsimbooke::ppcsimbooke_cpu::cpu::get_reg(std::string reg_name) throw(
 // Dump CPU state
 void ppcsimbooke::ppcsimbooke_cpu::cpu::dump_state(int columns, std::ostream &ostr, int dump_all_sprs){
     LOG_DEBUG4(MSG_FUNC_START);
-    int i;
     int colno = 0;
     std::ostringstream strout;
 
@@ -1020,7 +1019,7 @@ void ppcsimbooke::ppcsimbooke_cpu::cpu::dump_state(int columns, std::ostream &os
     ostr << std::endl;
 
     // dump gprs
-    for(i=0; i<PPC_NGPRS; i++){
+    for(size_t i=0; i<PPC_NGPRS; i++){
         strout << "r" << std::dec << i << " = " << std::hex << std::showbase << PPCREG(REG_GPR0 + i);
         ostr << std::left << std::setw(23) << strout.str() << "    ";
         strout.str("");
