@@ -47,26 +47,26 @@ namespace ppcsimbooke {
     //
     // powerPC register attribute flags
     // if attr=0, this means the register is illegal
-    #define REG_READ_SUP        0x00000001UL                         // Register has read access in supervisor mode
-    #define REG_WRITE_SUP       0x00000002UL                         // Register has write access in supervisor mode
-    #define REG_READ_USR        0x00000004UL                         // Register has read access in user mode
-    #define REG_WRITE_USR       0x00000008UL                         // Register has write access in user mode
-    #define REG_CLEAR_W1C       0x00000010UL                         // Register can be cleared by writing 1 to the bits
-    #define REG_REQ_SYNC        0x00000020UL                         // Register write requires synchronization
+    static const int REG_READ_SUP      = 0x00000001UL;                        // Register has read access in supervisor mode
+    static const int REG_WRITE_SUP     = 0x00000002UL;                        // Register has write access in supervisor mode
+    static const int REG_READ_USR      = 0x00000004UL;                        // Register has read access in user mode
+    static const int REG_WRITE_USR     = 0x00000008UL;                        // Register has write access in user mode
+    static const int REG_CLEAR_W1C     = 0x00000010UL;                        // Register can be cleared by writing 1 to the bits
+    static const int REG_REQ_SYNC      = 0x00000020UL;                        // Register write requires synchronization
     
     
     // Some constants
-    #define    REG_TYPE_INV     0x0
-    #define    REG_TYPE_MSR     0x1
-    #define    REG_TYPE_CR      0x2
-    #define    REG_TYPE_ACC     0x3
-    #define    REG_TYPE_GPR     0x4
-    #define    REG_TYPE_SPR     0x5
-    #define    REG_TYPE_PMR     0x6
+    static const int REG_TYPE_INV   = 0x0;
+    static const int REG_TYPE_MSR   = 0x1;
+    static const int REG_TYPE_CR    = 0x2;
+    static const int REG_TYPE_ACC   = 0x3;
+    static const int REG_TYPE_GPR   = 0x4;
+    static const int REG_TYPE_SPR   = 0x5;
+    static const int REG_TYPE_PMR   = 0x6;
     
-    #define    PPC_NGPRS        32
-    #define    PPC_NSPRS        1024
-    #define    PPC_NPMRS        1024
+    static const size_t PPC_NGPRS   = 32;
+    static const size_t PPC_NSPRS   = 1024;
+    static const size_t PPC_NPMRS   = 1024;
     
     // PPC register (64 bit only)
     struct ppc_reg64 {

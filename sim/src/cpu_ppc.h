@@ -38,10 +38,18 @@ namespace ppcsimbooke {
         class cpu;
         void gen_ppc_opc_func_hash(cpu *pcpu);
 
+        // cpu run mode
+        enum cpu_run_mode {
+            CPU_MODE_RUNNING   = 1,
+            CPU_MODE_STEPPING  = 2,
+            CPU_MODE_HALTED    = 3,
+            CPU_MODE_STOPPED   = 4,
+        };
+
         // Debug events
-        #define DBG_EVENT_IAC       0x00000001UL
-        #define DBG_EVENT_DAC_LD    0x00000002UL
-        #define DBG_EVENT_DAC_ST    0x00000004UL
+        static const int DBG_EVENT_IAC     = 0x00000001UL;
+        static const int DBG_EVENT_DAC_LD  = 0x00000002UL;
+        static const int DBG_EVENT_DAC_ST  = 0x00000004UL;
         
         /* 64 bit MSRs were used in older powerPC designs */
         /* All BookE cores have 32 bit MSRs only */
@@ -137,11 +145,7 @@ namespace ppcsimbooke {
             friend void gen_ppc_opc_func_hash(ppcsimbooke::ppcsimbooke_cpu::cpu *pcpu);
         
             std::string                            m_cpu_name;
-            int                                    m_cpu_mode;
-        #define CPU_MODE_RUNNING            (0x1)
-        #define CPU_MODE_STEPPING           (0x2)
-        #define CPU_MODE_HALTED             (0x3)
-        #define CPU_MODE_STOPPED            (0x4)
+            cpu_run_mode                           m_cpu_mode;
             int                                    m_cpu_bits;            // 32 or 64
             bool                                   m_cpu_running;         // If CPU is in run mode
         
