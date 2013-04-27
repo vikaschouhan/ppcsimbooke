@@ -123,7 +123,7 @@ namespace ppcsimbooke {
             inline void           init_common();
         
             public:
-            BM                                     m_bm;                   // breakpoint manager
+            breakpt_mngr                           m_bm;                   // breakpoint manager
             static Log<1>                          sm_instr_tracer;        // Instruction tracer module
             
             private: 
@@ -181,7 +181,7 @@ namespace ppcsimbooke {
             instr_call                             m_instr_next;          // next instr
         
             // Logging facilities
-            CPU_PPC_COVERAGE                       m_cov_logger;          // coverage logger
+            cpu_coverage                           m_cov_logger;          // coverage logger
         
             ppcsimbooke_dis::ppcdis                m_dis;                  // Disassembler module
             ppcsimbooke_tlb::tlb                   m_l2tlb;                // tlb4K_ns = 128, tlb4K_nw = 4, tlbCam_ne = 16

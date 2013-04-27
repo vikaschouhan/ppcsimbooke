@@ -26,42 +26,46 @@
 
 #include "config.h"
 
-#define BM     breakpt_mngr
-class BM {
-    // key = ea, value = pairof<breakpoint no, no_of_hits>
-    typedef std::map<uint64_t, std::pair<int, uint64_t> > bkpt_map;
-    typedef bkpt_map::iterator                            bkpt_map_iter;
+namespace ppcsimbooke {
+    namespace ppcsimbooke_cpu {
 
-    // Private Data
-    bkpt_map                                              m_bk_map;              // Hash of address breakpoints
-    bool                                                  m_bkpts_enabled;       // Global enable/disable flag
-    std::pair<uint64_t, bool>                             m_last_bkpt;           // Last breakpoint information
-    static int                                            m_bk_num;              // Counter keeping track of breakpoint number
-
-    public:
-    // constructor
-    BM(): m_bkpts_enabled(true){}
-
-    // Enable breakpoints
-    void enable_breakpoints();
-    // Disable breakpoints
-    void disable_breakpoints();
-    // Get last breakpoint
-    std::pair<uint64_t, bool> last_breakpoint();
-    // clear last breakpoint
-    void clear_last_breakpoint();
-    // check adddress for any hit
-    bool check_pc(uint64_t pc);
-    // Add breakpoint
-    void add_breakpoint(uint64_t ea);
-    // List all breakpoints
-    void list_breakpoints();
-    // Delete breakpoint by ea
-    void delete_breakpoint(uint64_t ea);
-    // Delete breakpoint by number
-    void delete_breakpoint_num(int nbk);
-    // Delete all breakpoints
-    void delete_all();
-};
+        class breakpt_mngr {
+            // key = ea, value = pairof<breakpoint no, no_of_hits>
+            typedef std::map<uint64_t, std::pair<int, uint64_t> > bkpt_map;
+            typedef bkpt_map::iterator                            bkpt_map_iter;
+        
+            // Private Data
+            bkpt_map                                              m_bk_map;              // Hash of address breakpoints
+            bool                                                  m_bkpts_enabled;       // Global enable/disable flag
+            std::pair<uint64_t, bool>                             m_last_bkpt;           // Last breakpoint information
+            static int                                            m_bk_num;              // Counter keeping track of breakpoint number
+        
+            public:
+            // constructor
+            breakpt_mngr(): m_bkpts_enabled(true){}
+        
+            // Enable breakpoints
+            void enable_breakpoints();
+            // Disable breakpoints
+            void disable_breakpoints();
+            // Get last breakpoint
+            std::pair<uint64_t, bool> last_breakpoint();
+            // clear last breakpoint
+            void clear_last_breakpoint();
+            // check adddress for any hit
+            bool check_pc(uint64_t pc);
+            // Add breakpoint
+            void add_breakpoint(uint64_t ea);
+            // List all breakpoints
+            void list_breakpoints();
+            // Delete breakpoint by ea
+            void delete_breakpoint(uint64_t ea);
+            // Delete breakpoint by number
+            void delete_breakpoint_num(int nbk);
+            // Delete all breakpoints
+            void delete_all();
+        };
+    }
+}
 
 #endif

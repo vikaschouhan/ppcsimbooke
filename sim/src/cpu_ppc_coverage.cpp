@@ -4,7 +4,7 @@
 
 // Add instr lists
 // Would require c++0x for direct vector assignment
-std::vector<std::string> CPU_PPC_COVERAGE::sm_instr_list = {
+std::vector<std::string> ppcsimbooke::ppcsimbooke_cpu::cpu_coverage::sm_instr_list = {
    "add", "add.", "addc", "addc.", "addco", "addco.", "adde", "adde.", "addeo", "addeo.",
    "addi", "addic", "addic.", "addis", "addme", "addme.", "addmeo", "addmeo.", "addo",
    "addo.", "addze", "addze.", "addzeo", "addzeo.", "and", "and.", "andc", "andc.",
@@ -85,7 +85,7 @@ std::vector<std::string> CPU_PPC_COVERAGE::sm_instr_list = {
 // member functions ---------------------------------------------------------------------
 
 // Probe instruction
-void CPU_PPC_COVERAGE::probe(std::string opcd){
+void ppcsimbooke::ppcsimbooke_cpu::cpu_coverage::probe(std::string opcd){
     LOG_DEBUG4(MSG_FUNC_START);
     if(m_cov_enabled == false){
         LOG_DEBUG4(MSG_FUNC_END);
@@ -102,7 +102,7 @@ void CPU_PPC_COVERAGE::probe(std::string opcd){
     LOG_DEBUG4(MSG_FUNC_END);
 }
 
-void CPU_PPC_COVERAGE::log_to_file(std::string filename){
+void ppcsimbooke::ppcsimbooke_cpu::cpu_coverage::log_to_file(std::string filename){
     LOG_DEBUG4(MSG_FUNC_START);
     if(m_cov_enabled == false){
         LOG_DEBUG4(MSG_FUNC_END);
@@ -114,25 +114,25 @@ void CPU_PPC_COVERAGE::log_to_file(std::string filename){
     LOG_DEBUG4(MSG_FUNC_END);
 }
 
-void CPU_PPC_COVERAGE::enable(){
+void ppcsimbooke::ppcsimbooke_cpu::cpu_coverage::enable(){
     LOG_DEBUG4(MSG_FUNC_START);
     m_cov_enabled = true;
     LOG_DEBUG4(MSG_FUNC_END);
 }
 
-void CPU_PPC_COVERAGE::disable(){
+void ppcsimbooke::ppcsimbooke_cpu::cpu_coverage::disable(){
     LOG_DEBUG4(MSG_FUNC_START);
     m_cov_enabled = false;
     LOG_DEBUG4(MSG_FUNC_END);
 }
 
-bool CPU_PPC_COVERAGE::is_enabled(){
+bool ppcsimbooke::ppcsimbooke_cpu::cpu_coverage::is_enabled(){
     LOG_DEBUG4(MSG_FUNC_START);
     LOG_DEBUG4(MSG_FUNC_END);
     return m_cov_enabled;
 }
 
-void CPU_PPC_COVERAGE::generate_log(){
+void ppcsimbooke::ppcsimbooke_cpu::cpu_coverage::generate_log(){
     LOG_DEBUG4(MSG_FUNC_START);
     if(m_cov_enabled == false){
         LOG_DEBUG4(MSG_FUNC_END);
@@ -157,7 +157,7 @@ void CPU_PPC_COVERAGE::generate_log(){
     LOG_DEBUG4(MSG_FUNC_END);
 }
 
-void CPU_PPC_COVERAGE::add_ext_info(std::string info){
+void ppcsimbooke::ppcsimbooke_cpu::cpu_coverage::add_ext_info(std::string info){
     LOG_DEBUG4(MSG_FUNC_START);
     if(m_cov_enabled == false){
         LOG_DEBUG4(MSG_FUNC_END);
@@ -172,7 +172,7 @@ void CPU_PPC_COVERAGE::add_ext_info(std::string info){
     LOG_DEBUG4(MSG_FUNC_END);
 }
 
-CPU_PPC_COVERAGE::CPU_PPC_COVERAGE(){
+ppcsimbooke::ppcsimbooke_cpu::cpu_coverage::cpu_coverage(){
     LOG_DEBUG4(MSG_FUNC_START);
     for(size_t i=0; i<sm_instr_list.size(); i++){
         m_instr_hits[sm_instr_list[i]] = 0;
@@ -181,13 +181,13 @@ CPU_PPC_COVERAGE::CPU_PPC_COVERAGE(){
     LOG_DEBUG4(MSG_FUNC_END);
 }
 
-CPU_PPC_COVERAGE::CPU_PPC_COVERAGE(const CPU_PPC_COVERAGE& c){
+ppcsimbooke::ppcsimbooke_cpu::cpu_coverage::cpu_coverage(const ppcsimbooke::ppcsimbooke_cpu::cpu_coverage& c){
     LOG_DEBUG4(MSG_FUNC_START);
     m_cov_enabled = c.m_cov_enabled;
     LOG_DEBUG4(MSG_FUNC_END);
 }
 
-CPU_PPC_COVERAGE::CPU_PPC_COVERAGE(std::string filename, std::string header){
+ppcsimbooke::ppcsimbooke_cpu::cpu_coverage::cpu_coverage(std::string filename, std::string header){
     LOG_DEBUG4(MSG_FUNC_START);
     for(size_t i=0; i<sm_instr_list.size(); i++){
         m_instr_hits[sm_instr_list[i]] = 0;
@@ -199,7 +199,7 @@ CPU_PPC_COVERAGE::CPU_PPC_COVERAGE(std::string filename, std::string header){
     LOG_DEBUG4(MSG_FUNC_END);
 }
 
-CPU_PPC_COVERAGE::~CPU_PPC_COVERAGE(){
+ppcsimbooke::ppcsimbooke_cpu::cpu_coverage::~cpu_coverage(){
     LOG_DEBUG4(MSG_FUNC_START);
     if(m_report_logger.is_open())
         m_report_logger.close();

@@ -24,6 +24,8 @@
 
 #include "config.h"
 
+namespace ppcsimbooke {
+
 namespace fp_emul{
     // FP operation type
     enum fp_op {
@@ -405,6 +407,8 @@ namespace fp_emul{
         R = get_default_results<T>(R, op, a, m);
         return R;
     }
+}
+
 }
 
 #endif    /*  FLOAT_EMUL_H  */

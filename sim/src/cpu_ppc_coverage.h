@@ -26,33 +26,37 @@
 
 #include "config.h"
 
-#define CPU_PPC_COVERAGE   cpu_ppc_coverage
-class CPU_PPC_COVERAGE {
-    std::map<std::string, uint64_t>          m_instr_hits;
-    static std::vector<std::string>          sm_instr_list;
-    std::ofstream                            m_report_logger;
-    bool                                     m_cov_enabled;
+namespace ppcsimbooke {
+    namespace ppcsimbooke_cpu {
 
-    public:
-    typedef    std::map<std::string, uint64_t>  instr_hits_type;
-    typedef    instr_hits_type::iterator        instr_hits_iter_type;
-
-    public:
-    void        probe(std::string opcd);               // Probe instruction / coverage pt
-    void        log_to_file(std::string filename);     // Specify a new file to divert logs to
-    void        enable();                              // enable coverage logging
-    void        disable();                             // disable coverage logging
-    bool        is_enabled();                          // check if enabled
-    void        generate_log();                        // Generate logs
-    void        add_ext_info(std::string info);        // Add extra information to log ( headers for eg. )
-
-    static int  get_num_opcodes(){ return sm_instr_list.size(); }
-
-    CPU_PPC_COVERAGE();
-    CPU_PPC_COVERAGE(const CPU_PPC_COVERAGE& c);
-    CPU_PPC_COVERAGE(std::string filename, std::string header="");
-    ~CPU_PPC_COVERAGE();
-};
+        class cpu_coverage {
+            std::map<std::string, uint64_t>          m_instr_hits;
+            static std::vector<std::string>          sm_instr_list;
+            std::ofstream                            m_report_logger;
+            bool                                     m_cov_enabled;
+        
+            public:
+            typedef    std::map<std::string, uint64_t>  instr_hits_type;
+            typedef    instr_hits_type::iterator        instr_hits_iter_type;
+        
+            public:
+            void        probe(std::string opcd);               // Probe instruction / coverage pt
+            void        log_to_file(std::string filename);     // Specify a new file to divert logs to
+            void        enable();                              // enable coverage logging
+            void        disable();                             // disable coverage logging
+            bool        is_enabled();                          // check if enabled
+            void        generate_log();                        // Generate logs
+            void        add_ext_info(std::string info);        // Add extra information to log ( headers for eg. )
+        
+            static int  get_num_opcodes(){ return sm_instr_list.size(); }
+        
+            cpu_coverage();
+            cpu_coverage(const cpu_coverage& c);
+            cpu_coverage(std::string filename, std::string header="");
+            ~cpu_coverage();
+        };
+    }
+}
 
  
 #endif

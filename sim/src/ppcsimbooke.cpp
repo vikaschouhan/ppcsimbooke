@@ -48,6 +48,8 @@ typedef ppcsimbooke_cpu::cpu                          cpu_e500v2_t;
 typedef ppcsimbooke_memory::memory                    memory_e500v2_t;
 typedef machine                                       machine_e500v2_t;
 typedef ppcsimbooke_dis::ppcdis                       ppcdis_e500v2_t;
+typedef ppcsimbooke_cpu::breakpt_mngr                 cpu_breakpt_mngr_e500v2_t;
+typedef ppcsimbooke_cpu::cpu_coverage                 cpu_coverage_e500v2_t;
 
 
 // Wrapping some cpu functions
@@ -330,14 +332,14 @@ BOOST_PYTHON_MODULE(ppcsim)
         }
 
         // The breakpoint manager class
-        class_<BM> bm_py("bm");
-            bm_py.def("enable",            &BM::enable_breakpoints)
-            .def("disable",                &BM::disable_breakpoints)
-            .def("add",                    &BM::add_breakpoint)
-            .def("delete",                 &BM::delete_breakpoint)
-            .def("delete_by_num",          &BM::delete_breakpoint_num)
-            .def("delete_all",             &BM::delete_all)
-            .def("list_all",               &BM::list_breakpoints)
+        class_<cpu_breakpt_mngr_e500v2_t> bm_py("bm");
+            bm_py.def("enable",            &cpu_breakpt_mngr_e500v2_t::enable_breakpoints)
+            .def("disable",                &cpu_breakpt_mngr_e500v2_t::disable_breakpoints)
+            .def("add",                    &cpu_breakpt_mngr_e500v2_t::add_breakpoint)
+            .def("delete",                 &cpu_breakpt_mngr_e500v2_t::delete_breakpoint)
+            .def("delete_by_num",          &cpu_breakpt_mngr_e500v2_t::delete_breakpoint_num)
+            .def("delete_all",             &cpu_breakpt_mngr_e500v2_t::delete_all)
+            .def("list_all",               &cpu_breakpt_mngr_e500v2_t::list_breakpoints)
             ;
 
         // The derived cpu_ppc_book class ( Our main cpu class )
@@ -397,7 +399,7 @@ BOOST_PYTHON_MODULE(ppcsim)
     std::cout << "Copyright Vikas Chouhan (presentisgood@gmail.com) 2012"                                                          << std::endl;
     std::cout << "=============================================================================================================="  << std::endl;
     std::cout << "Number of Opcodes in primary disassembler template = " << ppcdis_e500v2_t::get_num_opcodes() << std::endl;
-    std::cout << "Number of Opcodes in coverage logger framework = " << CPU_PPC_COVERAGE::get_num_opcodes() << std::endl;
+    std::cout << "Number of Opcodes in coverage logger framework = " << cpu_coverage_e500v2_t::get_num_opcodes() << std::endl;
     std::cout << std::endl;
 
     // Redirect all logs to this file.

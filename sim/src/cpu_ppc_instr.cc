@@ -3886,9 +3886,9 @@ RTL_END
 //
 //
 #define SPE_FP_2_OP_DEFRES_32(res, opcode, arg0, arg1)   if unlikely(HOST_FPU_FLAGS.is_error())  \
-                                                         fp_emul::get_default_results<uint32_t>(res, opcode, arg0, arg1, HOST_FPU_FLAGS)
+                                                         ppcsimbooke::fp_emul::get_default_results<uint32_t>(res, opcode, arg0, arg1, HOST_FPU_FLAGS)
 #define SPE_FP_1_OP_DEFRES_32(res, opcode, arg0)         if unlikely(HOST_FPU_FLAGS.is_error())  \
-                                                         fp_emul::get_default_results<uint32_t>(res, opcode, arg0, HOST_FPU_FLAGS)
+                                                         ppcsimbooke::fp_emul::get_default_results<uint32_t>(res, opcode, arg0, HOST_FPU_FLAGS)
 
 // Vector FP SP Absolute
 RTL_BEGIN("evfsabs", __evfsabs__)

@@ -3,7 +3,7 @@
 #define PPCSIMBOOKE_FPU_EMUL_DEBUG     // enable data structs for fpu debug
 #include "fpu_emul.h"
 
-using namespace fp_emul;
+using namespace ppcsimbooke::fp_emul;
 
 union fp_bt_u {
     float    f32;
