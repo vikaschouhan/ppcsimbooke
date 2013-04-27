@@ -18,11 +18,6 @@ const uint64_t ppcsimbooke::ppcsimbooke_tlb::tlb::sm_pgmask_list[] = {
                                             };
 
 
-// Check if valid page number ( based on tsize )
-#define CHK_VALID_PN(pn, tsize)  ((((pow4(tsize) * 0x400) - 1) & pn) == pn)
-#define TSIZE_TO_PSIZE(tsize)    (pow4(tsize) * 0x400)
-
-
 // Member functions
 
 /* Initialize default values on per entry basis for all tlb arrays */
@@ -81,7 +76,7 @@ void ppcsimbooke::ppcsimbooke_tlb::tlb::print_tlb_entry(t_tlb_entry &entry, std:
     std::cout << fmtstr << "ra     -> " << std::hex << entry.ra  << std::endl;
     std::cout << fmtstr << "ps     -> " << std::hex << entry.ps  << std::endl;
     std::cout << fmtstr << "wimge  -> " << std::hex << entry.wimge << std::endl;
-    std::cout << fmtstr << "permis -> " << std::hex << PERMIS_TO_PPCPERMIS(entry.permis) << std::endl;
+    std::cout << fmtstr << "permis -> " << std::hex << permis_to_ppcpermis(entry.permis) << std::endl;
     std::cout << fmtstr << "x01    -> " << std::hex << entry.x01 << std::endl;
     std::cout << fmtstr << "u03    -> " << std::hex << entry.u03 << std::endl;
     std::cout << fmtstr << "ts     -> " << std::hex << entry.tflags.ts << std::endl;
@@ -217,7 +212,7 @@ void ppcsimbooke::ppcsimbooke_tlb::tlb::print_tlbs2(){
                 PRINT_TLB_ENT(j, k, entry_this.ea, entry_this.ra,                                                                       \
                         entry_this.epn,    entry_this.rpn,                                                                              \
                         entry_this.tid,    entry_this.tflags.ts,                                                                        \
-                        entry_this.wimge,  PERMIS_TO_PPCPERMIS(entry_this.permis),                                                      \
+                        entry_this.wimge,  permis_to_ppcpermis(entry_this.permis),                                                      \
                         entry_this.ps,     entry_this.x01,                                                                              \
                         entry_this.u03,    entry_this.tflags.iprot);                                                                    \
             }                                                                                                                           \
@@ -252,8 +247,8 @@ void ppcsimbooke::ppcsimbooke_tlb::tlb::tlbre(uint64_t &mas0, uint64_t &mas1, ui
     //unsigned tsize  = EBF(mas1,       MAS1_TSIZE);
 
     // check validity of page numbers
-    //LASSERT_THROW(CHK_VALID_PN(epn, tsize), sim_except(SIM_EXCEPT_EINVAL, "Illegal MAS2[EPN] or MAS1[TSIZE]."), DEBUG4);
-    //LASSERT_THROW(CHK_VALID_PN(rpn, tsize), sim_except(SIM_EXCEPT_EINVAL, "Illegal MAS3[RPN] or MAS1[TSIZE]."), DEBUG4); 
+    //LASSERT_THROW(chk_valid_pn(epn, tsize), sim_except(SIM_EXCEPT_EINVAL, "Illegal MAS2[EPN] or MAS1[TSIZE]."), DEBUG4);
+    //LASSERT_THROW(chk_valid_pn(rpn, tsize), sim_except(SIM_EXCEPT_EINVAL, "Illegal MAS3[RPN] or MAS1[TSIZE]."), DEBUG4); 
 
     t_tlb_entry &entry = get_entry(tlbsel, epn << MIN_PGSZ_SHIFT, esel);
 
@@ -272,7 +267,7 @@ void ppcsimbooke::ppcsimbooke_tlb::tlb::tlbre(uint64_t &mas0, uint64_t &mas1, ui
 
     mas3  = IBF(mas3, (entry.ra >> MIN_PGSZ_SHIFT),          MAS3_RPN);
     mas3  = IBF(mas3, entry.u03,                             MAS3_U03);
-    mas3  = IBF(mas3, PERMIS_TO_PPCPERMIS(entry.permis),     MAS3_PERMIS);
+    mas3  = IBF(mas3, permis_to_ppcpermis(entry.permis),     MAS3_PERMIS);
 
     if(EBF(hid0, HID0_EN_MAS7_UPDATE))
         mas7  = IBF(mas7, (entry.ra >> 32) & 0xf, MAS7_RPN);    /* Upper 4 bits of rpn */
@@ -293,11 +288,11 @@ void ppcsimbooke::ppcsimbooke_tlb::tlb::tlbwe(uint64_t mas0, uint64_t mas1, uint
     uint64_t epn    = EBF(mas2,    MAS2_EPN);
     uint64_t rpn    = EBF(mas3,    MAS3_RPN);      // We only require lower 20 bits of rpn for validity check
     unsigned tsize  = EBF(mas1,    MAS1_TSIZE);
-    uint64_t psize  = TSIZE_TO_PSIZE(tsize);          // Get absolute page size
+    uint64_t psize  = tsize_to_psize(tsize);          // Get absolute page size
 
     // check validity of page numbers
-    //LASSERT_THROW(CHK_VALID_PN(epn, tsize), sim_except(SIM_EXCEPT_EINVAL, "Illegal MAS2[EPN] or MAS1[TSIZE]."), DEBUG4);
-    //LASSERT_THROW(CHK_VALID_PN(rpn, tsize), sim_except(SIM_EXCEPT_EINVAL, "Illegal MAS3[RPN] or MAS1[TSIZE]."), DEBUG4);
+    //LASSERT_THROW(chk_valid_pn(epn, tsize), sim_except(SIM_EXCEPT_EINVAL, "Illegal MAS2[EPN] or MAS1[TSIZE]."), DEBUG4);
+    //LASSERT_THROW(chk_valid_pn(rpn, tsize), sim_except(SIM_EXCEPT_EINVAL, "Illegal MAS3[RPN] or MAS1[TSIZE]."), DEBUG4);
 
     t_tlb_entry &entry = get_entry(tlbsel, epn << MIN_PGSZ_SHIFT, esel);
 
@@ -316,7 +311,7 @@ void ppcsimbooke::ppcsimbooke_tlb::tlb::tlbwe(uint64_t mas0, uint64_t mas1, uint
     entry.ra           = rpn << MIN_PGSZ_SHIFT;
     entry.rpn          = entry.ra >> rshift<uint64_t>(psize);
     entry.u03          = EBF(mas3,   MAS3_U03);
-    entry.permis       = PPCPERMIS_TO_PERMIS(EBF(mas3,   MAS3_PERMIS));
+    entry.permis       = ppcpermis_to_permis(EBF(mas3,   MAS3_PERMIS));
 
     if(EBF(hid0, HID0_EN_MAS7_UPDATE)){
         entry.ra |= EBF(mas7, MAS7_RPN) << 32;    /* Upper 4 bits of rpn */
@@ -399,7 +394,7 @@ void ppcsimbooke::ppcsimbooke_tlb::tlb::tlbse(uint64_t ea, uint64_t &mas0, uint6
 
     mas3  = IBF(mas3, entry->ra >> MIN_PGSZ_SHIFT,          MAS3_RPN);
     mas3  = IBF(mas3, entry->u03,                           MAS3_U03);
-    mas3  = IBF(mas3, PERMIS_TO_PPCPERMIS(entry->permis),   MAS3_PERMIS);
+    mas3  = IBF(mas3, permis_to_ppcpermis(entry->permis),   MAS3_PERMIS);
 
     if(EBF(hid0, HID0_EN_MAS7_UPDATE))
         mas7 = IBF(mas7, (entry->ra >> 32) & 0xf,  MAS7_RPN);    /* Upper 4 bits of rpn */
@@ -525,7 +520,7 @@ std::tuple<uint64_t, uint8_t, uint64_t> ppcsimbooke::ppcsimbooke_tlb::tlb::xlate
     // start searching for the tlb entry in cache first
     for(int indx=0; indx < size_pgm; indx++){
         // get va & offset
-        va     = TO_VIRT(u64(pr), u64(rwx), u64(as), u64(pid), (ea & sm_pgmask_list[indx]));
+        va     = to_virt(pr, rwx, as, pid, (ea & sm_pgmask_list[indx]));
         
         ra    = m_tlb_cache[va];
         offset = ea & ~sm_pgmask_list[indx];
@@ -576,11 +571,11 @@ std::tuple<uint64_t, uint8_t, uint64_t> ppcsimbooke::ppcsimbooke_tlb::tlb::xlate
     exit_loop_1:
 
     // Get offset and wimge
-    offset = ea & (TSIZE_TO_PSIZE(entry->tflags.tsize) - 1);
+    offset = ea & (tsize_to_psize(entry->tflags.tsize) - 1);
     wimge  = entry->wimge;
 
     // Update the cache
-    m_tlb_cache.insert(TO_VIRT(u64(pr), u64(rwx), u64(as), u64(pid), (ea & ~(entry->ps - 1))), entry->ra, entry->wimge); 
+    m_tlb_cache.insert(to_virt(pr, rwx, as, pid, (ea & ~(entry->ps - 1))), entry->ra, entry->wimge); 
 
     LOG_DEBUG4(MSG_FUNC_END);
     return std::make_tuple((entry->ra + offset), wimge, entry->ps);

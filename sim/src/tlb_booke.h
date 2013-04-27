@@ -32,11 +32,25 @@ namespace ppcsimbooke {
 
         // Derive an interim 45 bit virtual address from MSR[PR], RWX permissions,
         //                                               MSR[IS/DS], PID[0/1/2] & EA
-        #define  TO_VIRT(pr, rwx, as, pid, ea)    ((((pr) & 0x1) << 44)     |   \
-                                                   (((rwx) & 0x7)<< 41)     |   \
-                                                   (((as) & 0x1) << 40)     |   \
-                                                   (((pid) & 0xff) << 32)   |   \
-                                                   ((ea) & 0xffffffff))
+        inline static uint64_t to_virt(uint64_t pr, uint64_t rwx, uint64_t as, uint64_t pid, uint64_t ea){
+            return ((pr & 0x1) << 44) | ((rwx & 0x7)<< 41) | ((as & 0x1) << 40) | ((pid & 0xff) << 32) | (ea & 0xffffffff);
+        }
+
+        // Helpers for converting permissions from one format to other
+        inline static uint8_t permis_to_ppcpermis(uint8_t perm){
+            return ((perm & 0x1) << 4) | ((perm & 0x2) << 1)  | ((perm & 0x4) >> 2)  |
+                   ((perm & 0x8) << 2) | ((perm & 0x10) >> 1) | ((perm & 0x20) >> 4) ;
+        }
+        inline static uint8_t ppcpermis_to_permis(uint8_t perm){
+            return ((perm & 0x1) << 2) | ((perm & 0x2) << 4)  | ((perm & 0x4) >> 1)  |
+                   ((perm & 0x8) << 1) | ((perm & 0x10) >> 4) | ((perm & 0x20) >> 2) ;
+        }
+
+        // Check if valid page number (based on tsize)
+        inline static bool chk_valid_pn(uint64_t pn, uint64_t tsize) { return ((((pow4(tsize) * 0x400) - 1) & pn) == pn); }
+
+        // tsize -> psize
+        inline static uint64_t tsize_to_psize(uint64_t tsize)            { return (pow4(tsize) * 0x400); }
         
         class tlb {
         
@@ -55,16 +69,7 @@ namespace ppcsimbooke {
                 uint32_t  permis;  // Permission . This is stored in
                                    // a diff format than that specified by MAS registers
                                    // ur-uw-ux-sr-sw-sx
-        #define PERMIS_TO_PPCPERMIS(_perm)                                                  \
-                (                                                                           \
-                ((_perm & 0x1) << 4) | ((_perm & 0x2) << 1)  | ((_perm & 0x4) >> 2) |       \
-                ((_perm & 0x8) << 2) | ((_perm & 0x10) >> 1) | ((_perm & 0x20) >> 4)        \
-                )
-        #define PPCPERMIS_TO_PERMIS(_perm)                                                  \
-                (                                                                           \
-                ((_perm & 0x1) << 2) | ((_perm & 0x2) << 4)  | ((_perm & 0x4) >> 1) |       \
-                ((_perm & 0x8) << 1) | ((_perm & 0x10) >> 4) | ((_perm & 0x20) >> 2)        \
-                )
+
                 struct {
                     uint64_t ts    : 1;  /* Translation space */
                     uint64_t tsize : 4;  /* Logarithmic page size */
