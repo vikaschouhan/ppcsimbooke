@@ -146,13 +146,17 @@ void ppcsimbooke::ppcsimbooke_cpu::cpu::run_instr(uint32_t opcd){
 }
 
 #define TO_RWX(r, w, x) (((r & 0x1) << 2) | ((w & 0x1) << 1) | (x & 0x1))
-// Translate EA to RA ( for data only )
+// Translate EA to RA
 // NOTE: All exceptions ( hardware/software ) will be handled at run_instr() or run() level.
-ppcsimbooke::ppcsimbooke_cpu::cpu::xlated_tlb_res ppcsimbooke::ppcsimbooke_cpu::cpu::xlate(uint64_t addr, bool wr){
+ppcsimbooke::ppcsimbooke_cpu::cpu::xlated_tlb_res ppcsimbooke::ppcsimbooke_cpu::cpu::xlate(uint64_t addr, bool wr, bool ex){
     LOG_DEBUG4(MSG_FUNC_START);
 
+    // Check for wr=1, ex=1 on accessed page
+    // I am not sure, if there is a ppc exception for this. Change this to throw hardware exception in that case.
+    LASSERT_THROW_UNLIKELY(!((wr == true) && (ex == true)), sim_except(SIM_EXCEPT_EINVAL, "WR=1 on instruction page."), DEBUG4);
+
     xlated_tlb_res res;
-    uint8_t  perm = (wr) ? TO_RWX(0, 1, 0) : TO_RWX(1, 0, 0);
+    uint8_t  perm = ((wr) ? TO_RWX(0, 1, 0) : TO_RWX(1, 0, 0)) | TO_RWX(0, 0, ex);
     bool as = EBF(PPCSIMBOOKE_CPU_REG(REG_MSR), MSR_DS);
     bool pr = EBF(PPCSIMBOOKE_CPU_REG(REG_MSR), MSR_PR);
 
@@ -162,7 +166,13 @@ ppcsimbooke::ppcsimbooke_cpu::cpu::xlated_tlb_res ppcsimbooke::ppcsimbooke_cpu::
     res = m_l2tlb.xlate(addr, as, PPCSIMBOOKE_CPU_REG(REG_PID2), perm, pr); if(std::get<0>(res) != static_cast<uint64_t>(-1)) goto exit_loop_0;
 
     // We encountered TLB miss. Throw exceptions
-    std::cout << "DTLB miss" << std::endl;
+    if(ex){
+        LOG_DEBUG4("ITLB miss.");
+        LTHROW(sim_except_ppc(PPC_EXCEPTION_ITLB, PPC_EXCEPT_ITLB_MISS, "ITLB miss."), DEBUG4);
+    }else{
+        LOG_DEBUG4("DTLB miss.");
+    }
+
     if(wr){
         LTHROW(sim_except_ppc(PPC_EXCEPTION_DTLB, PPC_EXCEPT_DTLB_MISS_ST, "DTLB miss on store."), DEBUG4);
     }else{
@@ -715,20 +725,9 @@ ppcsimbooke::instr_call ppcsimbooke::ppcsimbooke_cpu::cpu::get_instr(){
         return call_this;
     }
 
-    uint8_t  perm = TO_RWX(1, 0, 1);            // rx = 0b11
-    bool as = EBF(PPCSIMBOOKE_CPU_REG(REG_MSR), MSR_IS);  // as = MSR[IS]
-    bool pr = EBF(PPCSIMBOOKE_CPU_REG(REG_MSR), MSR_PR);  // pr = MSR[pr]
+    // Translate program counter to physical address
+    res = xlate(PPCSIMBOOKE_CPU_PC, 0, 1);  // wr=0, ex=1
 
-    // Try hits with PID0, PID1 and PID2
-    res = m_l2tlb.xlate(PPCSIMBOOKE_CPU_PC, as, PPCSIMBOOKE_CPU_REG(REG_PID0), perm, pr); if(std::get<0>(res) != static_cast<uint64_t>(-1)) goto exit_loop_0;
-    res = m_l2tlb.xlate(PPCSIMBOOKE_CPU_PC, as, PPCSIMBOOKE_CPU_REG(REG_PID1), perm, pr); if(std::get<0>(res) != static_cast<uint64_t>(-1)) goto exit_loop_0; 
-    res = m_l2tlb.xlate(PPCSIMBOOKE_CPU_PC, as, PPCSIMBOOKE_CPU_REG(REG_PID2), perm, pr); if(std::get<0>(res) != static_cast<uint64_t>(-1)) goto exit_loop_0;
-
-    // We encountered ITLB miss. Throw exceptions
-    std::cout << "ITLB miss" << std::endl;
-    LTHROW(sim_except_ppc(PPC_EXCEPTION_ITLB, PPC_EXCEPT_ITLB_MISS, "ITLB miss."), DEBUG4);
-
-    exit_loop_0:
     LOG_DEBUG4(std::hex, std::showbase, "instr Xlation : ", PPCSIMBOOKE_CPU_PC, " -> ", std::get<0>(res), std::endl);
 
     LASSERT_THROW_UNLIKELY(m_mem_ptr != NULL, sim_except_fatal("no memory module registered."), DEBUG4);

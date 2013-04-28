@@ -117,7 +117,7 @@ namespace ppcsimbooke {
         
             // Misc
             typedef std::tuple<uint64_t, uint8_t, uint64_t>  xlated_tlb_res;
-            xlated_tlb_res  xlate(uint64_t addr, bool wr=0);  // Translate EA to RA (return a tuple of <xlated addr, wimge, page_size>)
+            xlated_tlb_res  xlate(uint64_t addr, bool wr=0, bool ex=0);  // Translate EA to RA (return a tuple of <xlated addr, wimge, page_size>)
         
             // Accessing registers using reghash interface ( for use with ppc code translation unit )
             inline ppc_reg64*      reg(int regid);
