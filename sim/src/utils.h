@@ -503,21 +503,12 @@ inline T name(T ra, T rb, bool rem=0){                                  \
 def_x86_div_op(x86_div, div)
 def_x86_div_op(x86_idiv, idiv)
 
-#define NEGW              x86_neg<uint32_t>
-#define ADDW              x86_add<int32_t>
-#define SUBW              x86_sub<int32_t>
-#define MULW              x86_imul<int32_t>
-#define MULUW             x86_mul<uint32_t>
-#define MULWF             x86_imulf<int64_t, int32_t>
-#define MULUWF            x86_mulf<uint64_t, uint32_t>
-#define DIVW              x86_idiv<int32_t>
-#define DIVUW             x86_div<uint32_t>
-#define ANDW              x86_and<uint32_t>
-#define ORW               x86_or<uint32_t>
-#define XORW              x86_xor<uint32_t>
 
-#define ADD64             x86_add<int64_t>   // 64 bit ADD
-#define SUB64             x86_sub<int64_t>   // 64 bit SUB
+#undef def_x86_alu_op1
+#undef def_x86_alu_op2
+#undef def_x86_mul_op
+#undef def_x86_mulf_op
+#undef def_x86_div_op
 
 // vector extensions (SSE)
 // forward declarations
@@ -701,5 +692,7 @@ def_x86_sse_op2(x86_muls_f32, mulss)
 def_x86_sse_op2(x86_muls_f64, mulsd)
 def_x86_sse_op2(x86_divs_f32, divss)
 def_x86_sse_op2(x86_divs_f64, divsd)
+
+#undef def_x86_sse_op2
 
 #endif

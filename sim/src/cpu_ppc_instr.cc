@@ -307,23 +307,22 @@
 #define  PPC_EXCEPT         sim_except_ppc
 
 // These functions are defined in utils.h
-#define X86_ADDW(arg1,    arg2)                      ADDW(arg1,   arg2, HOST_FLAGS)
-#define X86_SUBW(arg1,    arg2)                      ADDW(arg1,   arg2, HOST_FLAGS)
-#define X86_ANDW(arg1,    arg2)                      ANDW(arg1,   arg2, HOST_FLAGS)
-#define X86_ORW(arg1,     arg2)                       ORW(arg1,   arg2, HOST_FLAGS)
-#define X86_XORW(arg1,    arg2)                      XORW(arg1,   arg2, HOST_FLAGS)
-#define X86_NEGW(arg1         )                      NEGW(arg1,   HOST_FLAGS)
-#define X86_DIVW(arg1,    arg2)                      DIVW(arg1,   arg2)
-#define X86_DIVUW(arg1,   arg2)                      DIVUW(arg1,  arg2)
-#define X86_MULW_L(arg1,  arg2)                      MULW(arg1,   arg2, HOST_FLAGS, 0)
-#define X86_MULW_H(arg1,  arg2)                      MULW(arg1,   arg2, HOST_FLAGS, 1)
-#define X86_MULUW_L(arg1, arg2)                      MULUW(arg1,  arg2, HOST_FLAGS, 0)
-#define X86_MULUW_H(arg1, arg2)                      MULUW(arg1,  arg2, HOST_FLAGS, 1)
-#define X86_MULWF(arg1,   arg2)                      MULWF(arg1,  arg2, HOST_FLAGS)
-#define X86_MULUWF(arg1,  arg2)                      MULUWF(arg1, arg2, HOST_FLAGS)
+#define X86_ADDW(arg1,    arg2)                       x86_add<int32_t>(arg1, arg2, HOST_FLAGS)
+#define X86_ANDW(arg1,    arg2)                       x86_and<uint32_t>(arg1,arg2, HOST_FLAGS)
+#define X86_ORW(arg1,     arg2)                       x86_or<uint32_t>(arg1, arg2, HOST_FLAGS)
+#define X86_XORW(arg1,    arg2)                       x86_xor<uint32_t>(arg1, arg2, HOST_FLAGS)
+#define X86_NEGW(arg1         )                       x86_neg<uint32_t>(arg1, HOST_FLAGS)
+#define X86_DIVW(arg1,    arg2)                       x86_idiv<int32_t>(arg1, arg2)
+#define X86_DIVUW(arg1,   arg2)                       x86_div<uint32_t>(arg1, arg2)
+#define X86_MULW_L(arg1,  arg2)                       x86_imul<int32_t>(arg1, arg2, HOST_FLAGS, 0)
+#define X86_MULW_H(arg1,  arg2)                       x86_imul<int32_t>(arg1, arg2, HOST_FLAGS, 1)
+#define X86_MULUW_L(arg1, arg2)                       x86_mul<uint32_t>(arg1, arg2, HOST_FLAGS, 0)
+#define X86_MULUW_H(arg1, arg2)                       x86_mul<uint32_t>(arg1, arg2, HOST_FLAGS, 1)
+#define X86_MULWF(arg1,   arg2)                       x86_imulf<int64_t, int32_t>(arg1, arg2, HOST_FLAGS)
+#define X86_MULUWF(arg1,  arg2)                       x86_mulf<uint64_t, uint32_t>(arg1, arg2, HOST_FLAGS)
 
-#define X86_ADD64(arg1,   arg2)                      ADD64(arg1,  arg2, HOST_FLAGS)           // 64bit ADD
-#define X86_SUB64(arg1,   arg2)                      SUB64(arg1,  arg2, HOST_FLAGS)           // 64bit SUB
+#define X86_ADD64(arg1,   arg2)                      x86_add<int64_t>(arg1,  arg2, HOST_FLAGS)           // 64bit ADD
+#define X86_SUB64(arg1,   arg2)                      x86_sub<int64_t>(arg1,  arg2, HOST_FLAGS)           // 64bit SUB
 
 #define X86_ADDS_F32(arg1, arg2)                     x86_adds_f32(arg1, arg2, HOST_FPU_FLAGS)
 #define X86_SUBS_F32(arg1, arg2)                     x86_subs_f32(arg1, arg2, HOST_FPU_FLAGS)
