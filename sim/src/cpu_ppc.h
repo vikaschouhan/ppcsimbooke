@@ -31,6 +31,7 @@
 #include "bm.h"                      // Software Breakpoint manager
 #include "cpu_ppc_coverage.h"        // Coverage logger
 #include "fpu_emul.h"                // floating point emulation
+#include "basic_block.h"             // Basic block decoder & caches module
 
 namespace ppcsimbooke {
     namespace ppcsimbooke_cpu {
@@ -92,6 +93,7 @@ namespace ppcsimbooke {
             void       read_buff(uint64_t addr, uint8_t *buff, size_t buffsize);
         
             uint64_t   get_reg(std::string name) throw(sim_except);    // Get register by name
+            uint64_t   get_reg(int regid) throw(sim_except);           // Get register by reg_id
             void       dump_state(int columns=0, std::ostream &ostr=std::cout, int dump_all_sprs=0);   // Dump Cpu state
             void       print_L2tlbs();                                 // Print L2 tlbs
         
@@ -143,6 +145,9 @@ namespace ppcsimbooke {
             // NOTE : It's the responsibility of this function to populate m_ppc_func_hash and
             //        it has to be called once in the constructor.
             friend void gen_ppc_opc_func_hash(ppcsimbooke::ppcsimbooke_cpu::cpu *pcpu);
+
+            // Basic Block decoder is cpu's friend
+            friend struct ppcsimbooke::ppcsimbooke_basic_block::basic_block_decoder;
         
             std::string                            m_cpu_name;
             cpu_run_mode                           m_cpu_mode;
@@ -163,14 +168,14 @@ namespace ppcsimbooke {
         
             // powerPC register file
             ppc_regs                               m_cpu_regs;            // PPC register file
-        #define PPCREG(reg_id)                     (m_cpu_regs.m_ireg[reg_id]->value.u64v)
-        #define PPCREGN(reg_name)                  (m_cpu_regs.m_reg[reg_name]->value.u64v)
-        #define PPCREGATTR(reg_id)                 (m_cpu_regs.m_ireg[reg_id]->attr)
-        #define PPCREGNATTR(reg_name)              (m_cpu_regs.m_reg_attr[reg_name]->attr)
-        #define PPCREGMASK(reg_id, mask)           EBF(PPCREG(reg_id),    mask)
-        #define PPCREGNMASK(reg_name, mask)        EBF(PPCREGN(reg_name), mask)
-        #define PPCSIMBOOKE_CPU_PC                 (m_cpu_regs.pc)
-        #define PPCSIMBOOKE_CPU_NIP                (m_cpu_regs.nip)
+        #define PPCSIMBOOKE_CPU_REG(reg_id)                     (m_cpu_regs.m_ireg[reg_id]->value.u64v)
+        #define PPCSIMBOOKE_CPU_REGN(reg_name)                  (m_cpu_regs.m_reg[reg_name]->value.u64v)
+        #define PPCSIMBOOKE_CPU_REGATTR(reg_id)                 (m_cpu_regs.m_ireg[reg_id]->attr)
+        #define PPCSIMBOOKE_CPU_REGNATTR(reg_name)              (m_cpu_regs.m_reg_attr[reg_name]->attr)
+        #define PPCSIMBOOKE_CPU_REGMASK(reg_id, mask)           EBF(PPCSIMBOOKE_CPU_REG(reg_id),    mask)
+        #define PPCSIMBOOKE_CPU_REGNMASK(reg_name, mask)        EBF(PPCSIMBOOKE_CPU_REGN(reg_name), mask)
+        #define PPCSIMBOOKE_CPU_PC                              (m_cpu_regs.pc)
+        #define PPCSIMBOOKE_CPU_NIP                             (m_cpu_regs.nip)
         
             // Book keeping
             uint64_t                               m_cpu_id;              // A unique cpu id

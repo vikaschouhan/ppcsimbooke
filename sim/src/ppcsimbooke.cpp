@@ -58,6 +58,10 @@ typedef ppcsimbooke_cpu::cpu_coverage                 cpu_coverage_e500v2_t;
 void (cpu_e500v2_t::*run_instr_ptr_d0)(uint32_t)     = &cpu_e500v2_t::run_instr;
 void (cpu_e500v2_t::*run_instr_ptr2_d0)(std::string) = &cpu_e500v2_t::run_instr;
 
+// func ptrs for overloaded CPU_PPC::get_reg
+uint64_t (cpu_e500v2_t::*get_reg_ptr_d0)(int)            = &cpu_e500v2_t::get_reg;
+uint64_t (cpu_e500v2_t::*get_reg_ptr2_d0)(std::string)   = &cpu_e500v2_t::get_reg;
+
 // Wrapping some ppc_dis functions
 instr_call (ppcdis_e500v2_t::*disasm_ptr)(uint32_t, uint64_t, int)  = &ppcdis_e500v2_t::disasm;
 instr_call (ppcdis_e500v2_t::*disasm_ptr2)(std::string, uint64_t)   = &ppcdis_e500v2_t::disasm;
@@ -351,7 +355,8 @@ BOOST_PYTHON_MODULE(ppcsim)
             .def("halt",              &cpu_e500v2_t::halt)
             .def("stop",              &cpu_e500v2_t::stop)
             .def("run_mode",          &cpu_e500v2_t::run_mode)
-            .def("get_reg",           &cpu_e500v2_t::get_reg)
+            .def("get_reg",           get_reg_ptr_d0)
+            .def("get_reg",           get_reg_ptr2_d0)
             .def("dump_state",        &cpu_e500v2_t::dump_state, dump_state_overloads())
             .def("print_L2tlbs",      &cpu_e500v2_t::print_L2tlbs)
             .def("en_cov",            &cpu_e500v2_t::enable_cov_log)

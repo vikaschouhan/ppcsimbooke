@@ -78,8 +78,9 @@ static const int  EMUL_LITTLE_ENDIAN     =  1;
 #define if_pow_2(x) IF_POWER_OF_2(x)
 
 // Min. page size
-#define MIN_PGSZ  (0x1000)
-#define MIN_PGSZ_SHIFT (12)
+#define MIN_PGSZ               (0x1000)
+#define MIN_PGSZ_MASK          (0xfffffffffffff000ULL)
+#define MIN_PGSZ_SHIFT         (12)
 
 // Round x to next higher page size ( booke )
 #define rnd_booke_pgsz_h(x) (((x)<MIN_PGSZ)?MIN_PGSZ:((if_pow_4(x))?(x):(MIN_PGSZ*pow4(log4((x)/MIN_PGSZ)+1))))

@@ -150,7 +150,7 @@ namespace ppcsimbooke {
             ppcsimbooke::ppcsimbooke_dis::ppcdis           decoder;     // decoder module
             
             basic_block_decoder(const basic_block_ip& rvp);
-            basic_block_decoder(ppcsimbooke::ppcsimbooke_cpu::cpu &ctx, uint64_t ip);       // cpu maintains the context
+            basic_block_decoder(ppcsimbooke::ppcsimbooke_cpu::cpu &ctx);       // cpu maintains the context
             basic_block_decoder(uint64_t ip, bool kernel, bool df);
             
             void reset();

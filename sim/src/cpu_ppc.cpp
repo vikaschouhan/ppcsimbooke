@@ -153,13 +153,13 @@ ppcsimbooke::ppcsimbooke_cpu::cpu::xlated_tlb_res ppcsimbooke::ppcsimbooke_cpu::
 
     xlated_tlb_res res;
     uint8_t  perm = (wr) ? TO_RWX(0, 1, 0) : TO_RWX(1, 0, 0);
-    bool as = EBF(PPCREG(REG_MSR), MSR_DS);
-    bool pr = EBF(PPCREG(REG_MSR), MSR_PR);
+    bool as = EBF(PPCSIMBOOKE_CPU_REG(REG_MSR), MSR_DS);
+    bool pr = EBF(PPCSIMBOOKE_CPU_REG(REG_MSR), MSR_PR);
 
     // Try hits with PID0, PID1 and PID2
-    res = m_l2tlb.xlate(addr, as, PPCREG(REG_PID0), perm, pr); if(std::get<0>(res) != static_cast<uint64_t>(-1)) goto exit_loop_0;
-    res = m_l2tlb.xlate(addr, as, PPCREG(REG_PID1), perm, pr); if(std::get<0>(res) != static_cast<uint64_t>(-1)) goto exit_loop_0; 
-    res = m_l2tlb.xlate(addr, as, PPCREG(REG_PID2), perm, pr); if(std::get<0>(res) != static_cast<uint64_t>(-1)) goto exit_loop_0;
+    res = m_l2tlb.xlate(addr, as, PPCSIMBOOKE_CPU_REG(REG_PID0), perm, pr); if(std::get<0>(res) != static_cast<uint64_t>(-1)) goto exit_loop_0;
+    res = m_l2tlb.xlate(addr, as, PPCSIMBOOKE_CPU_REG(REG_PID1), perm, pr); if(std::get<0>(res) != static_cast<uint64_t>(-1)) goto exit_loop_0; 
+    res = m_l2tlb.xlate(addr, as, PPCSIMBOOKE_CPU_REG(REG_PID2), perm, pr); if(std::get<0>(res) != static_cast<uint64_t>(-1)) goto exit_loop_0;
 
     // We encountered TLB miss. Throw exceptions
     std::cout << "DTLB miss" << std::endl;
@@ -298,91 +298,91 @@ void ppcsimbooke::ppcsimbooke_cpu::cpu::ppc_exception(int exception_nr, int subt
     uint64_t *srr1 = NULL;
 
 #define GET_PC_FROM_IVOR_NUM(ivor_num)                          \
-    ((PPCREG(REG_IVPR) & 0xffff) << 16) | ((PPCREG(REG_IVOR##ivor_num) & 0xfff) << 4)
+    ((PPCSIMBOOKE_CPU_REG(REG_IVPR) & 0xffff) << 16) | ((PPCSIMBOOKE_CPU_REG(REG_IVOR##ivor_num) & 0xfff) << 4)
 #define CLR_DEFAULT_MSR_BITS()                                  \
-    PPCREG(REG_MSR) &= ~MSR_SPE & ~MSR_WE & ~MSR_EE & ~MSR_PR & ~MSR_FP & ~MSR_FE0 & ~MSR_FE1 & ~MSR_IS & ~MSR_DS
+    PPCSIMBOOKE_CPU_REG(REG_MSR) &= ~MSR_SPE & ~MSR_WE & ~MSR_EE & ~MSR_PR & ~MSR_FP & ~MSR_FE0 & ~MSR_FE1 & ~MSR_IS & ~MSR_DS
 
     switch(exception_nr){
         case  PPC_EXCEPTION_CR:
-            if((PPCREG(REG_MSR) & MSR_CE) == 0){ RETURNVOID(DEBUG4); }
+            if((PPCSIMBOOKE_CPU_REG(REG_MSR) & MSR_CE) == 0){ RETURNVOID(DEBUG4); }
 
-            PPCREG(REG_CSRR0) = PPCSIMBOOKE_CPU_PC;
-            PPCREG(REG_CSRR1) = PPCREG(REG_MSR);
+            PPCSIMBOOKE_CPU_REG(REG_CSRR0) = PPCSIMBOOKE_CPU_PC;
+            PPCSIMBOOKE_CPU_REG(REG_CSRR1) = PPCSIMBOOKE_CPU_REG(REG_MSR);
            
             // Clear default MSR bits. Also clear CE bit 
             CLR_DEFAULT_MSR_BITS();
-            PPCREG(REG_MSR) &= ~MSR_CE;
+            PPCSIMBOOKE_CPU_REG(REG_MSR) &= ~MSR_CE;
             PPCSIMBOOKE_CPU_PC = GET_PC_FROM_IVOR_NUM(0);
             break;
         case  PPC_EXCEPTION_MC:
-            if((PPCREG(REG_MSR) & MSR_ME) == 0){
+            if((PPCSIMBOOKE_CPU_REG(REG_MSR) & MSR_ME) == 0){
                 std::cerr << "Received Machine Check and MSR[ME]=0. Going into checkstop." << std::endl;
                 exit(1);
             }
             
-            PPCREG(REG_MCSRR0) = PPCSIMBOOKE_CPU_PC;
-            PPCREG(REG_MCSRR1) = PPCREG(REG_MSR);
-            PPCREG(REG_MCAR)   = ea;
+            PPCSIMBOOKE_CPU_REG(REG_MCSRR0) = PPCSIMBOOKE_CPU_PC;
+            PPCSIMBOOKE_CPU_REG(REG_MCSRR1) = PPCSIMBOOKE_CPU_REG(REG_MSR);
+            PPCSIMBOOKE_CPU_REG(REG_MCAR)   = ea;
 
             // If no cause specified, skip straight away
             if(subtype != 0ULL){
 
                 // Check for sub types
                 if((subtype & PPC_EXCEPT_MC_DCPERR) == PPC_EXCEPT_MC_DCPERR){
-                    PPCREG(REG_MCSR) |= MCSR_DCPERR;
+                    PPCSIMBOOKE_CPU_REG(REG_MCSR) |= MCSR_DCPERR;
                 }
                 if((subtype & PPC_EXCEPT_MC_BUS_RAERR) == PPC_EXCEPT_MC_BUS_RAERR){
-                    PPCREG(REG_MCSR) |= MCSR_BUS_RAERR;
+                    PPCSIMBOOKE_CPU_REG(REG_MCSR) |= MCSR_BUS_RAERR;
                 }
                 if((subtype & PPC_EXCEPT_MC_BUS_RBERR) == PPC_EXCEPT_MC_BUS_RBERR){
-                    PPCREG(REG_MCSR) |= MCSR_BUS_RBERR;
+                    PPCSIMBOOKE_CPU_REG(REG_MCSR) |= MCSR_BUS_RBERR;
                 }
                 if((subtype & PPC_EXCEPT_MC_BUS_RPERR) == PPC_EXCEPT_MC_BUS_RPERR){
-                    PPCREG(REG_MCSR) |= MCSR_BUS_RPERR;
+                    PPCSIMBOOKE_CPU_REG(REG_MCSR) |= MCSR_BUS_RPERR;
                 }
                 if((subtype & PPC_EXCEPT_MC_BUS_WAERR) == PPC_EXCEPT_MC_BUS_WAERR){
-                    PPCREG(REG_MCSR) |= MCSR_BUS_WAERR;
+                    PPCSIMBOOKE_CPU_REG(REG_MCSR) |= MCSR_BUS_WAERR;
                 }
                 if((subtype & PPC_EXCEPT_MC_BUS_WBERR) == PPC_EXCEPT_MC_BUS_WBERR){
-                    PPCREG(REG_MCSR) |= MCSR_BUS_WBERR;
+                    PPCSIMBOOKE_CPU_REG(REG_MCSR) |= MCSR_BUS_WBERR;
                 }
                 if((subtype & PPC_EXCEPT_MC_DCP_PERR) == PPC_EXCEPT_MC_DCP_PERR){
-                    PPCREG(REG_MCSR) |= MCSR_DCP_PERR;
+                    PPCSIMBOOKE_CPU_REG(REG_MCSR) |= MCSR_DCP_PERR;
                 }
                 if((subtype & PPC_EXCEPT_MC_ICPERR) == PPC_EXCEPT_MC_ICPERR){
-                    PPCREG(REG_MCSR) |= MCSR_ICPERR;
+                    PPCSIMBOOKE_CPU_REG(REG_MCSR) |= MCSR_ICPERR;
                 }
                 if((subtype & PPC_EXCEPT_MC_BUS_IAERR) == PPC_EXCEPT_MC_BUS_IAERR){
-                    PPCREG(REG_MCSR) |= MCSR_BUS_IAERR;
+                    PPCSIMBOOKE_CPU_REG(REG_MCSR) |= MCSR_BUS_IAERR;
                 }
                 if((subtype & PPC_EXCEPT_MC_BUS_IBERR) == PPC_EXCEPT_MC_BUS_IBERR){
-                     PPCREG(REG_MCSR) |= MCSR_BUS_IBERR;
+                     PPCSIMBOOKE_CPU_REG(REG_MCSR) |= MCSR_BUS_IBERR;
                 }
                 if((subtype & PPC_EXCEPT_MC_BUS_IPERR) == PPC_EXCEPT_MC_BUS_IPERR){
-                        PPCREG(REG_MCSR) |= MCSR_BUS_IPERR;
+                        PPCSIMBOOKE_CPU_REG(REG_MCSR) |= MCSR_BUS_IPERR;
                 }
             }
 
             // Clear default MSR bits.
             CLR_DEFAULT_MSR_BITS();
-            PPCREG(REG_MSR) &= ~MSR_ME;
+            PPCSIMBOOKE_CPU_REG(REG_MSR) &= ~MSR_ME;
             PPCSIMBOOKE_CPU_PC = GET_PC_FROM_IVOR_NUM(1);
             break;
         case  PPC_EXCEPTION_DSI:
-            PPCREG(REG_SRR0) = PPCSIMBOOKE_CPU_PC;
-            PPCREG(REG_SRR1) = PPCREG(REG_MSR);
-            PPCREG(REG_DEAR) = ea;
-            PPCREG(REG_ESR) = 0;   // Clear ESR first
+            PPCSIMBOOKE_CPU_REG(REG_SRR0) = PPCSIMBOOKE_CPU_PC;
+            PPCSIMBOOKE_CPU_REG(REG_SRR1) = PPCSIMBOOKE_CPU_REG(REG_MSR);
+            PPCSIMBOOKE_CPU_REG(REG_DEAR) = ea;
+            PPCSIMBOOKE_CPU_REG(REG_ESR) = 0;   // Clear ESR first
 
             if(subtype != 0ULL){
                 if((subtype & PPC_EXCEPT_DSI_ACS_W) == PPC_EXCEPT_DSI_ACS_W){
-                    PPCREG(REG_ESR) |= ESR_ST;
+                    PPCSIMBOOKE_CPU_REG(REG_ESR) |= ESR_ST;
                 }
                 if((subtype & PPC_EXCEPT_DSI_CL) == PPC_EXCEPT_DSI_CL){
-                    PPCREG(REG_ESR) |= ESR_DLK;
+                    PPCSIMBOOKE_CPU_REG(REG_ESR) |= ESR_DLK;
                 }
                 if((subtype & PPC_EXCEPT_DSI_BO) == PPC_EXCEPT_DSI_BO){
-                    PPCREG(REG_ESR) |= ESR_BO;
+                    PPCSIMBOOKE_CPU_REG(REG_ESR) |= ESR_BO;
                 }
             }
 
@@ -390,13 +390,13 @@ void ppcsimbooke::ppcsimbooke_cpu::cpu::ppc_exception(int exception_nr, int subt
             PPCSIMBOOKE_CPU_PC = GET_PC_FROM_IVOR_NUM(2); 
             break;
         case  PPC_EXCEPTION_ISI:
-            PPCREG(REG_SRR0) = PPCSIMBOOKE_CPU_PC;
-            PPCREG(REG_SRR1) = PPCREG(REG_MSR);
-            PPCREG(REG_ESR) = 0;
+            PPCSIMBOOKE_CPU_REG(REG_SRR0) = PPCSIMBOOKE_CPU_PC;
+            PPCSIMBOOKE_CPU_REG(REG_SRR1) = PPCSIMBOOKE_CPU_REG(REG_MSR);
+            PPCSIMBOOKE_CPU_REG(REG_ESR) = 0;
 
             if(subtype != 0ULL){
                 if((subtype & PPC_EXCEPT_ISI_BO) == PPC_EXCEPT_ISI_BO){
-                    PPCREG(REG_ESR) |= ESR_BO;
+                    PPCSIMBOOKE_CPU_REG(REG_ESR) |= ESR_BO;
                 }
                 if((subtype & PPC_EXCEPT_ISI_ACS) == PPC_EXCEPT_ISI_ACS){
                     // No bit is said to be affected for this in e500 core RM
@@ -407,25 +407,25 @@ void ppcsimbooke::ppcsimbooke_cpu::cpu::ppc_exception(int exception_nr, int subt
             PPCSIMBOOKE_CPU_PC = GET_PC_FROM_IVOR_NUM(3);
             break;
         case  PPC_EXCEPTION_EI:
-            if((PPCREG(REG_MSR) & MSR_EE) == 0){ RETURNVOID(DEBUG4); }
-            PPCREG(REG_SRR0) = PPCSIMBOOKE_CPU_PC;
-            PPCREG(REG_SRR1) = PPCREG(REG_MSR);
+            if((PPCSIMBOOKE_CPU_REG(REG_MSR) & MSR_EE) == 0){ RETURNVOID(DEBUG4); }
+            PPCSIMBOOKE_CPU_REG(REG_SRR0) = PPCSIMBOOKE_CPU_PC;
+            PPCSIMBOOKE_CPU_REG(REG_SRR1) = PPCSIMBOOKE_CPU_REG(REG_MSR);
 
             CLR_DEFAULT_MSR_BITS();  // MSR[EE] is also cleared by this.
             PPCSIMBOOKE_CPU_PC = GET_PC_FROM_IVOR_NUM(4);
             break;
         case  PPC_EXCEPTION_ALIGN:
-            PPCREG(REG_SRR0) = PPCSIMBOOKE_CPU_PC;
-            PPCREG(REG_SRR1) = PPCREG(REG_MSR);
-            PPCREG(REG_DEAR) = ea;
-            PPCREG(REG_ESR)  = 0;
+            PPCSIMBOOKE_CPU_REG(REG_SRR0) = PPCSIMBOOKE_CPU_PC;
+            PPCSIMBOOKE_CPU_REG(REG_SRR1) = PPCSIMBOOKE_CPU_REG(REG_MSR);
+            PPCSIMBOOKE_CPU_REG(REG_DEAR) = ea;
+            PPCSIMBOOKE_CPU_REG(REG_ESR)  = 0;
 
             if(subtype != 0ULL){
                 if((subtype & PPC_EXCEPT_ALIGN_SPE) == PPC_EXCEPT_ALIGN_SPE){
-                    PPCREG(REG_ESR) |= ESR_SPV;
+                    PPCSIMBOOKE_CPU_REG(REG_ESR) |= ESR_SPV;
                 }
                 if((subtype & PPC_EXCEPT_ALIGN_ST) == PPC_EXCEPT_ALIGN_ST){
-                    PPCREG(REG_ESR) |= ESR_ST;
+                    PPCSIMBOOKE_CPU_REG(REG_ESR) |= ESR_ST;
                 }
             }
 
@@ -433,19 +433,19 @@ void ppcsimbooke::ppcsimbooke_cpu::cpu::ppc_exception(int exception_nr, int subt
             PPCSIMBOOKE_CPU_PC = GET_PC_FROM_IVOR_NUM(5);
             break;
         case  PPC_EXCEPTION_PRG:
-            PPCREG(REG_SRR0) = PPCSIMBOOKE_CPU_PC;
-            PPCREG(REG_SRR1) = PPCREG(REG_MSR);
-            PPCREG(REG_ESR)  = 0;
+            PPCSIMBOOKE_CPU_REG(REG_SRR0) = PPCSIMBOOKE_CPU_PC;
+            PPCSIMBOOKE_CPU_REG(REG_SRR1) = PPCSIMBOOKE_CPU_REG(REG_MSR);
+            PPCSIMBOOKE_CPU_REG(REG_ESR)  = 0;
 
             if(subtype != 0ULL){
                 if((subtype & PPC_EXCEPT_PRG_ILG) == PPC_EXCEPT_PRG_ILG){
-                    PPCREG(REG_ESR) |= ESR_PIL;
+                    PPCSIMBOOKE_CPU_REG(REG_ESR) |= ESR_PIL;
                 }
                 if((subtype & PPC_EXCEPT_PRG_PRV) == PPC_EXCEPT_PRG_PRV){
-                    PPCREG(REG_ESR) |= ESR_PPR;
+                    PPCSIMBOOKE_CPU_REG(REG_ESR) |= ESR_PPR;
                 }
                 if((subtype & PPC_EXCEPT_PRG_TRAP) == PPC_EXCEPT_PRG_TRAP){
-                    PPCREG(REG_ESR) |= ESR_PTR;
+                    PPCSIMBOOKE_CPU_REG(REG_ESR) |= ESR_PTR;
                 }
             }
       
@@ -456,8 +456,8 @@ void ppcsimbooke::ppcsimbooke_cpu::cpu::ppc_exception(int exception_nr, int subt
             // Is FPU there in e500v2 ??
             break;
         case  PPC_EXCEPTION_SC:
-            PPCREG(REG_SRR0) = PPCSIMBOOKE_CPU_PC;
-            PPCREG(REG_SRR1) = PPCREG(REG_MSR);
+            PPCSIMBOOKE_CPU_REG(REG_SRR0) = PPCSIMBOOKE_CPU_PC;
+            PPCSIMBOOKE_CPU_REG(REG_SRR1) = PPCSIMBOOKE_CPU_REG(REG_MSR);
 
             CLR_DEFAULT_MSR_BITS();
             PPCSIMBOOKE_CPU_PC = GET_PC_FROM_IVOR_NUM(8);
@@ -466,58 +466,58 @@ void ppcsimbooke::ppcsimbooke_cpu::cpu::ppc_exception(int exception_nr, int subt
             // A decrementer intr. occurs when no higher priority exception exists ,
             // a decrementer exception exists (TSR[DIS] = 1), and the interrupt is
             // enabled (TCR[DIE] =1 and MSR[EE] = 1)
-            if((PPCREG(REG_TSR) & TSR_DIS) && (PPCREG(REG_TCR) & TCR_DIE) && (PPCREG(REG_MSR) & MSR_EE)){
+            if((PPCSIMBOOKE_CPU_REG(REG_TSR) & TSR_DIS) && (PPCSIMBOOKE_CPU_REG(REG_TCR) & TCR_DIE) && (PPCSIMBOOKE_CPU_REG(REG_MSR) & MSR_EE)){
                 // Do nothing
             }else{
                 RETURNVOID(DEBUG4);
             }
-            PPCREG(REG_SRR0) = PPCSIMBOOKE_CPU_PC;
-            PPCREG(REG_SRR1) = PPCREG(REG_MSR);
+            PPCSIMBOOKE_CPU_REG(REG_SRR0) = PPCSIMBOOKE_CPU_PC;
+            PPCSIMBOOKE_CPU_REG(REG_SRR1) = PPCSIMBOOKE_CPU_REG(REG_MSR);
 
             CLR_DEFAULT_MSR_BITS();
-            PPCREG(REG_TSR) |= TSR_DIS; // Why the hell, am I doing it ?? TSR[DIS] is already set. Isn't it ?
+            PPCSIMBOOKE_CPU_REG(REG_TSR) |= TSR_DIS; // Why the hell, am I doing it ?? TSR[DIS] is already set. Isn't it ?
             PPCSIMBOOKE_CPU_PC = GET_PC_FROM_IVOR_NUM(10);
             break;
         case  PPC_EXCEPTION_FIT:
             // A fixed interval timer interrupt occurs when no higher priority exception exists,
             // and a FIT exception exists (TSR[FIS] = 1) and the interrupt is enabled
             // (TCR[FIE] = 1 and MSR[EE] = 1)
-            if((PPCREG(REG_TSR) & TSR_FIS) && (PPCREG(REG_TCR) & TCR_FIE) && (PPCREG(REG_MSR) & MSR_EE)){
+            if((PPCSIMBOOKE_CPU_REG(REG_TSR) & TSR_FIS) && (PPCSIMBOOKE_CPU_REG(REG_TCR) & TCR_FIE) && (PPCSIMBOOKE_CPU_REG(REG_MSR) & MSR_EE)){
             }else{
                 RETURNVOID(DEBUG4);
             }
-            PPCREG(REG_SRR0) = PPCSIMBOOKE_CPU_PC;
-            PPCREG(REG_SRR1) = PPCREG(REG_MSR);
+            PPCSIMBOOKE_CPU_REG(REG_SRR0) = PPCSIMBOOKE_CPU_PC;
+            PPCSIMBOOKE_CPU_REG(REG_SRR1) = PPCSIMBOOKE_CPU_REG(REG_MSR);
 
             CLR_DEFAULT_MSR_BITS();
-            PPCREG(REG_TSR) |= TSR_FIS;
+            PPCSIMBOOKE_CPU_REG(REG_TSR) |= TSR_FIS;
             PPCSIMBOOKE_CPU_PC = GET_PC_FROM_IVOR_NUM(11);
             break;
         case  PPC_EXCEPTION_WTD:
             // A watchdog timer interrupt occurs when no higher priority exception exists,
             // and a FIT exception exists (TSR[WIS] = 1) and the interrupt is enabled
             // (TCR[WIE] = 1 and MSR[CE] = 1)
-            if((PPCREG(REG_TSR) & TSR_WIS) && (PPCREG(REG_TCR) & TCR_WIE) && (PPCREG(REG_MSR) & MSR_CE)){
+            if((PPCSIMBOOKE_CPU_REG(REG_TSR) & TSR_WIS) && (PPCSIMBOOKE_CPU_REG(REG_TCR) & TCR_WIE) && (PPCSIMBOOKE_CPU_REG(REG_MSR) & MSR_CE)){
             }else{
                 RETURNVOID(DEBUG4);
             }
-            PPCREG(REG_CSRR0) = PPCSIMBOOKE_CPU_PC;
-            PPCREG(REG_CSRR1) = PPCREG(REG_MSR);
+            PPCSIMBOOKE_CPU_REG(REG_CSRR0) = PPCSIMBOOKE_CPU_PC;
+            PPCSIMBOOKE_CPU_REG(REG_CSRR1) = PPCSIMBOOKE_CPU_REG(REG_MSR);
 
             CLR_DEFAULT_MSR_BITS();
-            PPCREG(REG_MSR) &= ~MSR_CE;               // Clear CE bit, since WDT is critical type
-            PPCREG(REG_TSR) |= TSR_WIS;
+            PPCSIMBOOKE_CPU_REG(REG_MSR) &= ~MSR_CE;               // Clear CE bit, since WDT is critical type
+            PPCSIMBOOKE_CPU_REG(REG_TSR) |= TSR_WIS;
             PPCSIMBOOKE_CPU_PC = GET_PC_FROM_IVOR_NUM(12);
             break;
         case  PPC_EXCEPTION_DTLB:
-            PPCREG(REG_SRR0) = PPCSIMBOOKE_CPU_PC;
-            PPCREG(REG_SRR1) = PPCREG(REG_MSR);
-            PPCREG(REG_DEAR) = ea;
-            PPCREG(REG_ESR)  = 0;
+            PPCSIMBOOKE_CPU_REG(REG_SRR0) = PPCSIMBOOKE_CPU_PC;
+            PPCSIMBOOKE_CPU_REG(REG_SRR1) = PPCSIMBOOKE_CPU_REG(REG_MSR);
+            PPCSIMBOOKE_CPU_REG(REG_DEAR) = ea;
+            PPCSIMBOOKE_CPU_REG(REG_ESR)  = 0;
 
             if(subtype != 0ULL){
                 if((subtype & PPC_EXCEPT_DTLB_MISS_ST) == PPC_EXCEPT_DTLB_MISS_ST){
-                    PPCREG(REG_ESR) |= ESR_ST;
+                    PPCSIMBOOKE_CPU_REG(REG_ESR) |= ESR_ST;
                 }
             }
 
@@ -528,8 +528,8 @@ void ppcsimbooke::ppcsimbooke_cpu::cpu::ppc_exception(int exception_nr, int subt
             PPCSIMBOOKE_CPU_PC = GET_PC_FROM_IVOR_NUM(13);
             break;
         case  PPC_EXCEPTION_ITLB:
-            PPCREG(REG_SRR0) = PPCSIMBOOKE_CPU_PC;
-            PPCREG(REG_SRR1) = PPCREG(REG_MSR);
+            PPCSIMBOOKE_CPU_REG(REG_SRR0) = PPCSIMBOOKE_CPU_PC;
+            PPCSIMBOOKE_CPU_REG(REG_SRR1) = PPCSIMBOOKE_CPU_REG(REG_MSR);
 
             // TODO:
             // Load Default MAS* values in MAS registers
@@ -539,16 +539,16 @@ void ppcsimbooke::ppcsimbooke_cpu::cpu::ppc_exception(int exception_nr, int subt
             break;
         case  PPC_EXCEPTION_DBG:
             // First check if DBCR0[IDM] is set then check if MSR[DE] is set
-            if((PPCREG(REG_DBCR0) & DBCR0_IDM) == 0){ RETURNVOID(DEBUG4); }
-            if((PPCREG(REG_MSR) & MSR_DE) == 0){ RETURNVOID(DEBUG4); }
+            if((PPCSIMBOOKE_CPU_REG(REG_DBCR0) & DBCR0_IDM) == 0){ RETURNVOID(DEBUG4); }
+            if((PPCSIMBOOKE_CPU_REG(REG_MSR) & MSR_DE) == 0){ RETURNVOID(DEBUG4); }
 
             // Debug exceptions are of "CRITICAL" type in e500v2, but "DEBUG" type in e500mc and later
 #ifdef CONFIG_E500
-            srr0 = &PPCREG(REG_CSRR0);
-            srr1 = &PPCREG(REG_CSRR1);
+            srr0 = &PPCSIMBOOKE_CPU_REG(REG_CSRR0);
+            srr1 = &PPCSIMBOOKE_CPU_REG(REG_CSRR1);
 #else
-            srr0 = &PPCREG(REG_DSRR0);
-            srr1 = &PPCREG(REG_DSRR0);
+            srr0 = &PPCSIMBOOKE_CPU_REG(REG_DSRR0);
+            srr1 = &PPCSIMBOOKE_CPU_REG(REG_DSRR0);
 #endif
             // FIXME:
             // Some references are ambiguous ( for eg. the e500v2 RM says that,
@@ -561,117 +561,117 @@ void ppcsimbooke::ppcsimbooke_cpu::cpu::ppc_exception(int exception_nr, int subt
             if(subtype != 0ULL){
                 if((subtype & PPC_EXCEPT_DBG_TRAP) == PPC_EXCEPT_DBG_TRAP){
                     *srr0 = PPCSIMBOOKE_CPU_PC;
-                    PPCREG(REG_DBSR) |= DBSR_TIE;
+                    PPCSIMBOOKE_CPU_REG(REG_DBSR) |= DBSR_TIE;
                 }
                 if((subtype & PPC_EXCEPT_DBG_IAC1) == PPC_EXCEPT_DBG_IAC1){
                     *srr0 = PPCSIMBOOKE_CPU_PC;
-                    PPCREG(REG_DBSR) |= DBSR_IAC1;
+                    PPCSIMBOOKE_CPU_REG(REG_DBSR) |= DBSR_IAC1;
                 }
                 if((subtype & PPC_EXCEPT_DBG_IAC2) == PPC_EXCEPT_DBG_IAC2){
                     *srr0 = PPCSIMBOOKE_CPU_PC;
-                    PPCREG(REG_DBSR) |= DBSR_IAC2;
+                    PPCSIMBOOKE_CPU_REG(REG_DBSR) |= DBSR_IAC2;
                 }
                 if((subtype & PPC_EXCEPT_DBG_DAC1R) == PPC_EXCEPT_DBG_DAC1R){
                     *srr0 = PPCSIMBOOKE_CPU_PC;
-                    PPCREG(REG_DBSR) |= DBSR_DAC1R;
+                    PPCSIMBOOKE_CPU_REG(REG_DBSR) |= DBSR_DAC1R;
                 }
                 if((subtype & PPC_EXCEPT_DBG_DAC1W) == PPC_EXCEPT_DBG_DAC1W){
                     *srr0 = PPCSIMBOOKE_CPU_PC;
-                    PPCREG(REG_DBSR) |= DBSR_DAC1W;
+                    PPCSIMBOOKE_CPU_REG(REG_DBSR) |= DBSR_DAC1W;
                 }
                 if((subtype & PPC_EXCEPT_DBG_DAC2R) == PPC_EXCEPT_DBG_DAC2R){
                     *srr0 = PPCSIMBOOKE_CPU_PC;
-                    PPCREG(REG_DBSR) |= DBSR_DAC2R;
+                    PPCSIMBOOKE_CPU_REG(REG_DBSR) |= DBSR_DAC2R;
                 }
                 if((subtype & PPC_EXCEPT_DBG_DAC2W) == PPC_EXCEPT_DBG_DAC2W){
                     *srr0 = PPCSIMBOOKE_CPU_PC;
-                    PPCREG(REG_DBSR) |= DBSR_DAC2W;
+                    PPCSIMBOOKE_CPU_REG(REG_DBSR) |= DBSR_DAC2W;
                 }
                 if((subtype & PPC_EXCEPT_DBG_ICMP) == PPC_EXCEPT_DBG_ICMP){
                     *srr0 = PPCSIMBOOKE_CPU_PC + 4;
-                    PPCREG(REG_DBSR) |= DBSR_IC;
+                    PPCSIMBOOKE_CPU_REG(REG_DBSR) |= DBSR_IC;
                 }
                 if((subtype & PPC_EXCEPT_DBG_BRT) == PPC_EXCEPT_DBG_BRT){
                     *srr0 = PPCSIMBOOKE_CPU_PC;
-                    PPCREG(REG_DBSR) |= DBSR_BT;
+                    PPCSIMBOOKE_CPU_REG(REG_DBSR) |= DBSR_BT;
                 }
                 if((subtype & PPC_EXCEPT_DBG_RET) == PPC_EXCEPT_DBG_RET){
                     *srr0 = PPCSIMBOOKE_CPU_PC + 4;
-                    PPCREG(REG_DBSR) |= DBSR_RET;
+                    PPCSIMBOOKE_CPU_REG(REG_DBSR) |= DBSR_RET;
                 }
                 if((subtype & PPC_EXCEPT_DBG_IRPT) == PPC_EXCEPT_DBG_IRPT){
                     //srr0 = intr vector
-                    PPCREG(REG_DBSR) |= DBSR_IRPT;
+                    PPCSIMBOOKE_CPU_REG(REG_DBSR) |= DBSR_IRPT;
                 }
                 if((subtype & PPC_EXCEPT_DBG_UDE) == PPC_EXCEPT_DBG_UDE){
                     *srr0 = PPCSIMBOOKE_CPU_PC + 4;
-                    PPCREG(REG_DBSR) |= DBSR_UDE;
+                    PPCSIMBOOKE_CPU_REG(REG_DBSR) |= DBSR_UDE;
                 }
             }
             
-            *srr1 = PPCREG(REG_MSR);
+            *srr1 = PPCSIMBOOKE_CPU_REG(REG_MSR);
 
             CLR_DEFAULT_MSR_BITS();
-            PPCREG(REG_MSR) &= ~MSR_DE;               // Clear DE bit
+            PPCSIMBOOKE_CPU_REG(REG_MSR) &= ~MSR_DE;               // Clear DE bit
             PPCSIMBOOKE_CPU_PC = GET_PC_FROM_IVOR_NUM(15);
             break;
         case  PPC_EXCEPTION_SPE_UA:
-            PPCREG(REG_SRR0) = PPCSIMBOOKE_CPU_PC;
-            PPCREG(REG_SRR1) = PPCREG(REG_MSR);
+            PPCSIMBOOKE_CPU_REG(REG_SRR0) = PPCSIMBOOKE_CPU_PC;
+            PPCSIMBOOKE_CPU_REG(REG_SRR1) = PPCSIMBOOKE_CPU_REG(REG_MSR);
 
-            PPCREG(REG_ESR)  = ESR_SPV;              // Set ESR[SPE]
+            PPCSIMBOOKE_CPU_REG(REG_ESR)  = ESR_SPV;              // Set ESR[SPE]
 
             CLR_DEFAULT_MSR_BITS();
             PPCSIMBOOKE_CPU_PC = GET_PC_FROM_IVOR_NUM(32);
             break;
         case  PPC_EXCEPTION_EM_FP_D:
             // Check conditions
-            if(((PPCREG(REG_SPEFSCR) & SPEFSCR_FINVE) != 0) && (((PPCREG(REG_SPEFSCR) & SPEFSCR_FINVH) != 0) ||
-                        ((PPCREG(REG_SPEFSCR) & SPEFSCR_FINV) != 0))){
+            if(((PPCSIMBOOKE_CPU_REG(REG_SPEFSCR) & SPEFSCR_FINVE) != 0) && (((PPCSIMBOOKE_CPU_REG(REG_SPEFSCR) & SPEFSCR_FINVH) != 0) ||
+                        ((PPCSIMBOOKE_CPU_REG(REG_SPEFSCR) & SPEFSCR_FINV) != 0))){
                 goto skip_0;
             }
-            if(((PPCREG(REG_SPEFSCR) & SPEFSCR_FDBZE) != 0) && (((PPCREG(REG_SPEFSCR) & SPEFSCR_FDBZH) != 0) ||
-                        ((PPCREG(REG_SPEFSCR) & SPEFSCR_FDBZ) != 0))){
+            if(((PPCSIMBOOKE_CPU_REG(REG_SPEFSCR) & SPEFSCR_FDBZE) != 0) && (((PPCSIMBOOKE_CPU_REG(REG_SPEFSCR) & SPEFSCR_FDBZH) != 0) ||
+                        ((PPCSIMBOOKE_CPU_REG(REG_SPEFSCR) & SPEFSCR_FDBZ) != 0))){
                 goto skip_0;
             }
-            if(((PPCREG(REG_SPEFSCR) & SPEFSCR_FUNFE) != 0) && (((PPCREG(REG_SPEFSCR) & SPEFSCR_FUNFH) != 0) ||
-                        ((PPCREG(REG_SPEFSCR) & SPEFSCR_FUNF) != 0))){
+            if(((PPCSIMBOOKE_CPU_REG(REG_SPEFSCR) & SPEFSCR_FUNFE) != 0) && (((PPCSIMBOOKE_CPU_REG(REG_SPEFSCR) & SPEFSCR_FUNFH) != 0) ||
+                        ((PPCSIMBOOKE_CPU_REG(REG_SPEFSCR) & SPEFSCR_FUNF) != 0))){
                 goto skip_0;
             }
-            if(((PPCREG(REG_SPEFSCR) & SPEFSCR_FOVFE) != 0) && (((PPCREG(REG_SPEFSCR) & SPEFSCR_FOVFH) != 0) ||
-                        ((PPCREG(REG_SPEFSCR) & SPEFSCR_FOVF) != 0))){
+            if(((PPCSIMBOOKE_CPU_REG(REG_SPEFSCR) & SPEFSCR_FOVFE) != 0) && (((PPCSIMBOOKE_CPU_REG(REG_SPEFSCR) & SPEFSCR_FOVFH) != 0) ||
+                        ((PPCSIMBOOKE_CPU_REG(REG_SPEFSCR) & SPEFSCR_FOVF) != 0))){
                 goto skip_0;
             }
             RETURNVOID(DEBUG4);
 
             skip_0:
-            PPCREG(REG_SRR0) = PPCSIMBOOKE_CPU_PC;
-            PPCREG(REG_SRR1) = PPCREG(REG_MSR);
+            PPCSIMBOOKE_CPU_REG(REG_SRR0) = PPCSIMBOOKE_CPU_PC;
+            PPCSIMBOOKE_CPU_REG(REG_SRR1) = PPCSIMBOOKE_CPU_REG(REG_MSR);
 
-            PPCREG(REG_ESR)  = ESR_SPV;  // Set ESR[SPE]
+            PPCSIMBOOKE_CPU_REG(REG_ESR)  = ESR_SPV;  // Set ESR[SPE]
 
             CLR_DEFAULT_MSR_BITS();
             PPCSIMBOOKE_CPU_PC = GET_PC_FROM_IVOR_NUM(33);
             break;
         case  PPC_EXCEPTION_EM_FP_R:
             // Check conditions
-            if(((PPCREG(REG_SPEFSCR) & SPEFSCR_FINXE) != 0) &&
-                   (((PPCREG(REG_SPEFSCR) & SPEFSCR_FGH) != 0) ||
-                   ((PPCREG(REG_SPEFSCR) & SPEFSCR_FXH) != 0)  ||
-                   ((PPCREG(REG_SPEFSCR) & SPEFSCR_FG) != 0)  ||
-                   ((PPCREG(REG_SPEFSCR) & SPEFSCR_FX) != 0))){
+            if(((PPCSIMBOOKE_CPU_REG(REG_SPEFSCR) & SPEFSCR_FINXE) != 0) &&
+                   (((PPCSIMBOOKE_CPU_REG(REG_SPEFSCR) & SPEFSCR_FGH) != 0) ||
+                   ((PPCSIMBOOKE_CPU_REG(REG_SPEFSCR) & SPEFSCR_FXH) != 0)  ||
+                   ((PPCSIMBOOKE_CPU_REG(REG_SPEFSCR) & SPEFSCR_FG) != 0)  ||
+                   ((PPCSIMBOOKE_CPU_REG(REG_SPEFSCR) & SPEFSCR_FX) != 0))){
                 goto skip_1;
             }
-            if(((PPCREG(REG_SPEFSCR) & SPEFSCR_FRMC) == 0x2) || ((PPCREG(REG_SPEFSCR) & SPEFSCR_FRMC) == 0x3)){
+            if(((PPCSIMBOOKE_CPU_REG(REG_SPEFSCR) & SPEFSCR_FRMC) == 0x2) || ((PPCSIMBOOKE_CPU_REG(REG_SPEFSCR) & SPEFSCR_FRMC) == 0x3)){
                 goto skip_1;
             }
             RETURNVOID(DEBUG4);
 
             skip_1:
-            PPCREG(REG_SRR0) = PPCSIMBOOKE_CPU_PC;
-            PPCREG(REG_SRR1) = PPCREG(REG_MSR);
+            PPCSIMBOOKE_CPU_REG(REG_SRR0) = PPCSIMBOOKE_CPU_PC;
+            PPCSIMBOOKE_CPU_REG(REG_SRR1) = PPCSIMBOOKE_CPU_REG(REG_MSR);
 
-            PPCREG(REG_ESR) = ESR_SPV;   // Set ESR[SPE]
+            PPCSIMBOOKE_CPU_REG(REG_ESR) = ESR_SPV;   // Set ESR[SPE]
 
             CLR_DEFAULT_MSR_BITS();
             PPCSIMBOOKE_CPU_PC = GET_PC_FROM_IVOR_NUM(34);
@@ -716,13 +716,13 @@ ppcsimbooke::instr_call ppcsimbooke::ppcsimbooke_cpu::cpu::get_instr(){
     }
 
     uint8_t  perm = TO_RWX(1, 0, 1);            // rx = 0b11
-    bool as = EBF(PPCREG(REG_MSR), MSR_IS);  // as = MSR[IS]
-    bool pr = EBF(PPCREG(REG_MSR), MSR_PR);  // pr = MSR[pr]
+    bool as = EBF(PPCSIMBOOKE_CPU_REG(REG_MSR), MSR_IS);  // as = MSR[IS]
+    bool pr = EBF(PPCSIMBOOKE_CPU_REG(REG_MSR), MSR_PR);  // pr = MSR[pr]
 
     // Try hits with PID0, PID1 and PID2
-    res = m_l2tlb.xlate(PPCSIMBOOKE_CPU_PC, as, PPCREG(REG_PID0), perm, pr); if(std::get<0>(res) != static_cast<uint64_t>(-1)) goto exit_loop_0;
-    res = m_l2tlb.xlate(PPCSIMBOOKE_CPU_PC, as, PPCREG(REG_PID1), perm, pr); if(std::get<0>(res) != static_cast<uint64_t>(-1)) goto exit_loop_0; 
-    res = m_l2tlb.xlate(PPCSIMBOOKE_CPU_PC, as, PPCREG(REG_PID2), perm, pr); if(std::get<0>(res) != static_cast<uint64_t>(-1)) goto exit_loop_0;
+    res = m_l2tlb.xlate(PPCSIMBOOKE_CPU_PC, as, PPCSIMBOOKE_CPU_REG(REG_PID0), perm, pr); if(std::get<0>(res) != static_cast<uint64_t>(-1)) goto exit_loop_0;
+    res = m_l2tlb.xlate(PPCSIMBOOKE_CPU_PC, as, PPCSIMBOOKE_CPU_REG(REG_PID1), perm, pr); if(std::get<0>(res) != static_cast<uint64_t>(-1)) goto exit_loop_0; 
+    res = m_l2tlb.xlate(PPCSIMBOOKE_CPU_PC, as, PPCSIMBOOKE_CPU_REG(REG_PID2), perm, pr); if(std::get<0>(res) != static_cast<uint64_t>(-1)) goto exit_loop_0;
 
     // We encountered ITLB miss. Throw exceptions
     std::cout << "ITLB miss" << std::endl;
@@ -757,24 +757,24 @@ void ppcsimbooke::ppcsimbooke_cpu::cpu::check_for_dbg_events(int flags, uint64_t
     if(flags & DBG_EVENT_IAC){
         event_occurred= 0;
         // DBCR1[IAC12M] is not implemented right now
-        if(PPCREGMASK(REG_DBCR0, DBCR0_IAC1)
+        if(PPCSIMBOOKE_CPU_REGMASK(REG_DBCR0, DBCR0_IAC1)
            &&
-           (PPCREG(REG_IAC1) == PPCSIMBOOKE_CPU_PC)
+           (PPCSIMBOOKE_CPU_REG(REG_IAC1) == PPCSIMBOOKE_CPU_PC)
            &&
            (
-            ((PPCREGMASK(REG_DBCR1, DBCR1_IAC1US) == 2) && !PPCREGMASK(REG_MSR, MSR_PR))
+            ((PPCSIMBOOKE_CPU_REGMASK(REG_DBCR1, DBCR1_IAC1US) == 2) && !PPCSIMBOOKE_CPU_REGMASK(REG_MSR, MSR_PR))
             ||
-            ((PPCREGMASK(REG_DBCR1, DBCR1_IAC1US) == 3) && PPCREGMASK(REG_MSR, MSR_PR))
+            ((PPCSIMBOOKE_CPU_REGMASK(REG_DBCR1, DBCR1_IAC1US) == 3) && PPCSIMBOOKE_CPU_REGMASK(REG_MSR, MSR_PR))
             ||
-            ((PPCREGMASK(REG_DBCR1, DBCR1_IAC1US) != 2) && (PPCREGMASK(REG_DBCR1, DBCR1_IAC1US) != 3))
+            ((PPCSIMBOOKE_CPU_REGMASK(REG_DBCR1, DBCR1_IAC1US) != 2) && (PPCSIMBOOKE_CPU_REGMASK(REG_DBCR1, DBCR1_IAC1US) != 3))
            )
            &&
            (
-            ((PPCREGMASK(REG_DBCR1, DBCR1_IAC1ER) == 2) && !PPCREGMASK(REG_MSR, MSR_IS))
+            ((PPCSIMBOOKE_CPU_REGMASK(REG_DBCR1, DBCR1_IAC1ER) == 2) && !PPCSIMBOOKE_CPU_REGMASK(REG_MSR, MSR_IS))
             ||
-            ((PPCREGMASK(REG_DBCR1, DBCR1_IAC1ER) == 3) && PPCREGMASK(REG_MSR, MSR_IS))
+            ((PPCSIMBOOKE_CPU_REGMASK(REG_DBCR1, DBCR1_IAC1ER) == 3) && PPCSIMBOOKE_CPU_REGMASK(REG_MSR, MSR_IS))
             ||
-            ((PPCREGMASK(REG_DBCR1, DBCR1_IAC1ER) != 2) && (PPCREGMASK(REG_DBCR1, DBCR1_IAC1ER) != 3))
+            ((PPCSIMBOOKE_CPU_REGMASK(REG_DBCR1, DBCR1_IAC1ER) != 2) && (PPCSIMBOOKE_CPU_REGMASK(REG_DBCR1, DBCR1_IAC1ER) != 3))
            )
           ){
             event_occurred = 1;
@@ -782,24 +782,24 @@ void ppcsimbooke::ppcsimbooke_cpu::cpu::check_for_dbg_events(int flags, uint64_t
             event_addr     = PPCSIMBOOKE_CPU_PC;
         }
         // DBSR[IAC12M] isn't implemented right now
-        if(PPCREGMASK(REG_DBCR0, DBCR0_IAC2)
+        if(PPCSIMBOOKE_CPU_REGMASK(REG_DBCR0, DBCR0_IAC2)
            &&
-           (PPCREG(REG_IAC2) == PPCSIMBOOKE_CPU_PC)
+           (PPCSIMBOOKE_CPU_REG(REG_IAC2) == PPCSIMBOOKE_CPU_PC)
            &&
            (
-            ((PPCREGMASK(REG_DBCR1, DBCR1_IAC2US) == 2) && !PPCREGMASK(REG_MSR, MSR_PR))
+            ((PPCSIMBOOKE_CPU_REGMASK(REG_DBCR1, DBCR1_IAC2US) == 2) && !PPCSIMBOOKE_CPU_REGMASK(REG_MSR, MSR_PR))
             ||
-            ((PPCREGMASK(REG_DBCR1, DBCR1_IAC2US) == 3) && PPCREGMASK(REG_MSR, MSR_PR))
+            ((PPCSIMBOOKE_CPU_REGMASK(REG_DBCR1, DBCR1_IAC2US) == 3) && PPCSIMBOOKE_CPU_REGMASK(REG_MSR, MSR_PR))
             ||
-            ((PPCREGMASK(REG_DBCR1, DBCR1_IAC2US) != 2) && (PPCREGMASK(REG_DBCR1, DBCR1_IAC2US) != 3))
+            ((PPCSIMBOOKE_CPU_REGMASK(REG_DBCR1, DBCR1_IAC2US) != 2) && (PPCSIMBOOKE_CPU_REGMASK(REG_DBCR1, DBCR1_IAC2US) != 3))
            )
            &&
            (
-            ((PPCREGMASK(REG_DBCR1, DBCR1_IAC2ER) == 2) && !PPCREGMASK(REG_MSR, MSR_IS))
+            ((PPCSIMBOOKE_CPU_REGMASK(REG_DBCR1, DBCR1_IAC2ER) == 2) && !PPCSIMBOOKE_CPU_REGMASK(REG_MSR, MSR_IS))
             ||
-            ((PPCREGMASK(REG_DBCR1, DBCR1_IAC2ER) == 3) && PPCREGMASK(REG_MSR, MSR_IS))
+            ((PPCSIMBOOKE_CPU_REGMASK(REG_DBCR1, DBCR1_IAC2ER) == 3) && PPCSIMBOOKE_CPU_REGMASK(REG_MSR, MSR_IS))
             ||
-            ((PPCREGMASK(REG_DBCR1, DBCR1_IAC2ER) != 2) && (PPCREGMASK(REG_DBCR1, DBCR1_IAC2ER) != 3))
+            ((PPCSIMBOOKE_CPU_REGMASK(REG_DBCR1, DBCR1_IAC2ER) != 2) && (PPCSIMBOOKE_CPU_REGMASK(REG_DBCR1, DBCR1_IAC2ER) != 3))
            )
           ){
             event_occurred = 1;
@@ -811,9 +811,9 @@ void ppcsimbooke::ppcsimbooke_cpu::cpu::check_for_dbg_events(int flags, uint64_t
     // final steps
     if(event_occurred){
         ppc_exception(PPC_EXCEPTION_DBG, event_type, event_addr);
-        if(PPCREGMASK(REG_DBCR0, DBCR0_EDM)){
+        if(PPCSIMBOOKE_CPU_REGMASK(REG_DBCR0, DBCR0_EDM)){
             // FIXME: Fix this ( if applicable )
-            //PPCREG(REG_EDBSR0) |= EDBSR0_XXX;
+            //PPCSIMBOOKE_CPU_REG(REG_EDBSR0) |= EDBSR0_XXX;
             // Do some additional steps
             LTHROW(sim_except_ppc_halt("Cpu halted due to debug exception."), DEBUG4);
         }
@@ -1001,9 +1001,17 @@ void ppcsimbooke::ppcsimbooke_cpu::cpu::notify_ctxt_switch(){
 // Get register value by name
 uint64_t ppcsimbooke::ppcsimbooke_cpu::cpu::get_reg(std::string reg_name) throw(sim_except) {
     LOG_DEBUG4(MSG_FUNC_START);
-    if(m_cpu_regs.m_reg.find(reg_name) == m_cpu_regs.m_reg.end()) throw sim_except(SIM_EXCEPT_EINVAL, "Illegal register name");
+    if unlikely(m_cpu_regs.m_reg.find(reg_name) == m_cpu_regs.m_reg.end()) throw sim_except(SIM_EXCEPT_EINVAL, "Illegal register name.");
     LOG_DEBUG4(MSG_FUNC_END);
-    return PPCREGN(reg_name);
+    return PPCSIMBOOKE_CPU_REGN(reg_name);
+}
+
+// Get register value by name
+uint64_t ppcsimbooke::ppcsimbooke_cpu::cpu::get_reg(int reg_id) throw(sim_except) {
+    LOG_DEBUG4(MSG_FUNC_START);
+    if unlikely(m_cpu_regs.m_ireg.find(reg_id) == m_cpu_regs.m_ireg.end()) throw sim_except(SIM_EXCEPT_EINVAL, "Illegal register ID.");
+    LOG_DEBUG4(MSG_FUNC_END);
+    return PPCSIMBOOKE_CPU_REG(reg_id);
 }
 
 // Dump CPU state
@@ -1017,14 +1025,14 @@ void ppcsimbooke::ppcsimbooke_cpu::cpu::dump_state(int columns, std::ostream &os
     ostr << "CPU STATE" << std::endl;
     ostr << BAR0 << std::endl;
     ostr << "cpu no = " << (int)m_cpu_no << std::endl;
-    ostr << "msr = " << std::hex << std::showbase << PPCREG(REG_MSR) << std::endl;
-    ostr << "cr  = " << std::hex << std::showbase << PPCREG(REG_CR) << std::endl;
+    ostr << "msr = " << std::hex << std::showbase << PPCSIMBOOKE_CPU_REG(REG_MSR) << std::endl;
+    ostr << "cr  = " << std::hex << std::showbase << PPCSIMBOOKE_CPU_REG(REG_CR) << std::endl;
     ostr << "iar = " << std::hex << std::showbase << PPCSIMBOOKE_CPU_PC << std::endl;
     ostr << std::endl;
 
     // dump gprs
     for(size_t i=0; i<PPC_NGPRS; i++){
-        strout << "r" << std::dec << i << " = " << std::hex << std::showbase << PPCREG(REG_GPR0 + i);
+        strout << "r" << std::dec << i << " = " << std::hex << std::showbase << PPCSIMBOOKE_CPU_REG(REG_GPR0 + i);
         ostr << std::left << std::setw(23) << strout.str() << "    ";
         strout.str("");
         if(++colno >= columns){ ostr << std::endl; colno = 0; }
@@ -1039,7 +1047,7 @@ void ppcsimbooke::ppcsimbooke_cpu::cpu::dump_state(int columns, std::ostream &os
         //
         //for(i=0; i<PPC_NSPRS; i++){
         //    // TODO: do a check for valid sprs later on
-        //    strout << "spr[" << std::dec << i << "] = " << std::hex << std::showbase << PPCREG(REG_SPR0 + i);
+        //    strout << "spr[" << std::dec << i << "] = " << std::hex << std::showbase << PPCSIMBOOKE_CPU_REG(REG_SPR0 + i);
         //    ostr << std::left << std::setw(26) << strout.str() << "    ";
         //    strout.str("");
         //    if(++colno >= columns){ ostr << std::endl; colno = 0; }
@@ -1048,19 +1056,19 @@ void ppcsimbooke::ppcsimbooke_cpu::cpu::dump_state(int columns, std::ostream &os
         //colno = 0;
     }else{
         ostr << std::hex << std::showbase;
-        ostr << "ctr = " << PPCREG(REG_CTR) << std::endl;
-        ostr << "xer = " << PPCREG(REG_XER) << std::endl;
-        ostr << "lr  = " << PPCREG(REG_LR) << std::endl;
+        ostr << "ctr = " << PPCSIMBOOKE_CPU_REG(REG_CTR) << std::endl;
+        ostr << "xer = " << PPCSIMBOOKE_CPU_REG(REG_XER) << std::endl;
+        ostr << "lr  = " << PPCSIMBOOKE_CPU_REG(REG_LR) << std::endl;
         ostr << std::endl;
 
-        ostr << "mas0 = " << PPCREG(REG_MAS0) << std::endl;
-        ostr << "mas1 = " << PPCREG(REG_MAS1) << std::endl;
-        ostr << "mas2 = " << PPCREG(REG_MAS2) << std::endl;
-        ostr << "mas3 = " << PPCREG(REG_MAS3) << std::endl;
-        ostr << "mas4 = " << PPCREG(REG_MAS4) << std::endl;
-        ostr << "mas5 = " << PPCREG(REG_MAS5) << std::endl;
-        ostr << "mas6 = " << PPCREG(REG_MAS6) << std::endl;
-        ostr << "mas7 = " << PPCREG(REG_MAS7) << std::endl;
+        ostr << "mas0 = " << PPCSIMBOOKE_CPU_REG(REG_MAS0) << std::endl;
+        ostr << "mas1 = " << PPCSIMBOOKE_CPU_REG(REG_MAS1) << std::endl;
+        ostr << "mas2 = " << PPCSIMBOOKE_CPU_REG(REG_MAS2) << std::endl;
+        ostr << "mas3 = " << PPCSIMBOOKE_CPU_REG(REG_MAS3) << std::endl;
+        ostr << "mas4 = " << PPCSIMBOOKE_CPU_REG(REG_MAS4) << std::endl;
+        ostr << "mas5 = " << PPCSIMBOOKE_CPU_REG(REG_MAS5) << std::endl;
+        ostr << "mas6 = " << PPCSIMBOOKE_CPU_REG(REG_MAS6) << std::endl;
+        ostr << "mas7 = " << PPCSIMBOOKE_CPU_REG(REG_MAS7) << std::endl;
 
     }
     ostr << BAR0 << std::endl;
