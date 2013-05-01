@@ -13,6 +13,8 @@ namespace ppcsimbooke {
 
     namespace ppcsimbooke_basic_block {
 
+        static const size_t OPCODE_SIZE = 4;
+
         //////////////////////////////////////////////////////////////////////////////
         // basic block instruction pointer
         //////////////////////////////////////////////////////////////////////////////
@@ -33,6 +35,7 @@ namespace ppcsimbooke {
             basic_block_ip() {}
             basic_block_ip(uint64_t ip_, uint64_t mfn_, uint32_t msr_, uint32_t pid0_, uint32_t pid1_, uint32_t pid2_, bool be_) :
                 ip(ip_), mfn(mfn_), msr(msr_), pid0(pid0_), pid1(pid1_), pid2(pid2_), be(be_) {}
+            int get_endianness(){ return (be) ? EMUL_BIG_ENDIAN:EMUL_LITTLE_ENDIAN; }
             bool operator==(const basic_block_ip &bip) const {
                 return !memcmp(this, &bip, sizeof(basic_block_ip));
             }
@@ -47,10 +50,10 @@ namespace ppcsimbooke {
         }
     
         ////////////////////////////////////////////////////////////////////////////////
-        // basic block & basiic block chunk list manager
+        // basic block chunk list manager
         ////////////////////////////////////////////////////////////////////////////////
     
-        static const int BB_PTRS_PER_CHUNK = 60;
+        static const size_t BB_PTRS_PER_CHUNK = 60;
     
         struct basic_block;
         
@@ -62,8 +65,14 @@ namespace ppcsimbooke {
             basic_block_chunk_list(): ChunkList<basic_block*, BB_PTRS_PER_CHUNK>() { refcount = 0; }
             basic_block_chunk_list(uint64_t mfn): ChunkList<basic_block*, BB_PTRS_PER_CHUNK>() { this->mfn = mfn; refcount = 0; }
         };
+
+        //////////////////////////////////////////////////////////////////////////
+        // basic block
+        //////////////////////////////////////////////////////////////////////////
     
-        static const int MAX_BB_INS = 128;
+        static const size_t MAX_BB_INS = 128;
+
+        enum { BB_BRTYPE_SPLIT };
 
         //typedef typename ppcsimbooke::ppcsimbooke_cpu::cpu::ppc_opc_fun_ptr  opc_impl_func_t;   // powerpc opcode handler type
         typedef void (*opc_impl_func_t)(ppcsimbooke::ppcsimbooke_cpu::cpu *pcpu, ppcsimbooke::instr_call *pic);
@@ -75,12 +84,11 @@ namespace ppcsimbooke {
             basic_block_chunk_list::Locator  mfn_loc;
             uint64_t                         ip_taken;
             uint64_t                         ip_not_taken;
-            uint16_t                         count;
+            uint16_t                         transopscount;
             uint16_t                         tagcount;
             uint16_t                         memcount;
             uint16_t                         storecount;
-            uint8_t                          type:4, repblock:1, invalidblock:1, call:1, ret:1;
-            uint8_t                          marked:1, mfence:1, nondeterministic:1, brtype:3;
+            uint8_t                          type:3, call:1, ret:1, brtype:3;
             uint64_t                         usedregs;
             opc_impl_func_t*                 synthops;
             int                              refcount;
@@ -90,7 +98,7 @@ namespace ppcsimbooke {
             uint64_t                         lastused;
             uint64_t                         lasttarget;
         
-            instr_call                       ops[MAX_BB_INS];
+            instr_call                       transops[MAX_BB_INS];
         
             void acquire() {
                 refcount++;
@@ -126,23 +134,21 @@ namespace ppcsimbooke {
         //                                       "rfXi", "system call" };
     
         // Maximum instructions which can be translated before a flush is required
-        static const int MAX_TRANS_INS = 32;
+        static const size_t MAX_TRANS_INS = 32;
         
         // Decode meant for basic block
         struct basic_block_decoder {
             basic_block       bb;
             
-            instr_call        transbuf[MAX_TRANS_INS];
-            int               transbufcount;
+            instr_call        transbuff[MAX_TRANS_INS];
+            size_t            transbuffcount;
             uint8_t           *insnbytes;
-            int               insnbytes_buffsize;
-            int               valid_byte_count;
+            size_t            insnbytes_buffsize;
+            size_t            valid_byte_count;
             uint64_t          ip;
-            uint64_t          ipstart;
-            int               byteoffset;
-            int               op;
-            uint64_t          insn_count;
+            size_t            byteoffset;
             bool              invalid;
+            bool              branch_cond;
             int               outcome;
             uint64_t          fault_addr;                      // page fault address (tlb miss generating addr)
             int               fault_cause;                     // contains the exact fault error type
@@ -161,7 +167,8 @@ namespace ppcsimbooke {
             bool invalidate();
             bool decode();
             bool flush();
-            bool first_insn_in_bb() { return (uint64_t(ipstart) == uint64_t(bb.bip.ip)); }
+            void split();
+            bool first_insn_in_bb() { return (uint64_t(ip) == uint64_t(bb.bip.ip)); }
         };
     
     }

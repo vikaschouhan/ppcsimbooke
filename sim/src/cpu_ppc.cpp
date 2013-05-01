@@ -48,6 +48,10 @@ uint64_t ppcsimbooke::ppcsimbooke_cpu::cpu::get_pc(){
     return PPCSIMBOOKE_CPU_PC;
 }
 
+uint64_t ppcsimbooke::ppcsimbooke_cpu::cpu::get_nip(){
+    return PPCSIMBOOKE_CPU_NIP;
+}
+
 // run (non blocking)
 void ppcsimbooke::ppcsimbooke_cpu::cpu::run(){
     LOG_DEBUG4(MSG_FUNC_START);
@@ -131,7 +135,7 @@ void ppcsimbooke::ppcsimbooke_cpu::cpu::run_instr(std::string instr){
     instr_call call_this;
 
     call_this = m_dis.disasm(instr, PPCSIMBOOKE_CPU_PC);
-    m_ppc_func_hash.at(call_this.opc)(this, &call_this);
+    m_ppc_func_hash.at(call_this.hv)(this, &call_this);
     LOG_DEBUG4(MSG_FUNC_END);
 }
 
@@ -141,7 +145,7 @@ void ppcsimbooke::ppcsimbooke_cpu::cpu::run_instr(uint32_t opcd){
     instr_call call_this;
 
     call_this = m_dis.disasm(opcd, PPCSIMBOOKE_CPU_PC);
-    m_ppc_func_hash.at(call_this.opc)(this, &call_this);
+    m_ppc_func_hash.at(call_this.hv)(this, &call_this);
     LOG_DEBUG4(MSG_FUNC_END);
 }
 
@@ -922,7 +926,7 @@ inline void ppcsimbooke::ppcsimbooke_cpu::cpu::run_curr_instr(){
     check_for_dbg_events(DBG_EVENT_IAC);
  
     /* call handler function for this call frame */ 
-    m_ppc_func_hash.at(call_this.opc)(this, &call_this);
+    m_ppc_func_hash.at(call_this.hv)(this, &call_this);
 
     // book-keeping
     PPCSIMBOOKE_CPU_PC = PPCSIMBOOKE_CPU_NIP;     // Update PC
@@ -1000,7 +1004,7 @@ void ppcsimbooke::ppcsimbooke_cpu::cpu::notify_ctxt_switch(){
 // Get register value by name
 uint64_t ppcsimbooke::ppcsimbooke_cpu::cpu::get_reg(std::string reg_name) throw(sim_except) {
     LOG_DEBUG4(MSG_FUNC_START);
-    if unlikely(m_cpu_regs.m_reg.find(reg_name) == m_cpu_regs.m_reg.end()) throw sim_except(SIM_EXCEPT_EINVAL, "Illegal register name.");
+    //if unlikely(m_cpu_regs.m_reg.find(reg_name) == m_cpu_regs.m_reg.end()) throw sim_except(SIM_EXCEPT_EINVAL, "Illegal register name.");
     LOG_DEBUG4(MSG_FUNC_END);
     return PPCSIMBOOKE_CPU_REGN(reg_name);
 }
@@ -1008,7 +1012,7 @@ uint64_t ppcsimbooke::ppcsimbooke_cpu::cpu::get_reg(std::string reg_name) throw(
 // Get register value by name
 uint64_t ppcsimbooke::ppcsimbooke_cpu::cpu::get_reg(int reg_id) throw(sim_except) {
     LOG_DEBUG4(MSG_FUNC_START);
-    if unlikely(m_cpu_regs.m_ireg.find(reg_id) == m_cpu_regs.m_ireg.end()) throw sim_except(SIM_EXCEPT_EINVAL, "Illegal register ID.");
+    //if unlikely(m_cpu_regs.m_ireg.find(reg_id) == m_cpu_regs.m_ireg.end()) throw sim_except(SIM_EXCEPT_EINVAL, "Illegal register ID.");
     LOG_DEBUG4(MSG_FUNC_END);
     return PPCSIMBOOKE_CPU_REG(reg_id);
 }

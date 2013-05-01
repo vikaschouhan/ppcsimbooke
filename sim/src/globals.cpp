@@ -6,17 +6,18 @@ ppcsimbooke::instr_call::instr_call(){
     opcname = "";
     fmt     = "";
     opc     = 0;
+    hv      = 0;
     nargs   = 0;
     for(int i=0; i<N_IC_ARGS; i++){
         arg[i].v = arg[i].p = arg[i].t = 0;
     }
-    fptr = NULL;
 }
 
 // Dump state
 void ppcsimbooke::instr_call::dump_state(){
     std::cout << "name   : " << opcname << std::endl;
     std::cout << "opcode : " << std::hex << std::showbase << opc << std::endl;
+    std::cout << "hash   : " << std::hex << std::showbase << hv << std::endl;
     std::cout << "args   : ";
     for(int i=0; i<nargs; i++){
         std::cout << std::hex << std::showbase << arg[i].v << " ";

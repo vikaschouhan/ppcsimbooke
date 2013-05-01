@@ -34,6 +34,11 @@
 #include "basic_block.h"             // Basic block decoder & caches module
 
 namespace ppcsimbooke {
+    namespace ppcsimbooke_basic_block {
+        // forward declaration for basic_block_decoder
+        struct basic_block_decoder;
+    }
+
     namespace ppcsimbooke_cpu {
 
         class cpu;
@@ -66,6 +71,7 @@ namespace ppcsimbooke {
             void       register_mem(ppcsimbooke_memory::memory &mem);               // Register memory
             size_t     get_ninstrs();                           // Get number of instrs
             uint64_t   get_pc();                                // Get pc
+            uint64_t   get_nip();                               // Get NIP
             void       run();                                   // Non blocking run
             void       run_instr(std::string instr);
             void       run_instr(uint32_t opcd);

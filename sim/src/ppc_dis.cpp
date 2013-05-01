@@ -6,6 +6,11 @@ bool     ppcsimbooke::ppcsimbooke_dis::ppcdis::m_opcd_indices_done = 0;
 
 // Member functions.
 //
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+// private helper functions
+///////////////////////////////////////////////////////////////////////////////////////////////////
+//
 // Initialize opcode indices for faster look up
 void ppcsimbooke::ppcsimbooke_dis::ppcdis::init_opcd_indices(){
     int i;
@@ -159,6 +164,10 @@ int ppcsimbooke::ppcsimbooke_dis::ppcdis::get_num_operands(const struct powerpc_
     return (num_oprs-1);
 } 
 
+/////////////////////////////////////////////////////////////////////////////////////////////
+// public disassembler functions
+////////////////////////////////////////////////////////////////////////////////////////////
+
 // Disassemble a 32 bit opcode into a call frame
 ppcsimbooke::instr_call ppcsimbooke::ppcsimbooke_dis::ppcdis::disasm(uint32_t opcd, uint64_t pc, int endianness)
 {
@@ -216,7 +225,8 @@ ppcsimbooke::instr_call ppcsimbooke::ppcsimbooke_dis::ppcdis::disasm(uint32_t op
         /* If we are here, it means correct opcode was found in the table */
         /* Store opcode name in passed disassemble_info */
         call_this.opcname = std::string(opcode->name);
-        call_this.opc     = (opcode->opcode << 32 | opc_pair.second);
+        call_this.hv      = (opcode->opcode << 32 | opc_pair.second);
+        call_this.opc     = opcode->opcode;
 
         if (opcode->operands[0] != 0)
             call_this.fmt = "%-7s ";
@@ -335,6 +345,13 @@ ppcsimbooke::instr_call ppcsimbooke::ppcsimbooke_dis::ppcdis::disasm(uint32_t op
     return call_this;
 }
 
+// Disassemble a 32 bit opcode (passed as a char pointer) into a call frame
+ppcsimbooke::instr_call ppcsimbooke::ppcsimbooke_dis::ppcdis::disasm(uint8_t* opcd, uint64_t pc, int endianness)
+{
+    return disasm(read_buff<uint32_t>(opcd, endianness), pc, endianness);
+}
+
+
 // Disassemble a string representation of instruction ( something like asm + disasm )
 ppcsimbooke::instr_call ppcsimbooke::ppcsimbooke_dis::ppcdis::disasm(std::string instr, uint64_t pc)
 {
@@ -369,7 +386,8 @@ ppcsimbooke::instr_call ppcsimbooke::ppcsimbooke_dis::ppcdis::disasm(std::string
 
     // Get opcode's name
     call_this.opcname = std::string(opcode->name);
-    call_this.opc     = (opcode->opcode << 32 | indx);
+    call_this.hv      = (opcode->opcode << 32 | indx);
+    call_this.opc     = opcode->opcode;
 
     if (opcode->operands[0] != 0)
         call_this.fmt = "%-7s ";
@@ -513,6 +531,10 @@ ppcsimbooke::instr_call ppcsimbooke::ppcsimbooke_dis::ppcdis::disasm(std::string
 
 }
 
+//////////////////////////////////////////////////////////////////////////////////////
+// misc public functions
+//////////////////////////////////////////////////////////////////////////////////////
+
 // Get opcode's index in disassembler LUT
 int ppcsimbooke::ppcsimbooke_dis::ppcdis::get_opc_index(std::string opcname){
     for (int indx = 0; indx < powerpc_num_opcodes; indx++){
@@ -548,6 +570,10 @@ uint64_t ppcsimbooke::ppcsimbooke_dis::ppcdis::get_opc_hash(std::string opcname)
     std::cerr << "Warning !!! Undefined opcode " << opcname << std::endl;
     return 0x0;
 }
+
+/////////////////////////////////////////////////////////////////////////////////////
+// private helpers ??
+/////////////////////////////////////////////////////////////////////////////////////
 
 // show instruction format
 void ppcsimbooke::ppcsimbooke_dis::ppcdis::print_insn_fmt (const char *insn_name)
@@ -701,4 +727,42 @@ char ppcsimbooke::ppcsimbooke_dis::ppcdis::get_delim_char(const struct powerpc_o
 	    return ',';
 	}
 }
+
+////////////////////////////////////////////////////////////////////////////////////////////
+// instruction group detection functions (public)
+////////////////////////////////////////////////////////////////////////////////////////////
+
+// check for all branch types
+bool ppcsimbooke::ppcsimbooke_dis::ppcdis::is_branch(instr_call& ic){
+    static const uint32_t bm_lut[]  = { 0x40000000, 0x48000000, 0x4c000020, 0x4c000420 };
+    //                                       bc         b           bclr        bcctr
+  
+    for (size_t i=0; i<(sizeof(bm_lut)/sizeof(uint32_t)); i++){
+        if((bm_lut[i] & ic.opc) == bm_lut[i]) return true;
+    }
+    return false;
+}
+
+// check for system call
+bool ppcsimbooke::ppcsimbooke_dis::ppcdis::is_sc(instr_call& ic){
+    static const uint32_t sc_mask = (0x17 << 26);
+    return ((ic.opc & sc_mask) == sc_mask) ? true:false;
+}
+
+// check for rfXi
+bool ppcsimbooke::ppcsimbooke_dis::ppcdis::is_rfxi(instr_call& ic){
+    static const uint32_t rfxim_lut[] = { 0x4c00004c, 0x4c00004e, 0x4c000064, 0x4c000066 };
+    //                                        rfmci      rfdi        rfi         rfci 
+
+    for (size_t i=0; i<(sizeof(rfxim_lut)/sizeof(uint32_t)); i++){
+        if((ic.opc & rfxim_lut[i]) == rfxim_lut[i]) return true;
+    }
+    return false;
+}
+
+// control transfer group check
+bool ppcsimbooke::ppcsimbooke_dis::ppcdis::is_control_xfer(instr_call& ic){
+    return is_branch(ic) || is_sc(ic) || is_rfxi(ic);
+}
+
 

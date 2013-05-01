@@ -16,14 +16,14 @@ namespace ppcsimbooke {
         struct instr_arg {
             size_t  v;         // Actual argument
             size_t  p;         // Indirect Pointer to the m_ireghash entry
-            bool    t;         // Argument type ( 1=register, 0=value )
+            bool    t;         // Argument type (1=register, 0=value)
         };
         std::string   opcname;              // Opcode name
         std::string   fmt;                  // Display format
-        uint64_t      opc;                  // opcode ( First 32 bit is opcode and next 32 bit is the entry no in opcode table )
+        uint32_t      opc;                  // opcode (full opcode apart from the operands)
+        uint64_t      hv;                   // opcode hash value (used for implementation function selection)
         int           nargs;                // Number of arguments
         instr_arg     arg[N_IC_ARGS];       // Argument array
-        void          *fptr;                // Function pointer
     
         instr_call();
         // Dump state
@@ -109,7 +109,7 @@ namespace ppcsimbooke {
         // refreshes value to fixed value
         void refresh_fval(){ value.u64v = fvalue; }
     
-        // This data type can't be copied
+        // This data type can't be copied directly
         ppc_reg64& operator=(const ppc_reg64& rreg){ return *this; }
     
         // Allow integers to be directly assigned
@@ -124,6 +124,7 @@ namespace ppcsimbooke {
         uint64_t   operator<<(uint64_t v)          { return value.u64v << v; }
         uint64_t   operator|(uint64_t v)           { return value.u64v | v; }
         uint64_t   operator&(uint64_t v)           { return value.u64v & v; }
+        //operator   uint64_t() const                { return value.u64v; }
     };
     
     
@@ -301,7 +302,7 @@ namespace ppcsimbooke {
         ppc_reg64& get_gpr(){
             return gpr[x];
         }
-     
+
     };
 
 }

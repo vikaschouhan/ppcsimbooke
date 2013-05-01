@@ -1,12 +1,12 @@
 #ifndef _PPC_DIS_HPP_
 #define _PPC_DIS_HPP_
 
-// ppc_dis.hpp ( disassembler facilities for powerPC e500v2 cpu module )
+// ppc_dis.hpp (disassembler facilities for powerPC e500v2 cpu module)
 // This file contains disassembler class and corresponding member functions.
 //
 // Authors :
 //     GNU project.
-//     Vikas Chouhan ( presentisgood@gmail.com )  Copyright 2012.
+//     Vikas Chouhan (presentisgood@gmail.com)  Copyright 2012/2013.
 //
 // This file is part of ppc-sim library bundled with ppcsimbooke.
 //
@@ -100,12 +100,32 @@ namespace ppcsimbooke {
                 m_dis_cache2.set_size(16);   // 16 entry cache
             }
         
+            ///////////////////////////////////////////////////////////////
+            // disassembler functions
+            ///////////////////////////////////////////////////////////////
+
             // PC is required for instrs which use relative addressing mode
             // Disassemble a 32 bit opcode into a call frame
             instr_call disasm(uint32_t opcd, uint64_t pc = 0, int endianness = EMUL_BIG_ENDIAN);
-            // Second form of disassemble. Takes a string, decodes it and creates an instruction call frame
+            // Second form of disassemble. Takes a uint8_t pointer.
+            instr_call disasm(uint8_t* buff, uint64_t pc = 0, int endianness = EMUL_BIG_ENDIAN);
+            // Third form of disassemble. Takes a string, decodes it and creates an instruction call frame
             // if valid
             instr_call disasm(std::string instr, uint64_t pc = 0);
+
+            //////////////////////////////////////////////////////////////
+            // check for special instruction groups
+            //////////////////////////////////////////////////////////////
+
+            bool is_branch(instr_call& ic);                // is branch
+            bool is_sc(instr_call& ic);                    // is system call
+            bool is_rfxi(instr_call& ic);                  // is rfi, rfci, rfmci etc.
+            bool is_control_xfer(instr_call& ic);          // is this a control transfer instruction 
+
+            //////////////////////////////////////////////////////////////
+            // misc.
+            //////////////////////////////////////////////////////////////
+
             // Return opcode's index in LUT (used for indexing to apppropriate function ptr)
             int get_opc_index(std::string opcname);
             // Returns a hashed value of opcode
