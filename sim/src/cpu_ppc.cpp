@@ -149,6 +149,13 @@ void ppcsimbooke::ppcsimbooke_cpu::cpu::run_instr(uint32_t opcd){
     LOG_DEBUG4(MSG_FUNC_END);
 }
 
+// get opcode implementation function
+ppcsimbooke::ppcsimbooke_cpu::cpu::ppc_opc_fun_ptr ppcsimbooke::ppcsimbooke_cpu::cpu::get_opc_impl(uint64_t opcode_hash){
+    LOG_DEBUG4(MSG_FUNC_START);
+    LOG_DEBUG4(MSG_FUNC_END);
+    return m_ppc_func_hash.at(opcode_hash);
+}
+
 #define TO_RWX(r, w, x) (((r & 0x1) << 2) | ((w & 0x1) << 1) | (x & 0x1))
 // Translate EA to RA
 // NOTE: All exceptions ( hardware/software ) will be handled at run_instr() or run() level.

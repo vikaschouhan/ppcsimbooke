@@ -2,9 +2,9 @@
 // This file contains cpu class & corresponding member functions.
 // 
 // Author : Vikas Chouhan (presentisgood@gmail.com)
-// Copyright 2012.
+// Copyright 2012/2013.
 // 
-// This file is part of ppc-sim library.
+// This file is part of ppcsimbooke library.
 // 
 // This library is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License Version 2 as
@@ -34,11 +34,6 @@
 #include "basic_block.h"             // Basic block decoder & caches module
 
 namespace ppcsimbooke {
-    namespace ppcsimbooke_basic_block {
-        // forward declaration for basic_block_decoder
-        struct basic_block_decoder;
-    }
-
     namespace ppcsimbooke_cpu {
 
         class cpu;
@@ -61,13 +56,18 @@ namespace ppcsimbooke {
         /* All BookE cores have 32 bit MSRs only */
         
         class cpu {
+            public:
+            // function pointer type for opcode handlers
+            typedef void (*ppc_opc_fun_ptr)(ppcsimbooke::ppcsimbooke_cpu::cpu *, ppcsimbooke::instr_call *);
+            // translated result type for tlb array
+            typedef std::tuple<uint64_t, uint8_t, uint64_t>  xlated_tlb_res;
         
             public:
             cpu();
             cpu(uint64_t cpuid, std::string name);
             ~cpu();
-        
-            void       init(uint64_t cpuid, std::string name);  // Initialize CPU
+       
+            void       init(uint64_t cpuid, std::string name);     // Initialize CPU 
             void       register_mem(ppcsimbooke_memory::memory &mem);               // Register memory
             size_t     get_ninstrs();                           // Get number of instrs
             uint64_t   get_pc();                                // Get pc
@@ -101,7 +101,13 @@ namespace ppcsimbooke {
             uint64_t   get_reg(std::string name) throw(sim_except);    // Get register by name
             uint64_t   get_reg(int regid) throw(sim_except);           // Get register by reg_id
             void       dump_state(int columns=0, std::ostream &ostr=std::cout, int dump_all_sprs=0);   // Dump Cpu state
-            void       print_L2tlbs();                                 // Print L2 tlbs
+            
+            // TLB functions
+            xlated_tlb_res  xlate(uint64_t addr, bool wr=0, bool ex=0);  // Translate EA to RA (return a tuple of <xlated addr, wimge, page_size>)
+            void            print_L2tlbs();                              // Print L2 tlbs
+
+            // get opcode implementation function pointer
+            ppc_opc_fun_ptr  get_opc_impl(uint64_t opcode_hash);
         
             // Logging
             void       enable_cov_log();
@@ -121,23 +127,19 @@ namespace ppcsimbooke {
             bool       check_resv(uint64_t ea, size_t size);
             void       notify_ctxt_switch();   // notify of context switches ( called by context syncronizing instructions  such as rfi, sc etc. )
         
-            // Misc
-            typedef std::tuple<uint64_t, uint8_t, uint64_t>  xlated_tlb_res;
-            xlated_tlb_res  xlate(uint64_t addr, bool wr=0, bool ex=0);  // Translate EA to RA (return a tuple of <xlated addr, wimge, page_size>)
-        
             // Accessing registers using reghash interface ( for use with ppc code translation unit )
             inline ppc_reg64*      reg(int regid);
             inline ppc_reg64*      regn(std::string regname);
         
             private:
-            void                  run_b();                               // blocking run
-            void                  clear_ctrs();                          // clear counters
+            void                  run_b();                                    // blocking run
+            void                  clear_ctrs();                               // clear counters
             void                  ppc_exception(int exception_nr, int subtype, uint64_t ea=0xffffffffffffffffULL);
-            instr_call            get_instr();                           // Automatically tries to read instr from next NIP(PC)
+            instr_call            get_instr();                                 // Automatically tries to read instr from next NIP(PC)
             void                  check_for_dbg_events(int flags, uint64_t ea=0);   // check for debug events
             inline void           run_curr_instr();                                 // run current instr
             inline void           init_common();
-        
+
             public:
             breakpt_mngr                           m_bm;                   // breakpoint manager
             static Log<1>                          sm_instr_tracer;        // Instruction tracer module
@@ -152,8 +154,9 @@ namespace ppcsimbooke {
             //        it has to be called once in the constructor.
             friend void gen_ppc_opc_func_hash(ppcsimbooke::ppcsimbooke_cpu::cpu *pcpu);
 
-            // Basic Block decoder is cpu's friend
-            friend struct ppcsimbooke::ppcsimbooke_basic_block::basic_block_decoder;
+            // Basic Block [decoder] is cpu's friend
+            //friend struct ppcsimbooke::ppcsimbooke_basic_block::basic_block_decoder;
+            //friend struct ppcsimbooke::ppcsimbooke_basic_block::basic_block;
         
             std::string                            m_cpu_name;
             cpu_run_mode                           m_cpu_mode;
@@ -208,13 +211,8 @@ namespace ppcsimbooke {
             // A Cache of recently called instrs.
             lru_cache<uint64_t, instr_call>        m_instr_cache;     // Cache of recently used instrs
             bool                                   m_ctxt_switch;     // Flag indicating that a ctxt switch happened
-        
-            public:
-            // function pointer type for opcode handlers
-            typedef void (*ppc_opc_fun_ptr)(ppcsimbooke::ppcsimbooke_cpu::cpu *, ppcsimbooke::instr_call *);
 
             // opcode to function pointer map
-            private:
             std::map<uint64_t, ppc_opc_fun_ptr>    m_ppc_func_hash;
         
             // timings
