@@ -35,6 +35,29 @@ namespace superstl {
     typedef W32 Waddr;
 #endif
 
+    template <typename T> struct isprimitive_t { static const bool primitive = 0; };
+#define superstl_MakePrimitive(T) template <> struct isprimitive_t<T> { static const bool primitive = 1; }
+    superstl_MakePrimitive(signed char);
+    superstl_MakePrimitive(unsigned char);
+    superstl_MakePrimitive(signed short);
+    superstl_MakePrimitive(unsigned short);
+    superstl_MakePrimitive(signed int);
+    superstl_MakePrimitive(unsigned int);
+    superstl_MakePrimitive(signed long);
+    superstl_MakePrimitive(unsigned long);
+    superstl_MakePrimitive(signed long long);
+    superstl_MakePrimitive(unsigned long long);
+    superstl_MakePrimitive(float);
+    superstl_MakePrimitive(double);
+    superstl_MakePrimitive(bool);
+
+
+    template<typename T> struct ispointer_t { static const bool pointer = 0; };
+    template <typename T> struct ispointer_t<T*> { static const bool pointer = 1; };
+
+#define superstl_ispointer(T) (ispointer_t<T>::pointer)
+#define superstl_isprimitive(T) (isprimitive_t<T>::primitive)
+
 
 #define superstl_sqr(x) ((x)*(x))
 #define superstl_cube(x) ((x)*(x)*(x))
@@ -62,6 +85,7 @@ namespace superstl {
 #define superstl_getcaller() (__builtin_return_address(0))
 
 #define superstl_foreach(i, N)  for(int i=0; i<(N); i++)
+#define superstl_foreach_size_t(i, N) for(size_t i=0; i<(N); i++)
 
 #define SUPERSTL_BITS_PER_WORD ((sizeof(unsigned long) == 8) ? 64 : 32)
 #define SUPERSTL_BITVEC_WORDS(n) ((n) < 1 ? 0 : ((n) + SUPERSTL_BITS_PER_WORD - 1)/SUPERSTL_BITS_PER_WORD)
@@ -586,6 +610,11 @@ namespace superstl {
 #define __builtin_ctzl(t) lsbindex32(t)
 #define __builtin_clzl(t) msbindex32(t)
 #endif
+
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+    // bitvec
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
    
     template<size_t N>
     struct bitvecbase {
@@ -1219,6 +1248,10 @@ namespace superstl {
         return v.print(os);
     }
 
+    //////////////////////////////////////////////////////////////////////////////////////////////////
+    // vec (???)
+    //////////////////////////////////////////////////////////////////////////////////////////////////
+
     template <int size, typename T>
     static inline T vec_min_index(T* list, const bitvec<size>& include) {
         int minv = std::numeric_limits<T>::max;
@@ -1249,6 +1282,333 @@ namespace superstl {
 #undef __builtin_ctzl
 #undef __builtin_clzl
 
+    //////////////////////////////////////////////////////////////////////////////////////////////////
+    // array
+    //////////////////////////////////////////////////////////////////////////////////////////////////
+
+    // Simple array class with optional bounds checking
+    template <typename T, int size>
+    struct array {
+    public:
+        array() { }
+        static const int length = size;
+
+        T data[size];
+        const T& operator [](int i) const {
+            #ifdef CHECK_BOUNDS
+            assert((i >= 0) && (i < size));
+            #endif
+            return data[i];
+        }
+
+        T& operator [](int i) {
+            #ifdef CHECK_BOUNDS
+            assert((i >= 0) && (i < size));
+            #endif
+            return data[i];
+        }
+
+        void clear() {
+            superstl_foreach(i, size) data[i] = T();
+        }
+
+        void fill(const T& v) {
+            superstl_foreach(i, size) data[i] = v;
+        }
+    };
+
+    template <typename T, int size>
+    static inline std::ostream& operator <<(std::ostream& os, const array<T, size>& v) {
+        os << "Array of " << size << " elements:" << std::endl;
+        for (int i = 0; i < size; i++) {
+            os << "  [" << i << "]: " << v[i] << std::endl;
+        }
+        return os;
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////////
+    // stack
+    ///////////////////////////////////////////////////////////////////////////////////////////////////
+
+    template <typename T, int size>
+    struct stack {
+        public:
+        T data[size];
+        int count;
+        static const int length = size;
+
+        void reset() { count = 0; }
+
+        stack() { reset(); }
+
+        const T& operator [](int i) const {
+            return data[i];
+        }
+
+        T& operator [](int i) {
+            return data[i];
+        }
+
+        T& push() {
+            if unlikely (count >= size) abort();
+            T& v = data[count++];
+            return v;
+        }
+
+        T& push(const T& v) {
+            T& r = push();
+            r = v;
+            return r;
+        }
+
+        T& pop() {
+            if unlikely (!count) abort();
+            T& v = data[--count];
+            return v;
+        }
+
+        bool empty() const { return (count == 0); }
+        bool full() const { return (count == size); }
+
+        stack<T, size>& operator =(const stack<T, size>& stack) {
+            count = stack.count;
+            superstl_foreach (i, count) data[i] = stack.data[i];
+            return *this;
+        }
+
+        std::ostream& print(std::ostream& os) const {
+            superstl_foreach (i, count) { os << ((i) ? " " : ""), data[i]; }
+            return os;
+        }
+    };
+
+    template <typename T, int size>
+    static inline std::ostream& operator <<(std::ostream& os, const stack<T, size>& st) {
+        return st.print(os);
+    }
+
+  
+    /////////////////////////////////////////////////////////////////////////////////////////////////
+    // dynarray (dynamic array)
+    ///////////////////////////////////////////////////////////////////////////////////////////////// 
+
+    // Simple STL-like dynamic array class.
+    // 
+    template <class T>
+    class dynarray {
+        public:
+        T* data;
+        size_t length;
+        size_t reserved;
+        size_t granularity;
+
+        public:
+        inline T& operator [](int i) { return data[i]; }
+        inline T operator [](int i) const { return data[i]; }
+
+        operator T*() const { return data; }
+
+        // NOTE: g *must* be a power of two!
+        dynarray() {
+            length = reserved = 0;
+            granularity = 16;
+            data = NULL;
+        }
+
+        dynarray(int initcap, int g = 16) {
+            length = 0;
+            reserved = 0;
+            granularity = g;
+            data = NULL;
+            reserve(initcap);
+        }
+
+        ~dynarray() {
+            if (!(superstl_isprimitive(T) | superstl_ispointer(T))) {
+                superstl_foreach (i, reserved) data[i].~T();
+            }
+
+            free(data);
+            data = NULL;
+            length = 0;
+            reserved = 0;
+        }
+
+        inline int capacity() const { return reserved; }
+        inline bool empty() const { return (length == 0); }
+        inline void clear() { resize(0); }
+        inline int size() const { return length; }
+        inline int count() const { return length; }
+
+        void push(const T& obj) {
+            T& pushed = push();
+            pushed = obj;
+        }
+
+        T& push() {
+            reserve(length + 1);
+            length++;
+            return data[length-1];
+        }
+
+        T& pop() {
+            length--;
+            return data[length];
+        }
+
+        void resize(int newsize) {
+            if likely (newsize > length) reserve(newsize);
+            length = newsize;
+        }
+
+        void resize(int newsize, const T& emptyvalue) {
+            int oldlength = length;
+            resize(newsize);
+            if unlikely (newsize <= oldlength) return;
+            for (int i = oldlength; i < reserved; i++) { data[i] = emptyvalue; }
+        }
+
+        void reserve(int newsize) {
+            if unlikely (newsize <= reserved) return;
+            newsize = (newsize + (granularity-1)) & ~(granularity-1);
+            int oldsize = length;
+            data = renew(data, length, newsize);
+            reserved = newsize;
+        }
+
+        void fill(const T value) {
+            superstl_foreach (i, length) {
+                data[i] = value;
+            }
+        }
+
+        // Only works with specialization for character arrays:
+        char* tokenize(char* string, const char* seplist) { abort(); }
+    };
+
+    template <class T> static inline const T& operator <<(dynarray<T>& buf, const T& v) { return buf.push(v); }
+    template <class T> static inline const T& operator >>(dynarray<T>& buf, T& v) { return (v = buf.pop()); }
+
+    template <>
+    char* dynarray<char*>::tokenize(char* string, const char* seplist);
+
+    template <class T>
+    static inline std::ostream& operator <<(std::ostream& os, const dynarray<T>& v) {
+        os << "Array of ", v.size(), " elements (", v.capacity(), " reserved): ", std::endl;
+        for (int i = 0; i < v.size(); i++) {
+            os << "  [", i, "]: ", v[i], std::endl;
+        }
+        return os;
+    }
+
+    //////////////////////////////////////////////////////////////////////////////////////////////
+    // crc32
+    //////////////////////////////////////////////////////////////////////////////////////////////
+    struct CRC32 {
+        static const W32 crctable[256];
+        W32 crc;
+
+        inline W32 update(byte value) {
+            crc = crctable[byte(crc ^ value)] ^ (crc >> 8);
+            return crc;
+        }
+
+        inline W32 update(byte* data, int count) {
+            superstl_foreach (i, count) {
+              update(data[i]);
+            }
+            return crc;
+        }
+
+        CRC32() {
+            reset();
+        }
+
+        CRC32(W32 newcrc) {
+            reset(newcrc);
+        }
+
+        inline void reset(W32 newcrc = 0xffffffff) {
+            crc = newcrc;
+        }
+
+        operator W32() const {
+            return crc;
+        }
+    };
+
+    template <typename T>
+    static inline CRC32& operator <<(CRC32& crc, const T& t) {
+        crc.update((byte*)&t, sizeof(T));
+        return crc;
+    }
+
+    template <class T>
+    static inline CRC32& operator ,(CRC32& crc, const T& v) {
+        return crc << v;
+    }
+
+    /////////////////////////////////////////////////////////////////////////////////////////////////
+    // RandomNumberGenerator
+    /////////////////////////////////////////////////////////////////////////////////////////////////
+    struct RandomNumberGenerator {
+        W32 s1, s2, s3;
+
+        RandomNumberGenerator(W32 seed = 123) { reseed(seed); }
+
+        void reseed(W32 seed){
+            if unlikely (seed == 0) seed = 1; // default seed is 1
+    
+            #define LCG(n) (69069 * n)
+                s1 = LCG(seed);
+                s2 = LCG(s1);
+                s3 = LCG(s2);
+            #undef LCG
+    
+            // warm it up
+            superstl_foreach (i, 8) random32();
+        }
+  
+        W32 random32() {
+            #define TAUSWORTHE(s,a,b,c,d) ((s&c)<<d) ^ (((s <<a) ^ s)>>b)
+          
+            s1 = TAUSWORTHE(s1, 13, 19, 4294967294UL, 12);
+            s2 = TAUSWORTHE(s2, 2, 25, 4294967288UL, 4);
+            s3 = TAUSWORTHE(s3, 3, 11, 4294967280UL, 17);
+
+            #undef TAUSWORTHE
+            
+            return (s1 ^ s2 ^ s3);
+        }
+
+        W64 random64() {
+            return (W64(random32()) << 32) | W64(random32());
+        }
+
+        void fill(void* p, size_t count) {
+            size_t wc = count / sizeof(W32);
+            W32* wp = (W32*)p;
+            superstl_foreach_size_t (i, wc) {
+                *wp = random32();
+                wp++;
+            }
+
+            size_t loc = count % sizeof(W32);
+            if likely (!loc) return;
+
+            W32 temp = random32();
+            byte* lop = (byte*)wp;
+            superstl_foreach_size_t (i, loc) {
+                lop[i] = superstl_lowbits(temp, 8);
+                temp >>= 8;
+            }
+        }
+    };
+
+
+    //////////////////////////////////////////////////////////////////////////////////////////////////
+    // selflistlink
+    //////////////////////////////////////////////////////////////////////////////////////////////////
 
     // selflistlink class
     // Double linked list without pointer: useful as root
@@ -1301,6 +1661,32 @@ namespace superstl {
         os << "[prev " << link.prev << ", next " << link.next << "]";
         return os;
     }
+
+    //
+    // Default link manager for objects in which the
+    // very first member (or superclass) is selflistlink.
+    //
+    template <typename T>
+    struct ObjectLinkManager {
+        static inline T* objof(selflistlink* link) { return (T*)link; }
+        static inline selflistlink* linkof(T* obj) { return (selflistlink*)obj; }
+        //
+        // Example:
+        //
+        // T* objof(selflistlink* link) {
+        //   return baseof(T, hashlink, link); // a.k.a. (T*)((byte*)link) - offsetof(T, hashlink);
+        // }
+        //
+        // selflistlink* linkof(T* obj) {
+        //   return &obj->link;
+        // }
+        //
+    };
+ 
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+    // selfqueuelink
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
   
     class selfqueuelink {
         public:
@@ -1387,6 +1773,239 @@ namespace superstl {
             prev->next = this;
         }
     };
+
+    /////////////////////////////////////////////////////////////////////////////////////////////////////
+    // SelfHashTable
+    /////////////////////////////////////////////////////////////////////////////////////////////////////
+    //
+
+    template <typename K, typename T>
+    struct KeyValuePair {
+        T value;
+        K key;
+    };
+
+    template <typename K, int setcount>
+    struct HashtableKeyManager {
+        static inline int hash(const K& key);
+        static inline bool equal(const K& a, const K& b);
+        static inline K dup(const K& key);
+        static inline void free(K& key);
+    };
+
+    template <int setcount>
+    struct HashtableKeyManager<W64, setcount> {
+        static inline int hash(W64 key) {
+            return foldbits<superstl_log2(setcount)>(key);
+        }
+
+        static inline bool equal(W64 a, W64 b) { return (a == b); }
+        static inline W64 dup(W64 key) { return key; }
+        static inline void free(W64 key) { }
+    };
+
+    template <int setcount>
+    struct HashtableKeyManager<const char*, setcount> {
+        static inline int hash(const char* key) {
+            int len = strlen(key);
+            CRC32 h;
+            superstl_foreach (i, len) { h << key[i]; }
+            return h;
+        }
+
+        static inline bool equal(const char* a, const char* b) {
+            return (strcmp(a, b) == 0);
+        }
+
+        static inline const char* dup(const char* key) {
+            return strdup(key);
+        }
+
+        static inline void free(const char* key) {
+            //::free((void*)key);
+        }
+    };
+
+    //template <typename T, typename K>
+    //struct HashtableLinkManager {
+    //    static inline T* objof(selflistlink* link);
+    //    static inline K& keyof(T* obj);
+    //    static inline selflistlink* linkof(T* obj);
+    //    //
+    //    // Example:
+    //    //
+    //    // T* objof(selflistlink* link) {
+    //    //   return baseof(T, hashlink, link); // a.k.a. *(T*)((byte*)link) - offsetof(T, hashlink);
+    //    // }
+    //    //
+    //};
+
+    template <typename K, typename T, int setcount = 64, typename LM = ObjectLinkManager<T>, typename KM = HashtableKeyManager<K, setcount> >
+    struct SelfHashtable {
+        protected:
+        selflistlink* sets[setcount];
+        public:
+        int count;
+
+        T* get(const K& key) {
+            selflistlink* tlink = sets[superstl_lowbits(KM::hash(key), superstl_log2(setcount))];
+            while (tlink) {
+                T* obj = LM::objof(tlink);
+                if likely (KM::equal(LM::keyof(obj), key)) return obj;
+                tlink = tlink->next;
+            }
+
+            return NULL;
+        }
+
+        struct Iterator {
+            SelfHashtable<K, T, setcount, LM, KM>* ht;
+            selflistlink* link;
+            int slot;
+
+            Iterator() { }
+
+            Iterator(SelfHashtable<K, T, setcount, LM, KM>* ht) {
+                reset(ht);
+            }
+
+            Iterator(SelfHashtable<K, T, setcount, LM, KM>& ht) {
+                reset(ht);
+            }
+
+            void reset(SelfHashtable<K, T, setcount, LM, KM>* ht) {
+                this->ht = ht;
+                slot = 0;
+                link = ht->sets[slot];
+            }
+
+            void reset(SelfHashtable<K, T, setcount, LM, KM>& ht) {
+                reset(&ht);
+            }
+
+            T* next() {
+                for (;;) {
+                    if unlikely (slot >= setcount) return NULL;
+
+                    if unlikely (!link) {
+                        // End of chain: advance to next chain
+                        slot++;
+                        if unlikely (slot >= setcount) return NULL;
+                        link = ht->sets[slot];
+                        continue;
+                    }
+
+                    T* obj = LM::objof(link);
+                    link = link->next;
+                    prefetch(link);
+                    return obj;
+                }
+            }
+        };
+
+        dynarray<T*>& getentries(dynarray<T*>& a) {
+            a.resize(count);
+            int n = 0;
+            Iterator iter(this);
+            T* t;
+            while (t = iter.next()) {
+                assert(n < count);
+                a[n++] = t;
+            }
+            return a;
+        }
+
+        SelfHashtable() {
+            reset();
+        }
+
+        void reset() {
+            count = 0;
+            superstl_foreach (i, setcount) { sets[i] = NULL; }
+        }
+
+        void clear(bool free_after_remove = false) {
+            superstl_foreach (i, setcount) {
+                selflistlink* tlink = sets[i];
+                while (tlink) {
+                    selflistlink* tnext = tlink->next;
+                    tlink->unlink();
+                    if unlikely (free_after_remove) {
+                        T* obj = LM::objof(tlink);
+                        delete obj;
+                    }
+                    tlink = tnext;
+                }
+                sets[i] = NULL;
+            }
+            count = 0;
+        }
+
+        void clear_and_free() {
+            clear(true);
+        }
+
+        T* operator ()(const K& key) {
+            return get(key);
+        }
+
+        T* add(T* obj) {
+            T* oldobj = get(LM::keyof(obj));
+            if unlikely (oldobj) {
+                remove(oldobj);
+            }
+
+            if (LM::linkof(obj)->linked()) return obj;
+
+            LM::linkof(obj)->addto(sets[superstl_lowbits(KM::hash(LM::keyof(obj)), superstl_log2(setcount))]);
+            count++;
+            return obj;
+        }
+
+        T& add(T& obj) {
+            return *add(&obj);
+        }
+
+        T* remove(T* obj) {
+            selflistlink* link = LM::linkof(obj);
+            if (!link->linked()) return obj;
+            link->unlink();
+            count--;
+            return obj;
+        }
+
+        T& remove(T& obj) {
+            return *remove(&obj);
+        }
+
+        std::ostream& print(std::ostream& os) const {
+            os << "Hashtable of " << setcount << " sets containing " << count << " entries:" << std::endl;
+            superstl_foreach (i, setcount) {
+                selflistlink* tlink = sets[i];
+                if (!tlink)
+                    continue;
+                os << "  Set " << i << ":" << std::endl;
+                int n = 0;
+                while likely (tlink) {
+                    T* obj = LM::objof(tlink);
+                    os << "    " << LM::keyof(obj) << " -> " << *obj << std::endl;
+                    tlink = tlink->next;
+                    n++;
+                }
+            }
+            return os;
+        }
+    };
+
+    template <typename K, typename T, typename LM, int setcount, typename KM>
+    static inline std::ostream& operator <<(std::ostream& os, const SelfHashtable<K, T, setcount, LM, KM>& ht) {
+        return ht.print(os);
+    }
+
+
+    /////////////////////////////////////////////////////////////////////////////////////////////////
+    // ChunkList
+    /////////////////////////////////////////////////////////////////////////////////////////////////
 
     template <typename T, int N>
     struct ChunkList {
@@ -1583,6 +2202,10 @@ namespace superstl {
             return n;
         }
     };
+
+    /////////////////////////////////////////////////////////////////////////////////////////////
+    // shortptr
+    /////////////////////////////////////////////////////////////////////////////////////////////
 
 
     //
