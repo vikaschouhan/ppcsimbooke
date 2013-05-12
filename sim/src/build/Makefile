@@ -147,7 +147,7 @@ dut_tests: $(DUT_TEST_EXES)
 ppcsim.o: $(SIM_ROOT)/ppcsimbooke.cpp
 	$(CXX) $(HOST_CXXFLAGS) $(HOST_BOOST_PYTHON_CXXFLAGS) $(HOST_LDFLAGS) $(HOST_BOOST_PYTHON_LDFLAGS) $(HOST_EXTFLAGS) -o $@  -c $<
 
-ppcsim.so: ppcsim.o machine.o cpu_ppc.o ppc_dis.o tlb_booke.o memory.o cpu_ppc_coverage.o globals.o bm.o
+ppcsim.so: ppcsim.o machine.o cpu_ppc.o ppc_dis.o tlb_booke.o memory.o cpu_ppc_coverage.o globals.o bm.o superstl.o
 	$(CXX) $(HOST_CXXFLAGS) $(HOST_BOOST_PYTHON_CXXFLAGS) $(HOST_LDFLAGS) $(HOST_BOOST_PYTHON_LDFLAGS) $(HOST_EXTFLAGS) -Wl,-soname,"$@"  -o $@ $^
 
 ppcsimbooke: ppcsim.so
@@ -156,10 +156,10 @@ ppcsimbooke: ppcsim.so
 test_ppcdis_interface: test_ppcdis_interface.o ppc_dis.o globals.o
 	$(CXX) -o $@ $^
 
-test_machine_interface: test_machine_interface.o machine.o cpu_ppc.o ppc_dis.o tlb_booke.o memory.o cpu_ppc_coverage.o globals.o bm.o
+test_machine_interface: test_machine_interface.o machine.o cpu_ppc.o ppc_dis.o tlb_booke.o memory.o cpu_ppc_coverage.o globals.o bm.o superstl.o
 	$(CXX) $(HOST_LDFLAGS) -o $@ $^
 
-test_cpu_ppc_interface: test_cpu_ppc_interface.o cpu_ppc.o ppc_dis.o tlb_booke.o memory.o cpu_ppc_coverage.o globals.o bm.o
+test_cpu_ppc_interface: test_cpu_ppc_interface.o cpu_ppc.o ppc_dis.o tlb_booke.o memory.o cpu_ppc_coverage.o globals.o bm.o superstl.o
 	$(CXX) $(HOST_LDFLAGS) -o $@ $^
 
 test_cpu_ppc_coverage_interface: test_cpu_ppc_coverage_interface.o cpu_ppc_coverage.o
@@ -189,10 +189,10 @@ test_globals_module: test_globals_module.o globals.o
 test_fpu_emul_module: test_fpu_emul_module.o
 	$(CXX) $(HOST_LDFLAGS) -o $@ $^
 
-test_superstl: test_superstl.o
+test_superstl: test_superstl.o superstl.o
 	$(CXX) $(HOST_LDFLAGS) -o $@ $^
 
-test_basic_block_module: test_basic_block_module.o basic_block.o globals.o cpu_ppc.o ppc_dis.o tlb_booke.o memory.o cpu_ppc_coverage.o bm.o
+test_basic_block_module: test_basic_block_module.o superstl.o basic_block.o globals.o cpu_ppc.o ppc_dis.o tlb_booke.o memory.o cpu_ppc_coverage.o bm.o
 	$(CXX) $(HOST_LDFLAGS) -o $@ $^
 
 sim_tests: $(SIM_TEST_EXES)

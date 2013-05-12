@@ -15,6 +15,9 @@ namespace ppcsimbooke {
 
         static const size_t OPCODE_SIZE = 4;
 
+        // typedefs
+        typedef ppcsimbooke_cpu::cpu context;
+
         //////////////////////////////////////////////////////////////////////////////
         // basic block instruction pointer
         //////////////////////////////////////////////////////////////////////////////
@@ -35,7 +38,7 @@ namespace ppcsimbooke {
             operator uint64_t() const { return ip; }
             basic_block_ip();
             basic_block_ip(uint64_t ip_, uint64_t mfn_, uint32_t msr_, uint32_t pid0_, uint32_t pid1_, uint32_t pid2_, bool be_);
-            basic_block_ip(ppcsimbooke::ppcsimbooke_cpu::cpu& ctx);
+            basic_block_ip(context& ctx);
 
             int get_endianness(){ return (be) ? EMUL_BIG_ENDIAN:EMUL_LITTLE_ENDIAN; }
             void reset();
@@ -53,7 +56,7 @@ namespace ppcsimbooke {
         }
     
         ////////////////////////////////////////////////////////////////////////////////
-        // basic block chunk list manager
+        // basic block chunk list
         ////////////////////////////////////////////////////////////////////////////////
     
         static const size_t BB_PTRS_PER_CHUNK = 60;
@@ -67,13 +70,6 @@ namespace ppcsimbooke {
             
             basic_block_chunk_list(): ChunkList<basic_block*, BB_PTRS_PER_CHUNK>() { refcount = 0; }
             basic_block_chunk_list(uint64_t mfn): ChunkList<basic_block*, BB_PTRS_PER_CHUNK>() { this->mfn = mfn; refcount = 0; }
-
-            //basic_block* xlate(ppcsimbooke::ppcsimbooke_cpu::cpu& ctx);
-            //bool         invalidate(uint64_t pc, int reason);
-            //bool         invalidate(basic_block_ip& b_ip, int reason);
-            //bool         invalidate(basic_block* bb, int reason);
-            //size_t       get_page_bb_count(uint64_t mfn);
-            //void         flush();
         };
 
         std::ostream& operator<<(std::ostream& ostr, basic_block_chunk_list& bb_cl);
@@ -88,7 +84,7 @@ namespace ppcsimbooke {
         enum { BB_BRTYPE_SPLIT, BB_BRTYPE_BRANCH, BB_BRTYPE_INV };
 
         //typedef typename ppcsimbooke::ppcsimbooke_cpu::cpu::ppc_opc_fun_ptr  opc_impl_func_t;   // powerpc opcode handler type
-        typedef void (*opc_impl_func_t)(ppcsimbooke::ppcsimbooke_cpu::cpu *pcpu, ppcsimbooke::instr_call *pic);
+        typedef void (*opc_impl_func_t)(context *pcpu, ppcsimbooke::instr_call *pic);
         
         // Basic Block
         struct basic_block {
@@ -125,9 +121,9 @@ namespace ppcsimbooke {
             void         free();                       // free basic block
 
             // Initialize synthops from passed context
-            void init_synthops(ppcsimbooke::ppcsimbooke_cpu::cpu &ctx);
+            void init_synthops(context &ctx);
             // update branch targets for next basic block
-            void update_targets(ppcsimbooke::ppcsimbooke_cpu::cpu& ctx);
+            void update_targets(context& ctx);
 
             // instruction objects can be inserted directly into the basic block
             basic_block& operator<<(instr_call& ic){
@@ -143,7 +139,71 @@ namespace ppcsimbooke {
             ostr << std::noshowbase << std::dec;
             return ostr;
         }
-        
+
+        ///////////////////////////////////////////////////////////////////////////////////////////
+        // basic block page cache / cache
+        ///////////////////////////////////////////////////////////////////////////////////////////
+        static const size_t BB_PAGE_CACHE_SIZE = 32*1024;  // 32K
+        static const size_t BB_CACHE_SIZE      = 32*1024;  // 32 K
+
+        // Basic Block Chunk List Hash Table Link Manager
+        struct basic_block_chunk_list_hash_table_link_manager {
+            static inline basic_block_chunk_list* objof(superstl::selflistlink* link) {
+                return superstl_baseof(basic_block_chunk_list, hashlink, link);
+            }
+
+            static inline uint64_t& keyof(basic_block_chunk_list* obj) {
+                return obj->mfn;
+            }
+
+            static inline superstl::selflistlink* linkof(basic_block_chunk_list* obj) {
+                return &obj->hashlink;
+            }
+        };
+
+        // Basic Block hash table link manager
+        struct basic_block_hash_table_link_manager {
+            static inline basic_block* objof(superstl::selflistlink* link) {
+                return superstl_baseof(basic_block, hashlink, link);
+            }
+
+            static inline basic_block_ip& keyof(basic_block* obj) {
+                return obj->bip;
+            }
+
+            static inline superstl::selflistlink* linkof(basic_block* obj) {
+                return &obj->hashlink;
+            }
+        };
+
+        // Basic Block hash table key manager (key type = basic_block_ip)
+        struct basic_block_hash_table_key_manager {
+            static inline int hash(const basic_block_ip& key){
+                superstl::CRC32 h;
+                h << key;
+                return h;
+            }
+
+            static inline bool equal(const basic_block_ip& a, const basic_block_ip& b){
+                return a == b;
+            }
+
+            static inline basic_block_ip dup(const basic_block_ip& key){
+                return key;
+            }
+
+            static inline void free(basic_block_ip& key) {}
+        };
+
+        // basic block page cache
+        typedef superstl::SelfHashtable<uint64_t, basic_block_chunk_list,
+                BB_PAGE_CACHE_SIZE, basic_block_chunk_list_hash_table_link_manager> basic_block_page_cache;
+
+        // basic block cache
+        typedef superstl::SelfHashtable<basic_block_ip, basic_block,
+                BB_CACHE_SIZE, basic_block_hash_table_link_manager, basic_block_hash_table_key_manager> basic_block_cache;
+
+
         ///////////////////////////////////////////////////////////////////////////////////////////
         //   basic block decoder
         ///////////////////////////////////////////////////////////////////////////////////////////
@@ -177,17 +237,43 @@ namespace ppcsimbooke {
             ppcsimbooke::ppcsimbooke_dis::ppcdis           decoder;     // decoder module
             
             basic_block_decoder(const basic_block_ip& rvp);
-            basic_block_decoder(ppcsimbooke::ppcsimbooke_cpu::cpu &ctx);       // cpu maintains the context
+            basic_block_decoder(context &ctx);       // cpu maintains the context
             basic_block_decoder(uint64_t ip, bool kernel, bool df);
             
             void reset();
-            int  fillbuff(ppcsimbooke::ppcsimbooke_cpu::cpu &ctx, uint8_t* insn_buff, int insn_buffsize);
+            int  fillbuff(context &ctx, uint8_t* insn_buff, int insn_buffsize);
     
             bool invalidate();
             bool decode();
             bool flush();
             void split();
             bool first_insn_in_bb() { return (uint64_t(ip_decoded) == uint64_t(bb.bip.ip)); }
+        };
+
+
+        ////////////////////////////////////////////////////////////////////////////////////////////
+        // basic block combined cache (maintains basic block cache as well as page cache)
+        ////////////////////////////////////////////////////////////////////////////////////////////
+        // cache invalidate reasons
+        enum {
+            INVALIDATE_REASON_DIRTY,
+            INVALIDATE_REASON_RECLAIM,
+            INVALIDATE_REASON_COUNT,
+        };
+
+        // Basic block cache unit
+        class basic_block_cache_unit {
+            public:
+            basic_block* translate(context& ctx);
+            bool         invalidate(const basic_block_ip& b_ip, int reason);
+            bool         invalidate(basic_block* bb, int reason);
+            bool         invalidate_page(uint64_t mfn, int reason);
+            size_t       get_page_bb_count(uint64_t mfn);
+            void         flush();
+
+            private:
+            basic_block_cache         m_bb_cache;
+            basic_block_page_cache    m_bb_page_cache;
         };
     
     }

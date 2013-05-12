@@ -35,55 +35,6 @@ void ppcsimbooke::ppcsimbooke_basic_block::basic_block_ip::reset(){
     pid0 = pid1 = pid2 = 0;
 }
 
-/////////////////////////////////////////////////////////////////////////////////
-// basic block chunk list manager
-/////////////////////////////////////////////////////////////////////////////////
-
-//ppcsimbooke::ppcsimbooke_basic_block::basic_block*
-//ppcsimbooke::ppcsimbooke_basic_block::basic_block_chunk_list::xlate(ppcsimbooke::ppcsimbooke_cpu::cpu& ctx){
-//    basic_block_ip bb_ip(ctx);
-//
-//    basic_block* bb = get(bb_ip);
-//    if likely(bb) return bb;
-//
-//    uint8_t bb_insnbuff[MAX_BB_INS_BYTES];
-//    basic_block_decoder bb_decoder(bb_ip);
-//
-//    bb_decoder.fillbuff(ctx, bb_insnbuff, MAX_BB_INS_BYTES);           // Assign buffer for decoder to work on
-//    bb_decoder.decode();                                               // decode
-//    bb = bb_decoder.clone();                                           // get basic block
-//
-//    bb->acquire();       // acquire basic block
-//    add(bb);             // add to cache
-//
-//    return bb;
-//}
-//
-//bool ppcsimbooke::ppcsimbooke_basic_block::basic_block_chunk_list::invalidate(uint64_t pc, int reason){
-//    return true;
-//}
-//
-//bool
-//ppcsimbooke::ppcsimbooke_basic_block::basic_block_chunk_list
-//::invalidate(ppcsimbooke::ppcsimbooke_basic_block::basic_block_ip& bb_ip, int reason){
-//    return true;
-//}
-//
-//bool ppcsimbooke::ppcsimbooke_basic_block::basic_block_chunk_list
-//::invalidate(ppcsimbooke::ppcsimbooke_basic_block::basic_block* bb, int reason){
-//    return true;
-//}
-//
-//size_t ppcsimbooke::ppcsimbooke_basic_block::basic_block_chunk_list::get_page_bb_count(uint64_t mfn){
-//    return 0;
-//}
-//
-//void ppcsimbooke::ppcsimbooke_basic_block::basic_block_chunk_list::flush(){
-//}
-//
-//std::ostream& operator<<(std::ostream& ostr, ppcsimbooke::ppcsimbooke_basic_block::basic_block_chunk_list& cl){
-//    return ostr;
-//}
 
 /////////////////////////////////////////////////////////////////////////////////
 // basic block
@@ -152,7 +103,6 @@ void ppcsimbooke::ppcsimbooke_basic_block::basic_block::init_synthops(ppcsimbook
         synthops[i] = ctx.get_opc_impl(transops[i].hv);
     }
 }
-
 
 /////////////////////////////////////////////////////////////////////////////////
 // basic block decoder
@@ -264,4 +214,113 @@ void ppcsimbooke::ppcsimbooke_basic_block::basic_block_decoder::split(){
     bb.ip_not_taken = ip_copied;
     bb.brtype = branch_cond;
     //end_of_block = 1;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+// basic block cache unit
+//////////////////////////////////////////////////////////////////////////////////////////////
+
+// translate current context into a single basic block & insert it into basic block cache
+ppcsimbooke::ppcsimbooke_basic_block::basic_block*
+ppcsimbooke::ppcsimbooke_basic_block::basic_block_cache_unit::translate(ppcsimbooke::ppcsimbooke_basic_block::context& ctx){
+    basic_block_ip bb_ip(ctx);
+    basic_block_chunk_list* page_list = NULL;
+
+    basic_block* bb = m_bb_cache.get(bb_ip);
+    if likely(bb) return bb;
+
+    uint8_t bb_insnbuff[MAX_BB_INS_BYTES];
+    basic_block_decoder bb_decoder(bb_ip);
+
+    bb_decoder.fillbuff(ctx, bb_insnbuff, MAX_BB_INS_BYTES);           // Assign buffer for decoder to work on
+    bb_decoder.decode();                                               // decode
+    bb = bb_decoder.bb.clone();                                        // get basic block
+
+    // Add to basic block cache
+    bb->acquire();                  // acquire basic block
+    m_bb_cache.add(bb);             // add to cache
+    bb->release();
+
+    // Add to page list cache
+    page_list = m_bb_page_cache.get(bb->bip.mfn);
+    if(!page_list){
+        page_list = new basic_block_chunk_list(bb->bip.mfn);
+        //page_list->refcount++;
+        m_bb_page_cache.add(page_list);
+    }
+    page_list->refcount++;
+    page_list->add(bb, bb->mfn_loc);
+    page_list->refcount--;
+
+    return bb;
+}
+
+// invalidate basic block match current context
+bool ppcsimbooke::ppcsimbooke_basic_block::basic_block_cache_unit::invalidate(const basic_block_ip& bb_ip, int reason){
+    basic_block* bb = m_bb_cache.get(bb_ip);
+    if(!bb) return true;
+    return invalidate(bb, reason);
+}
+
+bool ppcsimbooke::ppcsimbooke_basic_block::basic_block_cache_unit::invalidate(ppcsimbooke::ppcsimbooke_basic_block::basic_block* bb, int reason){
+    basic_block_chunk_list* page_list = NULL;
+
+    if unlikely(bb->refcount){
+        LOG_DEBUG4("basic_block ", bb, " is still in use somewhere. RefCount = ", bb->refcount);
+        return false;
+    }
+
+    page_list = m_bb_page_cache.get(bb->bip.mfn);
+    page_list->remove(bb->mfn_loc);         // Remove this basic block from page list cache 
+    m_bb_cache.remove(bb);                  // Remove this from basic block cache
+
+    bb->free();
+    return true;
+}
+
+// invalidate all basic blocks belonging to a physical page no
+bool ppcsimbooke::ppcsimbooke_basic_block::basic_block_cache_unit::invalidate_page(uint64_t mfn, int reason){
+    if unlikely(mfn == basic_block_ip::MFN_INV){ return false; }
+
+    basic_block_chunk_list* page_list = m_bb_page_cache.get(mfn);
+    if unlikely(!page_list){ return false; }
+
+    basic_block_chunk_list::Iterator iter(page_list);
+    basic_block*  bb = NULL;
+    basic_block** bb_ptr = NULL;
+
+    while((bb_ptr = iter.next())){
+        bb = *bb_ptr;
+        if unlikely(!invalidate(bb, reason)){
+            LOG_DEBUG4("Couldn't invalidate ", *bb, " std::endl");
+            return false;
+        }
+    }
+
+    page_list->clear();
+    return true;
+}
+
+// Return total number of basic blocks belonging to a physical page no
+size_t ppcsimbooke::ppcsimbooke_basic_block::basic_block_cache_unit::get_page_bb_count(uint64_t mfn){
+    if unlikely(mfn == basic_block_ip::MFN_INV){ return 0; }
+
+    basic_block_chunk_list* page_list = m_bb_page_cache.get(mfn);
+    if unlikely(page_list){ return 0; }
+
+    return page_list->count();
+}
+
+// flush all caches
+void ppcsimbooke::ppcsimbooke_basic_block::basic_block_cache_unit::flush(){
+    basic_block_cache::Iterator iter_bc(m_bb_cache);
+    basic_block* bptr;
+    while((bptr = iter_bc.next())){ invalidate(bptr, INVALIDATE_REASON_RECLAIM); }
+
+    basic_block_page_cache::Iterator iter_pc(m_bb_page_cache);
+    basic_block_chunk_list *page;
+    while((page = iter_pc.next())){
+        m_bb_page_cache.remove(page);
+        delete page;
+    }
 }

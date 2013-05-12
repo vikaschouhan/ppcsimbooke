@@ -51,9 +51,17 @@ namespace superstl {
     superstl_MakePrimitive(double);
     superstl_MakePrimitive(bool);
 
+    // lengthof
+    template <typename T, int size> int lengthof(T (&)[size]) { return size; }
 
     template<typename T> struct ispointer_t { static const bool pointer = 0; };
     template <typename T> struct ispointer_t<T*> { static const bool pointer = 1; };
+
+    // Null pointer to the specified object type, for computing field offsets
+    template <typename T> static inline T* NullPtr() { return (T*)0; }
+#define superstl_offsetof(T, field) ((size_t)(&(superstl::NullPtr<T>()->field)) - ((size_t)superstl::NullPtr<T>()))
+#define superstl_baseof(T, field, ptr) ((T*)(((uint8_t*)(ptr)) - superstl_offsetof(T, field)))
+
 
 #define superstl_ispointer(T) (ispointer_t<T>::pointer)
 #define superstl_isprimitive(T) (isprimitive_t<T>::primitive)
@@ -1548,6 +1556,7 @@ namespace superstl {
         return crc << v;
     }
 
+    
     /////////////////////////////////////////////////////////////////////////////////////////////////
     // RandomNumberGenerator
     /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1787,10 +1796,10 @@ namespace superstl {
 
     template <typename K, int setcount>
     struct HashtableKeyManager {
-        static inline int hash(const K& key);
-        static inline bool equal(const K& a, const K& b);
-        static inline K dup(const K& key);
-        static inline void free(K& key);
+        static inline int hash(const K& key) { return 0; }
+        static inline bool equal(const K& a, const K& b) { return 0; }
+        static inline K dup(const K& key) { return K(); }
+        static inline void free(K& key) {}
     };
 
     template <int setcount>
