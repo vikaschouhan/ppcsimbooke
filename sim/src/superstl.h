@@ -2040,6 +2040,16 @@ namespace superstl {
                 return idx;
             }
 
+            // Added by vikas
+            //int add(T* entry){
+            //    if superstl_unlikely (!entry) return -1;
+            //    if superstl_unlikely (full()) return -1;
+            //    int idx = freemap.lsb();
+            //    freemap[idx] = 0;
+            //    data[idx] = *entry;
+            //    return idx;
+            //}
+
             bool contains(T* entry) const {
                 int idx = entry - data;
                 return ((idx >= 0) & (idx < lengthof(data)));
