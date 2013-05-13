@@ -63,6 +63,15 @@ int main(){
 
     std::cout << "Indexes for the added chunks are " << loc0.index << "," << loc1.index << "," << loc2.index << " & " << loc3.index << "." << std::endl;
 
+    cl::Iterator iter1(&v0);
+    chunk_list_class_type0*  clct0_ptr0;
+
+    // printing all chunks
+    std::cout << "All chunks in chunk list..." << std::endl;
+    while((clct0_ptr0 = iter1.next())){
+        std::cout << *clct0_ptr0 << std::endl;
+    }
+
     typedef superstl::SelfHashtable<int, self_hash_class_type0, 32*1024, self_hash_class_type0_link_manager> sht;
     sht sht_v0;
 

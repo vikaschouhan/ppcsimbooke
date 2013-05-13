@@ -46,14 +46,9 @@ namespace ppcsimbooke {
                 return !memcmp(this, &bip, sizeof(basic_block_ip));
             }
         };
-        
-        inline std::ostream& operator<<(std::ostream& ostr, basic_block_ip & bip){
-            ostr << std::hex << std::showbase;
-            ostr << "[IP:" << bip.ip << " MFN:" << bip.mfn << " MSR:" << bip.msr << " PIDS=["
-                 << bip.pid0 << "," << bip.pid1 << "," << bip.pid2 << "]" << " BE:" << bip.be << "]" << std::endl;
-            ostr << std::dec << std::noshowbase;
-            return ostr;
-        }
+       
+        // basic block ip overload for std::cout 
+        std::ostream& operator<<(std::ostream& ostr, const basic_block_ip& bip);
     
         ////////////////////////////////////////////////////////////////////////////////
         // basic block chunk list
@@ -72,6 +67,7 @@ namespace ppcsimbooke {
             basic_block_chunk_list(uint64_t mfn): ChunkList<basic_block*, BB_PTRS_PER_CHUNK>() { this->mfn = mfn; refcount = 0; }
         };
 
+        // basic block chunk list overload for std::cout
         std::ostream& operator<<(std::ostream& ostr, basic_block_chunk_list& bb_cl);
 
         //////////////////////////////////////////////////////////////////////////
@@ -133,12 +129,7 @@ namespace ppcsimbooke {
             }
         };
         
-        inline std::ostream& operator <<(std::ostream& ostr, const basic_block& bb){
-            ostr << std::showbase << std::hex;
-            ostr << "PLEASE IMPLEMENT THIS." << std::endl;
-            ostr << std::noshowbase << std::dec;
-            return ostr;
-        }
+        std::ostream& operator <<(std::ostream& ostr, const basic_block& bb);
 
         ///////////////////////////////////////////////////////////////////////////////////////////
         // basic block page cache / cache

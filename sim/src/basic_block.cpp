@@ -35,6 +35,30 @@ void ppcsimbooke::ppcsimbooke_basic_block::basic_block_ip::reset(){
     pid0 = pid1 = pid2 = 0;
 }
 
+std::ostream& ppcsimbooke::ppcsimbooke_basic_block::operator<<(std::ostream& ostr, const ppcsimbooke::ppcsimbooke_basic_block::basic_block_ip& bip){
+    ostr << std::hex << std::showbase;
+    ostr << "[IP:" << bip.ip << " MFN:" << bip.mfn << " MSR:" << bip.msr << " PIDS=["
+         << bip.pid0 << "," << bip.pid1 << "," << bip.pid2 << "]" << " BE:" << bip.be << "]" << std::endl;
+    ostr << std::dec << std::noshowbase;
+    return ostr;
+}
+
+/////////////////////////////////////////////////////////////////////////////////
+// basic block chunk list
+/////////////////////////////////////////////////////////////////////////////////
+
+std::ostream& ppcsimbooke::ppcsimbooke_basic_block::operator<<(std::ostream& ostr, ppcsimbooke::ppcsimbooke_basic_block::basic_block_chunk_list& bb_cl){
+    ppcsimbooke::ppcsimbooke_basic_block::basic_block** bb_ptr = NULL;
+    ppcsimbooke::ppcsimbooke_basic_block::basic_block_chunk_list::Iterator iter(&bb_cl);
+
+    ostr << "[basic_block_chunk_list:" << &bb_cl << "]" << std::endl;
+    while((bb_ptr = iter.next())){
+        //ostr << (**bb_ptr);
+    }
+
+    return ostr;
+}
+
 
 /////////////////////////////////////////////////////////////////////////////////
 // basic block
@@ -103,6 +127,35 @@ void ppcsimbooke::ppcsimbooke_basic_block::basic_block::init_synthops(ppcsimbook
         synthops[i] = ctx.get_opc_impl(transops[i].hv);
     }
 }
+
+std::ostream& ppcsimbooke::ppcsimbooke_basic_block::operator<<(std::ostream& ostr, const ppcsimbooke::ppcsimbooke_basic_block::basic_block& bb){
+    ostr << std::showbase << std::hex;
+    ostr << "[BB:" << &bb << "]" << std::endl;
+    ostr << "    " << "bip : " << bb.bip << std::endl;
+    ostr << "    " << "ip_taken : " << bb.ip_taken << std::endl;
+    ostr << "    " << "ip_not_taken : " << bb.ip_not_taken << std::endl;
+    ostr << "    " << "transopscount : " << bb.transopscount << std::endl;
+    ostr << "    " << "brtype : " << bb.brtype << std::endl;
+    ostr << "    " << "refcount : " << bb.refcount << std::endl;
+    ostr << "    " << "hitcount : " << bb.hitcount << std::endl;
+    ostr << "    " << "lastused : " << bb.lastused << std::endl;
+    ostr << "    " << "lasttarget : " << bb.lasttarget << std::endl;
+    ostr << "    " << "TRANSOPS : " << std::endl;
+    ostr << "    " << "[";
+
+    // NOTE : This was throwing some error like this :-
+    //        "cannot bind 'std::ostream {aka std::basic_ostream<char>}' lvalue to 'std::basic_ostream<char>&&'"
+    //        for lvalue-refernce-only overload for instr_call.
+    //        Don't know the reason, but after adding a copy-on overload, this started working.
+    for(size_t i=0; i<(bb.transopscount-1); i++){
+        ostr << bb.transops[i] << ",";
+    }
+    ostr <<  bb.transops[bb.transopscount-1] << "]" << std::endl;
+    ostr << std::endl;
+    ostr << std::noshowbase << std::dec;
+    return ostr;
+}
+
 
 /////////////////////////////////////////////////////////////////////////////////
 // basic block decoder

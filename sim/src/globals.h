@@ -38,7 +38,12 @@ namespace ppcsimbooke {
         }
     };
     
-    inline std::ostream& operator<<(std::ostream& ostr,  instr_call &i){
+    inline std::ostream& operator<<(std::ostream& ostr, instr_call& i){
+        ostr << i.get_instr_str() << " ";
+        return ostr;
+    }
+    // Copy on overload added for a peculiar error in basic block module
+    inline std::ostream& operator<<(std::ostream& ostr, instr_call i){
         ostr << i.get_instr_str() << " ";
         return ostr;
     }
