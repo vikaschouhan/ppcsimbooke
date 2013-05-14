@@ -27,23 +27,18 @@ namespace ppcsimbooke {
     
         instr_call();
         // Dump state
-        void dump_state();
+        void dump_state() const;
         // print instruction
-        void print_instr();
+        void print_instr() const;
         // Get instruction representation in string form ( Used for DEBUG logs )
-        char* get_instr_str();
+        char* get_instr_str() const;
         // Get function for boost::python. We don't really need these in our c++ library
         template <int ARG_NUM> instr_arg& getarg(){
             return arg[ARG_NUM];
         }
     };
     
-    inline std::ostream& operator<<(std::ostream& ostr, instr_call& i){
-        ostr << i.get_instr_str() << " ";
-        return ostr;
-    }
-    // Copy on overload added for a peculiar error in basic block module
-    inline std::ostream& operator<<(std::ostream& ostr, instr_call i){
+    inline std::ostream& operator<<(std::ostream& ostr, const instr_call& i){
         ostr << i.get_instr_str() << " ";
         return ostr;
     }

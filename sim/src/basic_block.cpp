@@ -47,13 +47,14 @@ std::ostream& ppcsimbooke::ppcsimbooke_basic_block::operator<<(std::ostream& ost
 // basic block chunk list
 /////////////////////////////////////////////////////////////////////////////////
 
-std::ostream& ppcsimbooke::ppcsimbooke_basic_block::operator<<(std::ostream& ostr, ppcsimbooke::ppcsimbooke_basic_block::basic_block_chunk_list& bb_cl){
+std::ostream& ppcsimbooke::ppcsimbooke_basic_block::operator<<(std::ostream& ostr, const ppcsimbooke::ppcsimbooke_basic_block::basic_block_chunk_list& bb_cl){
     ppcsimbooke::ppcsimbooke_basic_block::basic_block** bb_ptr = NULL;
-    ppcsimbooke::ppcsimbooke_basic_block::basic_block_chunk_list::Iterator iter(&bb_cl);
+    ppcsimbooke::ppcsimbooke_basic_block::basic_block_chunk_list::Iterator
+        iter(const_cast<ppcsimbooke::ppcsimbooke_basic_block::basic_block_chunk_list*>(&bb_cl));
 
     ostr << "[basic_block_chunk_list:" << &bb_cl << "]" << std::endl;
     while((bb_ptr = iter.next())){
-        //ostr << (**bb_ptr);
+        ostr << (**bb_ptr);
     }
 
     return ostr;
@@ -143,10 +144,6 @@ std::ostream& ppcsimbooke::ppcsimbooke_basic_block::operator<<(std::ostream& ost
     ostr << "    " << "TRANSOPS : " << std::endl;
     ostr << "    " << "[";
 
-    // NOTE : This was throwing some error like this :-
-    //        "cannot bind 'std::ostream {aka std::basic_ostream<char>}' lvalue to 'std::basic_ostream<char>&&'"
-    //        for lvalue-refernce-only overload for instr_call.
-    //        Don't know the reason, but after adding a copy-on overload, this started working.
     for(size_t i=0; i<(bb.transopscount-1); i++){
         ostr << bb.transops[i] << ",";
     }

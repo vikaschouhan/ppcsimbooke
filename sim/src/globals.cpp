@@ -14,7 +14,7 @@ ppcsimbooke::instr_call::instr_call(){
 }
 
 // Dump state
-void ppcsimbooke::instr_call::dump_state(){
+void ppcsimbooke::instr_call::dump_state() const{
     std::cout << "name   : " << opcname << std::endl;
     std::cout << "opcode : " << std::hex << std::showbase << opc << std::endl;
     std::cout << "hash   : " << std::hex << std::showbase << hv << std::endl;
@@ -38,12 +38,12 @@ void ppcsimbooke::instr_call::dump_state(){
 }
 
 // print instruction
-void ppcsimbooke::instr_call::print_instr(){
+void ppcsimbooke::instr_call::print_instr() const{
     std::string lfmt = fmt;
     for(int i=nargs; i<N_IC_ARGS; i++){
         lfmt += "%c";
     }
-    fmt += "\n";
+    lfmt += "\n";
     // We use printf for printing , since we have format of arguments in a string.
     if(opcname == "")
         printf(".long 0x%lx\n", (arg[0].v & 0xffffffff));
@@ -53,13 +53,13 @@ void ppcsimbooke::instr_call::print_instr(){
 
 
 // Get instruction representation in string form ( Used for DEBUG logs )
-char* ppcsimbooke::instr_call::get_instr_str(){
+char* ppcsimbooke::instr_call::get_instr_str() const{
     static char instr_str[100];
     std::string lfmt = fmt;
     for(int i=nargs; i<N_IC_ARGS; i++){
         lfmt += "%c";
     }
-    fmt += " ";
+    lfmt += " ";
     // We use printf for printing , since we have format of arguments in a string.
     if(opcname == "")
         sprintf(instr_str, ".long 0x%lx ", (arg[0].v & 0xffffffff));

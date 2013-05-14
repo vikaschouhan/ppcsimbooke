@@ -68,7 +68,7 @@ namespace ppcsimbooke {
         };
 
         // basic block chunk list overload for std::cout
-        std::ostream& operator<<(std::ostream& ostr, basic_block_chunk_list& bb_cl);
+        std::ostream& operator<<(std::ostream& ostr, const basic_block_chunk_list& bb_cl);
 
         //////////////////////////////////////////////////////////////////////////
         // basic block
