@@ -219,14 +219,14 @@ static Log<SIM_DEBUG> Logger;
 #define LOG_TO_FILE(file_name) Logger.direct_to_file(file_name)
 
 #if SIM_DEBUG == 1
-#define LOG_DEBUG(...)      Logger("DEBUG"), __VA_ARGS__
-#define LOG_DEBUG1(...)     Logger("DEBUG1"), __VA_ARGS__
-#define LOG_DEBUG2(...)     Logger("DEBUG2"), __VA_ARGS__
-#define LOG_DEBUG3(...)     Logger("DEBUG3"), __VA_ARGS__
-#define LOG_DEBUG4(...)     Logger("DEBUG4"), __VA_ARGS__
-#define LOG_ERROR(...)      Logger("ERROR"), __VA_ARGS__
-#define LOG_WARNING(...)    Logger("WARNING"), __VA_ARGS__
-#define LOG_INFO(...)       Logger("INFO"), __VA_ARGS__
+#define LOG_DEBUG(...)      Logger("DEBUG")    << __VA_ARGS__
+#define LOG_DEBUG1(...)     Logger("DEBUG1")   << __VA_ARGS__
+#define LOG_DEBUG2(...)     Logger("DEBUG2")   << __VA_ARGS__
+#define LOG_DEBUG3(...)     Logger("DEBUG3")   << __VA_ARGS__
+#define LOG_DEBUG4(...)     Logger("DEBUG4")   << __VA_ARGS__
+#define LOG_ERROR(...)      Logger("ERROR")    << __VA_ARGS__
+#define LOG_WARNING(...)    Logger("WARNING")  << __VA_ARGS__
+#define LOG_INFO(...)       Logger("INFO")     << __VA_ARGS__
 #else
 #define LOG_DEBUG(...)      do{}while(0)
 #define LOG_DEBUG1(...)     do{}while(0)
