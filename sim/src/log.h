@@ -65,6 +65,9 @@ template<int EN_LOG> class Log
     Log&                      operator,(std::ostream& (*pf)(std::ostream&));
     Log&                      operator()(std::string level);
     Log&                      operator()(int level);
+
+    // Get static logger variable
+    static Log& singleton();
 };
 
 // Member functions
@@ -208,12 +211,17 @@ template< > inline Log<0>& Log<0>::operator()(int level){
     return (*this);
 }
 
+template<int X> Log<X>& Log<X>::singleton(){
+    static Log<X>  si_logger;
+    return si_logger;
+}
+
 // Logging facilities --------------------------------------------------------------------------------
 #ifndef SIM_DEBUG
 #define SIM_DEBUG 1
 #endif
 
-static Log<SIM_DEBUG> Logger;
+#define Logger Log<SIM_DEBUG>::singleton()
 
 #define LOG(level_str) Logger(level_str)
 #define LOG_TO_FILE(file_name) Logger.direct_to_file(file_name)
