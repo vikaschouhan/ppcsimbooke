@@ -36,9 +36,9 @@
 #include <boost/thread.hpp>
 
 // Include all common misc local header files
-#include "exception.hpp"
+#include "exception.h"
 #include "ppc_exception.h"
-#include "log.hpp"
+#include "log.h"
 #include "utils.h"
 
 #include "globals.h"

@@ -1,7 +1,7 @@
 #ifndef _LOG_HPP
 #define _LOG_HPP
 
-//  log.hpp 
+//  log.h
 //  This file contains logging facilities for ppcsim.
 //
 //  Copyright 2012.

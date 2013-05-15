@@ -6,7 +6,7 @@
 #include <boost/bimap/unordered_set_of.hpp> 
 
 // Include global exception class
-#include "exception.hpp"
+#include "exception.h"
 #include "utils.h"
  
 // Class providing fixed-size (by number of records) 

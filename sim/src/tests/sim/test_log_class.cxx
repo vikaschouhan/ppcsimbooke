@@ -2,7 +2,7 @@
 // It appeared with an article titled "Logging in C++" by Petru Marginean in 2007 on www.drdobbs.com
 // This test was there with the other headers.
 
-#include "log.hpp"
+#include "log.h"
 
 int main(int argc, char* argv[])
 {

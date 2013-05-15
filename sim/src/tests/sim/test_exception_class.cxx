@@ -1,7 +1,7 @@
 /*
  * Test to check if tlb_booke's interface is working fine.
  */
-#include "exception.hpp"
+#include "exception.h"
 #include <iostream>
 
 int main(){
