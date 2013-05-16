@@ -6,7 +6,9 @@
 /////////////////////////////////////////////////////////////////////////////////
 
 ppcsimbooke::ppcsimbooke_basic_block::basic_block_ip::basic_block_ip(){
+    LOG_DEBUG4(MSG_FUNC_START);
     reset();
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 ppcsimbooke::ppcsimbooke_basic_block::basic_block_ip
@@ -16,6 +18,8 @@ ppcsimbooke::ppcsimbooke_basic_block::basic_block_ip
 
 ppcsimbooke::ppcsimbooke_basic_block::basic_block_ip
 ::basic_block_ip(ppcsimbooke::ppcsimbooke_cpu::cpu& ctx){
+    LOG_DEBUG4(MSG_FUNC_START);
+
     // translate current program counter
     ppcsimbooke::ppcsimbooke_cpu::cpu::xlated_tlb_res res = ctx.xlate(ctx.get_pc(), 0, 1);   // wr=0, ex=1
 
@@ -26,13 +30,19 @@ ppcsimbooke::ppcsimbooke_basic_block::basic_block_ip
     pid1 = ctx.get_reg(REG_PID1);
     pid2 = ctx.get_reg(REG_PID2);
     be   = std::get<1>(res) & 0x1;               // be
+
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 void ppcsimbooke::ppcsimbooke_basic_block::basic_block_ip::reset(){
+    LOG_DEBUG4(MSG_FUNC_START);
+
     ip   = IP_INV;
     mfn  = MFN_INV;
     msr  = 0;
     pid0 = pid1 = pid2 = 0;
+
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 std::ostream& ppcsimbooke::ppcsimbooke_basic_block::operator<<(std::ostream& ostr, const ppcsimbooke::ppcsimbooke_basic_block::basic_block_ip& bip){
@@ -66,6 +76,8 @@ std::ostream& ppcsimbooke::ppcsimbooke_basic_block::operator<<(std::ostream& ost
 /////////////////////////////////////////////////////////////////////////////////
 
 void ppcsimbooke::ppcsimbooke_basic_block::basic_block::reset(){
+    LOG_DEBUG4(MSG_FUNC_START);
+
     hashlink.reset();
     mfn_loc.reset();
     ip_taken = 0;
@@ -77,56 +89,87 @@ void ppcsimbooke::ppcsimbooke_basic_block::basic_block::reset(){
     hitcount = 0;
     lastused = 0;
     lasttarget = 0;
+
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 void ppcsimbooke::ppcsimbooke_basic_block::basic_block::reset(const ppcsimbooke::ppcsimbooke_basic_block::basic_block_ip& bb_ip){
+    LOG_DEBUG4(MSG_FUNC_START);
+
     bip = bb_ip;
     reset();
+
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 ppcsimbooke::ppcsimbooke_basic_block::basic_block::basic_block(){
+    LOG_DEBUG4(MSG_FUNC_START);
+
     bip.reset();
     reset();
+
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 ppcsimbooke::ppcsimbooke_basic_block::basic_block::basic_block(const ppcsimbooke::ppcsimbooke_basic_block::basic_block& bb){
+    LOG_DEBUG4(MSG_FUNC_START);
+
     *this = bb;
     hashlink.reset();
+
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 ppcsimbooke::ppcsimbooke_basic_block::basic_block::basic_block(const ppcsimbooke::ppcsimbooke_basic_block::basic_block_ip& bb_ip){
+    LOG_DEBUG4(MSG_FUNC_START);
+
     bip = bb_ip;
     reset();
+
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 // destructor
 ppcsimbooke::ppcsimbooke_basic_block::basic_block::~basic_block(){
+    LOG_DEBUG4(MSG_FUNC_START);
     //if likely(synthops) delete[] synthops;
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 ppcsimbooke::ppcsimbooke_basic_block::basic_block* ppcsimbooke::ppcsimbooke_basic_block::basic_block::clone(){
+    LOG_DEBUG4(MSG_FUNC_START);
+
     basic_block* bb_new = new basic_block;
     memcpy(bb_new, this, sizeof(basic_block));
 
     bb_new->hashlink.reset();
     bb_new->use(0);
 
+    LOG_DEBUG4(MSG_FUNC_END);
     return bb_new;
 }
 
 // NOTE: This function needs to be paired with clone(), otherwise nasty things may happen.
 void ppcsimbooke::ppcsimbooke_basic_block::basic_block::free(){
+    LOG_DEBUG4(MSG_FUNC_START);
+
     if likely(synthops) delete[] synthops;
     delete this;    // commit suicide
+
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 // initialize opcode implementation functions' array
 void ppcsimbooke::ppcsimbooke_basic_block::basic_block::init_synthops(ppcsimbooke::ppcsimbooke_cpu::cpu& ctx){
+    LOG_DEBUG4(MSG_FUNC_START);
+
     if likely(synthops == NULL){ synthops = new opc_impl_func_t[transopscount]; }
 
     for(size_t i=0; i<transopscount; i++){
         synthops[i] = ctx.get_opc_impl(transops[i].hv);
     }
+
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 std::ostream& ppcsimbooke::ppcsimbooke_basic_block::operator<<(std::ostream& ostr, const ppcsimbooke::ppcsimbooke_basic_block::basic_block& bb){
@@ -159,6 +202,8 @@ std::ostream& ppcsimbooke::ppcsimbooke_basic_block::operator<<(std::ostream& ost
 /////////////////////////////////////////////////////////////////////////////////
 
 void ppcsimbooke::ppcsimbooke_basic_block::basic_block_decoder::reset(){
+    LOG_DEBUG4(MSG_FUNC_START);
+
     transbuffcount = 0;
     insnbytes_buffsize = 0;
     valid_byte_count = 0;
@@ -169,20 +214,32 @@ void ppcsimbooke::ppcsimbooke_basic_block::basic_block_decoder::reset(){
     fault_addr = 0;
     fault_cause = 0;
     branch_cond = BB_BRTYPE_SPLIT;
+
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 ppcsimbooke::ppcsimbooke_basic_block::basic_block_decoder::basic_block_decoder
 (const ppcsimbooke::ppcsimbooke_basic_block::basic_block_ip& bip){
+    LOG_DEBUG4(MSG_FUNC_START);
+
     bb.bip = bip;
-    reset(); 
+    reset();
+
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 ppcsimbooke::ppcsimbooke_basic_block::basic_block_decoder::basic_block_decoder(ppcsimbooke::ppcsimbooke_cpu::cpu& ctx){
+    LOG_DEBUG4(MSG_FUNC_START);
+
     bb.bip = basic_block_ip(ctx);
     reset();
+
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 int ppcsimbooke::ppcsimbooke_basic_block::basic_block_decoder::fillbuff(ppcsimbooke::ppcsimbooke_cpu::cpu &ctx, uint8_t *buff, int buffsize){
+    LOG_DEBUG4(MSG_FUNC_START);
+
     insnbytes = buff;
     insnbytes_buffsize = buffsize;
     byteoffset = 0;
@@ -206,14 +263,20 @@ int ppcsimbooke::ppcsimbooke_basic_block::basic_block_decoder::fillbuff(ppcsimbo
     // instruction buffer should be multiple of 4 bytes
     LASSERT_THROW_UNLIKELY(!(valid_byte_count % OPCODE_SIZE),
             sim_except(SIM_EXCEPT_EINVAL, "valid_byte_count should be multiple of " + OPCODE_SIZE), DEBUG4);
+
+    LOG_DEBUG4(MSG_FUNC_END);
     return valid_byte_count;
 }
 
 bool ppcsimbooke::ppcsimbooke_basic_block::basic_block_decoder::invalidate(){
+    LOG_DEBUG4(MSG_FUNC_START);
+    LOG_DEBUG4(MSG_FUNC_END);
     return false;
 }
 
 bool ppcsimbooke::ppcsimbooke_basic_block::basic_block_decoder::decode(){
+    LOG_DEBUG4(MSG_FUNC_START);
+
     int endianness = bb.bip.get_endianness();
     instr_call ic;
 
@@ -230,16 +293,23 @@ bool ppcsimbooke::ppcsimbooke_basic_block::basic_block_decoder::decode(){
         if(decoder.is_control_xfer(ic)){
             branch_cond = BB_BRTYPE_BRANCH;
             flush();
+            LOG_DEBUG4(MSG_FUNC_END);
             return true;
         }
         byteoffset += OPCODE_SIZE;
         ip_decoded += OPCODE_SIZE;           // update decoded ip
     }
+    LOG_DEBUG4(MSG_FUNC_END);
     return true;
 }
 
 bool ppcsimbooke::ppcsimbooke_basic_block::basic_block_decoder::flush(){
-    if unlikely(!transbuffcount){ return false; }
+    LOG_DEBUG4(MSG_FUNC_START);
+
+    if unlikely(!transbuffcount){
+        LOG_DEBUG4(MSG_FUNC_END);
+        return false;
+    }
 
     instr_call ic;
 
@@ -247,6 +317,8 @@ bool ppcsimbooke::ppcsimbooke_basic_block::basic_block_decoder::flush(){
         if unlikely(bb.transopscount >= MAX_BB_INS){
             std::cerr << "Instruction limit for basic block exceeded !!" << std::endl;
             split();
+
+            LOG_DEBUG4(MSG_FUNC_END);
             return false;
         }
         ic = transbuff[i];
@@ -256,14 +328,20 @@ bool ppcsimbooke::ppcsimbooke_basic_block::basic_block_decoder::flush(){
 
     transbuffcount = 0;
 
+    LOG_DEBUG4(MSG_FUNC_END);
     return true;
 }
 
 void ppcsimbooke::ppcsimbooke_basic_block::basic_block_decoder::split(){
+    LOG_DEBUG4(MSG_FUNC_START);
+
     bb.ip_taken = ip_copied;
     bb.ip_not_taken = ip_copied;
     bb.brtype = branch_cond;
     //end_of_block = 1;
+    //
+
+    LOG_DEBUG4(MSG_FUNC_END);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -273,11 +351,16 @@ void ppcsimbooke::ppcsimbooke_basic_block::basic_block_decoder::split(){
 // translate current context into a single basic block & insert it into basic block cache
 ppcsimbooke::ppcsimbooke_basic_block::basic_block*
 ppcsimbooke::ppcsimbooke_basic_block::basic_block_cache_unit::translate(ppcsimbooke::ppcsimbooke_basic_block::context& ctx){
+    LOG_DEBUG4(MSG_FUNC_START);
+
     basic_block_ip bb_ip(ctx);
     basic_block_chunk_list* page_list = NULL;
 
     basic_block* bb = m_bb_cache.get(bb_ip);
-    if likely(bb) return bb;
+    if likely(bb){
+        LOG_DEBUG4(MSG_FUNC_END);
+        return bb;
+    }
 
     uint8_t bb_insnbuff[MAX_BB_INS_BYTES];
     basic_block_decoder bb_decoder(bb_ip);
@@ -302,21 +385,32 @@ ppcsimbooke::ppcsimbooke_basic_block::basic_block_cache_unit::translate(ppcsimbo
     page_list->add(bb, bb->mfn_loc);
     page_list->refcount--;
 
+    LOG_DEBUG4(MSG_FUNC_END);
     return bb;
 }
 
 // invalidate basic block match current context
 bool ppcsimbooke::ppcsimbooke_basic_block::basic_block_cache_unit::invalidate(const basic_block_ip& bb_ip, int reason){
+    LOG_DEBUG4(MSG_FUNC_START);
+
     basic_block* bb = m_bb_cache.get(bb_ip);
-    if(!bb) return true;
+    if unlikely(!bb){
+        LOG_DEBUG4(MSG_FUNC_END);
+        return true;
+    }
+
+    LOG_DEBUG4(MSG_FUNC_END);
     return invalidate(bb, reason);
 }
 
 bool ppcsimbooke::ppcsimbooke_basic_block::basic_block_cache_unit::invalidate(ppcsimbooke::ppcsimbooke_basic_block::basic_block* bb, int reason){
+    LOG_DEBUG4(MSG_FUNC_START);
+
     basic_block_chunk_list* page_list = NULL;
 
     if unlikely(bb->refcount){
         LOG_DEBUG4("basic_block ", bb, " is still in use somewhere. RefCount = ", bb->refcount);
+        LOG_DEBUG4(MSG_FUNC_END);
         return false;
     }
 
@@ -325,15 +419,27 @@ bool ppcsimbooke::ppcsimbooke_basic_block::basic_block_cache_unit::invalidate(pp
     m_bb_cache.remove(bb);                  // Remove this from basic block cache
 
     bb->free();
+
+    LOG_DEBUG4(MSG_FUNC_END);
     return true;
 }
 
 // invalidate all basic blocks belonging to a physical page no
 bool ppcsimbooke::ppcsimbooke_basic_block::basic_block_cache_unit::invalidate_page(uint64_t mfn, int reason){
-    if unlikely(mfn == basic_block_ip::MFN_INV){ return false; }
+    LOG_DEBUG4(MSG_FUNC_START);
+
+    if unlikely(mfn == basic_block_ip::MFN_INV){
+        LOG_DEBUG4("Invalid machine frame number = ", mfn);
+        LOG_DEBUG4(MSG_FUNC_END);
+        return false;
+    }
 
     basic_block_chunk_list* page_list = m_bb_page_cache.get(mfn);
-    if unlikely(!page_list){ return false; }
+    if unlikely(!page_list){
+        LOG_DEBUG4("No page list found for mfn = ", mfn);
+        LOG_DEBUG4(MSG_FUNC_END);
+        return false;
+    }
 
     basic_block_chunk_list::Iterator iter(page_list);
     basic_block*  bb = NULL;
@@ -343,26 +449,42 @@ bool ppcsimbooke::ppcsimbooke_basic_block::basic_block_cache_unit::invalidate_pa
         bb = *bb_ptr;
         if unlikely(!invalidate(bb, reason)){
             LOG_DEBUG4("Couldn't invalidate ", *bb, " std::endl");
+            LOG_DEBUG4(MSG_FUNC_END);
             return false;
         }
     }
 
     page_list->clear();
+
+    LOG_DEBUG4(MSG_FUNC_END);
     return true;
 }
 
 // Return total number of basic blocks belonging to a physical page no
 size_t ppcsimbooke::ppcsimbooke_basic_block::basic_block_cache_unit::get_page_bb_count(uint64_t mfn){
-    if unlikely(mfn == basic_block_ip::MFN_INV){ return 0; }
+    LOG_DEBUG4(MSG_FUNC_START);
+
+    if unlikely(mfn == basic_block_ip::MFN_INV){
+        LOG_DEBUG4("Invalid mfn = ", mfn);
+        LOG_DEBUG4(MSG_FUNC_END);
+        return 0;
+    }
 
     basic_block_chunk_list* page_list = m_bb_page_cache.get(mfn);
-    if unlikely(page_list){ return 0; }
+    if unlikely(!page_list){
+        LOG_DEBUG4("No page list found for mfn = ", mfn);
+        LOG_DEBUG4(MSG_FUNC_END);
+        return 0;
+    }
 
+    LOG_DEBUG4(MSG_FUNC_END);
     return page_list->count();
 }
 
 // flush all caches
 void ppcsimbooke::ppcsimbooke_basic_block::basic_block_cache_unit::flush(){
+    LOG_DEBUG4(MSG_FUNC_START);
+
     basic_block_cache::Iterator iter_bc(m_bb_cache);
     basic_block* bptr;
     while((bptr = iter_bc.next())){ invalidate(bptr, INVALIDATE_REASON_RECLAIM); }
@@ -373,4 +495,6 @@ void ppcsimbooke::ppcsimbooke_basic_block::basic_block_cache_unit::flush(){
         m_bb_page_cache.remove(page);
         delete page;
     }
+
+    LOG_DEBUG4(MSG_FUNC_END);
 }
