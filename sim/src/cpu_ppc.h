@@ -66,12 +66,18 @@ namespace ppcsimbooke {
             cpu();
             cpu(uint64_t cpuid, std::string name);
             ~cpu();
-       
+
+            // cpu information
+            uint64_t   get_bits();                              // Get CPU bitsize
+            uint64_t   get_pc_mask();                           // Get PC bitmask
+            uint64_t   get_pc();                                // Get pc
+            uint64_t   get_nip();                               // Get NIP
+      
+            // cpu control  
             void       init(uint64_t cpuid, std::string name);     // Initialize CPU 
             void       register_mem(ppcsimbooke_memory::memory &mem);               // Register memory
             size_t     get_ninstrs();                           // Get number of instrs
-            uint64_t   get_pc();                                // Get pc
-            uint64_t   get_nip();                               // Get NIP
+            
             void       run();                                   // Non blocking run
             void       run_bb();                                // Experimental bb run
             void       run_instr(std::string instr);
@@ -102,8 +108,10 @@ namespace ppcsimbooke {
             // It can read instruction as well as data pages.
             // ex=0, means data pages (with read_permission enabled),
             // ex=1, means instruction pages (with read_permission enabled)
-            void       read_buff(uint64_t addr, uint8_t *buff, size_t buffsize, bool ex=0);
-        
+            // returns number of bytes read
+            size_t     read_buff(uint64_t addr, uint8_t *buff, size_t buffsize, bool ex=0);
+       
+            // Register state 
             uint64_t   get_reg(std::string name) throw(sim_except);    // Get register by name
             uint64_t   get_reg(int regid) throw(sim_except);           // Get register by reg_id
             void       dump_state(int columns=0, std::ostream &ostr=std::cout, int dump_all_sprs=0);   // Dump Cpu state

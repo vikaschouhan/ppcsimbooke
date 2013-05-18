@@ -52,9 +52,24 @@ uint64_t ppcsimbooke::ppcsimbooke_cpu::cpu::get_nip(){
     return PPCSIMBOOKE_CPU_NIP;
 }
 
+uint64_t ppcsimbooke::ppcsimbooke_cpu::cpu::get_bits(){
+    return m_cpu_bits;
+}
+
+uint64_t ppcsimbooke::ppcsimbooke_cpu::cpu::get_pc_mask(){
+    return (m_cpu_bits == 32) ? 0xffffffffULL : 0xffffffffffffffffULL;
+}
+
 void ppcsimbooke::ppcsimbooke_cpu::cpu::run_bb(){
-    ppcsimbooke::ppcsimbooke_basic_block::basic_block* bb = m_bb_cache_unit.translate(*this);
-    std::cout << *bb << std::endl;
+    size_t n = 5;
+    ppcsimbooke::ppcsimbooke_basic_block::basic_block* bb = NULL;
+
+    for(size_t i=0; i<n; i++){
+        bb = m_bb_cache_unit.translate(*this);
+        bb->run(*this);
+        std::cout << *bb << std::endl;
+        PPCSIMBOOKE_CPU_PC = PPCSIMBOOKE_CPU_NIP;
+    }
 }
 
 // run (non blocking)
@@ -286,25 +301,42 @@ void ppcsimbooke::ppcsimbooke_cpu::cpu::write64(uint64_t addr, uint64_t value){
     LOG_DEBUG4(MSG_FUNC_END);
 }
 
-void ppcsimbooke::ppcsimbooke_cpu::cpu::read_buff(uint64_t addr, uint8_t* buff, size_t buffsize, bool ex){
+size_t ppcsimbooke::ppcsimbooke_cpu::cpu::read_buff(uint64_t addr, uint8_t* buff, size_t buffsize, bool ex){
     LOG_DEBUG4(MSG_FUNC_START);
+
     uint64_t ps, pm;
     size_t size_curr_page;
+    size_t rem_buffsize = buffsize;
     xlated_tlb_res res;
 
     LASSERT_THROW_UNLIKELY(m_mem_ptr != NULL, sim_except_fatal("no memory module registered."), DEBUG4);
     
-    while(buffsize > 0){
-        res = xlate(addr, 0, ex);      // translate this address
+    while(rem_buffsize > 0){
+        // We may encounter tlb misses here
+        try{
+            res = xlate(addr, 0, ex);      // translate this address
+        }catch(sim_except_ppc& e){
+            switch(e.err_code<0>()){
+                case PPC_EXCEPTION_ITLB :
+                case PPC_EXCEPTION_DTLB : break;
+                default                 : throw(sim_except_fatal("Unexpected exception in read_buff() !!"));
+            }
+
+            LOG_DEBUG4(MSG_FUNC_END);
+            return buffsize - rem_buffsize;   // returning data size read
+        }
+
         ps = std::get<2>(res);         // get page_size & page_mask
         pm = ~(ps - 1);
-        size_curr_page = min(buffsize, ((addr & pm) + ps - addr));
+        size_curr_page = min(rem_buffsize, ((addr & pm) + ps - addr));
         m_mem_ptr->read_to_buffer(addr, buff, size_curr_page);
-        buff     += size_curr_page;
-        buffsize -= size_curr_page;
-        addr     += size_curr_page;
+        buff         += size_curr_page;
+        rem_buffsize -= size_curr_page;
+        addr         += size_curr_page;
     }
+
     LOG_DEBUG4(MSG_FUNC_END);
+    return buffsize;
 }
 
 
@@ -956,6 +988,7 @@ inline void ppcsimbooke::ppcsimbooke_cpu::cpu::init_common(){
     m_ctxt_switch = 0;                     // Initialize flag to zero
     m_cpu_mode = CPU_MODE_HALTED;
     m_ncycles = 0;
+    m_cpu_bits = 32;                       // 32 bit machine
 
     // Init logging facilities
     std::ostringstream ostr;

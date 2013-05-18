@@ -29,7 +29,7 @@ ppcsimbooke::ppcsimbooke_basic_block::basic_block_ip
     pid0 = ctx.get_reg(REG_PID0);                // pid registers
     pid1 = ctx.get_reg(REG_PID1);
     pid2 = ctx.get_reg(REG_PID2);
-    be   = std::get<1>(res) & 0x1;               // be
+    be   = ~(std::get<1>(res) & 0x1);            // be (big-endian)
 
     LOG_DEBUG4(MSG_FUNC_END);
 }
@@ -49,7 +49,7 @@ std::ostream& ppcsimbooke::ppcsimbooke_basic_block::operator<<(std::ostream& ost
     ostr << std::hex << std::showbase;
     ostr << "[IP:" << bip.ip << " MFN:" << bip.mfn << " MSR:" << bip.msr << " PIDS=["
          << bip.pid0 << "," << bip.pid1 << "," << bip.pid2 << "]" << " BE:" << bip.be << "]" << std::endl;
-    ostr << std::dec << std::noshowbase;
+    //ostr << std::dec << std::noshowbase;
     return ostr;
 }
 
@@ -162,6 +162,29 @@ void ppcsimbooke::ppcsimbooke_basic_block::basic_block::free(){
     LOG_DEBUG4(MSG_FUNC_END);
 }
 
+// Run this basic block & keep updating context
+void ppcsimbooke::ppcsimbooke_basic_block::basic_block::run(ppcsimbooke::ppcsimbooke_basic_block::context& ctx){
+    LOG_DEBUG4(MSG_FUNC_START);
+
+    // initialize synthops if it's NULL
+    if unlikely(synthops == NULL){
+        init_synthops(ctx);
+    }
+
+    // Start executing all synthops
+    for(size_t i=0; i<transopscount; i++){
+        synthops[i](&ctx, &transops[i]);
+    }
+
+    // update next ip's
+    update_targets(ctx);
+
+    // increment hitcount
+    hitcount++;
+
+    LOG_DEBUG4(MSG_FUNC_END);
+}
+
 // initialize opcode implementation functions' array
 void ppcsimbooke::ppcsimbooke_basic_block::basic_block::init_synthops(ppcsimbooke::ppcsimbooke_cpu::cpu& ctx){
     LOG_DEBUG4(MSG_FUNC_START);
@@ -171,6 +194,16 @@ void ppcsimbooke::ppcsimbooke_basic_block::basic_block::init_synthops(ppcsimbook
     for(size_t i=0; i<transopscount; i++){
         synthops[i] = ctx.get_opc_impl(transops[i].hv);
     }
+
+    LOG_DEBUG4(MSG_FUNC_END);
+}
+
+// Update targets according to final context state
+void ppcsimbooke::ppcsimbooke_basic_block::basic_block::update_targets(ppcsimbooke::ppcsimbooke_basic_block::context& ctx){
+    LOG_DEBUG4(MSG_FUNC_START);
+
+    ip_taken     = ctx.get_nip();
+    ip_not_taken = (ctx.get_pc() + 4) & ctx.get_pc_mask();
 
     LOG_DEBUG4(MSG_FUNC_END);
 }
@@ -247,23 +280,12 @@ int ppcsimbooke::ppcsimbooke_basic_block::basic_block_decoder::fillbuff(ppcsimbo
     insnbytes_buffsize = buffsize;
     byteoffset = 0;
     invalid = 0;
-    valid_byte_count = buffsize;
-    try {
-        // We may encounter tlb misses when copying from memory.
-        // We don't catch any other error, beacause anything else is a potential simulator error
-        // & hence we need to die in those cases.
-        ctx.read_buff(bb.bip.ip, buff, buffsize, 1);
-    }catch(sim_except_ppc &e){
-        switch(e.err_code<0>()){
-            case PPC_EXCEPTION_ITLB:
-                fault_addr = e.addr();
-                fault_cause = e.err_code<0>();
-                valid_byte_count = fault_addr - bb.bip;
-                break;
-            default:
-                throw(sim_except_fatal("Unknown exception in basic_block_decoder::fillbuff."));
-        }
-    }
+    valid_byte_count = ctx.read_buff(bb.bip.ip, buff, buffsize, buffsize);
+    fault_addr = bb.bip + valid_byte_count;
+
+    LOG_DEBUG4("valid_byte_count = ", valid_byte_count, std::endl);
+    LOG_DEBUG4("fault_addr = ", fault_addr, std::endl);
+
     // instruction buffer should be multiple of 4 bytes
     LASSERT_THROW_UNLIKELY(!(valid_byte_count % OPCODE_SIZE),
             sim_except(SIM_EXCEPT_EINVAL, "valid_byte_count should be multiple of " + OPCODE_SIZE), DEBUG4);
@@ -290,13 +312,16 @@ bool ppcsimbooke::ppcsimbooke_basic_block::basic_block_decoder::decode(){
         if unlikely(transbuffcount == MAX_TRANS_INS){
             flush();         // flush instructions in temporary buffer when it's full
         }
-        ic = decoder.disasm(insnbytes[byteoffset], ip_decoded, endianness);
+        // Pass pointer to instruction buffer
+        ic = decoder.disasm(&insnbytes[byteoffset], ip_decoded, endianness);
         transbuff[transbuffcount++] = ic;
+
         // if current instruction is a control transfer instruction, end basic_block &
         // return immediately
         if(decoder.is_control_xfer(ic)){
             branch_cond = BB_BRTYPE_BRANCH;
             flush();
+            split();
             LOG_DEBUG4(MSG_FUNC_END);
             return true;
         }
@@ -330,6 +355,7 @@ bool ppcsimbooke::ppcsimbooke_basic_block::basic_block_decoder::flush(){
         ip_copied += OPCODE_SIZE;                // update copied ip
     }
 
+    // Reset buffcount for next flush
     transbuffcount = 0;
 
     LOG_DEBUG4(MSG_FUNC_END);

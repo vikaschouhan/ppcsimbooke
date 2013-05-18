@@ -738,7 +738,7 @@ bool ppcsimbooke::ppcsimbooke_dis::ppcdis::is_branch(instr_call& ic){
     //                                       bc         b           bclr        bcctr
   
     for (size_t i=0; i<(sizeof(bm_lut)/sizeof(uint32_t)); i++){
-        if((bm_lut[i] & ic.opc) == bm_lut[i]) return true;
+        if((ppcsimbooke::ppcsimbooke_dis::pri_ext_opc_mask & ic.opc) == bm_lut[i]) return true;
     }
     return false;
 }
@@ -746,7 +746,7 @@ bool ppcsimbooke::ppcsimbooke_dis::ppcdis::is_branch(instr_call& ic){
 // check for system call
 bool ppcsimbooke::ppcsimbooke_dis::ppcdis::is_sc(instr_call& ic){
     static const uint32_t sc_mask = (0x17 << 26);
-    return ((ic.opc & sc_mask) == sc_mask) ? true:false;
+    return ((ic.opc & ppcsimbooke::ppcsimbooke_dis::pri_opc_mask) == sc_mask) ? true:false;
 }
 
 // check for rfXi
@@ -755,7 +755,7 @@ bool ppcsimbooke::ppcsimbooke_dis::ppcdis::is_rfxi(instr_call& ic){
     //                                        rfmci      rfdi        rfi         rfci 
 
     for (size_t i=0; i<(sizeof(rfxim_lut)/sizeof(uint32_t)); i++){
-        if((ic.opc & rfxim_lut[i]) == rfxim_lut[i]) return true;
+        if((ic.opc & ppcsimbooke::ppcsimbooke_dis::pri_ext_opc_mask) == rfxim_lut[i]) return true;
     }
     return false;
 }

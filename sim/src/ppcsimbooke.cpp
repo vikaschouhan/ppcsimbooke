@@ -374,6 +374,7 @@ BOOST_PYTHON_MODULE(ppcsim)
             .def("write64",           &cpu_e500v2_t::write64)
             .add_property("regs",     make_function(&cpu_e500v2_t::___get_regs, return_value_policy<reference_existing_object>()))
             .def_readonly("PC",       &cpu_e500v2_t::get_pc)
+            .def_readonly("NIP",      &cpu_e500v2_t::get_nip)
             .def_readonly("ninstrs",  &cpu_e500v2_t::get_ninstrs)
             .def_readonly("bm",       &cpu_e500v2_t::m_bm)
             ;

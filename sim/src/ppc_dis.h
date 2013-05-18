@@ -44,6 +44,11 @@
 namespace ppcsimbooke {
     namespace ppcsimbooke_dis {
         static const int  N_PPC_OPCODES = 65;
+
+        // primary & extended opcode masks
+        static const uint32_t pri_opc_mask       = 0xfc000000;
+        static const uint32_t ext_opc_mask       = 0x000007fe;
+        static const uint32_t pri_ext_opc_mask   = (pri_opc_mask | ext_opc_mask);
         
         class ppcdis{
             private:

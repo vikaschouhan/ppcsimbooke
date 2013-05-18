@@ -122,6 +122,9 @@ namespace ppcsimbooke {
             // update branch targets for next basic block
             void update_targets(context& ctx);
 
+            // run basic block
+            void run(context& ctx);
+
             // instruction objects can be inserted directly into the basic block
             basic_block& operator<<(instr_call& ic){
                 if unlikely(transopscount >= MAX_BB_INS){ return *this; }
