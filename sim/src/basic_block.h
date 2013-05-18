@@ -4,6 +4,7 @@
 //#include "config.h"
 #include "superstl.h"
 #include "ppc_dis.h"
+#include "globals.h"
 
 namespace ppcsimbooke {
     // forward declarations

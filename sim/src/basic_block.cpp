@@ -132,7 +132,10 @@ ppcsimbooke::ppcsimbooke_basic_block::basic_block::basic_block(const ppcsimbooke
 // destructor
 ppcsimbooke::ppcsimbooke_basic_block::basic_block::~basic_block(){
     LOG_DEBUG4(MSG_FUNC_START);
-    //if likely(synthops) delete[] synthops;
+
+    // freeup synthops memory
+    if likely(synthops) delete[] synthops;
+
     LOG_DEBUG4(MSG_FUNC_END);
 }
 
@@ -140,7 +143,7 @@ ppcsimbooke::ppcsimbooke_basic_block::basic_block* ppcsimbooke::ppcsimbooke_basi
     LOG_DEBUG4(MSG_FUNC_START);
 
     basic_block* bb_new = new basic_block;
-    memcpy(bb_new, this, sizeof(basic_block));
+    *bb_new = *this;   // make a copy
 
     bb_new->hashlink.reset();
     bb_new->use(0);
@@ -179,7 +182,7 @@ std::ostream& ppcsimbooke::ppcsimbooke_basic_block::operator<<(std::ostream& ost
     ostr << "    " << "ip_taken : " << bb.ip_taken << std::endl;
     ostr << "    " << "ip_not_taken : " << bb.ip_not_taken << std::endl;
     ostr << "    " << "transopscount : " << bb.transopscount << std::endl;
-    ostr << "    " << "brtype : " << bb.brtype << std::endl;
+    ostr << "    " << "brtype : " << int(bb.brtype) << std::endl;
     ostr << "    " << "refcount : " << bb.refcount << std::endl;
     ostr << "    " << "hitcount : " << bb.hitcount << std::endl;
     ostr << "    " << "lastused : " << bb.lastused << std::endl;
@@ -249,13 +252,14 @@ int ppcsimbooke::ppcsimbooke_basic_block::basic_block_decoder::fillbuff(ppcsimbo
         // We may encounter tlb misses when copying from memory.
         // We don't catch any other error, beacause anything else is a potential simulator error
         // & hence we need to die in those cases.
-        ctx.read_buff(bb.bip.ip, buff, buffsize);
+        ctx.read_buff(bb.bip.ip, buff, buffsize, 1);
     }catch(sim_except_ppc &e){
         switch(e.err_code<0>()){
-            case PPC_EXCEPTION_ISI:
+            case PPC_EXCEPTION_ITLB:
                 fault_addr = e.addr();
                 fault_cause = e.err_code<0>();
                 valid_byte_count = fault_addr - bb.bip;
+                break;
             default:
                 throw(sim_except_fatal("Unknown exception in basic_block_decoder::fillbuff."));
         }

@@ -73,6 +73,7 @@ namespace ppcsimbooke {
             uint64_t   get_pc();                                // Get pc
             uint64_t   get_nip();                               // Get NIP
             void       run();                                   // Non blocking run
+            void       run_bb();                                // Experimental bb run
             void       run_instr(std::string instr);
             void       run_instr(uint32_t opcd);
             void       step(size_t instr_cnt=1);      // by default step by 1 ic cnt
@@ -96,7 +97,12 @@ namespace ppcsimbooke {
             void       write32(uint64_t addr, uint32_t value);
             uint64_t   read64(uint64_t addr);
             void       write64(uint64_t addr, uint64_t value);
-            void       read_buff(uint64_t addr, uint8_t *buff, size_t buffsize);
+            
+            // Read memory buffer.
+            // It can read instruction as well as data pages.
+            // ex=0, means data pages (with read_permission enabled),
+            // ex=1, means instruction pages (with read_permission enabled)
+            void       read_buff(uint64_t addr, uint8_t *buff, size_t buffsize, bool ex=0);
         
             uint64_t   get_reg(std::string name) throw(sim_except);    // Get register by name
             uint64_t   get_reg(int regid) throw(sim_except);           // Get register by reg_id
@@ -157,6 +163,7 @@ namespace ppcsimbooke {
             // Basic Block [decoder] is cpu's friend
             //friend struct ppcsimbooke::ppcsimbooke_basic_block::basic_block_decoder;
             //friend struct ppcsimbooke::ppcsimbooke_basic_block::basic_block;
+            ppcsimbooke_basic_block::basic_block_cache_unit   m_bb_cache_unit;
         
             std::string                            m_cpu_name;
             cpu_run_mode                           m_cpu_mode;

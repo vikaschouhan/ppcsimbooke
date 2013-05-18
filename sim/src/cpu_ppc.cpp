@@ -52,6 +52,11 @@ uint64_t ppcsimbooke::ppcsimbooke_cpu::cpu::get_nip(){
     return PPCSIMBOOKE_CPU_NIP;
 }
 
+void ppcsimbooke::ppcsimbooke_cpu::cpu::run_bb(){
+    ppcsimbooke::ppcsimbooke_basic_block::basic_block* bb = m_bb_cache_unit.translate(*this);
+    std::cout << *bb << std::endl;
+}
+
 // run (non blocking)
 void ppcsimbooke::ppcsimbooke_cpu::cpu::run(){
     LOG_DEBUG4(MSG_FUNC_START);
@@ -176,18 +181,18 @@ ppcsimbooke::ppcsimbooke_cpu::cpu::xlated_tlb_res ppcsimbooke::ppcsimbooke_cpu::
     res = m_l2tlb.xlate(addr, as, PPCSIMBOOKE_CPU_REG(REG_PID1), perm, pr); if(std::get<0>(res) != static_cast<uint64_t>(-1)) goto exit_loop_0; 
     res = m_l2tlb.xlate(addr, as, PPCSIMBOOKE_CPU_REG(REG_PID2), perm, pr); if(std::get<0>(res) != static_cast<uint64_t>(-1)) goto exit_loop_0;
 
-    // We encountered TLB miss. Throw exceptions
+    // We encountered TLB miss. Throw exceptions. Also pass the faulting address as part of exception class
     if(ex){
         LOG_DEBUG4("ITLB miss.");
-        LTHROW(sim_except_ppc(PPC_EXCEPTION_ITLB, PPC_EXCEPT_ITLB_MISS, "ITLB miss."), DEBUG4);
+        LTHROW(sim_except_ppc(PPC_EXCEPTION_ITLB, PPC_EXCEPT_ITLB_MISS, "ITLB miss.", addr), DEBUG4);
     }else{
         LOG_DEBUG4("DTLB miss.");
     }
 
     if(wr){
-        LTHROW(sim_except_ppc(PPC_EXCEPTION_DTLB, PPC_EXCEPT_DTLB_MISS_ST, "DTLB miss on store."), DEBUG4);
+        LTHROW(sim_except_ppc(PPC_EXCEPTION_DTLB, PPC_EXCEPT_DTLB_MISS_ST, "DTLB miss on store.", addr), DEBUG4);
     }else{
-        LTHROW(sim_except_ppc(PPC_EXCEPTION_DTLB, PPC_EXCEPT_DTLB_MISS_LD, "DTLB miss on load."), DEBUG4);
+        LTHROW(sim_except_ppc(PPC_EXCEPTION_DTLB, PPC_EXCEPT_DTLB_MISS_LD, "DTLB miss on load.", addr), DEBUG4);
     }
 
     exit_loop_0:
@@ -281,7 +286,7 @@ void ppcsimbooke::ppcsimbooke_cpu::cpu::write64(uint64_t addr, uint64_t value){
     LOG_DEBUG4(MSG_FUNC_END);
 }
 
-void ppcsimbooke::ppcsimbooke_cpu::cpu::read_buff(uint64_t addr, uint8_t* buff, size_t buffsize){
+void ppcsimbooke::ppcsimbooke_cpu::cpu::read_buff(uint64_t addr, uint8_t* buff, size_t buffsize, bool ex){
     LOG_DEBUG4(MSG_FUNC_START);
     uint64_t ps, pm;
     size_t size_curr_page;
@@ -290,7 +295,7 @@ void ppcsimbooke::ppcsimbooke_cpu::cpu::read_buff(uint64_t addr, uint8_t* buff, 
     LASSERT_THROW_UNLIKELY(m_mem_ptr != NULL, sim_except_fatal("no memory module registered."), DEBUG4);
     
     while(buffsize > 0){
-        res = xlate(addr, 1);          // translate this address
+        res = xlate(addr, 0, ex);      // translate this address
         ps = std::get<2>(res);         // get page_size & page_mask
         pm = ~(ps - 1);
         size_curr_page = min(buffsize, ((addr & pm) + ps - addr));
