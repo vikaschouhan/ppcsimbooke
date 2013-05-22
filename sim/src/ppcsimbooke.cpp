@@ -70,7 +70,7 @@ instr_call (ppcdis_e500v2_t::*disasm_ptr2)(std::string, uint64_t)   = &ppcdis_e5
 BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(step_overloads, step, 0, 1);
 
 // Overloads for CPU_PPC::dump_state()
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(dump_state_overloads, dump_state, 0, 3);
+BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(dump_state_overloads, dump_state, 0, 1);
 
 // Overloads for memory::register_memory_target()
 BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(register_memory_target_overloads, register_memory_target, 5, 6);
@@ -272,7 +272,7 @@ BOOST_PYTHON_MODULE(ppcsim)
 
         // ppc register type ( 64 bit )
         class_<ppc_reg64>("ppc_reg64", init<uint64_t, uint64_t, int, int>())
-            .add_property("value",  &ppc_reg64::__get_v, &ppc_reg64::__set_v)
+            .add_property("value",  &ppc_reg64::get_v, &ppc_reg64::set_v)
             .def_readonly("fvalue", &ppc_reg64::fvalue)
             .def_readonly("attr",   &ppc_reg64::attr)
             .def_readonly("regno",  &ppc_reg64::indx)

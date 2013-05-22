@@ -1,10 +1,10 @@
 #include "globals.h"
 
-// instr_call_frame member functions -----------------------------------------------------------
+///////////////////////////////////////////////////////////////////////////////////////////
+// instruction call frame
+//////////////////////////////////////////////////////////////////////////////////////////
 
 ppcsimbooke::instr_call::instr_call(){
-    opcname = "";
-    fmt     = "";
     opc     = 0;
     hv      = 0;
     nargs   = 0;
@@ -68,9 +68,10 @@ char* ppcsimbooke::instr_call::get_instr_str() const{
     return instr_str;
 }
 
-
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // register_file member functions
-//
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 // Constructor
 ppcsimbooke::ppc_regs::ppc_regs(bool c_m, uint64_t pc_):
     cm(c_m),
@@ -629,4 +630,173 @@ void ppcsimbooke::ppc_regs::update_spefscr(x86_mxcsr &hf, bool high){
     // NOTE : x86 doesn't have intermediate flags for each instruction. Hence we track
     //        SSE fpu exceptions using the sticky flags.
     hf.clear_all_error_flags();
+}
+
+// std::cout overloading for register file
+std::ostream& ppcsimbooke::operator<<(std::ostream& ostr, const ppcsimbooke::ppc_regs& reg_file){
+#define PPCSIMBOOKE_GET_REGV(rg)  std::setw(16) << reg_file.rg.get_v()
+
+    ostr << std::showbase << std::hex << std::endl;
+    ostr << "Register file ####################################" << std::endl;
+    ostr << "CM          = " << reg_file.cm                      << std::endl;
+    ostr << "PC          = " << reg_file.pc                      << std::endl;
+    ostr << "NIP         = " << reg_file.nip                     << std::endl;
+    ostr << "MSR         = " << PPCSIMBOOKE_GET_REGV(msr)        << std::endl;
+    ostr << "CR          = " << PPCSIMBOOKE_GET_REGV(cr)         << std::endl;
+    ostr << "ACC         = " << PPCSIMBOOKE_GET_REGV(acc)        << std::endl;
+
+    ostr << "GPR[0]      = " << PPCSIMBOOKE_GET_REGV(gpr[0])     << std::endl;
+    ostr << "GPR[1]      = " << PPCSIMBOOKE_GET_REGV(gpr[1])     << std::endl;
+    ostr << "GPR[2]      = " << PPCSIMBOOKE_GET_REGV(gpr[2])     << std::endl;
+    ostr << "GPR[3]      = " << PPCSIMBOOKE_GET_REGV(gpr[3])     << std::endl;
+    ostr << "GPR[4]      = " << PPCSIMBOOKE_GET_REGV(gpr[4])     << std::endl;
+    ostr << "GPR[5]      = " << PPCSIMBOOKE_GET_REGV(gpr[5])     << std::endl;
+    ostr << "GPR[6]      = " << PPCSIMBOOKE_GET_REGV(gpr[6])     << std::endl;
+    ostr << "GPR[7]      = " << PPCSIMBOOKE_GET_REGV(gpr[7])     << std::endl;
+    ostr << "GPR[8]      = " << PPCSIMBOOKE_GET_REGV(gpr[8])     << std::endl;
+    ostr << "GPR[9]      = " << PPCSIMBOOKE_GET_REGV(gpr[9])     << std::endl;
+    ostr << "GPR[10]     = " << PPCSIMBOOKE_GET_REGV(gpr[10])    << std::endl;
+    ostr << "GPR[11]     = " << PPCSIMBOOKE_GET_REGV(gpr[11])    << std::endl;
+    ostr << "GPR[12]     = " << PPCSIMBOOKE_GET_REGV(gpr[12])    << std::endl;
+    ostr << "GPR[13]     = " << PPCSIMBOOKE_GET_REGV(gpr[13])    << std::endl;
+    ostr << "GPR[14]     = " << PPCSIMBOOKE_GET_REGV(gpr[14])    << std::endl;
+    ostr << "GPR[15]     = " << PPCSIMBOOKE_GET_REGV(gpr[15])    << std::endl;
+    ostr << "GPR[16]     = " << PPCSIMBOOKE_GET_REGV(gpr[16])    << std::endl;
+    ostr << "GPR[17]     = " << PPCSIMBOOKE_GET_REGV(gpr[17])    << std::endl;
+    ostr << "GPR[18]     = " << PPCSIMBOOKE_GET_REGV(gpr[18])    << std::endl;
+    ostr << "GPR[19]     = " << PPCSIMBOOKE_GET_REGV(gpr[19])    << std::endl;
+    ostr << "GPR[20]     = " << PPCSIMBOOKE_GET_REGV(gpr[20])    << std::endl;
+    ostr << "GPR[21]     = " << PPCSIMBOOKE_GET_REGV(gpr[21])    << std::endl;
+    ostr << "GPR[22]     = " << PPCSIMBOOKE_GET_REGV(gpr[22])    << std::endl;
+    ostr << "GPR[23]     = " << PPCSIMBOOKE_GET_REGV(gpr[23])    << std::endl;
+    ostr << "GPR[24]     = " << PPCSIMBOOKE_GET_REGV(gpr[24])    << std::endl;
+    ostr << "GPR[25]     = " << PPCSIMBOOKE_GET_REGV(gpr[25])    << std::endl;
+    ostr << "GPR[26]     = " << PPCSIMBOOKE_GET_REGV(gpr[26])    << std::endl;
+    ostr << "GPR[27]     = " << PPCSIMBOOKE_GET_REGV(gpr[27])    << std::endl;
+    ostr << "GPR[28]     = " << PPCSIMBOOKE_GET_REGV(gpr[28])    << std::endl;
+    ostr << "GPR[29]     = " << PPCSIMBOOKE_GET_REGV(gpr[29])    << std::endl;
+    ostr << "GPR[30]     = " << PPCSIMBOOKE_GET_REGV(gpr[30])    << std::endl;
+    ostr << "GPR[31]     = " << PPCSIMBOOKE_GET_REGV(gpr[31])    << std::endl;
+
+    ostr << "ATBL        = " << PPCSIMBOOKE_GET_REGV(atbl)            << std::endl;
+    ostr << "ATBU        = " << PPCSIMBOOKE_GET_REGV(atbu)            << std::endl;
+    ostr << "CSRR0       = " << PPCSIMBOOKE_GET_REGV(csrr0)           << std::endl;
+    ostr << "CSRR1       = " << PPCSIMBOOKE_GET_REGV(csrr1)           << std::endl;
+    ostr << "CTR         = " << PPCSIMBOOKE_GET_REGV(ctr)             << std::endl;
+    ostr << "DAC1        = " << PPCSIMBOOKE_GET_REGV(dac1)            << std::endl;
+    ostr << "DAC2        = " << PPCSIMBOOKE_GET_REGV(dac2)            << std::endl;
+    ostr << "DBCR0       = " << PPCSIMBOOKE_GET_REGV(dbcr0)           << std::endl;
+    ostr << "DBCR1       = " << PPCSIMBOOKE_GET_REGV(dbcr1)           << std::endl;
+    ostr << "DBCR2       = " << PPCSIMBOOKE_GET_REGV(dbcr2)           << std::endl;
+    ostr << "DBSR        = " << PPCSIMBOOKE_GET_REGV(dbsr)            << std::endl;
+    ostr << "DEAR        = " << PPCSIMBOOKE_GET_REGV(dear)            << std::endl;
+    ostr << "DEC         = " << PPCSIMBOOKE_GET_REGV(dec)             << std::endl;
+    ostr << "DECAR       = " << PPCSIMBOOKE_GET_REGV(decar)           << std::endl;
+    ostr << "ESR         = " << PPCSIMBOOKE_GET_REGV(esr)             << std::endl;
+    ostr << "IAC1        = " << PPCSIMBOOKE_GET_REGV(iac1)            << std::endl;
+    ostr << "IAC2        = " << PPCSIMBOOKE_GET_REGV(iac2)            << std::endl;
+    ostr << "IVOR0       = " << PPCSIMBOOKE_GET_REGV(ivor0)           << std::endl;
+    ostr << "IVOR1       = " << PPCSIMBOOKE_GET_REGV(ivor1)           << std::endl;
+    ostr << "IVOR2       = " << PPCSIMBOOKE_GET_REGV(ivor2)           << std::endl;
+    ostr << "IVOR3       = " << PPCSIMBOOKE_GET_REGV(ivor3)           << std::endl;
+    ostr << "IVOR4       = " << PPCSIMBOOKE_GET_REGV(ivor4)           << std::endl;
+    ostr << "IVOR5       = " << PPCSIMBOOKE_GET_REGV(ivor5)           << std::endl;
+    ostr << "IVOR6       = " << PPCSIMBOOKE_GET_REGV(ivor6)           << std::endl;
+    ostr << "IVOR7       = " << PPCSIMBOOKE_GET_REGV(ivor7)           << std::endl;
+    ostr << "IVOR8       = " << PPCSIMBOOKE_GET_REGV(ivor8)           << std::endl;
+    ostr << "IvOR9       = " << PPCSIMBOOKE_GET_REGV(ivor9)           << std::endl;
+    ostr << "IVOR10      = " << PPCSIMBOOKE_GET_REGV(ivor10)          << std::endl;
+    ostr << "IVOR11      = " << PPCSIMBOOKE_GET_REGV(ivor11)          << std::endl;
+    ostr << "IVOR12      = " << PPCSIMBOOKE_GET_REGV(ivor12)          << std::endl;
+    ostr << "IVOR13      = " << PPCSIMBOOKE_GET_REGV(ivor13)          << std::endl;
+    ostr << "IVOR14      = " << PPCSIMBOOKE_GET_REGV(ivor14)          << std::endl;
+    ostr << "IVOR15      = " << PPCSIMBOOKE_GET_REGV(ivor15)          << std::endl;
+    ostr << "IVPR        = " << PPCSIMBOOKE_GET_REGV(ivpr)            << std::endl;
+    ostr << "LR          = " << PPCSIMBOOKE_GET_REGV(lr)              << std::endl;
+    ostr << "PID0        = " << PPCSIMBOOKE_GET_REGV(pid0)            << std::endl;
+    ostr << "PID1        = " << PPCSIMBOOKE_GET_REGV(pid1)            << std::endl;
+    ostr << "PID2        = " << PPCSIMBOOKE_GET_REGV(pid2)            << std::endl;
+    ostr << "PIR         = " << PPCSIMBOOKE_GET_REGV(pir)             << std::endl;
+    ostr << "PVR         = " << PPCSIMBOOKE_GET_REGV(pvr)             << std::endl;
+    ostr << "SPRG0       = " << PPCSIMBOOKE_GET_REGV(sprg0)           << std::endl;
+    ostr << "SPRG1       = " << PPCSIMBOOKE_GET_REGV(sprg1)           << std::endl;
+    ostr << "SPRG2       = " << PPCSIMBOOKE_GET_REGV(sprg2)           << std::endl;
+    ostr << "SPRG3       = " << PPCSIMBOOKE_GET_REGV(sprg3)           << std::endl;
+    ostr << "SPRG4       = " << PPCSIMBOOKE_GET_REGV(sprg4)           << std::endl;
+    ostr << "SPRG5       = " << PPCSIMBOOKE_GET_REGV(sprg5)           << std::endl;
+    ostr << "SPRG6       = " << PPCSIMBOOKE_GET_REGV(sprg6)           << std::endl;
+    ostr << "SPRG7       = " << PPCSIMBOOKE_GET_REGV(sprg7)           << std::endl;
+    ostr << "SRR0        = " << PPCSIMBOOKE_GET_REGV(srr0)            << std::endl;
+    ostr << "SRR1        = " << PPCSIMBOOKE_GET_REGV(srr1)            << std::endl;
+    ostr << "TBL         = " << PPCSIMBOOKE_GET_REGV(tbl)             << std::endl;
+    ostr << "TBU         = " << PPCSIMBOOKE_GET_REGV(tbu)             << std::endl;
+    ostr << "TCR         = " << PPCSIMBOOKE_GET_REGV(tcr)             << std::endl;
+    ostr << "TSR         = " << PPCSIMBOOKE_GET_REGV(tsr)             << std::endl;
+    ostr << "USPRG0      = " << PPCSIMBOOKE_GET_REGV(usprg0)          << std::endl;
+    ostr << "XER         = " << PPCSIMBOOKE_GET_REGV(xer)             << std::endl;
+
+    ostr << "BBEAR       = " << PPCSIMBOOKE_GET_REGV(bbear)           << std::endl;
+    ostr << "BBTAR       = " << PPCSIMBOOKE_GET_REGV(bbtar)           << std::endl;
+    ostr << "BUCSR       = " << PPCSIMBOOKE_GET_REGV(bucsr)           << std::endl;
+    ostr << "HID0        = " << PPCSIMBOOKE_GET_REGV(hid0)            << std::endl;
+    ostr << "HID1        = " << PPCSIMBOOKE_GET_REGV(hid1)            << std::endl;
+    ostr << "IVOR32      = " << PPCSIMBOOKE_GET_REGV(ivor32)          << std::endl;
+    ostr << "IVOR33      = " << PPCSIMBOOKE_GET_REGV(ivor33)          << std::endl;
+    ostr << "IVOR34      = " << PPCSIMBOOKE_GET_REGV(ivor34)          << std::endl;
+    ostr << "IVOR35      = " << PPCSIMBOOKE_GET_REGV(ivor35)          << std::endl;
+    ostr << "L1CFG0      = " << PPCSIMBOOKE_GET_REGV(l1cfg0)          << std::endl;
+    ostr << "L1CFG1      = " << PPCSIMBOOKE_GET_REGV(l1cfg1)          << std::endl;
+    ostr << "L1CSR0      = " << PPCSIMBOOKE_GET_REGV(l1csr0)          << std::endl;
+    ostr << "L1CSR1      = " << PPCSIMBOOKE_GET_REGV(l1csr1)          << std::endl;
+    ostr << "MAS0        = " << PPCSIMBOOKE_GET_REGV(mas0)            << std::endl;
+    ostr << "MAS1        = " << PPCSIMBOOKE_GET_REGV(mas1)            << std::endl;
+    ostr << "MAS2        = " << PPCSIMBOOKE_GET_REGV(mas2)            << std::endl;
+    ostr << "MAS3        = " << PPCSIMBOOKE_GET_REGV(mas3)            << std::endl;
+    ostr << "MAS4        = " << PPCSIMBOOKE_GET_REGV(mas4)            << std::endl;
+    ostr << "MAS5        = " << PPCSIMBOOKE_GET_REGV(mas5)            << std::endl;
+    ostr << "MAS6        = " << PPCSIMBOOKE_GET_REGV(mas6)            << std::endl;
+    ostr << "MAS7        = " << PPCSIMBOOKE_GET_REGV(mas7)            << std::endl;
+    ostr << "MCAR        = " << PPCSIMBOOKE_GET_REGV(mcar)            << std::endl;
+    ostr << "MCSR        = " << PPCSIMBOOKE_GET_REGV(mcsr)            << std::endl;
+    ostr << "MCSRR0      = " << PPCSIMBOOKE_GET_REGV(mcsrr0)          << std::endl;
+    ostr << "MCSRR1      = " << PPCSIMBOOKE_GET_REGV(mcsrr1)          << std::endl;
+    ostr << "MMUCFG      = " << PPCSIMBOOKE_GET_REGV(mmucfg)          << std::endl;
+    ostr << "MMUCSR0     = " << PPCSIMBOOKE_GET_REGV(mmucsr0)         << std::endl;
+    ostr << "SPEFSCR     = " << PPCSIMBOOKE_GET_REGV(spefscr)         << std::endl;
+    ostr << "SVR         = " << PPCSIMBOOKE_GET_REGV(svr)             << std::endl;
+    ostr << "TLB0CFG     = " << PPCSIMBOOKE_GET_REGV(tlb0cfg)         << std::endl;
+    ostr << "TLB1CFG     = " << PPCSIMBOOKE_GET_REGV(tlb1cfg)         << std::endl;
+
+    ostr << "PMGC0       = " << PPCSIMBOOKE_GET_REGV(pmgc0)           << std::endl;
+    ostr << "PMLCA0      = " << PPCSIMBOOKE_GET_REGV(pmlca0)          << std::endl;
+    ostr << "PMLCA1      = " << PPCSIMBOOKE_GET_REGV(pmlca1)          << std::endl;
+    ostr << "PMLCA2      = " << PPCSIMBOOKE_GET_REGV(pmlca2)          << std::endl;
+    ostr << "PMLCA3      = " << PPCSIMBOOKE_GET_REGV(pmlca3)          << std::endl;
+    ostr << "PMLCB0      = " << PPCSIMBOOKE_GET_REGV(pmlcb0)          << std::endl;
+    ostr << "PMLCB1      = " << PPCSIMBOOKE_GET_REGV(pmlcb1)          << std::endl;
+    ostr << "PMLCB2      = " << PPCSIMBOOKE_GET_REGV(pmlcb2)          << std::endl;
+    ostr << "PMLCB3      = " << PPCSIMBOOKE_GET_REGV(pmlcb3)          << std::endl;
+    ostr << "PMC0        = " << PPCSIMBOOKE_GET_REGV(pmc0)            << std::endl;
+    ostr << "PMC1        = " << PPCSIMBOOKE_GET_REGV(pmc1)            << std::endl;
+    ostr << "PMC2        = " << PPCSIMBOOKE_GET_REGV(pmc2)            << std::endl;
+    ostr << "PMC3        = " << PPCSIMBOOKE_GET_REGV(pmc3)            << std::endl;
+
+    ostr << "UPMGC0      = " << PPCSIMBOOKE_GET_REGV(upmgc0)          << std::endl;
+    ostr << "UPMLCA0     = " << PPCSIMBOOKE_GET_REGV(upmlca0)         << std::endl;
+    ostr << "UPMLCA1     = " << PPCSIMBOOKE_GET_REGV(upmlca1)         << std::endl;
+    ostr << "UPMLCA2     = " << PPCSIMBOOKE_GET_REGV(upmlca2)         << std::endl;
+    ostr << "UPMLCA3     = " << PPCSIMBOOKE_GET_REGV(upmlca3)         << std::endl;
+    ostr << "UPMLCB0     = " << PPCSIMBOOKE_GET_REGV(upmlcb0)         << std::endl;
+    ostr << "UPMLCB1     = " << PPCSIMBOOKE_GET_REGV(upmlcb1)         << std::endl;
+    ostr << "UPMLCB2     = " << PPCSIMBOOKE_GET_REGV(upmlcb2)         << std::endl;
+    ostr << "UPMLCB3     = " << PPCSIMBOOKE_GET_REGV(upmlcb3)         << std::endl;
+    ostr << "UPMC0       = " << PPCSIMBOOKE_GET_REGV(upmc0)           << std::endl;
+    ostr << "UPMC1       = " << PPCSIMBOOKE_GET_REGV(upmc1)           << std::endl;
+    ostr << "UPMC2       = " << PPCSIMBOOKE_GET_REGV(upmc2)           << std::endl;
+    ostr << "UPMC3       = " << PPCSIMBOOKE_GET_REGV(upmc3)           << std::endl;
+
+    ostr << "##################################################"    << std::endl;
+
+#undef PPCSIMBOOKE_GET_REGV
+    return ostr;
 }

@@ -7,7 +7,9 @@
 
 namespace ppcsimbooke {
 
-    //------------------------------------ instruction call frame ---------------------------------------------
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // instruction call frame
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////
     
     // instruction call frame
     static const int N_IC_ARGS = 6;           // Max arguments supported
@@ -43,8 +45,10 @@ namespace ppcsimbooke {
         return ostr;
     }
     
-    //------------------ register file definitions --------------------------------------------
-    //
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    // register file definitions
+    ///////////////////////////////////////////////////////////////////////////////////////////
+
     // powerPC register attribute flags
     // if attr=0, this means the register is illegal
     static const int REG_READ_SUP      = 0x00000001UL;                        // Register has read access in supervisor mode
@@ -94,8 +98,8 @@ namespace ppcsimbooke {
         {}
     
         // value.u64v's getter/setter for boost::python
-        uint64_t __get_v()       { return value.u64v; }
-        void __set_v(uint64_t v) { value.u64v = v;    }
+        const uint64_t get_v() const { return value.u64v; }
+        void set_v(const uint64_t v) { value.u64v = v;    }
     
         // Getter/Setter functions for bit fields. (Mainly for boost::python)
         uint64_t get_bf(uint64_t mask){
@@ -304,6 +308,8 @@ namespace ppcsimbooke {
         }
 
     };
+
+    std::ostream& operator<<(std::ostream& ostr, const ppc_regs& reg_file);
 
 }
 

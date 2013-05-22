@@ -1063,63 +1063,12 @@ uint64_t ppcsimbooke::ppcsimbooke_cpu::cpu::get_reg(int reg_id) throw(sim_except
 }
 
 // Dump CPU state
-void ppcsimbooke::ppcsimbooke_cpu::cpu::dump_state(int columns, std::ostream &ostr, int dump_all_sprs){
+void ppcsimbooke::ppcsimbooke_cpu::cpu::dump_state(std::ostream &ostr){
     LOG_DEBUG4(MSG_FUNC_START);
-    int colno = 0;
-    std::ostringstream strout;
 
-    // dump msr and cr
-    ostr << BAR0 << std::endl;
-    ostr << "CPU STATE" << std::endl;
-    ostr << BAR0 << std::endl;
-    ostr << "cpu no = " << (int)m_cpu_no << std::endl;
-    ostr << "msr = " << std::hex << std::showbase << PPCSIMBOOKE_CPU_REG(REG_MSR) << std::endl;
-    ostr << "cr  = " << std::hex << std::showbase << PPCSIMBOOKE_CPU_REG(REG_CR) << std::endl;
-    ostr << "iar = " << std::hex << std::showbase << PPCSIMBOOKE_CPU_PC << std::endl;
-    ostr << std::endl;
+    // print register file state
+    ostr << m_cpu_regs;
 
-    // dump gprs
-    for(size_t i=0; i<PPC_NGPRS; i++){
-        strout << "r" << std::dec << i << " = " << std::hex << std::showbase << PPCSIMBOOKE_CPU_REG(REG_GPR0 + i);
-        ostr << std::left << std::setw(23) << strout.str() << "    ";
-        strout.str("");
-        if(++colno >= columns){ ostr << std::endl; colno = 0; }
-    }
-    ostr << std::endl;
-    ostr << std::endl;
-    colno = 0;
-
-    // dump sprs
-    if(dump_all_sprs){
-        // FIXME: fix this at some point in future.
-        //
-        //for(i=0; i<PPC_NSPRS; i++){
-        //    // TODO: do a check for valid sprs later on
-        //    strout << "spr[" << std::dec << i << "] = " << std::hex << std::showbase << PPCSIMBOOKE_CPU_REG(REG_SPR0 + i);
-        //    ostr << std::left << std::setw(26) << strout.str() << "    ";
-        //    strout.str("");
-        //    if(++colno >= columns){ ostr << std::endl; colno = 0; }
-        //}
-        //ostr << std::endl;
-        //colno = 0;
-    }else{
-        ostr << std::hex << std::showbase;
-        ostr << "ctr = " << PPCSIMBOOKE_CPU_REG(REG_CTR) << std::endl;
-        ostr << "xer = " << PPCSIMBOOKE_CPU_REG(REG_XER) << std::endl;
-        ostr << "lr  = " << PPCSIMBOOKE_CPU_REG(REG_LR) << std::endl;
-        ostr << std::endl;
-
-        ostr << "mas0 = " << PPCSIMBOOKE_CPU_REG(REG_MAS0) << std::endl;
-        ostr << "mas1 = " << PPCSIMBOOKE_CPU_REG(REG_MAS1) << std::endl;
-        ostr << "mas2 = " << PPCSIMBOOKE_CPU_REG(REG_MAS2) << std::endl;
-        ostr << "mas3 = " << PPCSIMBOOKE_CPU_REG(REG_MAS3) << std::endl;
-        ostr << "mas4 = " << PPCSIMBOOKE_CPU_REG(REG_MAS4) << std::endl;
-        ostr << "mas5 = " << PPCSIMBOOKE_CPU_REG(REG_MAS5) << std::endl;
-        ostr << "mas6 = " << PPCSIMBOOKE_CPU_REG(REG_MAS6) << std::endl;
-        ostr << "mas7 = " << PPCSIMBOOKE_CPU_REG(REG_MAS7) << std::endl;
-
-    }
-    ostr << BAR0 << std::endl;
     LOG_DEBUG4(MSG_FUNC_END);
 }
 

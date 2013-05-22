@@ -114,7 +114,7 @@ namespace ppcsimbooke {
             // Register state 
             uint64_t   get_reg(std::string name) throw(sim_except);    // Get register by name
             uint64_t   get_reg(int regid) throw(sim_except);           // Get register by reg_id
-            void       dump_state(int columns=0, std::ostream &ostr=std::cout, int dump_all_sprs=0);   // Dump Cpu state
+            void       dump_state(std::ostream &ostr=std::cout);       // Dump Cpu state
             
             // TLB functions
             xlated_tlb_res  xlate(uint64_t addr, bool wr=0, bool ex=0);  // Translate EA to RA (return a tuple of <xlated addr, wimge, page_size>)
