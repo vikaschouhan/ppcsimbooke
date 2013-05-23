@@ -300,6 +300,11 @@ namespace ppcsimbooke {
     
         // functions operating on SEPFSCR
         void       update_spefscr(x86_mxcsr& hf, bool high);
+
+        // functions operating on PC & NIP
+        void       update_pc();        // Update PC with NIP
+        void       inc_pc();           // Increment PC
+        void       inc_nip();          // Increment NIP
     
         // for boost::python
         template<int x>

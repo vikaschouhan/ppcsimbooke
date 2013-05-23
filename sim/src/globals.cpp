@@ -632,6 +632,19 @@ void ppcsimbooke::ppc_regs::update_spefscr(x86_mxcsr &hf, bool high){
     hf.clear_all_error_flags();
 }
 
+// Update PC with NIP
+void ppcsimbooke::ppc_regs::update_pc(){
+    pc = nip;
+}
+
+void ppcsimbooke::ppc_regs::inc_pc(){
+    pc += 4;
+}
+
+void ppcsimbooke::ppc_regs::inc_nip(){
+    nip += 4;
+}
+
 // std::cout overloading for register file
 std::ostream& ppcsimbooke::operator<<(std::ostream& ostr, const ppcsimbooke::ppc_regs& reg_file){
 #define PPCSIMBOOKE_GET_REGV(rg)  std::setw(16) << reg_file.rg.get_v()
