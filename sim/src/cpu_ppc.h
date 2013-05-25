@@ -56,12 +56,34 @@ namespace ppcsimbooke {
         /* All BookE cores have 32 bit MSRs only */
         
         class cpu {
+            ////////////////////////////////////////////////////////////////////////////////
+            // friends
+            ///////////////////////////////////////////////////////////////////////////////
+
+            // This function defines nested functions ( using struct encapsulation technique )
+            // Each function implements the pseudocode for one ( exactly one ) ppc opcode.
+            //
+            // For eg. there is one function for "add", another for "or" and likewise
+            //
+            // NOTE : It's the responsibility of this function to populate m_ppc_func_hash and
+            //        it has to be called once in the constructor.
+            friend void gen_ppc_opc_func_hash(ppcsimbooke::ppcsimbooke_cpu::cpu *pcpu);
+            // Basic Block [decoder] is cpu's friend
+            friend struct ppcsimbooke::ppcsimbooke_basic_block::basic_block_decoder;
+            friend struct ppcsimbooke::ppcsimbooke_basic_block::basic_block;
+
+            /////////////////////////////////////////////////////////////////////////
+            // public typedefs
+            /////////////////////////////////////////////////////////////////////////
             public:
             // function pointer type for opcode handlers
             typedef void (*ppc_opc_fun_ptr)(ppcsimbooke::ppcsimbooke_cpu::cpu *, ppcsimbooke::instr_call *);
             // translated result type for tlb array
             typedef std::tuple<uint64_t, uint8_t, uint64_t>  xlated_tlb_res;
-        
+       
+            ////////////////////////////////////////////////////////////////////////
+            // member functions
+            //////////////////////////////////////////////////////////////////////// 
             public:
             cpu();
             cpu(uint64_t cpuid, std::string name);
@@ -154,23 +176,14 @@ namespace ppcsimbooke {
             inline void           run_curr_instr();                                 // run current instr
             inline void           init_common();
 
+            //////////////////////////////////////////////////////////////////////
+            // data members
+            //////////////////////////////////////////////////////////////////////
             public:
             breakpt_mngr                           m_bm;                   // breakpoint manager
             static Log<1>                          sm_instr_tracer;        // Instruction tracer module
             
             private: 
-            // This function defines nested functions ( using struct encapsulation technique )
-            // Each function implements the pseudocode for one ( exactly one ) ppc opcode.
-            //
-            // For eg. there is one function for "add", another for "or" and likewise
-            //
-            // NOTE : It's the responsibility of this function to populate m_ppc_func_hash and
-            //        it has to be called once in the constructor.
-            friend void gen_ppc_opc_func_hash(ppcsimbooke::ppcsimbooke_cpu::cpu *pcpu);
-
-            // Basic Block [decoder] is cpu's friend
-            //friend struct ppcsimbooke::ppcsimbooke_basic_block::basic_block_decoder;
-            //friend struct ppcsimbooke::ppcsimbooke_basic_block::basic_block;
             ppcsimbooke_basic_block::basic_block_cache_unit   m_bb_cache_unit;
         
             std::string                            m_cpu_name;

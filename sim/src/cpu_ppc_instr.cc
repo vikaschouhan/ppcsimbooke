@@ -330,9 +330,14 @@
 #define X86_DIVS_F32(arg1, arg2)                     x86_divs_f32(arg1, arg2, HOST_FPU_FLAGS)
 
 // define building blocks for lambda syntax (GCC compiler must support -std=c++11)
+// Incrementing NIP actually takes care of program flow.
+// NOTE : All branch instructions calculate NIP (using the current PC for relative jumps).
+//        NIP is assigned to PC at the end.So effectively NIP is always 4 byte ahead of PC,
+//        except when a branch is taken.
 #define RTL_BEGIN(opc_name, func_name)     CPU->m_ppc_func_hash[CPU->m_dis.get_opc_hash(opc_name)] =  \
-                                               [](ppcsimbooke::ppcsimbooke_cpu::cpu *CPU, ppcsimbooke::instr_call *IC) -> void {
-#define RTL_END                            };
+                                               [](ppcsimbooke::ppcsimbooke_cpu::cpu *CPU, ppcsimbooke::instr_call *IC) \
+                                               -> void { NIP += 4;
+#define RTL_END                            PC = NIP; };
 
 
 // START

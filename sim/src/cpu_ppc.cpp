@@ -61,14 +61,13 @@ uint64_t ppcsimbooke::ppcsimbooke_cpu::cpu::get_pc_mask(){
 }
 
 void ppcsimbooke::ppcsimbooke_cpu::cpu::run_bb(){
-    size_t n = 5;
+    size_t n = 35;
     ppcsimbooke::ppcsimbooke_basic_block::basic_block* bb = NULL;
 
     for(size_t i=0; i<n; i++){
         bb = m_bb_cache_unit.translate(*this);
         bb->run(*this);
         std::cout << *bb << std::endl;
-        PPCSIMBOOKE_CPU_PC = PPCSIMBOOKE_CPU_NIP;
     }
 }
 
@@ -944,8 +943,6 @@ inline void ppcsimbooke::ppcsimbooke_cpu::cpu::clear_ctrs(){
 inline void ppcsimbooke::ppcsimbooke_cpu::cpu::run_curr_instr(){
     LOG_DEBUG4(MSG_FUNC_START);
 
-    PPCSIMBOOKE_CPU_NIP += 4;   // Update NIP
-
     /* Get Instr call frame at next NIP */
     instr_call call_this = get_instr();
     LOG_DEBUG4("INSTR : ", call_this.get_instr_str(), std::endl);
@@ -972,8 +969,6 @@ inline void ppcsimbooke::ppcsimbooke_cpu::cpu::run_curr_instr(){
     /* call handler function for this call frame */ 
     m_ppc_func_hash.at(call_this.hv)(this, &call_this);
 
-    // book-keeping
-    PPCSIMBOOKE_CPU_PC = PPCSIMBOOKE_CPU_NIP;     // Update PC
     m_ninstrs_last++;
 
     LOG_DEBUG4(MSG_FUNC_END);

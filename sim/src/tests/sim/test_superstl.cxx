@@ -14,16 +14,32 @@ inline std::ostream& operator<<(std::ostream& ostr, chunk_list_class_type0& var)
     return ostr;
 }
 
-// self hash class type0
-struct self_hash_class_type0 {
-    int                     key;
-    superstl::selflistlink  hashlink;
-    int                     v;
+struct self_hash_class_type0_key {
+    int x;
+    int y;
 
-    self_hash_class_type0(int key_, int v_): key(key_), v(v_) {}
+    self_hash_class_type0_key(): x(0), y(0) {}
+    self_hash_class_type0_key(int x_, int y_): x(x_), y(y_) {}
+    bool operator==(const self_hash_class_type0_key& key) const {
+        return (x == key.x) && (y == key.y);
+    }
 };
 
-inline std::ostream& operator<<(std::ostream& ostr, self_hash_class_type0& var){
+inline std::ostream& operator<<(std::ostream& ostr, const self_hash_class_type0_key& key){
+    ostr << "[x=" << key.x << ",y=" << key.y << "]";
+    return ostr;
+}
+
+// self hash class type0
+struct self_hash_class_type0 {
+    self_hash_class_type0_key    key;
+    superstl::selflistlink       hashlink;
+    int                          v;
+
+    self_hash_class_type0(self_hash_class_type0_key key_, int v_): key(key_), v(v_) {}
+};
+
+inline std::ostream& operator<<(std::ostream& ostr, const self_hash_class_type0& var){
     ostr << " " << "[key=" << var.key << "," << "value=" << var.v << "]" << " ";
     return ostr;
 }
@@ -34,13 +50,28 @@ struct self_hash_class_type0_link_manager {
         return superstl_baseof(self_hash_class_type0, hashlink, link);
     }
 
-    static inline int& keyof(self_hash_class_type0* obj) {
+    static inline self_hash_class_type0_key& keyof(self_hash_class_type0* obj) {
         return obj->key;
     }
 
     static inline superstl::selflistlink* linkof(self_hash_class_type0* obj) {
         return &obj->hashlink;
     }
+};
+
+struct self_hash_class_type0_key_manager {
+    static inline int hash(const self_hash_class_type0_key& key){
+        superstl::CRC32 h;
+        h << key;
+        return h;
+    }
+    static inline bool equal(const self_hash_class_type0_key& a, const self_hash_class_type0_key& b){
+        return a == b;
+    }
+    static inline self_hash_class_type0_key dup(const self_hash_class_type0_key& key){
+        return key;
+    }
+    static inline void free(self_hash_class_type0_key& key) {}
 };
 
 int main(){
@@ -72,12 +103,14 @@ int main(){
         std::cout << *clct0_ptr0 << std::endl;
     }
 
-    typedef superstl::SelfHashtable<int, self_hash_class_type0, 32*1024, self_hash_class_type0_link_manager> sht;
+    typedef superstl::SelfHashtable<self_hash_class_type0_key, self_hash_class_type0, 32*1024,
+            self_hash_class_type0_link_manager, self_hash_class_type0_key_manager> sht;
     sht sht_v0;
 
-    self_hash_class_type0 *shct0_0 = new self_hash_class_type0(4, 7);
-    self_hash_class_type0 *shct0_1 = new self_hash_class_type0(1, 9);
-    self_hash_class_type0 *shct0_2 = new self_hash_class_type0(7, 3);
+    self_hash_class_type0 *shct0_0 = new self_hash_class_type0(self_hash_class_type0_key(2, 8), 7);
+    self_hash_class_type0 *shct0_1 = new self_hash_class_type0(self_hash_class_type0_key(1, 7), 9);
+    self_hash_class_type0 *shct0_2 = new self_hash_class_type0(self_hash_class_type0_key(8, 4), 3);
+    self_hash_class_type0 *tmp_shct0 = NULL;
 
     // Add all data
     sht_v0.add(shct0_0);
@@ -93,6 +126,12 @@ int main(){
     while((sht_ptr0 = iter0.next())){
         std::cout << *sht_ptr0 << std::endl;
     }
+
+    // searching for node
+    std::cout << "Searching for node " << self_hash_class_type0_key(8, 4) << std::endl;
+    tmp_shct0 = sht_v0.get(self_hash_class_type0_key(8, 4));
+    std::cout << "Got " << tmp_shct0 << std::endl;
+    if(tmp_shct0 != NULL) std::cout << "with data = " << *tmp_shct0 << std::endl;
 
     // Remove one node
     std::cout << "Removing node " << shct0_0 << "...." << std::endl;
