@@ -47,6 +47,11 @@ namespace ppcsimbooke {
             CPU_MODE_STOPPED   = 4,
         };
 
+        enum cpu_exec_mode {
+            CPU_EXEC_MODE_INTERPRETIVE = 1,
+            CPU_EXEC_MODE_THREADED     = 2,
+        };
+
         // Debug events
         static const int DBG_EVENT_IAC     = 0x00000001UL;
         static const int DBG_EVENT_DAC_LD  = 0x00000002UL;
@@ -60,8 +65,8 @@ namespace ppcsimbooke {
             // friends
             ///////////////////////////////////////////////////////////////////////////////
 
-            // This function defines nested functions ( using struct encapsulation technique )
-            // Each function implements the pseudocode for one ( exactly one ) ppc opcode.
+            // This function defines nested functions (using struct encapsulation technique)
+            // Each function implements the pseudocode for one (exactly one) ppc opcode.
             //
             // For eg. there is one function for "add", another for "or" and likewise
             //
@@ -99,22 +104,31 @@ namespace ppcsimbooke {
             void       init(uint64_t cpuid, std::string name);     // Initialize CPU 
             void       register_mem(ppcsimbooke_memory::memory &mem);               // Register memory
             size_t     get_ninstrs();                           // Get number of instrs
-            
+           
+            // Top level run/step functions 
             void       run();                                   // Non blocking run
-            void       run_bb();                                // Experimental bb run
             void       run_instr(std::string instr);
             void       run_instr(uint32_t opcd);
             void       step(size_t instr_cnt=1);      // by default step by 1 ic cnt
+
+            // run mode functions
             void       halt();                        // halt cpu
             void       stop();                        // stop cpu
             void       run_mode();                    // prints run mode
-            
-            // All memory read/write functions ( these act on effective addresses and address
-            // translation is done by the tlb module )
+
+            // execution mode functions
+            void       exec_mode();                         // prints exec mode
+            void       set_exec_mode_threaded();            // switch exec mode to threaded execution
+            void       set_exec_mode_interpretive();        // switch exec mode to interpretive execution
+           
+            // Memory (EA) access functions
+            //
+            // All memory read/write functions (these act on effective addresses and address
+            // translation is done by the tlb module)
             // These only act on data pages
             // Even if storing to an instruction page, it should
             // be treated as data only i.e a separate data tlb entry should be defined which maps
-            // to the instruction physical page ).
+            // to the instruction physical page.
             // NOTE : store to an instruction page always goes through DTLB. ITLB is only used for
             // instruction fetches.
             uint8_t    read8(uint64_t addr);
@@ -133,7 +147,7 @@ namespace ppcsimbooke {
             // returns number of bytes read
             size_t     read_buff(uint64_t addr, uint8_t *buff, size_t buffsize, bool ex=0);
        
-            // Register state 
+            // Register state functions
             uint64_t   get_reg(std::string name) throw(sim_except);    // Get register by name
             uint64_t   get_reg(int regid) throw(sim_except);           // Get register by reg_id
             void       dump_state(std::ostream &ostr=std::cout);       // Dump Cpu state
@@ -145,7 +159,7 @@ namespace ppcsimbooke {
             // get opcode implementation function pointer
             ppc_opc_fun_ptr  get_opc_impl(uint64_t opcode_hash);
         
-            // Logging
+            // Logging functions
             void       enable_cov_log();
             void       disable_cov_log();
             bool       is_cov_log_enabled();
@@ -169,6 +183,7 @@ namespace ppcsimbooke {
         
             private:
             void                  run_b();                                    // blocking run
+            void                  run_basic_blocks_b();                       // basic block blocking run
             void                  clear_ctrs();                               // clear counters
             void                  ppc_exception(int exception_nr, int subtype, uint64_t ea=0xffffffffffffffffULL);
             instr_call            get_instr();                                 // Automatically tries to read instr from next NIP(PC)
@@ -187,7 +202,8 @@ namespace ppcsimbooke {
             ppcsimbooke_basic_block::basic_block_cache_unit   m_bb_cache_unit;
         
             std::string                            m_cpu_name;
-            cpu_run_mode                           m_cpu_mode;
+            cpu_run_mode                           m_cpu_mode;            // Run mode : Running/Halted/Stopped etc.
+            cpu_exec_mode                          m_cpu_exec_mode;       // Execution mode : Interpretive/Threaded (basic block)
             int                                    m_cpu_bits;            // 32 or 64
             bool                                   m_cpu_running;         // If CPU is in run mode
         

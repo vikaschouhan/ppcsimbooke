@@ -60,21 +60,80 @@ uint64_t ppcsimbooke::ppcsimbooke_cpu::cpu::get_pc_mask(){
     return (m_cpu_bits == 32) ? 0xffffffffULL : 0xffffffffffffffffULL;
 }
 
-void ppcsimbooke::ppcsimbooke_cpu::cpu::run_bb(){
-    size_t n = 35;
+// NOTE : There won't be any support for these in basic block based
+//        execution.
+//        1. Breakpoints.
+//
+// TODO:
+// Exceptions are not supported at this time. They will be added later on
+void ppcsimbooke::ppcsimbooke_cpu::cpu::run_basic_blocks_b(){
+    LOG_DEBUG4(MSG_FUNC_START);
+
+    // change cpu mode to running
+    m_cpu_mode = CPU_MODE_RUNNING;
+    static const size_t n_basic_blocks_per_pass = 50;
+
+    // get first timing & clear all counters
+    m_prev_stamp = boost::posix_time::microsec_clock::local_time();
+    clear_ctrs();
+
     ppcsimbooke::ppcsimbooke_basic_block::basic_block* bb = NULL;
 
-    for(size_t i=0; i<n; i++){
-        bb = m_bb_cache_unit.translate(*this);
-        bb->run(*this);
-        std::cout << *bb << std::endl;
+    // Catch all non-hardware exceptions & save them into sim_except_ptr
+    // to be thrown later.
+    try {
+        for(;;){
+            // Observe each instruction for possible exceptions
+            try {
+                // Run this much instructions before checking for other conditions
+                for(size_t i=0; i<n_basic_blocks_per_pass; i++){
+                    bb = m_bb_cache_unit.translate(*this);
+                    bb->run(*this);
+                    //std::cout << *bb << std::endl;
+                    m_ninstrs_last += bb->transopscount;
+                }
+            }
+            // FIXME : TODO : Exceptions are not supported at this time. This catch block
+            //                is here just for sake of completeness.
+            catch(sim_except_ppc& e){
+                ppc_exception(e.err_code0(), e.err_code1(), e.addr());
+            }
+
+            // If running status is changed to stopped/halted, exit out of loop
+            if unlikely(m_cpu_mode == CPU_MODE_HALTED or m_cpu_mode == CPU_MODE_STOPPED){
+                goto loop_exit_0;
+            }
+        }
     }
+    catch(...){
+        sim_except_ptr = std::current_exception();
+    }
+
+    loop_exit_0:
+    m_cpu_mode = CPU_MODE_STOPPED;
+
+    m_ninstrs += m_ninstrs_last;  // update total instrs cnt
+
+    // get current time & calculate the diff
+    m_next_stamp = boost::posix_time::microsec_clock::local_time();
+    boost::posix_time::time_duration t_d = m_next_stamp - m_prev_stamp;
+
+    // calculate instrs/sec
+    double instrs_per_sec = (static_cast<double>(m_ninstrs_last)/t_d.total_microseconds()) * 1000;
+    std::cout << "Average Speed = " << instrs_per_sec << " KIPS." << std::endl;
 }
 
 // run (non blocking)
 void ppcsimbooke::ppcsimbooke_cpu::cpu::run(){
     LOG_DEBUG4(MSG_FUNC_START);
-    boost::thread thr0(&ppcsimbooke::ppcsimbooke_cpu::cpu::run_b, this);
+
+    switch(m_cpu_exec_mode){
+        case CPU_EXEC_MODE_INTERPRETIVE : { boost::thread thr0(&ppcsimbooke::ppcsimbooke_cpu::cpu::run_b, this); }
+                                          break;
+        case CPU_EXEC_MODE_THREADED     : { boost::thread thr0(&ppcsimbooke::ppcsimbooke_cpu::cpu::run_basic_blocks_b, this); }
+                                          break;
+        default                         : LTHROW(sim_except_fatal("Wrong execution mode."), DEBUG4);
+    }
 
     // Try to rethrow the exception from daughter thread
     if(sim_except_ptr)
@@ -144,6 +203,24 @@ void ppcsimbooke::ppcsimbooke_cpu::cpu::run_mode(){
         default                : std::cout << "Unknown"  << std::endl; break;
     }
     LOG_DEBUG4(MSG_FUNC_END);
+}
+
+void ppcsimbooke::ppcsimbooke_cpu::cpu::exec_mode(){
+    LOG_DEBUG4(MSG_FUNC_START);
+    switch(m_cpu_exec_mode){
+        case CPU_EXEC_MODE_INTERPRETIVE : std::cout << "Interpretive Mode." << std::endl; break;
+        case CPU_EXEC_MODE_THREADED     : std::cout << "Threaded Mode."     << std::endl; break;
+        default                         : std::cout << "Unknown Mode."      << std::endl; break;
+    }
+    LOG_DEBUG4(MSG_FUNC_END);
+}
+
+void ppcsimbooke::ppcsimbooke_cpu::cpu::set_exec_mode_interpretive(){
+    m_cpu_exec_mode = CPU_EXEC_MODE_INTERPRETIVE;
+}
+
+void ppcsimbooke::ppcsimbooke_cpu::cpu::set_exec_mode_threaded(){
+    m_cpu_exec_mode = CPU_EXEC_MODE_THREADED;
 }
 
 // virtual form of run_instr
@@ -982,6 +1059,7 @@ inline void ppcsimbooke::ppcsimbooke_cpu::cpu::init_common(){
     m_instr_cache.set_size(4096);          // LRU cache size = 4096 instrs
     m_ctxt_switch = 0;                     // Initialize flag to zero
     m_cpu_mode = CPU_MODE_HALTED;
+    m_cpu_exec_mode = CPU_EXEC_MODE_INTERPRETIVE;   // Fix to interpretive mode
     m_ncycles = 0;
     m_cpu_bits = 32;                       // 32 bit machine
 

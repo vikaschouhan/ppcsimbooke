@@ -1987,6 +1987,8 @@ namespace superstl {
             return *remove(&obj);
         }
 
+        int size() { return count; }
+
         std::ostream& print(std::ostream& os) const {
             os << "Hashtable of " << setcount << " sets containing " << count << " entries:" << std::endl;
             superstl_foreach (i, setcount) {

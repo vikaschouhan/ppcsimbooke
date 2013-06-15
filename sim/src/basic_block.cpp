@@ -1,5 +1,6 @@
 #include "basic_block.h"
 #include "cpu_ppc.h"
+#include <algorithm>
 
 /////////////////////////////////////////////////////////////////////////////////
 // basic block instruction pointer
@@ -166,6 +167,9 @@ void ppcsimbooke::ppcsimbooke_basic_block::basic_block::free(){
 void ppcsimbooke::ppcsimbooke_basic_block::basic_block::run(ppcsimbooke::ppcsimbooke_basic_block::context& ctx){
     LOG_DEBUG4(MSG_FUNC_START);
 
+    // increment reference count
+    refcount++;
+
     // initialize synthops if it's NULL
     if unlikely(synthops == NULL){
         init_synthops(ctx);
@@ -181,6 +185,9 @@ void ppcsimbooke::ppcsimbooke_basic_block::basic_block::run(ppcsimbooke::ppcsimb
 
     // increment hitcount
     hitcount++;
+
+    // Decrement ref count 
+    refcount--;
 
     LOG_DEBUG4(MSG_FUNC_END);
 }
@@ -408,7 +415,7 @@ ppcsimbooke::ppcsimbooke_basic_block::basic_block_cache_unit::translate(ppcsimbo
     page_list = m_bb_page_cache.get(bb->bip.mfn);
     if(!page_list){
         page_list = new basic_block_chunk_list(bb->bip.mfn);
-        //page_list->refcount++;
+        page_list->refcount++;
         m_bb_page_cache.add(page_list);
     }
     page_list->refcount++;
@@ -525,6 +532,70 @@ void ppcsimbooke::ppcsimbooke_basic_block::basic_block_cache_unit::flush(){
         m_bb_page_cache.remove(page);
         delete page;
     }
+
+    LOG_DEBUG4(MSG_FUNC_END);
+}
+
+// reclaim is not true LRU. It should be used occasionally.
+void ppcsimbooke::ppcsimbooke_basic_block::basic_block_cache_unit::reclaim(){
+    LOG_DEBUG4(MSG_FUNC_START);
+
+    if likely(static_cast<size_t>(m_bb_cache.size()) <= BB_CACHE_ENTRIES){
+        LOG_DEBUG4("BB cache size is less than ", BB_CACHE_ENTRIES, ". Not reclaiming.", std::endl);
+        LOG_DEBUG4(MSG_FUNC_END);
+        return;
+    }
+
+    basic_block_cache::Iterator iter_bc(m_bb_cache);
+    basic_block* bptr;
+    uint64_t last_used_max = 0xffffffffffffffffULL;
+    uint64_t last_used_min = 0;
+    uint64_t last_used_average = 0;
+
+    size_t  size_to_reclaim = m_bb_cache.size() - BB_CACHE_ENTRIES;
+    size_t  index = 0;
+
+    LOG_DEBUG4("Reclaiming memory for ", size_to_reclaim, " basic blocks. Starting analysis..", std::endl);
+
+    // gather some statistics
+    while((bptr = iter_bc.next())){
+        last_used_max      = max(last_used_max, bptr->lastused);
+        last_used_min      = min(last_used_min, bptr->lastused);
+        last_used_average += bptr->lastused;
+        index++;
+    }
+
+    last_used_average /= index;
+
+    LOG_DEBUG4("Starting to reclaim pages for lastused value < ", last_used_average, std::endl);
+
+    // reset iterator
+    iter_bc.reset(m_bb_cache);
+
+    // start reclaiming basic blocks
+    while((bptr = iter_bc.next()) && (size_to_reclaim > 0)){
+        if ((bptr->lastused < last_used_average) && !bptr->refcount){
+            invalidate(bptr, INVALIDATE_REASON_RECLAIM);
+            size_to_reclaim--;
+        }
+    }
+
+    LOG_DEBUG4("Starting to reclaim free pages in Basic Block Page Cache.", std::endl);
+
+    // start reclaiming free page.
+    // This probably isn't required as ChunkList manager already keep track of deleting empty chunks,
+    // but we are doing it anyway
+    size_t pages_freed = 0;
+    basic_block_page_cache::Iterator iter_pc(m_bb_page_cache);
+    basic_block_chunk_list *page;
+    while((page = iter_pc.next())){
+        if(page->empty() && !page->refcount){
+           delete page;
+           pages_freed++;
+        }
+    }
+
+    LOG_DEBUG4("pages_freed = ", pages_freed, std::endl);
 
     LOG_DEBUG4(MSG_FUNC_END);
 }

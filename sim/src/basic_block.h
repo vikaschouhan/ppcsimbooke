@@ -92,7 +92,7 @@ namespace ppcsimbooke {
             opc_impl_func_t*                 synthops;
             int                              refcount;
             uint32_t                         hitcount;
-            uint64_t                         lastused;
+            uint64_t                         lastused;                 // last used indicator
             uint64_t                         lasttarget;
         
             instr_call                       transops[MAX_BB_INS];
@@ -137,6 +137,11 @@ namespace ppcsimbooke {
         ///////////////////////////////////////////////////////////////////////////////////////////
         static const size_t BB_PAGE_CACHE_SIZE = 32*1024;  // 32K
         static const size_t BB_CACHE_SIZE      = 32*1024;  // 32 K
+
+        // Maximum entries allowed for reclaiming.
+        // Recalaimation is not automatic. Theorectical cache size is infinite. User has to explicitly call
+        // reclaim function to reclaim extra memory.
+        static const size_t BB_CACHE_ENTRIES      = BB_CACHE_SIZE*2;
 
         // Basic Block Chunk List Hash Table Link Manager
         struct basic_block_chunk_list_hash_table_link_manager {
@@ -257,12 +262,17 @@ namespace ppcsimbooke {
         // Basic block cache unit
         class basic_block_cache_unit {
             public:
-            basic_block* translate(context& ctx);
-            bool         invalidate(const basic_block_ip& b_ip, int reason);
-            bool         invalidate(basic_block* bb, int reason);
-            bool         invalidate_page(uint64_t mfn, int reason);
-            size_t       get_page_bb_count(uint64_t mfn);
-            void         flush();
+            basic_block* translate(context& ctx);                                // translate current context to it's basic block
+            bool         invalidate(const basic_block_ip& b_ip, int reason);     // invalidate
+            bool         invalidate(basic_block* bb, int reason);                // invalidate basic block
+            bool         invalidate_page(uint64_t mfn, int reason);              // invalidate all basic blocks in a page
+            size_t       get_page_bb_count(uint64_t mfn);                        // get number of basic blocks for a physical page
+            void         flush();                                                // flush all caches
+            void         reclaim();                                              // reclaim memory by trashing least recently used entries
+
+            // constructors & destructors
+            basic_block_cache_unit()  {}
+            ~basic_block_cache_unit() { flush(); }
 
             private:
             basic_block_cache         m_bb_cache;
