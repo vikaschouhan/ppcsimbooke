@@ -43,9 +43,6 @@ namespace ppcsimbooke {
 
             int get_endianness(){ return (be) ? EMUL_BIG_ENDIAN:EMUL_LITTLE_ENDIAN; }
             void reset();
-            bool operator==(const basic_block_ip &bip) const {
-                return !memcmp(this, &bip, sizeof(basic_block_ip));
-            }
         };
        
         // basic block ip overload for std::cout 
@@ -175,7 +172,8 @@ namespace ppcsimbooke {
         struct basic_block_hash_table_key_manager {
             static inline int hash(const basic_block_ip& key){
                 superstl::CRC32 h;
-                h << key;
+                // we only want to use valid members for CRC calculation
+                h << key.ip << key.mfn << key.msr << key.pid0 << key.pid1 << key.pid2 << key.be;
                 return h;
             }
 
