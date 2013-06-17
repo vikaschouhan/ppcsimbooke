@@ -208,7 +208,7 @@ namespace ppcsimbooke {
             bool                                   m_cpu_running;         // If CPU is in run mode
         
             // cache attributes
-            const int                              m_cache_line_size;     // Cache line size 
+            const size_t                           m_cache_line_size;     // Cache line size 
         
             // Reservation
             // FIXME: Reservation support is not fully implemented.

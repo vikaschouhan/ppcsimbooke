@@ -65,6 +65,14 @@
 #undef  MSR_CM
 #define MSR_CM                   ((DREG(msr) & 0x80000000) ? 1 : 0)
 
+#pragma push_macro("MSR_UCLE")
+#undef  MSR_UCLE
+#define MSR_UCLE                 ((DREG(msr) & 0x4000000) ? 1:0)
+
+#pragma push_macro("MSR_PR")
+#undef  MSR_PR
+#define MSR_PR                   ((DREG(msr) & 0x4000) ? 1:0)
+
 #pragma push_macro("GPR")
 #undef  GPR
 #define GPR(gprno)               DREG(gpr[gprno])
@@ -144,6 +152,10 @@
 #pragma push_macro("HOST_FPU_FLAGS")
 #undef  HOST_FPU_FLAGS
 #define HOST_FPU_FLAGS           CPU->m_x86_mxcsr
+
+#pragma push_macro("CACHE_LINE_SIZE")
+#undef  CACHE_LINE_SIZE
+#define CACHE_LINE_SIZE          CPU->m_cache_line_size
 
 // Alias to some cpu functions ----------------------------------------------------------------
 
@@ -1649,9 +1661,11 @@ RTL_BEGIN("tlbivax", ___tlbivax___)
     uint64_t ea = REG1;
     if(ARG0){ ea += REG0; }
     TLBIVAX(ea);
+    // if HID1[ABE]=1 && CT=1, this instruction is broadcast
 RTL_END
 
 RTL_BEGIN("tlbsync", ___tlbsync___)
+    // if HID1[ABE]=1 && CT=1, this instruction is broadcast
     //dummy
 RTL_END
 
@@ -1666,6 +1680,7 @@ RTL_END
 //               dcbst
 //               dcbt
 //               dcbtst
+//               dcbtls
 //               dcbtstls
 //               icbi
 //               icblc
@@ -1673,56 +1688,193 @@ RTL_END
 //               icbtls
 //
 // TODO  : Right now, no cache is implemented, hence cache instructions are all dummy.
+//         
+// Update 18th June, 2013 : Added checks for exceptions etc.
+//                          Added dummy loads/stores for catching TLB exceptions.
 
 RTL_BEGIN("dcba", ___dcba___)
+    // if WIMGE[M]=1, this instruction is broadcast
+    UMODE tmp = 0;
+    UMODE ea;
+    if(ARG1)  { tmp = REG1; }
+    ea = tmp + REG2;
+
+    // According to Power ISA, this instruction is treated as a store
+    STORE32(ea, LOAD32(ea));    // do a dummy store to capture tlb errors
     // dummy
 RTL_END
 
 RTL_BEGIN("dcbf", ___dcbf___)
+    // if HID1[ABE]=1 && CT=1, this instruction is broadcast
+    // if WIMGE[M]=1, this instruction is boardcast
+    //
+    UMODE tmp = 0;
+    UMODE ea;
+    if(ARG1)  { tmp = REG1; }
+    ea = tmp + REG2;
+
+    // According to Power ISA, this instruction is treated as a load
+    LOAD32(ea);    // do a dummy store to capture tlb errors
     // dummy
 RTL_END
 
 RTL_BEGIN("dcbi", ___dcbi___)
+    UMODE tmp = 0;
+    UMODE ea;
+    if(ARG1)  { tmp = REG1; }
+    ea = tmp + REG2;
+
+    // According to Power ISA, this instruction is treated as a store
+    STORE32(ea, LOAD32(ea));    // do a dummy store to capture tlb errors
+    
     // dummy
 RTL_END
 
 RTL_BEGIN("dcblc", ___dcblc___)
+    if(MSR_PR && !MSR_UCLE){ throw PPC_EXCEPT(PPC_EXCEPTION_DSI, PPC_EXCEPT_DSI_CL, "dcblc: MSR[UCLE]=0, MSR[PR]=1."); }
+    // if HID1[ABE]=1 && CT=1, this instruction is broadcast
+
+    UMODE tmp = 0;
+    UMODE ea;
+    if(ARG1)  { tmp = REG1; }
+    ea = tmp + REG2;
+
+    // According to Power ISA, this instruction is treated as a load
+    LOAD32(ea);    // do a dummy load to capture tlb errors
     // dummy
 RTL_END
 
 RTL_BEGIN("dcbz", ___dcbz___)
-    // dummy
+    // if WIMGE[M]=1, this instruction is broadcast
+
+    // Exception priorities :-
+    // 1. Cache is locked           -> Alignment Exception
+    // 2. WIMGE[W]=1 or WIMGE[I]=1  -> Alignment Exception
+    // 3. TLB protection violation  -> DSI Exception
+    //
+    // TODO : Implement the interrupts first. Without these, this is not guaranteed to work
+
+    UMODE tmp = 0;
+    UMODE ea;
+    if(ARG1)  { tmp = REG1; }
+    ea = (tmp + REG2) & ~(CACHE_LINE_SIZE - 1);   // round the ea to cache line boundary
+
+    // zero out the cache line
+    for(size_t i=0; i<CACHE_LINE_SIZE/8; i++){
+        STORE64(ea + i*8, 0);   // write 8 bytes at a time
+    }
+
 RTL_END
 
 RTL_BEGIN("dcbst", ___dcbst___)
+    // if HID1[ABE]=1 && CT=1, this instruction is broadcast
+    // if WIMGE[M]=1, this instruction is broadcast
+
+    UMODE tmp = 0;
+    UMODE ea;
+    if(ARG1)  { tmp = REG1; }
+    ea = tmp + REG2;
+
+    // According to Power ISA, this instruction is treated as a load
+    LOAD32(ea);    // do a dummy load to capture tlb errors
     // dummy
 RTL_END
 
 RTL_BEGIN("dcbt", ___dcbt___)
+    UMODE tmp = 0;
+    UMODE ea;
+    if(ARG1)  { tmp = REG1; }
+    ea = tmp + REG2;
+
+    // According to Power ISA, this instruction is treated as a load
+    LOAD32(ea);    // do a dummy load to capture tlb errors
     // dummy
 RTL_END
 
 RTL_BEGIN("dcbtst", ___dcbtst___)
+    UMODE tmp = 0;
+    UMODE ea;
+    if(ARG1)  { tmp = REG1; }
+    ea = tmp + REG2;
+
+    // According to Power ISA, this instruction is treated as a store
+    STORE32(ea, LOAD32(ea));    // do a dummy store to capture tlb errors
+    // dummy
+RTL_END
+
+RTL_BEGIN("dcbtls", ___dcbtls___)
+    if(MSR_PR && !MSR_UCLE){ throw PPC_EXCEPT(PPC_EXCEPTION_DSI, PPC_EXCEPT_DSI_CL, "dcbtls: MSR[UCLE]=0, MSR[PR]=1."); }
+
+    UMODE tmp = 0;
+    UMODE ea;
+    if(ARG1)  { tmp = REG1; }
+    ea = tmp + REG2;
+
+    // According to Power ISA, this instruction is treated as a load
+    LOAD32(ea);    // do a dummy load to capture tlb errors
     // dummy
 RTL_END
 
 RTL_BEGIN("dcbtstls", ___dcbtstls___)
+    if(MSR_PR && !MSR_UCLE){ throw PPC_EXCEPT(PPC_EXCEPTION_DSI, PPC_EXCEPT_DSI_CL, "dcbtstls: MSR[UCLE]=0, MSR[PR]=1."); }
+
+    UMODE tmp = 0;
+    UMODE ea;
+    if(ARG1)  { tmp = REG1; }
+    ea = tmp + REG2;
+
+    // According to Power ISA, this instruction is treated as a store
+    STORE32(ea, LOAD32(ea));    // do a dummy store to capture tlb errors
     // dummy
 RTL_END
 
 RTL_BEGIN("icbi", ___icbi___)
+    // if HID1[ABE]=1 && CT=1, this instruction is broadcast
+    UMODE tmp = 0;
+    UMODE ea;
+    if(ARG1)  { tmp = REG1; }
+    ea = tmp + REG2;
+
+    // According to Power ISA, this instruction is treated as a load
+    LOAD32(ea);    // do a dummy load to capture tlb errors
     // dummy
 RTL_END
 
 RTL_BEGIN("icblc", ___icblc___)
+    // if HID1[ABE]=1 && CT=1, this instruction is broadcast
+    if(MSR_PR && !MSR_UCLE){ throw PPC_EXCEPT(PPC_EXCEPTION_DSI, PPC_EXCEPT_DSI_CL, "icblc: MSR[UCLE]=0, MSR[PR]=1."); }
+
+    UMODE tmp = 0;
+    UMODE ea;
+    if(ARG1)  { tmp = REG1; }
+    ea = tmp + REG2;
+
+    // According to Power ISA, this instruction is treated as a load
+    LOAD32(ea);    // do a dummy load to capture tlb errors
     // dummy
 RTL_END
 
 RTL_BEGIN("icbt", ___icbt___)
+    UMODE tmp = 0;
+    UMODE ea;
+    if(ARG1)  { tmp = REG1; }
+    ea = tmp + REG2;
+
+    // According to Power ISA, this instruction is treated as a load
+    LOAD32(ea);    // do a dummy load to capture tlb errors
     // dummy
 RTL_END
 
 RTL_BEGIN("icbtls", ___icbtls___)
+    if(MSR_PR && !MSR_UCLE){ throw PPC_EXCEPT(PPC_EXCEPTION_DSI, PPC_EXCEPT_DSI_CL, "icbtls: MSR[UCLE]=0, MSR[PR]=1."); }
+
+    UMODE tmp = 0;
+    UMODE ea;
+    if(ARG1)  { tmp = REG1; }
+    ea = tmp + REG2;
+
+    // According to Power ISA, this instruction is treated as a load
+    LOAD32(ea);    // do a dummy load to capture tlb errors
     // dummy
 RTL_END
 
@@ -1897,10 +2049,12 @@ RTL_END
 
 // Barrier
 RTL_BEGIN("mbar", ___mbar___)
+    // if HID1[ABE]=1 && CT=1, this instruction is broadcast
     //Do nothing
 RTL_END
 
 RTL_BEGIN("msync", ___msync___)
+    // if HID1[ABE]=1 && CT=1, this instruction is broadcast
     // Do nothing
 RTL_END
 
@@ -3972,6 +4126,8 @@ RTL_END
 #pragma pop_macro("DREG")
 #pragma pop_macro("DREG_FN")
 #pragma pop_macro("MSR_CM")
+#pragma pop_macro("MSR_UCLE")
+#pragma pop_macro("MSR_PR")
 #pragma pop_macro("GPR")
 #pragma pop_macro("SPR")
 #pragma pop_macro("XER")
@@ -3992,5 +4148,6 @@ RTL_END
 #pragma pop_macro("NIP")
 #pragma pop_macro("HOST_FLAGS")
 #pragma pop_macro("HOST_FPU_FLAGS")
+#pragma pop_macro("CACHE_LINE_SIZE")
 
 #endif
