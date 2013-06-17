@@ -1890,26 +1890,40 @@ RTL_END
 //             wrtee
 //             wrteei
 
+// Update 18'th June 2013 : Added support for priviledge mode check.
+
 RTL_BEGIN("rfi", ___rfi___)
+    // throw a program exception if called in user mode
+    if unlikely(MSR_PR) { throw PPC_EXCEPT(PPC_EXCEPTION_PRG, PPC_EXCEPT_PRG_PRV, "rfi: MSR[PR]=1."); }
+
     MSR = SRR1;
     NIP = ((UMODE)SRR0) & ~0x3ULL;       // Mask Lower 2 bits to zero
 RTL_END
 
 RTL_BEGIN("rfmci", ___rfmci___)
+    // throw a program exception if called in user mode
+    if unlikely(MSR_PR) { throw PPC_EXCEPT(PPC_EXCEPTION_PRG, PPC_EXCEPT_PRG_PRV, "rfmci: MSR[PR]=1."); }
+
     MSR = MCSRR1;
     NIP = ((UMODE)MCSRR0) & ~0x3ULL;
 RTL_END
 
 RTL_BEGIN("rfci", ___rfci___)
+    // throw a program exception if called in user mode
+    if unlikely(MSR_PR) { throw PPC_EXCEPT(PPC_EXCEPTION_PRG, PPC_EXCEPT_PRG_PRV, "rfci: MSR[PR]=1."); }
+
     MSR = CSRR1;
     NIP = ((UMODE)CSRR0) & ~0x3ULL;
 RTL_END
 
 RTL_BEGIN("sc", ___sc___)
-    throw PPC_EXCEPT(PPC_EXCEPT_SC, "system call");     // raise a system call exception
+    throw PPC_EXCEPT(PPC_EXCEPTION_SC, PPC_EXCEPT_SC, "system call");     // raise a system call exception
 RTL_END
 
 RTL_BEGIN("mtmsr", ___mtmsr___)
+    // throw a program exception if called in user mode
+    if unlikely(MSR_PR) { throw PPC_EXCEPT(PPC_EXCEPTION_PRG, PPC_EXCEPT_PRG_PRV, "mtmsr: MSR[PR]=1."); }
+
     uint64_t newmsr = B_32_63(REG0);
     uint8_t newmsr_cm = ((newmsr & MSR_CM) ? 1:0);
     if((MSR_CM == 0) && (newmsr_cm == 1)) { NIP &= 0xffffffff; }
@@ -1928,12 +1942,18 @@ RTL_BEGIN("wrtee", ___wrtee___)
     MSR &= ~(1L << 15);           \
     MSR |= rS & (1L << 15);
 
+    // throw a program exception if called in user mode
+    if unlikely(MSR_PR) { throw PPC_EXCEPT(PPC_EXCEPTION_PRG, PPC_EXCEPT_PRG_PRV, "wrtee: MSR[PR]=1."); }
+
     wrtee_code(REG0);
 RTL_END
 RTL_BEGIN("wrteei", ___wrteei___)
 #define wrteei_code(E)            \
     MSR &= ~(1 << 15);            \
     MSR |= ((E & 0x1) << 15);
+
+    // throw a program exception if called in user mode
+    if unlikely(MSR_PR) { throw PPC_EXCEPT(PPC_EXCEPTION_PRG, PPC_EXCEPT_PRG_PRV, "wrteei: MSR[PR]=1."); }
 
     wrteei_code(ARG0);
 RTL_END
