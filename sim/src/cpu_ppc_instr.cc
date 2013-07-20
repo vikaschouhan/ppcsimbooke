@@ -308,12 +308,15 @@
 #define B_59_63(x)                 ((x) & 0x1f)
 
 // Byte reversing macros
-#define SWAPB32(data)              ((((data >> 24) & 0xff) <<  0) ||  \
-                                    (((data >> 16) & 0xff) <<  8) ||  \
-                                    (((data >>  8) & 0xff) << 16) ||  \
-                                    (((data >>  0) & 0xff) << 24) )
-#define SWAPB16(data)              ((((data >>  8) & 0xff) <<  0) ||  \
-                                    (((data >>  0) & 0xff) <<  8) )
+#define SWAPB32(data)              (((((data) >> 24) & 0xff) <<  0) ||  \
+                                    ((((data) >> 16) & 0xff) <<  8) ||  \
+                                    ((((data) >>  8) & 0xff) << 16) ||  \
+                                    ((((data) >>  0) & 0xff) << 24) )
+#define SWAPB16(data)              (((((data) >>  8) & 0xff) <<  0) ||  \
+                                    ((((data) >>  0) & 0xff) <<  8) )
+
+// Form CRX field
+#define FORM_CRX(lt, gt, eq, so)   (((lt) << 3) | ((gt) << 2) | ((eq) << 1) | (so))
 
 // PPC Exceptions
 #define  PPC_EXCEPT         sim_except_ppc
@@ -340,6 +343,10 @@
 #define X86_SUBS_F32(arg1, arg2)                     x86_subs_f32(arg1, arg2, HOST_FPU_FLAGS)
 #define X86_MULS_F32(arg1, arg2)                     x86_muls_f32(arg1, arg2, HOST_FPU_FLAGS)
 #define X86_DIVS_F32(arg1, arg2)                     x86_divs_f32(arg1, arg2, HOST_FPU_FLAGS)
+#define X86_CMPEQS_F32(arg1, arg2)                   x86_cmpeqs_f32(arg1, arg2, HOST_FPU_FLAGS)
+#define X86_CMPLTS_F32(arg1, arg2)                   x86_cmplts_f32(arg1, arg2, HOST_FPU_FLAGS)
+#define X86_CMPLTEQS_F32(arg1, arg2)                 x86_cmplteqs_f32(arg1, arg2, HOST_FPU_FLAGS)
+#define X86_CMPGTS_F32(arg1, arg2)                   x86_cmplteqs_f32(arg2, arg1, HOST_FPU_FLAGS)
 
 // define building blocks for lambda syntax (GCC compiler must support -std=c++11)
 // Incrementing NIP actually takes care of program flow.
@@ -4085,48 +4092,187 @@ RTL_END
 
 RTL_BEGIN("evfsadd", __evfsadd__)
     uint32_t u, v;
-    u = X86_ADDS_F32(B_0_31(REG1), B_0_31(REG2));
-    SPE_FP_2_OP_DEFRES_32(u, fp_emul::fp_op_add, REG1, REG2);
+    uint32_t op0, op1;
+
+    op0 = B_0_31(REG1);
+    op1 = B_0_31(REG2);
+    u = X86_ADDS_F32(op0, op1);
+    SPE_FP_2_OP_DEFRES_32(u, fp_emul::fp_op_add, op0, op1);
     UPDATE_SPEFSCR_H(1);
-    v = X86_ADDS_F32(B_32_63(REG1), B_32_63(REG2));
-    SPE_FP_2_OP_DEFRES_32(v, fp_emul::fp_op_add, REG1, REG2);
+
+    op0 = B_32_63(REG1);
+    op1 = B_32_63(REG2);
+    v = X86_ADDS_F32(op0, op1);
+    SPE_FP_2_OP_DEFRES_32(v, fp_emul::fp_op_add, op0, op1);
     UPDATE_SPEFSCR_H(0);
+
     REG0 = PACK_2W(u, v);
 RTL_END
 
 RTL_BEGIN("evfssub", __evfssub__)
     uint32_t u, v;
-    u = X86_SUBS_F32(B_0_31(REG1), B_0_31(REG2));
-    SPE_FP_2_OP_DEFRES_32(u, fp_emul::fp_op_sub, REG1, REG2);
+    uint32_t op0, op1;
+
+    op0 = B_0_31(REG1);
+    op1 = B_0_31(REG2);
+    u = X86_SUBS_F32(op0, op1);
+    SPE_FP_2_OP_DEFRES_32(u, fp_emul::fp_op_sub, op0, op1);
     UPDATE_SPEFSCR_H(1);
-    v = X86_SUBS_F32(B_32_63(REG1), B_32_63(REG2));
-    SPE_FP_2_OP_DEFRES_32(v, fp_emul::fp_op_sub, REG1, REG2);
+
+    op0 = B_32_63(REG1);
+    op1 = B_32_63(REG2);
+    v = X86_SUBS_F32(op0, op1);
+    SPE_FP_2_OP_DEFRES_32(v, fp_emul::fp_op_sub, op0, op1);
     UPDATE_SPEFSCR_H(0);
+
     REG0 = PACK_2W(u, v);
 RTL_END
 
 RTL_BEGIN("evfsmul", __evfsmul__)
     uint32_t u, v;
-    u = X86_MULS_F32(B_0_31(REG1), B_0_31(REG2));
-    SPE_FP_2_OP_DEFRES_32(u, fp_emul::fp_op_mul, REG1, REG2);
+    uint32_t op0, op1;
+
+    op0 = B_0_31(REG1);
+    op1 = B_0_31(REG2);
+    u = X86_MULS_F32(op0, op1);
+    SPE_FP_2_OP_DEFRES_32(u, fp_emul::fp_op_mul, op0, op1);
     UPDATE_SPEFSCR_H(1);
-    v = X86_MULS_F32(B_32_63(REG1), B_32_63(REG2));
-    SPE_FP_2_OP_DEFRES_32(v, fp_emul::fp_op_mul, REG1, REG2);
+
+    op0 = B_32_63(REG1);
+    op1 = B_32_63(REG2);
+    v = X86_MULS_F32(op0, op1);
+    SPE_FP_2_OP_DEFRES_32(v, fp_emul::fp_op_mul, op0, op1);
     UPDATE_SPEFSCR_H(0);
+
     REG0 = PACK_2W(u, v);
 RTL_END
 
 RTL_BEGIN("evfsdiv", __evfsdiv__)
     uint32_t u, v;
-    u = X86_DIVS_F32(B_0_31(REG1), B_0_31(REG2));
-    SPE_FP_2_OP_DEFRES_32(u, fp_emul::fp_op_div, REG1, REG2);
+    uint32_t op0, op1;
+
+    op0 = B_0_31(REG1);
+    op1 = B_0_31(REG2);
+    u = X86_DIVS_F32(op0, op1);
+    SPE_FP_2_OP_DEFRES_32(u, fp_emul::fp_op_div, op0, op1);
     UPDATE_SPEFSCR_H(1);
-    v = X86_DIVS_F32(B_32_63(REG1), B_32_63(REG2));
-    SPE_FP_2_OP_DEFRES_32(v, fp_emul::fp_op_div, REG1, REG2);
+
+    op0 = B_32_63(REG1);
+    op1 = B_32_63(REG2);
+    v = X86_DIVS_F32(op0, op1);
+    SPE_FP_2_OP_DEFRES_32(v, fp_emul::fp_op_div, op0, op1);
     UPDATE_SPEFSCR_H(0);
+
     REG0 = PACK_2W(u, v);
 RTL_END
 
+RTL_BEGIN("evfscmpgt", __evfscmpgt__)
+    uint32_t ah, al, bh, bl;
+    unsigned crf;
+    bool ch, cl;
+
+    ah = B_0_31(REG1);
+    al = B_32_63(REG1);
+    bh = B_0_31(REG2);
+    bl = B_32_63(REG2);
+
+    ch = X86_CMPGTS_F32(ah, bh);
+    UPDATE_SPEFSCR_H(1);
+    cl = X86_CMPGTS_F32(al, bl);
+    UPDATE_SPEFSCR_H(0);
+
+    crf = FORM_CRX(ch, cl, ch | cl, ch & cl);
+    update_crF(ARG0, crf);
+RTL_END
+
+RTL_BEGIN("evfscmplt", __evfscmplt__)
+    uint32_t ah, al, bh, bl;
+    unsigned crf;
+    bool ch, cl;
+
+    ah = B_0_31(REG1);
+    al = B_32_63(REG1);
+    bh = B_0_31(REG2);
+    bl = B_32_63(REG2);
+
+    ch = X86_CMPLTS_F32(ah, bh);
+    UPDATE_SPEFSCR_H(1);
+    cl = X86_CMPLTS_F32(al, bl);
+    UPDATE_SPEFSCR_H(0);
+
+    crf = FORM_CRX(ch, cl, ch | cl, ch & cl);
+    update_crF(ARG0, crf);
+RTL_END
+
+RTL_BEGIN("evfscmpeq", __evfscmpeq__)
+    uint32_t ah, al, bh, bl;
+    unsigned crf;
+    bool ch, cl;
+
+    ah = B_0_31(REG1);
+    al = B_32_63(REG1);
+    bh = B_0_31(REG2);
+    bl = B_32_63(REG2);
+
+    ch = X86_CMPEQS_F32(ah, bh);
+    UPDATE_SPEFSCR_H(1);
+    cl = X86_CMPEQS_F32(al, bl);
+    UPDATE_SPEFSCR_H(0);
+
+    crf = FORM_CRX(ch, cl, ch | cl, ch & cl);
+    update_crF(ARG0, crf);
+RTL_END
+
+RTL_BEGIN("evfststgt", __evfststgt__)
+    uint32_t ah, al, bh, bl;
+    unsigned crf;
+    bool ch, cl;
+
+    ah = B_0_31(REG1);
+    al = B_32_63(REG1);
+    bh = B_0_31(REG2);
+    bl = B_32_63(REG2);
+
+    ch = X86_CMPGTS_F32(ah, bh);
+    cl = X86_CMPGTS_F32(al, bl);
+
+    crf = FORM_CRX(ch, cl, ch | cl, ch & cl);
+    update_crF(ARG0, crf);
+RTL_END
+
+RTL_BEGIN("evfststlt", __evfststlt__)
+    uint32_t ah, al, bh, bl;
+    unsigned crf;
+    bool ch, cl;
+
+    ah = B_0_31(REG1);
+    al = B_32_63(REG1);
+    bh = B_0_31(REG2);
+    bl = B_32_63(REG2);
+
+    ch = X86_CMPLTS_F32(ah, bh);
+    cl = X86_CMPLTS_F32(al, bl);
+
+    crf = FORM_CRX(ch, cl, ch | cl, ch & cl);
+    update_crF(ARG0, crf);
+RTL_END
+
+RTL_BEGIN("evfststeq", __evfststeq__)
+    uint32_t ah, al, bh, bl;
+    unsigned crf;
+    bool ch, cl;
+
+    ah = B_0_31(REG1);
+    al = B_32_63(REG1);
+    bh = B_0_31(REG2);
+    bl = B_32_63(REG2);
+
+    ch = X86_CMPEQS_F32(ah, bh);
+    cl = X86_CMPEQS_F32(al, bl);
+
+    crf = FORM_CRX(ch, cl, ch | cl, ch & cl);
+    update_crF(ARG0, crf);
+RTL_END
 
 RTL_BEGIN("efdabs", ___efdabs___)
     REG0 = REG1 & 0x7fffffffffffffffULL;       // Change sign bit to zero

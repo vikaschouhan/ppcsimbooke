@@ -48,6 +48,13 @@
 #error "PPCSIMBOOKE only compiles on Little Endian x86/x86_64 machines."
 #endif
 
+// Check for host's SSE requirements
+#if defined WITH_SPE
+#if !(defined __SSE__ && defined __SSE2__)
+#error "PPCSIMBOOKE requires SSE & SSE2 compatible x86/x86_64 cpu."
+#endif
+#endif
+
 // Define misc macros.
 // For debug couts, printfs etc..
 #ifndef SIM_DEBUG

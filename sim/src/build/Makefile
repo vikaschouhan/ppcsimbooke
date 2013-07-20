@@ -75,6 +75,10 @@ ifeq ($(ENABLE_DEBUG), 1)
 	HOST_EXTFLAGS    += -g
 endif
 
+ifeq ($(ENABLE_SPE), 1)
+	HOST_EXTFLAGS    += -DWITH_SPE
+endif
+
 #============================ TARGET FLAGS =========================================================
 CROSS_CFLAGS                := -mregnames -Wa,-me500x2 -I. -I$(SIM_ROOT)
 CROSS_LDFLAGS               := -L -n -N -T $(DUT_TESTS_ROOT)/e500v2_eabi_default.lcf -Wa,-me500x2

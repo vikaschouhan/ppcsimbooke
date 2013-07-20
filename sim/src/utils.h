@@ -1,30 +1,30 @@
-/*
-  utils.h (utility functions/macros)
-  This file contains utility functions/macros which are very general
-  in nature and can be used anywhere.
+// 
+// utils.h (utility functions/macros)
+// This file contains utility functions/macros which are very general
+// in nature and can be used anywhere.
+// 
+// NOTE: All functions are inline functions
+// 
+// Author : Vikas Chouhan (presentisgood@gmail.com)
+// Copyright 2012/2013.
+// 
+// This file is part of ppc-sim-booke simulator library.
+// 
+// This library is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 3, or (at your option)
+// any later version.
+// 
+// It is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
+// License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this file; see the file COPYING.  If not, write to the
+// Free Software Foundation, 51 Franklin Street - Fifth Floor, Boston,
+// MA 02110-1301, USA.
 
-  NOTE: All functions are inline functions
-
-  Author : Vikas Chouhan (presentisgood@gmail.com)
-  Copyright 2012.
-
-  This file is part of ppc-sim-booke simulator library.
-
-  This library is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3, or (at your option)
-  any later version.
-
-  It is distributed in the hope that it will be useful, but WITHOUT
-  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
-  or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
-  License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this file; see the file COPYING.  If not, write to the
-  Free Software Foundation, 51 Franklin Street - Fifth Floor, Boston,
-  MA 02110-1301, USA.
-*/
 #ifndef _UTILS_H_
 #define _UTILS_H_
 
@@ -635,7 +635,7 @@ inline void x86_stmxcsr(x86_mxcsr& f){
 
 // SSE vector type
 typedef float __m128 __attribute__ ((__vector_size__ (16), __may_alias__));
-typedef union __attribute__((__packed__)){
+typedef union u_sse_vec {
     __m128       m;
     double       f64[2];
     float        f32[4];
@@ -648,9 +648,12 @@ typedef union __attribute__((__packed__)){
     int16_t      i16[8];
     int8_t       i8[16];
 
+    // initialize the union to zero
+    u_sse_vec() : u64{0, 0} {}
+
     template<typename T, int index>
     inline T& ret_v(){};
-} sse_vec;
+} __attribute__((__packed__)) sse_vec;
 
 // spcializations
 template<>
@@ -673,6 +676,20 @@ inline T name(T ra, T rb, x86_mxcsr &f){         \
     return va.ret_v<T,0>();                      \
 }
 
+#define def_x86_sse_op2_cmp(name, x86_op, pred)               \
+template<typename T>                                          \
+inline T name(T ra, T rb, x86_mxcsr &f){                      \
+    sse_vec va, vb;                                           \
+    va.ret_v<T,0>() = ra;                                     \
+    vb.ret_v<T,0>() = rb;                                     \
+    asm( #x86_op " $" #pred ", %[vb], %[va]; stmxcsr %[f];"   \
+        : [va] "+x" (va.m), [f] "=m" (f)                      \
+        : [vb] "xm" (vb.m)                                    \
+        :                                                     \
+    );                                                        \
+    return va.ret_v<T,0>();                                   \
+}
+
 // Naming convention
 // def_x86_sse_op2(op[s/v]_f[32/64], op[s/p][s/d])
 //      |           |  |   |   |         |    |________________________________________________________ single/double precision
@@ -684,14 +701,25 @@ inline T name(T ra, T rb, x86_mxcsr &f){         \
 // 2 operand sse   opcode's name    scalar/vector     floating point type
 //
 //
-def_x86_sse_op2(x86_adds_f32, addss)
-def_x86_sse_op2(x86_adds_f64, addsd)
-def_x86_sse_op2(x86_subs_f32, subss)
-def_x86_sse_op2(x86_subs_f64, subsd)
-def_x86_sse_op2(x86_muls_f32, mulss)
-def_x86_sse_op2(x86_muls_f64, mulsd)
-def_x86_sse_op2(x86_divs_f32, divss)
-def_x86_sse_op2(x86_divs_f64, divsd)
+// floating point arithmetic
+def_x86_sse_op2(x86_adds_f32,    addss)
+def_x86_sse_op2(x86_adds_f64,    addsd)
+def_x86_sse_op2(x86_subs_f32,    subss)
+def_x86_sse_op2(x86_subs_f64,    subsd)
+def_x86_sse_op2(x86_muls_f32,    mulss)
+def_x86_sse_op2(x86_muls_f64,    mulsd)
+def_x86_sse_op2(x86_divs_f32,    divss)
+def_x86_sse_op2(x86_divs_f64,    divsd)
+
+// floating point compares.
+// NOTE : gt (greater than) variants have not been defined by sse.
+//        Use lt or lteq variant.
+def_x86_sse_op2_cmp(x86_cmpeqs_f32,      cmpss, 0)         // compare equal scalar single precision
+def_x86_sse_op2_cmp(x86_cmpeqs_f64,      cmpsd, 0)         // compare equal scalar double precision
+def_x86_sse_op2_cmp(x86_cmplts_f32,      cmpss, 1)         // compare less than scalar single precision
+def_x86_sse_op2_cmp(x86_cmplts_f64,      cmpsd, 1)         // compare less than scalar double precision
+def_x86_sse_op2_cmp(x86_cmplteqs_f32,    cmpss, 2)         // compare less than or equal scalar single precision
+def_x86_sse_op2_cmp(x86_cmplteqs_f64,    cmpsd, 2)         // compare less than ir equal scalar double precision
 
 #undef def_x86_sse_op2
 
