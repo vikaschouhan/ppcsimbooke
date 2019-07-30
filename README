@@ -1,4 +1,4 @@
-ppc_sim_booke (codename : Rhea)
+ppc_sim_booke
 ---------------------------------------------
 The purpose of this project is to explore an experimental instruction set simulator for booke powerpc architectures in C++.
 The reference core is freescale e500v2.
