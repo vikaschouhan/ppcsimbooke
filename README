@@ -3,6 +3,10 @@ ppc_sim_booke
 The purpose of this project is to explore an experimental instruction set simulator for booke powerpc architectures in C++.
 The reference core is freescale e500v2.
 
+NOTE
+---------------------------------------------
+This project is abandoned for quite some time now !! It doesn't compile on latest linux systems.
+
 Features :-
     1. ISS is being designed in C++ as a shared library with a python frontend (developed using boost::python).
     2. The simulator can only be compiled with GCC/llvm toolchain on a Linux/BSD based platform,
